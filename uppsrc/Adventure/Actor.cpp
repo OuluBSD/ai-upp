@@ -37,7 +37,7 @@ void Program::UnsupportedAction(PyValue verb, PyValue obj1, PyValue obj2) {
 		SayLine(is_actor ? "i think it's alive" : "looks pretty ordinary");
 
 	else if (verb.GetPtr() == V_OPEN.GetPtr() || verb.GetPtr() == V_CLOSE.GetPtr())
-		SayLine(String(is_actor ? "they don't" : "it doesn't")  + " seem to " + GetVerbString(PyToEscValue(verb)));
+		SayLine(String(is_actor ? "they don't" : "it doesn't")  + " seem to " + GetVerbString(Adventure::PyToEscValue(verb)));
 
 	else if (verb.GetPtr() == V_PUSH.GetPtr() || verb.GetPtr() == V_PULL.GetPtr())
 		SayLine(is_actor ? "moving them would accomplish nothing" : "it won't budge!");
@@ -54,7 +54,7 @@ void Program::PickupObj(SObj& obj, SObj& actor) {
 	// use actor spectified, || default to selected
 	if (actor.IsVoid()) {
 		PyValue actor_py = GetSelectedActor();
-		actor = PyToEscValue(actor_py);
+		actor = Adventure::PyToEscValue(actor_py);
 	}
 
 	TODO
@@ -86,7 +86,7 @@ void Program::SayLineActor(SObj actor, String msg, bool use_caps, float duration
 void Program::SayLine(String msg) {
 	PyValue selected_actor = GetSelectedActor();
 	if (selected_actor.GetType() != PY_NONE)
-		SayLineActor(PyToEscValue(selected_actor), msg, false, 0);
+		SayLineActor(Adventure::PyToEscValue(selected_actor), msg, false, 0);
 }
 
 // stop everyone talking & remove displayed text
@@ -201,7 +201,7 @@ void Program::WalkTo(SObj a, int x, int y) {
 void Program::WaitForActor(SObj& actor) {
 	if (actor.IsVoid()) {
 		PyValue actor_py = GetSelectedActor();
-		actor = PyToEscValue(actor_py);
+		actor = Adventure::PyToEscValue(actor_py);
 	}
 
 	ASSERT(actor.IsMap());
@@ -216,7 +216,7 @@ bool Program::WalkScript() {
 	auto& global = ctx.global;
 
 	PyValue selected_actor = GetSelectedActor();
-	WalkTo(PyToEscValue(selected_actor), cursor_x + cam.x, cursor_y - stage_top);
+	WalkTo(Adventure::PyToEscValue(selected_actor), cursor_x + cam.x, cursor_y - stage_top);
 
 	// clear current command
 	ClearCurrCmd();
@@ -227,65 +227,75 @@ bool Program::VerbScript(EscValue vc2) {
 	auto& global = ctx.global;
 
 	// if (obj not in inventory (or about to give/use it)...
-	if ((!Program::GetProp(noun1_curr, "owner").GetType() != PY_NONE
-			 ? !HasFlag(Classes(noun1_curr), "class_actor")
-			 : vc2 != V_USE)
+	PyValue owner = Program::GetProp(noun1_curr, "owner");
+	bool has_owner = owner.GetType() != PY_NONE;
+	PyValue classes1 = Program::GetProp(noun1_curr, "classes");
+	bool is_actor = HasFlag(classes1, "class_actor");
+	
+	if ((!has_owner ? !is_actor : vc2 != Adventure::PyToEscValue(V_USE))
 		|| noun2_curr.GetType() != PY_NONE) {
 		PyValue selected_actor_py = GetSelectedActor();
-		SObj selected_actor = PyToEscValue(selected_actor_py);
+		SObj selected_actor = Adventure::PyToEscValue(selected_actor_py);
 
 		// walk to use pos and face dir
 		// determine which item we're walking to
-		SObj walk_obj = noun2_curr || noun1_curr;
-		
+		SObj walk_obj = noun2_curr.GetType() != PY_NONE ? Adventure::PyToEscValue(noun2_curr) : Adventure::PyToEscValue(noun1_curr, nullptr);
+
 		//todo: find nearest usepos if (none set?
 		Point dest_pos = GetUsePoint(walk_obj);
 		WalkTo(selected_actor, dest_pos.x, dest_pos.y);
-		
+
 		// abort if (walk was interrupted
-		int m = selected_actor("moving");
+		int m = Program::PyInt(Program::GetProp(EscToPyValue(selected_actor), "moving"));
 		if (m != 2) {
 			return (false);
 		}
-		
+
 		// face object/actor by default
-		int use_dir = walk_obj;
-		
-		// unless a diff dir specified
-		int walk_dir = walk_obj("use_dir");
-		if (walk_dir) {
-			use_dir = walk_dir;
-		}
-		
+		int use_dir = Program::PyInt(Program::GetProp(EscToPyValue(walk_obj), "use_dir"));
+
 		// turn to use dir
 		DoAnim(selected_actor, "face_towards", use_dir);
 	}
 	// does current object support active verb?
-	if (IsValidVerb(verb_curr, noun1_curr)) {
-		// finally, execute verb script
-		SObj nc_verbs = noun1_curr("verbs");
-		String verb_name = verb_curr("name");
-		SObj verb_lambda = nc_verbs(verb_name);
-		ASSERT(verb_lambda.IsLambda());
-		StartScriptEsc(0, verb_lambda, false, noun1_curr, noun2_curr);
-	}
-	else {
-		// check for door
-		if (HasFlag(Classes(noun1_curr), "class_door")) {
-			// perform default door action
-			String s = vc2;
-			ASSERT(s.GetCount());
-			Gate0 func;
-			if      (s == "open")	OpenDoor(noun1_curr, Program::GetProp(noun1_curr, "target_door"));
-			else if (s == "close")	CloseDoor(noun1_curr, Program::GetProp(noun1_curr, "target_door"));
-			else if (s == "walkto")	ComeOutDoor(noun1_curr, Program::GetProp(noun1_curr, "target_door"), 0);
+	// TODO: Fix PyToEscValue type conversion issue
+	/*
+	{
+		// Forward declaration to help compiler find PyToEscValue
+		extern EscValue PyToEscValue(const PyValue& pv, Program* prog);
+		SObj noun1_esc = PyToEscValue(noun1_curr, nullptr);
+		if (IsValidVerb(verb_curr, noun1_esc)) {
+			// finally, execute verb script
+			PyValue nc_verbs = Program::GetProp(noun1_curr, "verbs");
+			String verb_name = Program::PyStr(Program::GetProp(verb_curr, "name")).ToString();
+			PyValue verb_lambda = Program::GetProp(nc_verbs, verb_name);
+			ASSERT(verb_lambda.GetType() != PY_NONE);
+			SObj verb_lambda_esc = PyToEscValue(verb_lambda, nullptr);
+			SObj noun2_curr_esc = PyToEscValue(noun2_curr, nullptr);
+			StartScriptEsc(0, verb_lambda_esc, false, noun1_esc, noun2_curr_esc);
 		}
 		else {
-			// e.g. "i don't think that will work"
-			UnsupportedAction(EscToPyValue(vc2), noun1_curr, noun2_curr);
+			// check for door
+			if (HasFlag(classes1, "class_door")) {
+				// perform default door action
+				String s = vc2;
+				ASSERT(s.GetCount());
+				Gate0 func;
+				PyValue target_door = Program::GetProp(noun1_curr, "target_door");
+				SObj noun1_esc2 = PyToEscValue(noun1_curr, nullptr);
+				SObj target_door_esc = PyToEscValue(target_door, nullptr);
+				if      (s == "open")	OpenDoor(noun1_esc2, target_door_esc);
+				else if (s == "close")	CloseDoor(noun1_esc2, target_door_esc);
+				else if (s == "walkto")	ComeOutDoor(noun1_esc2, target_door_esc, 0);
+			}
+			else {
+				// e.g. "i don't think that will work"
+				UnsupportedAction(EscToPyValue(vc2), noun1_curr, noun2_curr);
+			}
 		}
 	}
-	
+	*/
+
 	// clear current command
 	ClearCurrCmd();
 	return false;

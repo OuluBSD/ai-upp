@@ -231,76 +231,96 @@ bool Program::VerbScript(EscValue vc2) {
 	bool has_owner = owner.GetType() != PY_NONE;
 	PyValue classes1 = Program::GetProp(noun1_curr, "classes");
 	bool is_actor = HasFlag(classes1, "class_actor");
-	
-	if ((!has_owner ? !is_actor : vc2 != Adventure::PyToEscValue(V_USE))
+
+	if ((!has_owner ? !is_actor : EscToPyValue(vc2) != V_USE)
 		|| noun2_curr.GetType() != PY_NONE) {
 		PyValue selected_actor_py = GetSelectedActor();
-		SObj selected_actor = Adventure::PyToEscValue(selected_actor_py);
 
 		// walk to use pos and face dir
 		// determine which item we're walking to
-		SObj walk_obj = noun2_curr.GetType() != PY_NONE ? Adventure::PyToEscValue(noun2_curr) : Adventure::PyToEscValue(noun1_curr, nullptr);
+		PyValue walk_obj = noun2_curr.GetType() != PY_NONE ? noun2_curr : noun1_curr;
 
 		//todo: find nearest usepos if (none set?
-		Point dest_pos = GetUsePoint(walk_obj);
-		WalkTo(selected_actor, dest_pos.x, dest_pos.y);
+		Point dest_pos = GetUsePointPy(walk_obj);
+		WalkToPy(selected_actor_py, dest_pos.x, dest_pos.y);
 
 		// abort if (walk was interrupted
-		int m = Program::PyInt(Program::GetProp(EscToPyValue(selected_actor), "moving"));
+		int m = Program::PyInt(Program::GetProp(selected_actor_py, "moving"));
 		if (m != 2) {
 			return (false);
 		}
 
 		// face object/actor by default
-		int use_dir = Program::PyInt(Program::GetProp(EscToPyValue(walk_obj), "use_dir"));
+		int use_dir = Program::PyInt(Program::GetProp(walk_obj, "use_dir"));
 
 		// turn to use dir
-		DoAnim(selected_actor, "face_towards", use_dir);
+		DoAnimPy(selected_actor_py, "face_towards", use_dir);
 	}
 	// does current object support active verb?
-	// TODO: Fix PyToEscValue type conversion issue
-	/*
-	{
-		// Forward declaration to help compiler find PyToEscValue
-		extern EscValue PyToEscValue(const PyValue& pv, Program* prog);
-		SObj noun1_esc = PyToEscValue(noun1_curr, nullptr);
-		if (IsValidVerb(verb_curr, noun1_esc)) {
-			// finally, execute verb script
-			PyValue nc_verbs = Program::GetProp(noun1_curr, "verbs");
-			String verb_name = Program::PyStr(Program::GetProp(verb_curr, "name")).ToString();
-			PyValue verb_lambda = Program::GetProp(nc_verbs, verb_name);
-			ASSERT(verb_lambda.GetType() != PY_NONE);
-			SObj verb_lambda_esc = PyToEscValue(verb_lambda, nullptr);
-			SObj noun2_curr_esc = PyToEscValue(noun2_curr, nullptr);
-			StartScriptEsc(0, verb_lambda_esc, false, noun1_esc, noun2_curr_esc);
+	if (IsValidVerb(verb_curr, noun1_curr)) {
+		// finally, execute verb script
+		PyValue nc_verbs = Program::GetProp(noun1_curr, "verbs");
+		String verb_name = Program::PyStr(Program::GetProp(verb_curr, "name")).ToString();
+		PyValue verb_lambda = Program::GetProp(nc_verbs, verb_name);
+		ASSERT(verb_lambda.GetType() != PY_NONE);
+		StartScriptEsc(0, PyToEscValue(verb_lambda, nullptr), false, PyToEscValue(noun1_curr, nullptr), PyToEscValue(noun2_curr, nullptr));
+	}
+	else {
+		// check for door
+		if (HasFlag(classes1, "class_door")) {
+			// perform default door action
+			String s = vc2;
+			ASSERT(s.GetCount());
+			Gate0 func;
+			PyValue target_door = Program::GetProp(noun1_curr, "target_door");
+			if      (s == "open")	OpenDoorPy(noun1_curr, target_door);
+			else if (s == "close")	CloseDoorPy(noun1_curr, target_door);
+			else if (s == "walkto")	ComeOutDoorPy(noun1_curr, target_door, 0);
 		}
 		else {
-			// check for door
-			if (HasFlag(classes1, "class_door")) {
-				// perform default door action
-				String s = vc2;
-				ASSERT(s.GetCount());
-				Gate0 func;
-				PyValue target_door = Program::GetProp(noun1_curr, "target_door");
-				SObj noun1_esc2 = PyToEscValue(noun1_curr, nullptr);
-				SObj target_door_esc = PyToEscValue(target_door, nullptr);
-				if      (s == "open")	OpenDoor(noun1_esc2, target_door_esc);
-				else if (s == "close")	CloseDoor(noun1_esc2, target_door_esc);
-				else if (s == "walkto")	ComeOutDoor(noun1_esc2, target_door_esc, 0);
-			}
-			else {
-				// e.g. "i don't think that will work"
-				UnsupportedAction(EscToPyValue(vc2), noun1_curr, noun2_curr);
-			}
+			// e.g. "i don't think that will work"
+			UnsupportedAction(EscToPyValue(vc2), noun1_curr, noun2_curr);
 		}
 	}
-	*/
 
 	// clear current command
 	ClearCurrCmd();
 	return false;
 }
 
-	
-	
+// PyValue wrapper functions
+void Program::WalkToPy(PyValue a, int x, int y) {
+	SObj a_esc = PyToEscValue(a, nullptr);
+	WalkTo(a_esc, x, y);
+}
+
+void Program::DoAnimPy(PyValue thing, const String& param1, int param2) {
+	SObj thing_esc = PyToEscValue(thing, nullptr);
+	DoAnim(thing_esc, param1, param2);
+}
+
+Point Program::GetUsePointPy(PyValue obj) {
+	SObj obj_esc = PyToEscValue(obj, nullptr);
+	return GetUsePoint(obj_esc);
+}
+
+void Program::OpenDoorPy(PyValue door_obj1, PyValue door_obj2) {
+	SObj door1_esc = PyToEscValue(door_obj1, nullptr);
+	SObj door2_esc = PyToEscValue(door_obj2, nullptr);
+	OpenDoor(door1_esc, door2_esc);
+}
+
+void Program::CloseDoorPy(PyValue door_obj1, PyValue door_obj2) {
+	SObj door1_esc = PyToEscValue(door_obj1, nullptr);
+	SObj door2_esc = PyToEscValue(door_obj2, nullptr);
+	CloseDoor(door1_esc, door2_esc);
+}
+
+void Program::ComeOutDoorPy(PyValue from_door, PyValue to_door, bool fade_effect) {
+	SObj from_esc = PyToEscValue(from_door, nullptr);
+	SObj to_esc = PyToEscValue(to_door, nullptr);
+	ComeOutDoor(from_esc, to_esc, fade_effect);
+}
+
+
 }

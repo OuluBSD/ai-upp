@@ -299,22 +299,19 @@ PyValue Program::FindDefaultVerb(SObj obj) {
 
 
 
-bool Program::IsValidVerb(SObj verb, SObj object) {
-	TODO
-	/*
- // check params
-	if ((!object || !object.verbs)
+bool Program::IsValidVerb(PyValue verb, PyValue object) {
+	// check if object has verbs property
+	PyValue verbs = Program::GetProp(object, "verbs");
+	if (verbs.GetType() != PY_DICT)
 		return false;
-	// look for (verb
-	if (IsTable(verb)) {
-		if (object.verbs[verb[1]]) return true;
-	}
-	else {
-		if (object.verbs[verb]) return true;
-	}
-	// must not be valid if (reached here
-	return false;
-	*/
+	
+	// look for verb in object's verbs
+	PyValue verb_name = Program::GetProp(verb, "name");
+	if (verb_name.GetType() != PY_STR)
+		return false;
+	
+	PyValue found_verb = Program::GetProp(verbs, verb_name.GetStr().ToString());
+	return found_verb.GetType() != PY_NONE;
 }
 
 

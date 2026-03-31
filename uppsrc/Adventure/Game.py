@@ -1799,4 +1799,3 @@ def use_switch_player(me):
 # ============================================================================
 
 # Run startup when loaded
-startup_script()

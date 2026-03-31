@@ -14,50 +14,38 @@ namespace Adventure {
 }*/
 
 bool Program::ReadGame() {
-	auto& global = ctx.global;
 	LOG("ReadGame: Starting to read game state from Python module");
-
-	//DUMPM(global);
-	//RealizeGame();
-
-	/*room_names.Clear();
-	FindRooms("", game, room_names);
-	if (room_names.IsEmpty()) {
-		LOG("Could not find any rooms");
-		return false;
-	}*/
-	//DUMPC(room_names);
-
-	if (room_curr.GetType() != PY_DICT) {
-		LOG("ReadGame: room_curr is not a dict, type=" << room_curr.GetType());
-		TODO
-		/*const SObj* found = FindDeep(room_names[0]);
-		if (!found || !found->IsMap()) {
-			LOG("Could not find room " << room_names[0]);
-			return false;
-		}
-		room_curr = *found;*/
+	
+	// Get the loaded Python module from sys.modules
+	PyValue sys = Program::GetProp(vm.GetGlobals(), "sys");
+	PyValue sys_modules = Program::GetProp(sys, "modules");
+	PyValue demo_module;
+	if (sys_modules.GetType() == PY_DICT) {
+		demo_module = Program::GetProp(sys_modules, "demo");
 	}
+	
+	if (demo_module.GetType() != PY_DICT) {
+		LOG("ReadGame: demo module not found in sys.modules, type=" << sys_modules.GetType());
+		return false;
+	}
+	
+	PyValue py_globals = demo_module;  // Module IS the globals dict
 
-	//rooms = game.MapGet("rooms");
-	EscValue rooms_esc = global.Get("rooms", EscValue());
-	LOG("ReadGame: Got rooms from global, type=" << rooms_esc.GetType());
-	rooms = EscToPyValue(rooms_esc);
-	LOG("ReadGame: Converted rooms, count=" << rooms.GetArray().GetCount());
+	// Get rooms and verbs from Python module globals
+	PyValue rooms = Program::GetProp(py_globals, "rooms");
+	LOG("ReadGame: Got rooms, type=" << rooms.GetType() << " count=" << rooms.GetArray().GetCount());
 
 	if (rooms.GetType() != PY_LIST || rooms.GetArray().IsEmpty()) {
-		LOG("Program::ParseGame: error: could not find rooms");
+		LOG("Program::ReadGame: error: could not find rooms");
 		return false;
 	}
 
-	EscValue verbs_esc = global.Get("verbs", EscValue());
-	LOG("ReadGame: Got verbs from global, type=" << verbs_esc.GetType());
-	verbs = EscToPyValue(verbs_esc);
+	PyValue verbs = Program::GetProp(py_globals, "verbs");
+	LOG("ReadGame: Got verbs, type=" << verbs.GetType() << " count=" << verbs.GetArray().GetCount());
 	if (verbs.GetType() != PY_LIST) {
 		LOG("No verbs in game");
 		return false;
 	}
-	LOG("ReadGame: Converted verbs, count=" << verbs.GetArray().GetCount());
 
 	const Vector<PyValue>& verb_arr = verbs.GetArray();
 	for(int i = 0; i < verb_arr.GetCount(); i++) {
@@ -94,8 +82,8 @@ bool Program::ReadGame() {
 		LOG("No verbs");
 		return false;
 	}
-	
-	PyValue def_verb_val = EscToPyValue(global.Get("verb_default", EscValue()));
+
+	PyValue def_verb_val = Program::GetProp(py_globals, "verb_default");
 	int verb_default_idx = Program::PyInt(def_verb_val);
 	if (verb_default_idx < 0 || verb_default_idx >= verb_idx.GetCount()) {
 		LOG("Invalid default inventory index");
@@ -110,20 +98,42 @@ bool Program::ReadGame() {
 
 // initialise all the rooms (e.g. add in parent links)
 bool Program::InitGame() {
-	auto& global = ctx.global;
+	LOG("InitGame: Starting initialization");
 	
-	//game = EscValue();
+	// Get the loaded Python module from sys.modules
+	PyValue sys = Program::GetProp(vm.GetGlobals(), "sys");
+	PyValue sys_modules = Program::GetProp(sys, "modules");
+	PyValue demo_module;
+	if (sys_modules.GetType() == PY_DICT) {
+		demo_module = Program::GetProp(sys_modules, "demo");
+	}
 	
+	if (demo_module.GetType() != PY_DICT) {
+		LOG("InitGame: demo module not found in sys.modules, type=" << sys_modules.GetType());
+		return false;
+	}
+	
+	PyValue py_globals = demo_module;  // Module IS the globals dict
+
 	try {
-		EscValue empty_lambda;
-		empty_lambda.CreateLambda();
-		Vector<EscValue> arg;
-		Execute(global, 0, global.Get("main", empty_lambda), arg, INT_MAX);
+		// Call Python main() and startup_script() if they exist
+		PyValue main_func = Program::GetProp(py_globals, "main");
+		LOG("InitGame: main_func type=" << main_func.GetType() << " IsFunction=" << main_func.IsFunction());
+		if (main_func.GetType() != PY_NONE && main_func.IsFunction()) {
+			LOG("InitGame: Calling Python main()");
+			py_vm.Call(main_func, Vector<PyValue>());
+		}
+		
+		PyValue startup_func = Program::GetProp(py_globals, "startup_script");
+		LOG("InitGame: startup_func type=" << startup_func.GetType() << " IsFunction=" << startup_func.IsFunction());
+		if (startup_func.GetType() != PY_NONE && startup_func.IsFunction()) {
+			LOG("InitGame: Calling Python startup_script()");
+			py_vm.Call(startup_func, Vector<PyValue>());
+		}
 		//RealizeGame();
-		Execute(global, 0, global.Get("startup_script", empty_lambda), arg, INT_MAX);
 	}
 	catch(CParser::Error e) {
-		LOG("Program::ParseGame: error: " << e << "\n");
+		LOG("Program::InitGame: error: " << e << "\n");
 		return false;
 	}
 	

@@ -44,21 +44,29 @@ Program::Program() {
 	ResetUI();
 }
 
-bool Program::InitPyVM() {
+bool Program::InitPyVM(const String& script_path) {
 	LOG("InitPyVM: Starting initialization");
 
 	// Initialize PyVM and register all bindings
 	AdventureBindings::RegisterAll(vm, *this);
 	LOG("InitPyVM: Registered bindings");
 
-	// Load Python game script - try Demo.py first for testing
-	String game_py_path = GetDataFile("Demo.py");
-	LOG("InitPyVM: Looking for Demo.py at: " << game_py_path);
+	// Load Python game script
+	// Priority: 1) Command-line argument, 2) Demo.py, 3) Game.py
+	String game_py_path;
+	
+	if (!script_path.IsEmpty()) {
+		game_py_path = script_path;
+		LOG("InitPyVM: Using script from command line: " << game_py_path);
+	} else {
+		game_py_path = GetDataFile("Demo.py");
+		LOG("InitPyVM: Looking for Demo.py at: " << game_py_path);
+	}
 
 	bool found = FileExists(game_py_path);
-	LOG("InitPyVM: Demo.py exists=" << found);
+	LOG("InitPyVM: Script exists=" << found);
 	
-	if (!found) {
+	if (!found && script_path.IsEmpty()) {
 		game_py_path = GetDataFile("Game.py");
 		LOG("InitPyVM: Demo.py not found, trying Game.py at: " << game_py_path);
 		found = FileExists(game_py_path);
@@ -126,16 +134,11 @@ PyValue Program::GetDictItem(const PyValue& dict, const char* key)
 	return PyValue();
 }
 
-bool Program::Init() {
+bool Program::Init(const String& script_path) {
 
 	ResetUI();
 
 	ClearCurrCmd();
-
-	// talking_curr = NULL  // currently displayed speech {x,y,col,lines ... }
-	// dialog_curr = NULL   // currently displayed dialog options to pick
-	// cutscene_curr = NULL // currently active cutscene
-	// talking_actor = NULL // currently talking actor
 
 	ctx.Clear();
 
@@ -145,7 +148,7 @@ bool Program::Init() {
 	ctx.InitializeEmptyScene();
 
 	// Initialize PyVM and register bindings
-	if (!InitPyVM())
+	if (!InitPyVM(script_path))
 		return false;
 
 	// Initialize ESC VM for backward compatibility (optional for Python-only games)

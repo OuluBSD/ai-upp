@@ -366,7 +366,7 @@ public:
 
 	Program();
 
-	bool InitPyVM();  // Initialize PyVM and register bindings
+	bool InitPyVM(const String& script_path = String());  // Initialize PyVM and register bindings
 	// AddEscFunctions() removed - Esc scripts no longer supported
 	bool ReadGame();
 	EscValue RunLambda1(EscValue* self, const EscValue& l, const EscValue& arg0);
@@ -477,7 +477,7 @@ public:
 	double GetHeuristic(Point chk, Point goal);
 	void AddTextObject(EscEscape& e, String txt, int x, int y, int col, int align, bool use_caps, float duration, bool big_font);
 	
-	bool Init();
+	bool Init(const String& script_path = String());
 	
 	const SObj* FindRoom(const String& name) const;
 	const SObj* FindDeep(const String& name) const;
@@ -607,7 +607,7 @@ public:
 	void ProcessScript();
 	void MarkInitialized();  // Call after Init() to mark initialization complete
 
-	bool Init() {return prog.Init();}
+	bool Init(const String& script_path = String()) {return prog.Init(script_path);}
 
 };
 

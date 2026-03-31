@@ -19,15 +19,6 @@ req_gfx_num = -1
 curr_gfx_num = -1
 
 # Game state flags (persisted via cartdata/dset)
-
-# Helper function to call nested scripts (avoids obj["scripts"]["name"]() syntax)
-def call_script(obj, script_name):
-    """Call a script from an object safely"""
-    scripts = obj.get("scripts", {})
-    fn = scripts.get(script_name)
-    if fn:
-        fn()
-
 # Slot 20: fixed_ship
 # Slot 21: ben_cutscene
 # Slot 22: disabled_signal
@@ -138,7 +129,7 @@ def engine_cover_use(me, noun2):
         dset(23, 1)
         say_line("that's better!")
         # Check to see if we've fixed the ships
-        call_script(rm_ship_engine, "check_engine")
+        rm_ship_engine["scripts"]["check_engine"]()
 
 
 rm_crash = {
@@ -261,7 +252,7 @@ def ship_engine_enter(me):
     load_gfx_page(3)
 
     # Check to see if we've fixed the ships
-    call_script(me, "check_engine")
+    me["scripts"]["check_engine"]()
 
     # Initial cutscene?
     if (not main_actor.get("engine_cover_replaced")
@@ -538,8 +529,8 @@ obj_holobase = {
     "use_dir": "face_right",
 
     "verbs": {
-        "use": lambda me: call_script(rm_bens_ship_inside, "play_holo"),
-        "lookat": lambda me: call_script(rm_bens_ship_inside, "play_holo")
+        "use": lambda me: rm_bens_ship_inside["scripts"]["play_holo"](),
+        "lookat": lambda me: rm_bens_ship_inside["scripts"]["play_holo"]()
     }
 }
 
@@ -697,7 +688,7 @@ def crystal_use(me, noun2):
         dset(24, 1)
         say_line("now we have power!")
         # Check to see if we've fixed the ships
-        call_script(rm_ship_engine, "check_engine")
+        rm_ship_engine["scripts"]["check_engine"]()
 
 
 obj_boulder = {

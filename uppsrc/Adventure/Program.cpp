@@ -125,9 +125,14 @@ bool Program::Init() {
 	if (!InitPyVM())
 		return false;
 
-	// Initialize ESC VM for backward compatibility (can be removed later)
-	if (!ctx.AddCodePath(GetDataFile("Game.esc")))
-		return false;
+	// Initialize ESC VM for backward compatibility (optional for Python-only games)
+	String game_esc_path = GetDataFile("Game.esc");
+	if (FileExists(game_esc_path)) {
+		if (!ctx.AddCodePath(game_esc_path))
+			return false;
+	} else {
+		LOG("Init: Game.esc not found, using Python-only mode");
+	}
 
 	if (!ctx.Init(false))
 		return false;

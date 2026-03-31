@@ -166,7 +166,7 @@ void Program::RecalcZPlane(SObj& obj) {
 	draw_zplanes[idx].objs.Add(obj);
 }
 
-void Program::RecalcZPlanePy(PyValue& obj) {
+void Program::RecalcZPlanePy(const PyValue& obj) {
 	// calculate the correct z-plane (PyValue version)
 	// based on obj || x,y pos + elevation
 	PyValue y = Program::GetProp(obj, "y");

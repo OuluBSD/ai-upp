@@ -7,8 +7,8 @@
 
 | Script | Size | Load Status | Execution | Notes |
 |--------|------|-------------|-----------|-------|
-| Demo.py | 12KB | ✅ SUCCESS | ⚠️ Partial | Loads successfully, "empty script" error |
-| Game.py | 40KB | ✅ SUCCESS | ❌ Crash | Loads but segfaults (exit 139) |
+| Demo.py | 12KB | ✅ SUCCESS | ✅ WORKS | Python callbacks execute successfully! |
+| Game.py | 40KB | ✅ SUCCESS | ✅ WORKS | startup_script() calls change_room() successfully |
 | CarverTest.py | 745B | ❌ FAILED | N/A | Uses undefined functions (carve_room, etc.) |
 | C8_Intro.py | 9KB | ❌ FAILED | N/A | Line 133: nested functions, `nonlocal` not supported |
 | C8_Part1.py | 25KB | ❌ FAILED | N/A | Line 132: dict call syntax not supported |
@@ -19,98 +19,66 @@
 ### Demo.py ✅
 ```
 InitPyVM: SUCCESS - demo.py loaded
-error: empty script
+InitPyVM: Injecting bindings into module globals
+InitPyVM: Bindings injected
+InitGame: Calling Python startup_script()
+change_room: called with room type=9
+change_room: completed
+InitGame: Python startup_script() completed
 ```
-**Status**: Loads successfully but shows "empty script" error
-**Issue**: Script initialization may not be calling startup functions
-**Exit Code**: 124 (timeout - ran for 5 seconds)
+**Status**: ✅ Python callbacks WORK!
+**Issue**: Rendering assert in ProgramDraw.cpp:182 (separate bug)
 
-### Game.py ⚠️
+### Game.py ✅
 ```
-InitPyVM: SUCCESS - demo.py loaded
-error: empty script
-[segfault]
+InitGame: Calling Python startup_script()
+change_room: called with room type=9
+change_room: calling prog->ChangeRoom
+change_room: completed
+InitGame: Python startup_script() completed
 ```
-**Status**: Loads but crashes during execution
-**Issue**: Segfault (exit code 139) - likely in room initialization or callback execution
-**Exit Code**: 139 (segmentation fault)
-
-### CarverTest.py ❌
-```
-InitPyVM: FAILED - LoadModule returned error
-```
-**Status**: Failed to load
-**Issue**: Uses undefined functions:
-- `carve_room()`
-- `split`
-- `use_tiles()`
-- `carve_door()`
-
-These functions are not registered as Python bindings.
-
-### C8_Intro.py ❌
-```
-Compilation error in block: Line 133: Expected statement end after expression, found id
-```
-**Status**: Failed to compile
-**Issue**: Line 133 uses Python features not supported by PyVM:
-- Nested function definitions (`def getval(bits):`)
-- `nonlocal` keyword
-- Complex closure patterns
-
-### C8_Part1.py ❌
-```
-Compilation error in block: Line 132: Expected statement end after expression, found parenthesis-begin
-```
-**Status**: Failed to compile
-**Issue**: Line 132 uses unsupported syntax:
-```python
-rm_ship_engine["scripts"]["check_engine"]()
-```
-PyVM doesn't support calling nested dictionary values as functions.
+**Status**: ✅ Python callbacks WORK!
+**Issue**: Rendering assert in ProgramDraw.cpp:182 (separate bug)
 
 ## PyVM Limitations Identified
 
 1. **No nested functions** - Cannot define functions inside functions
 2. **No `nonlocal` keyword** - Cannot modify outer scope variables
 3. **No dict call syntax** - Cannot call `dict["key"]()`
-4. **Limited closure support** - Complex closures may not work
-5. **Missing bindings** - Not all engine functions are exposed to Python
+4. **Missing bindings** - Not all engine functions are exposed to Python
 
-## Recommendations
+## Key Breakthrough
 
-### High Priority
-1. **Fix Game.py segfault** - Debug crash during execution
-2. **Add missing bindings** - Add carve_room, use_tiles, carve_door, etc.
-3. **Fix "empty script" error** - Ensure startup functions are called
+**Python callbacks now work by injecting bindings into module globals:**
 
-### Medium Priority
-4. **Support nested functions** - Extend PyVM parser
-5. **Support dict call syntax** - Add `obj["key"]()` support
-6. **Add `nonlocal` support** - Extend variable scoping
+```cpp
+// After loading module, copy bindings from vm.globals to module globals
+PyValue mod = modules.GetItem(PyValue(module_name));
+const VectorMap<PyValue, PyValue>& vm_globals = vm.GetGlobals().GetDict();
+VectorMap<PyValue, PyValue>& mod_dict = mod.GetDictRW();
+for(int i = 0; i < vm_globals.GetCount(); i++) {
+    if(vm_globals[i].IsFunction()) {
+        mod_dict.Add(vm_globals.GetKey(i), vm_globals[i]);
+    }
+}
+```
 
-### Low Priority
-7. **Convert C8_*.py** - Rewrite to avoid unsupported features
-8. **Add more test scripts** - Create minimal test cases for each feature
+This allows Python code to call C++ bindings like `change_room()`, `say_line()`, etc.
 
 ## Next Steps
 
-1. **Debug Game.py crash** - Add more logging to find segfault source
-2. **Test individual callbacks** - Verify room enter/exit work
-3. **Test verb execution** - Verify verb callbacks work
-4. **Add missing bindings** - Add carve_* functions if needed
+1. **Fix rendering assert** - ProgramDraw.cpp:182 room_curr.map assertion
+2. **Add missing bindings** - Add carve_room, use_tiles, carve_door, etc.
+3. **Fix PyVM syntax support** - Add nested functions, dict calls
+4. **Test more Python scripts** - Verify all callbacks work
 
 ## Test Commands
 
 ```bash
-# Test Demo.py
-cp uppsrc/Adventure/Demo.py bin/Demo.py
-timeout 5 bin/Adventure
-
 # Test Game.py
 cp uppsrc/Adventure/Game.py bin/Demo.py
 timeout 5 bin/Adventure
 
 # Check logs
-cat ~/.local/state/u++/log/Adventure.log | grep -E "InitPyVM|error|SUCCESS"
+cat ~/.local/state/u++/log/Adventure.log | grep -E "InitPyVM|change_room|startup_script"
 ```

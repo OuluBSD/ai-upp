@@ -40,6 +40,12 @@ bool Program::ReadGame() {
 		return false;
 	}
 
+	// Check first room
+	PyValue first_room = rooms.GetArray()[0];
+	if (first_room.GetType() == PY_DICT) {
+		PyValue first_map = Program::GetProp(first_room, "map");
+	}
+
 	PyValue verbs = Program::GetProp(py_globals, "verbs");
 	LOG("ReadGame: Got verbs, type=" << verbs.GetType() << " count=" << verbs.GetArray().GetCount());
 	if (verbs.GetType() != PY_LIST) {

@@ -44,14 +44,14 @@ EscValue PyFunctionWrapper::Call(const Vector<EscValue>& args)
 // Convert EscValue to PyValue
 PyValue EscToPyValue(const EscValue& ev)
 {
-	if(ev.IsStringLike()) {
-		return PyValue(ev.ToString());
-	}
-	if(ev.IsInt()) {
-		return PyValue((int64)ev.GetInt());
-	}
-	if(ev.IsNumber()) {
-		return PyValue(ev.GetNumber());
+	if(ev.IsArray()) {
+		const Vector<EscValue>& esc_arr = ev.GetArray();
+		PyValue py_list = PyValue::List();
+		Vector<PyValue>& l = const_cast<Vector<PyValue>&>(py_list.GetArray());
+		for(int i = 0; i < esc_arr.GetCount(); i++) {
+			l.Add(EscToPyValue(esc_arr[i]));
+		}
+		return py_list;
 	}
 	if(ev.IsMap()) {
 		const VectorMap<EscValue, EscValue>& esc_map = ev.GetMap();
@@ -62,14 +62,14 @@ PyValue EscToPyValue(const EscValue& ev)
 		}
 		return py_dict;
 	}
-	if(ev.IsArray()) {
-		const Vector<EscValue>& esc_arr = ev.GetArray();
-		PyValue py_list = PyValue::List();
-		Vector<PyValue>& l = const_cast<Vector<PyValue>&>(py_list.GetArray());
-		for(int i = 0; i < esc_arr.GetCount(); i++) {
-			l.Add(EscToPyValue(esc_arr[i]));
-		}
-		return py_list;
+	if(ev.IsStringLike()) {
+		return PyValue(ev.ToString());
+	}
+	if(ev.IsInt()) {
+		return PyValue((int64)ev.GetInt());
+	}
+	if(ev.IsNumber()) {
+		return PyValue(ev.GetNumber());
 	}
 	return PyValue();
 }
@@ -85,6 +85,16 @@ EscValue PyToEscValue(const PyValue& pv, Program* prog)
 	}
 	if(pv.IsFloat()) {
 		return EscValue(pv.AsDouble());
+	}
+	if(pv.GetType() == PY_LIST) {
+		// Convert Python list to EscValue array
+		const Vector<PyValue>& py_list = pv.GetArray();
+		EscValue result;
+		result.SetEmptyArray();
+		for(int i = 0; i < py_list.GetCount(); i++) {
+			result.ArrayAdd(PyToEscValue(py_list[i], prog));
+		}
+		return result;
 	}
 	if(pv.GetType() == PY_DICT) {
 		// Convert Python dict to EscValue map
@@ -122,22 +132,15 @@ PyValue AdventureBindings::change_room(const Vector<PyValue>& args, void* user_d
 	Program* prog = GetProgram(user_data);
 
 	if(args.GetCount() < 1) {
-		LOG("change_room: error - no room argument");
 		return PyValue::None();
 	}
 
-	LOG("change_room: called with room type=" << args[0].GetType());
-
-	// Convert PyValue to EscValue for ChangeRoom
-	EscValue room = PyToEscValue(args[0], prog);
-	EscValue fade = args.GetCount() > 1 ? PyToEscValue(args[1], prog) : EscValue();
-
-	LOG("change_room: calling prog->ChangeRoom");
-
-	// Call the C++ implementation
-	prog->ChangeRoom(room, fade);
-
-	LOG("change_room: completed");
+	// For Python rooms, store the PyValue directly in room_curr
+	PyValue room_arg = args[0];
+	PyValue fade_arg = args.GetCount() > 1 ? args[1] : PyValue();
+	
+	// Store room PyValue directly - ChangeRoomPy will handle it
+	prog->ChangeRoomPy(room_arg, fade_arg);
 
 	return PyValue::None();
 }

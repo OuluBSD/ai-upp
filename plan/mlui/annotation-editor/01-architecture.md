@@ -26,9 +26,11 @@ ai-upp/uppsrc/CtrlLib/Mlui.h/.cpp  — MluiFocusPage, RegisterMluiFocusPage, etc
 
 ## Slot-to-annotation convention
 
-Slot assignment stored on `AnnotationObject` via existing metadata arrays:
-- `metadata_keys[i] == "mlui_slot_id"` → `metadata_values[i]` = slot_id
-- `metadata_keys[i] == "mlui_script"` → `metadata_values[i]` = script path
+Slot assignment stored on `AnnotationObject` via `VectorMap<String,String> metadata`:
+- `metadata.Get("mlui_slot_id", "")` = slot_id
+- `metadata.Get("mlui_script", "")` = script path
+
+Serialized as a JSON object `{"mlui_slot_id": "header_bar", ...}` (not parallel arrays).
 
 Helper functions: `MluiSlotIdKey()`, `MluiScriptKey()` in MluiScript.h.
 

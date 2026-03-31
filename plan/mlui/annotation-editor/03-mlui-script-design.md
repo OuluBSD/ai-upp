@@ -31,8 +31,7 @@ One .mlui file = one layout type.  An image may link to multiple .mlui files
       "bbox_hint": {"left": 0.0, "top": 0.0, "right": 1.0, "bottom": 0.083},
       "required": true,
       "allow_multiple": false,
-      "metadata_keys": [],
-      "metadata_values": []
+      "metadata": {}
     },
     {
       "slot_id": "sidebar",

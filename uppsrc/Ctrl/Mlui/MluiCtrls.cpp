@@ -168,8 +168,10 @@ SlotMetaPanel::SlotMetaPanel() {
 	Add(lbl_meta.SetText("Metadata:").HSizePos(5, 5).TopPos(y, 20));
 	y += 22;
 	Add(meta_list.HSizePos(5, 5).TopPos(y, 80));
-	meta_list.AddColumn("Key", 100); meta_list.AddColumn("Value", 140);
+	meta_list.AddColumn("Key", 100).Edit(meta_edit_key);
+	meta_list.AddColumn("Value", 140).Edit(meta_edit_val);
 	meta_list.SetLineCy(20);
+	meta_list.Appending().Removing();
 	y += 84;
 	Add(btn_meta_add.SetLabel("Add").LeftPos(5,  60).TopPos(y, 22));
 	Add(btn_meta_del.SetLabel("Remove").LeftPos(70, 70).TopPos(y, 22));
@@ -185,8 +187,10 @@ SlotMetaPanel::SlotMetaPanel() {
 	edit_bw.WhenAction << fire; edit_bh.WhenAction << fire;
 
 	btn_meta_add << [=] {
+		int row = meta_list.GetCount();
 		meta_list.Add("key", "value");
-		meta_list.SetCursor(meta_list.GetCount() - 1);
+		meta_list.SetCursor(row);
+		meta_list.StartEdit(0);
 		FireChange();
 	};
 	btn_meta_del << [=] {
@@ -248,7 +252,7 @@ void SlotMetaPanel::Clear() {
 
 MluiScriptEditor::MluiScriptEditor() {
 	Title("MLUI Script Editor"); Sizeable().Zoomable();
-	SetRect(0, 0, 860, 620);
+	SetRect(0, 0, 860, 680);
 
 	// ---- file bar ----
 	Add(lbl_file.SetText("Script:").LeftPos(5, 50).TopPos(8, 20));
@@ -264,9 +268,17 @@ MluiScriptEditor::MluiScriptEditor() {
 	Add(edit_desc.LeftPos(460, 385).TopPos(32, 22));
 
 	// ---- slot list (left) + slot panel (right) ----
-	Add(split.VSizePos(62, 40).HSizePos(5, 5));
+	Add(split.VSizePos(62, 160).HSizePos(5, 5));
 	split.Horz(slot_list, slot_panel);
 	split.SetPos(3000); // 30% left
+
+	// ---- category manager (below splitter, right side) ----
+	Add(lbl_cats_hdr.SetText("Script Categories:").RightPos(5, 580).BottomPos(118, 18));
+	Add(cat_list.RightPos(5, 580).BottomPos(60, 56));
+	cat_list.AddColumn("Name"); cat_list.SetLineCy(18);
+	Add(edit_new_cat.RightPos(70, 500).BottomPos(35, 22));
+	Add(btn_add_cat.SetLabel("+").RightPos(5, 60).BottomPos(35, 22));
+	Add(btn_del_cat.SetLabel("-").RightPos(5, 580).BottomPos(35, 22));
 
 	slot_list.AddColumn("Slot ID", 120);
 	slot_list.AddColumn("Label", 120);
@@ -294,12 +306,45 @@ MluiScriptEditor::MluiScriptEditor() {
 	btn_apply       << THISBACK(OnApply);
 	btn_close       << [=] { Close(); };
 
+	btn_add_cat << [=] {
+		String n = edit_new_cat.GetData().ToString().IsEmpty()
+		           ? edit_new_cat.GetData().ToString() : edit_new_cat.GetData().ToString();
+		n = edit_new_cat.GetData().ToString();
+		if(n.IsEmpty()) return;
+		bool found = false;
+		for(const String& s : script_categories_) if(s == n) { found = true; break; }
+		if(!found) {
+			script_categories_.Add(n);
+			cat_list.Add(n);
+			RefreshCategoryDroplist();
+		}
+		edit_new_cat.Clear();
+	};
+	btn_del_cat << [=] {
+		if(!cat_list.IsCursor()) return;
+		int i = cat_list.GetCursor();
+		script_categories_.Remove(i);
+		cat_list.Remove(i);
+		RefreshCategoryDroplist();
+	};
+
 	slot_panel.WhenChange = THISBACK(FlushCurrentSlot);
+}
+
+void MluiScriptEditor::RefreshCategoryDroplist() {
+	cat_list.Clear();
+	for(const String& n : script_categories_) cat_list.Add(n);
+	slot_panel.SetCategories(script_categories_);
 }
 
 void MluiScriptEditor::SetCategoryNames(const Vector<String>& names) {
 	category_names_ <<= names;
-	slot_panel.SetCategories(category_names_);
+	for(const String& n : names) {
+		bool found = false;
+		for(const String& s : script_categories_) if(s == n) { found = true; break; }
+		if(!found) script_categories_.Add(n);
+	}
+	RefreshCategoryDroplist();
 }
 
 void MluiScriptEditor::SetReferenceAnnotations(const Vector<RefAnnotEntry>& entries,
@@ -327,6 +372,15 @@ void MluiScriptEditor::LoadScript(const MluiScript& s) {
 	script_ = s;
 	edit_name.SetData(s.name);
 	edit_desc.SetData(s.description);
+	// Merge slot categories into script_categories_
+	for(const auto& slot : s.slots) {
+		if(!slot.category.IsEmpty()) {
+			bool found = false;
+			for(const String& c : script_categories_) if(c == slot.category) { found = true; break; }
+			if(!found) script_categories_.Add(slot.category);
+		}
+	}
+	RefreshCategoryDroplist();
 	RefreshSlotList();
 	if(slot_list.GetCount() > 0) { slot_list.SetCursor(0); OnSlotSel(); }
 	loading_ = false;

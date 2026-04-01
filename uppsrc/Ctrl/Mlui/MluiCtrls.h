@@ -94,6 +94,7 @@ private:
 	Option     chk_required, chk_multiple;
 	Label      lbl_meta;
 	ArrayCtrl  meta_list;
+	EditString meta_edit_key, meta_edit_val;
 	Button     btn_meta_add, btn_meta_del;
 };
 
@@ -184,6 +185,15 @@ private:
 	// ---- bottom buttons ----
 	Button     btn_add, btn_remove, btn_up, btn_down;
 	Button     btn_copy_hints, btn_apply, btn_close;
+
+	// ---- category manager ----
+	Label      lbl_cats_hdr;
+	ArrayCtrl  cat_list;
+	EditString edit_new_cat;
+	Button     btn_add_cat, btn_del_cat;
+	Vector<String> script_categories_;
+
+	void RefreshCategoryDroplist();
 
 	// ---- data ----
 	MluiScript script_;

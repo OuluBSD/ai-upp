@@ -37,28 +37,34 @@ bool Program::ReadGame() {
 	}
 
 	// Get rooms and verbs from Python module globals
-	PyValue rooms = Program::GetProp(py_globals, "rooms");
-	LOG("ReadGame: Got rooms, type=" << rooms.GetType() << " count=" << rooms.GetArray().GetCount());
+	PyValue rooms_val = Program::GetProp(py_globals, "rooms");
+	LOG("ReadGame: Got rooms, type=" << rooms_val.GetType() << " count=" << rooms_val.GetArray().GetCount());
 
-	if (rooms.GetType() != PY_LIST || rooms.GetArray().IsEmpty()) {
+	if (rooms_val.GetType() != PY_LIST || rooms_val.GetArray().IsEmpty()) {
 		LOG("Program::ReadGame: error: could not find rooms");
 		return false;
 	}
 
+	// Store rooms in Program member
+	rooms = rooms_val;
+
 	// Check first room
-	PyValue first_room = rooms.GetArray()[0];
+	PyValue first_room = rooms_val.GetArray()[0];
 	if (first_room.GetType() == PY_DICT) {
 		PyValue first_map = Program::GetProp(first_room, "map");
 	}
 
-	PyValue verbs = Program::GetProp(py_globals, "verbs");
-	LOG("ReadGame: Got verbs, type=" << verbs.GetType() << " count=" << verbs.GetArray().GetCount());
-	if (verbs.GetType() != PY_LIST) {
+	PyValue verbs_val = Program::GetProp(py_globals, "verbs");
+	LOG("ReadGame: Got verbs, type=" << verbs_val.GetType() << " count=" << verbs_val.GetArray().GetCount());
+	if (verbs_val.GetType() != PY_LIST) {
 		LOG("No verbs in game");
 		return false;
 	}
 
-	const Vector<PyValue>& verb_arr = verbs.GetArray();
+	// Store verbs in Program member for UI access
+	verbs = verbs_val;
+
+	const Vector<PyValue>& verb_arr = verbs_val.GetArray();
 	for(int i = 0; i < verb_arr.GetCount(); i++) {
 		const PyValue& verb = verb_arr[i];
 		if (verb.GetType() != PY_DICT) {

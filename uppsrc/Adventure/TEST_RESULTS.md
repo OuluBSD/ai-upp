@@ -1,6 +1,6 @@
 # Python Script Testing Results
 
-**Date**: 2026-03-31
+**Date**: 2026-04-01
 **Status**: ✅ **FULLY WORKING**
 
 ## Usage
@@ -17,8 +17,8 @@ bin/Adventure
 
 | Script | Size | Load | Execution | Notes |
 |--------|------|------|-----------|-------|
-| Game.py | 40KB | ✅ | ✅ | Full game with room rendering |
-| Demo.py | 12KB | ✅ | ✅ | Basic demo |
+| Game.py | 40KB | ✅ | ✅ | Full game runs for 5+ seconds |
+| Demo.py | 12KB | ✅ | ✅ | Basic demo works |
 | C8_Intro_refactored.py | 5KB | ✅ | ✅ | Refactored - no nested functions |
 | C8_Part1_fixed.py | 25KB | ✅ | ✅ | Fixed nested dict calls |
 
@@ -26,10 +26,14 @@ bin/Adventure
 
 ### Game.py (Full Game)
 ```
-InitPyVM: SUCCESS - demo.py loaded
+InitPyVM: SUCCESS - game.py loaded
+InitPyVM: Injecting bindings into module globals
+InitPyVM: Bindings injected
 InitGame: Calling Python startup_script()
 InitGame: Python startup_script() completed
-[Program runs for 5+ seconds, rendering room correctly]
+ReadGame: Got rooms, type=7 count=11
+ReadGame: Got verbs, type=7 count=9
+[Program runs for 5+ seconds without crashes]
 ```
 
 ### C8_Intro_refactored.py (Refactored)

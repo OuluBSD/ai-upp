@@ -418,7 +418,8 @@ void MluiScriptEditor::OnBrowse() {
 	FileSel fs;
 	fs.Type("MLUI Script (*.mlui)", "*.mlui");
 	fs.DefaultExt("mlui");
-	if(fs.ExecuteSaveAs()) edit_file.SetData(fs.Get());
+	// Browse is used both for load and save contexts — use open dialog (non-destructive)
+	if(fs.ExecuteOpen()) edit_file.SetData(fs.Get());
 }
 
 void MluiScriptEditor::OnLoad() {

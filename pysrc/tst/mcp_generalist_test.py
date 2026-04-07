@@ -92,6 +92,25 @@ class TestMcpGeneralist(unittest.TestCase):
         res = self.runtime.get_identity("/tmp/repo", 5, "My Title")
         self.assertEqual(res["identity"], "/tmp/repo #5 (My Title)")
 
+    def test_wait_all(self):
+        # 1. Assign two tasks
+        id1 = self.runtime.assign("w1", "task1")["task_id"]
+        id2 = self.runtime.assign("w2", "task2")["task_id"]
+        
+        # 2. Simulate worker completion in thread
+        def _report_later():
+            time.sleep(2)
+            self.runtime.report_task(id1, "completed", "out1")
+            self.runtime.report_task(id2, "completed", "out2")
+            
+        threading.Thread(target=_report_later).start()
+        
+        # 3. Wait all
+        res = self.runtime.wait_all([id1, id2], timeout=5.0)
+        self.assertEqual(res["status"], "completed")
+        self.assertIn(id1, res["tasks"])
+        self.assertIn(id2, res["tasks"])
+
     def test_help_tools(self):
         # Planner help
         p_res = self.runtime.planner_help()

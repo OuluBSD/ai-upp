@@ -16,7 +16,7 @@ try:
 except ImportError:
     fcntl = None
 
-VERSION = "1.8.0"
+VERSION = "1.8.1"
 
 def _result(req_id: Any, result: Any) -> Dict[str, Any]:
     return {"jsonrpc": "2.0", "id": req_id, "result": result}
@@ -71,7 +71,8 @@ class GeneralistRuntime:
         worker_file.write_text(json.dumps(worker_data, indent=2))
         return worker_data
 
-    def worker_listen(self, identity: str, timeout: float = 3600.0) -> Dict[str, Any]:
+    def worker_listen(self, identity: str, timeout: float = 60.0) -> Dict[str, Any]:
+        """Blocks until a task is assigned. Default timeout reduced to 60s for agent compatibility."""
         identity = identity.lstrip("/").strip()
         identity_slug = self._get_identity_slug(identity)
         if (self.workers_dir / f"{identity}.json").exists():
@@ -248,22 +249,23 @@ class GeneralistRuntime:
         return {
             "summary": "Coordinating multiple worker agents globally via MCP.",
             "workflow": [
-                "1. START WORKERS: In each workspace, workers call 'generalist_register_worker' then 'generalist_worker_listen'.",
-                "2. DISCOVERY: Planner calls 'generalist_list_active_workers' to find available identities.",
-                "3. PARALLEL DELEGATION: Planner assigns tasks to multiple workers and collects task_ids.",
-                "4. WAITING: Planner calls 'generalist_wait_all(task_ids)' to block until all workers report results."
+                "1. START WORKERS: Workers call 'generalist_register_worker' then 'generalist_worker_listen'.",
+                "2. DISCOVERY: Planner calls 'generalist_list_active_workers' to find listeners.",
+                "3. ASSIGN: Planner assigns tasks and collects task_ids.",
+                "4. WAIT: Planner calls 'generalist_wait_all(task_ids)'."
             ],
-            "use_cases": {
-                "Broadcasting": "Use 'generalist_broadcast' to send a setup task or knowledge update to ALL active workers.",
-                "Chaining": "Assign Task A to Worker 1. Use 'generalist_listen' to get results. Pass those results as part of Task B to Worker 2.",
-                "Parallel Grid": "Assign Task A to Worker 1, Task B to Worker 2. Call 'generalist_wait_all([A, B])' to sync when both are finished."
-            }
+            "note": "Most MCP clients (Codex/Claude) timeout after 120s. Use 60s listen loops."
         }
 
     def worker_help(self) -> Dict[str, Any]:
         return {
-            "onboarding": ["1. IDENTITY: Use 'generalist_get_identity' to see your string.", "2. REGISTER: Call 'generalist_register_worker' with tags.", "3. LISTEN: Call 'generalist_worker_listen(identity)'.", "4. PROGRESS: Call 'generalist_report_progress' for long tasks.", "5. REPORT: Call 'generalist_report_task'."],
-            "note": "Stay in a loop calling worker_listen to process sequential assignments."
+            "onboarding": [
+                "1. REGISTER: Call 'generalist_register_worker'.",
+                "2. LISTEN LOOP: Call 'generalist_worker_listen(identity, timeout=60)'.",
+                "3. RE-LISTEN: If it returns 'timeout', IMMEDIATELY call it again.",
+                "4. EXECUTE & REPORT: If it returns a task, perform it and call 'generalist_report_task'."
+            ],
+            "important": "Do NOT use long timeouts (like 600s) as your client will kill the connection. Loop with 60s instead."
         }
 
 class GeneralistMcpServer:
@@ -283,7 +285,7 @@ class GeneralistMcpServer:
                     {"name": "generalist_get_version", "description": "Get server version.", "inputSchema": {"type": "object", "properties": {}}},
                     {"name": "generalist_get_identity", "description": "Calculate identity string.", "inputSchema": {"type": "object", "properties": {"repo_path": {"type": "string"}, "index": {"type": "integer"}, "title": {"type": "string"}}, "required": ["repo_path", "index"]}},
                     {"name": "generalist_register_worker", "description": "Register worker.", "inputSchema": {"type": "object", "properties": {"repo_path": {"type": "string"}, "index": {"type": "integer"}, "title": {"type": "string"}, "tags": {"type": "array", "items": {"type": "string"}}}, "required": ["repo_path", "index"]}},
-                    {"name": "generalist_worker_listen", "description": "Wait for task. (Blocking)", "inputSchema": {"type": "object", "properties": {"identity": {"type": "string"}, "timeout": {"type": "number", "default": 3600.0}}, "required": ["identity"]}},
+                    {"name": "generalist_worker_listen", "description": "Wait for task. (Blocking)", "inputSchema": {"type": "object", "properties": {"identity": {"type": "string"}, "timeout": {"type": "number", "default": 60.0}}, "required": ["identity"]}},
                     {"name": "generalist_report_progress", "description": "Update task progress.", "inputSchema": {"type": "object", "properties": {"task_id": {"type": "string"}, "message": {"type": "string"}, "percent": {"type": "number"}}, "required": ["task_id", "message"]}},
                     {"name": "generalist_report_task", "description": "Submit report.", "inputSchema": {"type": "object", "properties": {"task_id": {"type": "string"}, "status": {"type": "string", "enum": ["completed", "failed"]}, "output": {"type": "string"}}, "required": ["task_id", "status", "output"]}},
                     {"name": "generalist_list_active_workers", "description": "List currently listening workers.", "inputSchema": {"type": "object", "properties": {"tags": {"type": "array", "items": {"type": "string"}}}}},
@@ -302,8 +304,8 @@ class GeneralistMcpServer:
                 if n == "generalist_get_identity": return _result(req_id, {"content": [{"type": "text", "text": json.dumps(self.runtime.get_identity(a.get("repo_path"), int(a.get("index", 1)), a.get("title")), indent=2)}]})
                 if n == "generalist_register_worker": return _result(req_id, {"content": [{"type": "text", "text": json.dumps(self.runtime.register_worker(a.get("repo_path"), int(a.get("index", 1)), a.get("title"), a.get("tags")), indent=2)}]})
                 if n == "generalist_worker_listen":
-                    res = self.runtime.worker_listen(a.get("identity"), float(a.get("timeout", 3600.0)))
-                    note = "\n\nNote: Call generalist_worker_listen again when you have finished and reported the task above, to remain available for the next assignment."
+                    res = self.runtime.worker_listen(a.get("identity"), float(a.get("timeout", 60.0)))
+                    note = "\n\nNote: Call generalist_worker_listen again if you timed out or finished a task, to remain available for the next assignment."
                     return _result(req_id, {"content": [{"type": "text", "text": json.dumps(res, indent=2) + note}]})
                 if n == "generalist_report_progress": return _result(req_id, {"content": [{"type": "text", "text": json.dumps(self.runtime.report_progress(a.get("task_id"), a.get("message"), a.get("percent")), indent=2)}]})
                 if n == "generalist_report_task": return _result(req_id, {"content": [{"type": "text", "text": json.dumps(self.runtime.report_task(a.get("task_id"), a.get("status"), a.get("output")), indent=2)}]})

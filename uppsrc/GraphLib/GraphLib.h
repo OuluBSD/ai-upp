@@ -235,9 +235,17 @@ public:
 		if (sz.cx <= 2 || sz.cy <= 2) return;
 		
 		// prepare for zooming out buffer
-		for (;;) {
+		static const int MAX_BUFFER_ZOOM_ITERATIONS = 64;
+		static const int MAX_BUFFER_DIMENSION = 32768;
+		bool not_colliding = false;
+		for (int zoom_iter = 0; zoom_iter < MAX_BUFFER_ZOOM_ITERATIONS; zoom_iter++) {
 			ASSERT(buffer_zoom_level > 0);
 			id_sz = (buffer_zoom_level > 1.0 ? Size(320,240) : sz) * buffer_zoom_level;
+			if (id_sz.cx <= 0 || id_sz.cy <= 0 || id_sz.cx > MAX_BUFFER_DIMENSION || id_sz.cy > MAX_BUFFER_DIMENSION) {
+				LOG("GraphLayout::RefreshBuffer: aborting zoom search at invalid size " << id_sz << ", zoom=" << buffer_zoom_level);
+				id_sz = sz;
+				break;
+			}
 			
 			rend.SetImageSize(id_sz); // refreshes Node::point, which is required for GetBoundingBox
 			
@@ -246,7 +254,7 @@ public:
 			Rect rb = RectC(id_sz.cx, 0, 2, id_sz.cy);
 			Rect tb = RectC(0, -2, id_sz.cx, 2);
 			Rect bb = RectC(0, id_sz.cy, id_sz.cx, 2);
-			bool not_colliding = true;
+			not_colliding = true;
 			for(int i = 0; i < GetNodeCount() && not_colliding; i++) {
 				Node& a = GetNode(i);
 				Rect ar = a.GetBoundingBox();
@@ -268,6 +276,8 @@ public:
 			
 			buffer_zoom_level *= 1.3;
 		}
+		if (!not_colliding)
+			LOG("GraphLayout::RefreshBuffer: reached zoom guard while resolving node collisions, zoom=" << buffer_zoom_level << ", image size=" << id_sz);
 		
 		// Actually draw the image
 		id.Clear();

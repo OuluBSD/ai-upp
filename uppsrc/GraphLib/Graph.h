@@ -36,6 +36,8 @@ struct Pin : Moveable<Pin> {
 };
 
 struct Node : Moveable<Node> {
+	enum { SHAPE_RECT = 0, SHAPE_ELLIPSE = 1, SHAPE_DIAMOND = 2 };
+	
 	String id;
 	String label;
 	Pointf point;
@@ -45,7 +47,7 @@ struct Node : Moveable<Node> {
 	
 	Color fill_clr, line_clr;
 	int line_width;
-	int shape; // 0:rect, 1:circle
+	int shape;
 	Size sz;
 	
 	Array<Pin> pins;
@@ -96,6 +98,10 @@ struct Node : Moveable<Node> {
 	Node& SetLabel(const String& s) {label = s; return *this;}
 	Node& SetFill(Color c) {fill_clr = c; return *this;}
 	Node& SetStroke(int w, Color c) {line_width = w; line_clr = c; return *this;}
+	Node& SetShapeRectangle() {shape = SHAPE_RECT; return *this;}
+	Node& SetShapeEllipse() {shape = SHAPE_ELLIPSE; return *this;}
+	Node& SetShapeCircle() {shape = SHAPE_ELLIPSE; return *this;}
+	Node& SetShapeDiamond() {shape = SHAPE_DIAMOND; return *this;}
 	
 	Rect GetBoundingBox() const {
 		return RectC((int)point.x, (int)point.y, sz.cx, sz.cy);
@@ -184,6 +190,7 @@ public:
 	Array<GroupNode> groups;
 	
 	double layout_min_x, layout_max_x, layout_min_y, layout_max_y;
+	Color node_fill_clr;
 	
 public:
 	Node& AddNode(const String& id);
@@ -194,6 +201,7 @@ public:
 	int GetNodeCount() const { return nodes.GetCount(); }
 	
 	Edge& AddEdge(const String& n1, const String& n2, double weight=1.0);
+	Edge& AddEdge(int n1, int n2, double weight=1.0) { return AddEdge(IntStr(n1), IntStr(n2), weight); }
 	Edge& AddEdge(const String& n1, const String& p1, const String& n2, const String& p2, double weight=1.0);
 	void RemoveEdge(Edge& e);
 	Edge& GetEdge(int i) { return edges[i]; }
@@ -208,10 +216,11 @@ public:
 	int GetGroupCount() const { return groups.GetCount(); }
 	
 	void MoveNodeToGroup(const String& nodeId, const String& groupId);
+	Graph& SetFillColor(Color c) { node_fill_clr = c; return *this; }
 	
 	void Clear();
 	
-	Graph() : layout_min_x(0), layout_max_x(0), layout_min_y(0), layout_max_y(0) {}
+	Graph() : layout_min_x(0), layout_max_x(0), layout_min_y(0), layout_max_y(0), node_fill_clr(White()) {}
 };
 
 }

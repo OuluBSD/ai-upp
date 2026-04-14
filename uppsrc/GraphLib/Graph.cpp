@@ -29,6 +29,7 @@ Node& Graph::AddNode(const String& id) {
 	Node& n = nodes.Add();
 	n.id = id;
 	n.SetLabel(id);
+	n.SetFill(node_fill_clr);
 	return n;
 }
 

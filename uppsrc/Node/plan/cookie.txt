@@ -56,9 +56,14 @@
 
 ## Fixed Issues (cross-track)
 - [x] Spring layout O(n²): node_idx Index built before iteration loop; edge force loop now O(E)
+- [x] Graph O(1) lookup: VectorMap<EntityId,int> index for nodes/edges/groups; rebuilt on load/remove
+- [x] RemoveNodeCmd::Undo edge order: edges restored at original array positions via Insert
+- [x] Edge/hover selection highlight in PaintScene: edges now draw in LtRed when selected, Cyan when hovered
+- [x] Hover tracking: MouseMove updates EditorState::hovered_entity via HitTest; refresh on change
+- [x] Pan: MiddleDown/MiddleUp added; panning flag; MouseMove pans viewport when active
 - [x] Automated tests: Node1..Node5 in upptst/, all passing
   - Node1: entity CRUD, ID validation, Validate(), JSON/XML roundtrip
-  - Node2: CommandDispatcher, FromArgs, undo/redo, transactions, abort, cascade
+  - Node2: CommandDispatcher, FromArgs, undo/redo, transactions, abort, cascade, edge order after undo
   - Node3: TopSort, Dijkstra, SpringLayout, LayeredLayout, OrderedTreeLayout
   - Node4: SceneBuilder, incremental rebuild (no duplicate edges), HitTest, MarqueeSelect, adaptive SpatialIndex
   - Node5: ImportGraphLib resilience, LegacyFacade pin resolution

@@ -34,26 +34,41 @@ void MoveNodeCmd::Undo(CommandContext& ctx) {
 CommandResult RemoveNodeCmd::Execute(CommandContext& ctx) {
 	NodeDoc* n = ctx.graph.FindNode(id);
 	if(!n) return CommandResult(false, "Node not found: " + id);
-	
+
 	removed_node <<= *n;
-	
-	GraphDoc& doc = ctx.graph.GetDoc();
+
+	// Record node position in array
+	const GraphDoc& doc = ctx.graph.GetDoc();
+	removed_node_pos = -1;
+	for(int i = 0; i < doc.nodes.GetCount(); i++)
+		if(doc.nodes[i].id == id) { removed_node_pos = i; break; }
+
+	// Record edges and their positions before removal
 	removed_edges.Clear();
-	for(int i = doc.edges.GetCount() - 1; i >= 0; i--) {
+	removed_edge_pos.Clear();
+	for(int i = 0; i < doc.edges.GetCount(); i++) {
 		if(doc.edges[i].source_node == id || doc.edges[i].target_node == id) {
 			removed_edges.Add() <<= doc.edges[i];
-			doc.edges.Remove(i);
+			removed_edge_pos.Add(i);
 		}
 	}
-	
+
 	ctx.graph.RemoveNode(id);
 	return true;
 }
 
 void RemoveNodeCmd::Undo(CommandContext& ctx) {
-	NodeDoc& n = ctx.graph.AddNode(id);
-	n <<= removed_node;
-	ctx.graph.GetDoc().edges.Append(removed_edges);
+	// Restore node (appended — ordering is cosmetic, not semantic)
+	ctx.graph.AddNode(id) <<= removed_node;
+
+	// Restore edges by inserting at original positions (forward order preserves relative order)
+	GraphDoc& doc = ctx.graph.GetDoc();
+	for(int k = 0; k < removed_edges.GetCount(); k++) {
+		int pos = min(removed_edge_pos[k], doc.edges.GetCount());
+		EdgeDoc& e = doc.edges.Insert(pos);
+		e <<= removed_edges[k];
+	}
+	ctx.graph.RebuildIndexPublic();
 }
 
 CommandResult AddEdgeCmd::Execute(CommandContext& ctx) {

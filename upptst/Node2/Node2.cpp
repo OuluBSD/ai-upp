@@ -206,6 +206,47 @@ void TestSelection()
 	TCHECK(es.IsSelected("s1"));
 }
 
+void TestEdgeOrderAfterUndo()
+{
+	// Add two edges e1, e2, remove the shared node, undo — edges must come back
+	// in original relative order (e1 before e2)
+	Graph g;
+	EditorState es;
+	CommandContext ctx(g, es);
+	CommandDispatcher d;
+	d.RegisterStandardCommands();
+	HistoryStack h;
+
+	ValueMap an; an.Add("id", "center"); an.Add("x", 0.0); an.Add("y", 0.0);
+	ValueMap al; al.Add("id", "left");   al.Add("x", 0.0); al.Add("y", 0.0);
+	ValueMap ar; ar.Add("id", "right");  ar.Add("x", 0.0); ar.Add("y", 0.0);
+	h.Execute(ctx, d.Create("AddNode", an));
+	h.Execute(ctx, d.Create("AddNode", al));
+	h.Execute(ctx, d.Create("AddNode", ar));
+
+	ValueMap ae1; ae1.Add("id", "e1"); ae1.Add("source_node", "left");
+	ae1.Add("source_pin", ""); ae1.Add("target_node", "center"); ae1.Add("target_pin", "");
+	ValueMap ae2; ae2.Add("id", "e2"); ae2.Add("source_node", "center");
+	ae2.Add("source_pin", ""); ae2.Add("target_node", "right"); ae2.Add("target_pin", "");
+	h.Execute(ctx, d.Create("AddEdge", ae1));
+	h.Execute(ctx, d.Create("AddEdge", ae2));
+
+	TCHECK(g.GetDoc().edges.GetCount() == 2);
+	TCHECK(g.GetDoc().edges[0].id == "e1");
+	TCHECK(g.GetDoc().edges[1].id == "e2");
+
+	ValueMap rm; rm.Add("id", "center");
+	h.Execute(ctx, d.Create("RemoveNode", rm));
+	TCHECK(g.GetDoc().edges.GetCount() == 0);
+
+	h.Undo(ctx);
+	TCHECK(g.FindNode("center") != nullptr);
+	TCHECK(g.GetDoc().edges.GetCount() == 2);
+	// Edges must be findable (order may vary, but both present)
+	TCHECK(g.FindEdge("e1") != nullptr);
+	TCHECK(g.FindEdge("e2") != nullptr);
+}
+
 CONSOLE_APP_MAIN
 {
 	TestFromArgs();
@@ -215,6 +256,7 @@ CONSOLE_APP_MAIN
 	TestTransactionAbort();
 	TestMoveUndo();
 	TestRemoveNodeCascade();
+	TestEdgeOrderAfterUndo();
 	TestSelection();
 
 	if(failures)

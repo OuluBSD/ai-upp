@@ -22,6 +22,7 @@ class NodeViewportCtrl : public Ctrl {
 	Scene                scene;
 	BaselineSceneBuilder builder;
 	Point                last_mouse_pos;
+	bool                 panning = false;  // middle-mouse or space+drag pan
 	
 	typedef Function<Ctrl*()> WidgetFactory;
 	VectorMap<String, WidgetFactory> widget_factories;
@@ -48,6 +49,8 @@ public:
 	virtual void LeftDown(Point p, dword key) override;
 	virtual void MouseMove(Point p, dword key) override;
 	virtual void LeftUp(Point p, dword key) override;
+	virtual void MiddleDown(Point p, dword key) override;
+	virtual void MiddleUp(Point p, dword key) override;
 	virtual void RightDown(Point p, dword key) override;
 	virtual bool Key(dword key, int count) override;
 };

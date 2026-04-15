@@ -25,9 +25,10 @@ class NodeViewportCtrl : public Ctrl {
 	Scene                scene;
 	BaselineSceneBuilder builder;
 	Point                last_mouse_pos;
-	bool                 panning = false;  // middle-mouse or space+drag pan
-	bool                 drag_pending = false; // left-drag threshold not yet crossed
-	Point                drag_start_view; // view-space origin for DnD threshold
+	bool                 panning = false;         // middle-mouse pan in progress
+	bool                 drag_pending = false;    // left-drag DnD threshold not yet crossed
+	Point                drag_start_view;         // view-space origin for DnD threshold
+	bool                 fit_on_first_paint = false; // ZoomToFit on next Paint after SetGraph
 	
 	typedef Function<Ctrl*()> WidgetFactory;
 	VectorMap<String, WidgetFactory> widget_factories;
@@ -47,12 +48,13 @@ public:
 	Event<EntityId> WhenNodeClick;  // left-click on a node (entity id)
 	Event<EntityId> WhenEdgeClick;  // left-click on an edge
 
-	void SetGraph(Graph& g) { graph = &g; Refresh(); }
+	void SetGraph(Graph& g) { graph = &g; fit_on_first_paint = true; Refresh(); }
 	void SetEditor(EditorState& e) { editor = &e; Refresh(); }
 	void SetHistory(HistoryStack& h) { history = &h; }
 	void SetDispatcher(CommandDispatcher& d) { dispatcher = &d; }
 	void RegisterWidget(const String& type, WidgetFactory f) { widget_factories.Add(type, f); }
 	
+	void ZoomToFit();
 	virtual void Paint(Draw& w) override;
 	virtual void MouseWheel(Point p, int zdelta, dword key) override;
 	virtual void LeftDown(Point p, dword key) override;

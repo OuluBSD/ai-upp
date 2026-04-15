@@ -196,7 +196,7 @@ void HistoryStack::Commit()
 	in_transaction = false;
 }
 
-void HistoryStack::Abort(CommandContext& ctx)
+void HistoryStack::Abort(CommandContext&& ctx)
 {
 	for(int i = current_transaction.GetCount() - 1; i >= 0; i--)
 		current_transaction[i]->Undo(ctx);
@@ -204,7 +204,7 @@ void HistoryStack::Abort(CommandContext& ctx)
 	in_transaction = false;
 }
 
-CommandResult HistoryStack::Execute(CommandContext& ctx, One<Command> cmd)
+CommandResult HistoryStack::Execute(CommandContext&& ctx, One<Command> cmd)
 {
 	CommandResult res = cmd->Execute(ctx);
 	if(res) {
@@ -215,28 +215,28 @@ CommandResult HistoryStack::Execute(CommandContext& ctx, One<Command> cmd)
 	return res;
 }
 
-bool HistoryStack::Undo(CommandContext& ctx)
+bool HistoryStack::Undo(CommandContext&& ctx)
 {
 	Commit();
 	if(undo_stack.IsEmpty()) return false;
-	
+
 	Entry& e = undo_stack.Top();
 	for(int i = e.commands.GetCount() - 1; i >= 0; i--)
 		e.commands[i]->Undo(ctx);
-	
+
 	redo_stack.Add().commands = pick(e.commands);
 	undo_stack.Drop();
 	return true;
 }
 
-bool HistoryStack::Redo(CommandContext& ctx)
+bool HistoryStack::Redo(CommandContext&& ctx)
 {
 	if(redo_stack.IsEmpty()) return false;
-	
+
 	Entry& e = redo_stack.Top();
 	for(int i = 0; i < e.commands.GetCount(); i++)
 		e.commands[i]->Execute(ctx);
-	
+
 	undo_stack.Add().commands = pick(e.commands);
 	redo_stack.Drop();
 	return true;

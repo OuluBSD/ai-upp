@@ -33,9 +33,10 @@ void NodeViewportCtrl::SyncWidgets()
 				}
 				else if(item.text == "EditField") {
 					EditField* ef = new EditField();
-					ef->WhenAction = [=] {
+					String eid = item.entity_id; // copy entity_id before lambda
+					ef->WhenAction = [this, ef, eid] {
 						ValueMap arg;
-						arg.Add("id", item.entity_id);
+						arg.Add("id", eid);
 						arg.Add("value", ef->GetData());
 						history->Execute(CommandContext(*graph, *editor), dispatcher->Create("SetWidgetValue", arg));
 					};
@@ -60,9 +61,11 @@ void NodeViewportCtrl::SyncWidgets()
 					EntityId slot_id = item.entity_id.Mid(sep + 1);
 					NodeDoc* n = graph->FindNode(node_id);
 					if(n) {
-						for(const auto& s : n->slots) {
+						for(int si = 0; si < n->slots.GetCount(); si++) {
+							WidgetSlotDoc& s = n->slots[si];
 							if(s.id == slot_id) {
-								w->SetData(s.properties.Get("value", Value()));
+								Value v = s.properties.Get("value", Value());
+								w->SetData(v);
 								break;
 							}
 						}
@@ -97,21 +100,17 @@ void NodeViewportCtrl::Paint(Draw& w)
 	
 	if(graph) {
 		if(builder.IsDirty(*graph)) {
-			RTIMESTOP("Scene Build");
 			builder.Build(scene, *graph);
-			graph->GetMetrics().scene_build_ms = RTIMESTOP_GET("Scene Build");
 		}
-		
+
 		{
-			RTIMESTOP("Paint Bridge");
 			PaintScene(w, scene, vp, editor);
-			graph->GetMetrics().paint_bridge_ms = RTIMESTOP_GET("Paint Bridge");
 		}
 		
 		if(editor && editor->mode == EditorMode::MARQUEE) {
 			Rect r = vp.WorldToView(editor->marquee_rect);
 			DrawFrame(w, r, Cyan());
-			w.DrawRect(r, Color(0, 255, 255, 64));
+			w.DrawRect(r, Color(0, 255, 255));
 		}
 		
 		SyncWidgets();
@@ -131,13 +130,8 @@ void NodeViewportCtrl::LeftDown(Point p, dword key)
 	last_mouse_pos = p;
 	
 	if(editor && dispatcher && history) {
-		Scene::HitResult hit;
-		{
-			RTIMESTOP("Hit Test");
-			hit = scene.HitTest(vp.ViewToWorld(p));
-			graph->GetMetrics().hit_query_ms = RTIMESTOP_GET("Hit Test");
-		}
-		
+		Scene::HitResult hit = scene.HitTest(vp.ViewToWorld(p));
+
 		if(hit) {
 			if(hit.type == SceneItem::PIN) {
 				editor->mode = EditorMode::LINKING;
@@ -175,7 +169,7 @@ void NodeViewportCtrl::MouseMove(Point p, dword key)
 {
 	// Pan via middle mouse
 	if(panning) {
-		vp.Pan(Pointf(p - last_mouse_pos));
+		vp.Pan(Pointf(p.x - last_mouse_pos.x, p.y - last_mouse_pos.y));
 		last_mouse_pos = p;
 		Refresh();
 		return;

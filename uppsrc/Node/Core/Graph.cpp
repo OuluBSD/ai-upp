@@ -232,6 +232,17 @@ String Graph::SaveXml() const
 	return StoreAsXML(doc);
 }
 
+void Graph::ApplyLayout(const Vector<NodeState>& states)
+{
+	int n = min(states.GetCount(), doc.nodes.GetCount());
+	for(int i = 0; i < n; i++) {
+		if(doc.nodes[i].pos != states[i].layout_pos) {
+			doc.nodes[i].pos = states[i].layout_pos;
+			Invalidate(doc.nodes[i].id);
+		}
+	}
+}
+
 } // namespace Node
 
 } // namespace Upp

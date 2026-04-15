@@ -158,6 +158,42 @@ void TestOrderedTreeLayout()
 	TCHECK(states.GetCount() == 3);
 }
 
+void TestApplyLayout()
+{
+	// Verify that ApplyLayout copies layout_pos into NodeDoc::pos and
+	// marks only moved nodes dirty (incremental invalidation).
+	Graph g;
+	g.AddNode("n0");
+	g.AddNode("n1");
+	g.AddNode("n2");
+
+	Vector<NodeState> states;
+	LayeredLayout(g, states);
+	TCHECK(states.GetCount() == 3);
+
+	// Before apply, nodes sit at default pos (0,0)
+	for(int i = 0; i < 3; i++)
+		TCHECK(g.GetDoc().nodes[i].pos == Pointf(0, 0));
+
+	uint64 serial_before = g.GetSerial();
+	g.ApplyLayout(states);
+
+	// Serial must have advanced (something moved)
+	TCHECK(g.GetSerial() != serial_before);
+
+	// After apply, NodeDoc::pos must match layout_pos
+	for(int i = 0; i < 3; i++)
+		TCHECK(g.GetDoc().nodes[i].pos == states[i].layout_pos);
+
+	// Dirty set must be non-empty (incremental invalidation, not full wipe)
+	TCHECK(!g.GetDirtyEntities().IsEmpty());
+
+	// Second apply with same states: no changes → serial unchanged
+	uint64 serial_after = g.GetSerial();
+	g.ApplyLayout(states);
+	TCHECK(g.GetSerial() == serial_after);
+}
+
 CONSOLE_APP_MAIN
 {
 	TestTopSort();
@@ -168,6 +204,7 @@ CONSOLE_APP_MAIN
 	TestLayeredLayout();
 	TestLayeredLayoutEmpty();
 	TestOrderedTreeLayout();
+	TestApplyLayout();
 
 	if(failures)
 		LOG("Node3: " + AsString(failures) + " FAILURE(S)");

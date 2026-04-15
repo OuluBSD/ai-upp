@@ -1,0 +1,10 @@
+description "Node Graph Control (UI)\377";
+
+uses
+	CtrlLib,
+	Node/Core;
+
+file
+	Ctrl.h,
+	Paint.cpp,
+	ViewportCtrl.cpp;

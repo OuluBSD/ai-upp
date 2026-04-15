@@ -1,0 +1,10 @@
+description "Node: Command dispatch and undo/redo";
+
+uses
+	Node/Core;
+
+file
+	Node2.cpp;
+
+mainconfig
+	"" = "";

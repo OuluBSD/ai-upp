@@ -1,0 +1,30 @@
+description "Node Graph Engine (Headless)\377";
+
+uses
+	Core;
+
+file
+	Core.h,
+	Doc.cpp,
+	Graph.cpp,
+	Viewport.h,
+	Scene.h,
+	Scene.cpp,
+	Layout.h,
+	Spring.cpp,
+	Algo.h,
+	TopSort.cpp,
+	Dijkstra.cpp,
+	Tree.cpp,
+	Routing.h,
+	Routing.cpp,
+	Layered.cpp,
+	Snap.h,
+	Snap.cpp,
+	Editor.h,
+	Command.h,
+	Command.cpp,
+	Clipboard.h,
+	Clipboard.cpp,
+	Migration.h,
+	Migration.cpp;

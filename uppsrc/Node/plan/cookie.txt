@@ -29,7 +29,7 @@
 - [x] T5-P1: Viewport Ctrl Skeleton
 - [x] T5-P2: Input Mapping Layer
 - [x] T5-P3: Menu/Focus Integration — fixed: context menu now covers NODE (single + multi-remove), EDGE remove, GROUP remove, Select All, Paste (if clipboard non-empty), Clear Selection
-- [ ] T5-P4: Clipboard/DragDrop Bridge — copy/paste nodes works; OS drag-drop (InternalDrop/ExternalDrop) not implemented
+- [x] T5-P4: Clipboard/DragDrop Bridge — copy/paste works; OS DnD: DoDragAndDrop on 4px threshold (selected nodes as text/plain JSON), DragAndDrop() handler accepts text/plain drops and calls LoadClipboard at drop point
 
 ## Track T6: Widgets-Inside-Nodes Host Layer
 - [x] T6-P1: Widget Slot Model
@@ -50,7 +50,7 @@
 - [x] T8-P4: Tutorial & Sample Migration — done: tutorial/Node{1..4} port GraphLib{1..4} to Node API (TournamentTreeLayout, OrderedTreeLayout, SpringLayout, Dijkstra); tutorial/NodeTutorial{1,2} updated to use ApplyLayout; all 6 tutorials build
 
 ## Remaining Work
-- T5-P4: OS drag-drop bridge (InternalDrop/ExternalDrop)
+- (none — all 8 tracks complete)
 
 ## Fixed Issues (T7-P4 / T8-P4)
 - [x] Graph::ApplyLayout: moves NodeState::layout_pos → NodeDoc::pos with per-node incremental Invalidate; idempotent (no-op if positions unchanged); tested in Node3::TestApplyLayout

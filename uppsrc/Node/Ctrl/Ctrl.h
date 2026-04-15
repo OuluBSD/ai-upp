@@ -26,6 +26,8 @@ class NodeViewportCtrl : public Ctrl {
 	BaselineSceneBuilder builder;
 	Point                last_mouse_pos;
 	bool                 panning = false;  // middle-mouse or space+drag pan
+	bool                 drag_pending = false; // left-drag threshold not yet crossed
+	Point                drag_start_view; // view-space origin for DnD threshold
 	
 	typedef Function<Ctrl*()> WidgetFactory;
 	VectorMap<String, WidgetFactory> widget_factories;
@@ -56,6 +58,7 @@ public:
 	virtual void MiddleUp(Point p, dword key) override;
 	virtual void RightDown(Point p, dword key) override;
 	virtual bool Key(dword key, int count) override;
+	virtual void DragAndDrop(Point p, PasteClip& d) override;
 };
 
 } // namespace Node

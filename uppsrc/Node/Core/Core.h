@@ -158,6 +158,21 @@ struct ValidationMessage : Moveable<ValidationMessage> {
 	ValidationMessage() : severity(INFO) {}
 };
 
+// --- Runtime State (Transient) ---
+
+struct NodeState : Moveable<NodeState> {
+	Pointf layout_pos;
+	Pointf layout_force;
+	bool is_selected = false;
+	bool is_hovered = false;
+	Pointf target_pos;
+	bool   is_animating = false;
+	double distance = 1e300;
+	bool   optimized = false;
+	int    sort_importance = 0;
+	EntityId predecessor;
+};
+
 struct PerfMetrics : public Moveable<PerfMetrics> {
 	double scene_build_ms = 0;
 	double paint_bridge_ms = 0;
@@ -231,21 +246,10 @@ public:
 
 	void Clear() { doc.nodes.Clear(); doc.edges.Clear(); doc.groups.Clear();
 	               node_idx.Clear(); edge_idx.Clear(); group_idx.Clear(); Invalidate(); }
-};
 
-// --- Runtime State (Transient) ---
-
-struct NodeState : Moveable<NodeState> {
-	Pointf layout_pos;
-	Pointf layout_force;
-	bool is_selected = false;
-	bool is_hovered = false;
-	Pointf target_pos;
-	bool   is_animating = false;
-	double distance = 1e300;
-	bool   optimized = false;
-	int    sort_importance = 0;
-	EntityId predecessor;
+	// Copy layout_pos from states back into NodeDoc::pos and invalidate each moved node.
+	// Call this after running any layout algorithm to make the scene reflect the result.
+	void ApplyLayout(const Vector<NodeState>& states);
 };
 
 struct EdgeState : Moveable<EdgeState> {

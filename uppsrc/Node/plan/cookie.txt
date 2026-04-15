@@ -41,7 +41,7 @@
 - [x] T7-P1: Baseline Metrics & Budgets
 - [x] T7-P2: Scene Cache & Dirty Regions — fixed: incremental rebuild collected edge IDs into Index<EntityId> before re-adding, eliminating duplicates when both endpoints are dirty
 - [x] T7-P3: Spatial Indexing for Hit Tests — fixed: adaptive grid size (sqrt(n/4) clamped [4,64], aspect-ratio adjusted); replaces hardcoded 10x10
-- [ ] T7-P4: Incremental Layout/Path Update — not implemented; full scene rebuild on every invalidation
+- [x] T7-P4: Incremental Layout/Path Update — fixed: Graph::ApplyLayout(states) copies layout_pos→NodeDoc::pos and calls Invalidate(id) per moved node; full rebuild only when dirty_entities is empty (new node/edge add); incremental rebuild for moves
 
 ## Track T8: Migration & Compatibility Surface
 - [x] T8-P1: Compatibility Inventory Freeze
@@ -51,8 +51,9 @@
 
 ## Remaining Work
 - T5-P4: OS drag-drop bridge (InternalDrop/ExternalDrop)
-- T7-P4: Incremental layout/path update (avoid full rebuild on single-node move)
 - T8-P4: Migrate tutorial/GraphLib1..4 to Node
+
+- [x] Graph::ApplyLayout: moves NodeState::layout_pos → NodeDoc::pos with per-node incremental Invalidate; idempotent (no-op if positions unchanged); tested in Node3::TestApplyLayout
 
 ## Fixed Issues (cross-track)
 - [x] Spring layout O(n²): node_idx Index built before iteration loop; edge force loop now O(E)

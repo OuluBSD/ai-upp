@@ -18,25 +18,31 @@ def print_help(prog):
                 f"Usage: {prog} [options] <target>",
                 f"       {prog} tutorial",
                 "",
-                "Options:",
-                "  --conf-release, -ConfRelease, -cr  Select Release mainconfig",
-                "  --conf-debug, -ConfDebug, -cd      Select Debug mainconfig",
-                "  --mainconf X, -mc X                Select mainconfig by index or name",
-                "  --list-conf P, -lc P               List mainconfigs for a package",
-                "  --release, -Release, -r            Use release build flags in umk",
-                "  --method X, -m X                   Select build method by index, name, or path",
-                "  --list-methods, -ListMethods       List build methods and exit",
-                "  --android, -Android                Select Android build method (BUILDER=ANDROID)",
-                "  --bootstrap, -Bootstrap, -bs       Bootstrap-build umk via Makefile",
-                "  --smoketest, -Smoketest            Build a single source file (UWP smoke test)",
-                "  --clean, -Clean, -c                Clean build",
+                "Options (canonical):",
+                "  --config X, -C X                   Select mainconfig mode: debug|release",
+                "  --mainconfig X, -M X               Select mainconfig by index or name",
+                "  --list-mainconfigs P               List mainconfigs for a package",
+                "  --release, -r                      Use release build flags in umk",
+                "  --methods X, -m X                  Select build method by index, name, or path",
+                "  --list-methods                     List build methods and exit",
+                "  --android                          Select Android build method (BUILDER=ANDROID)",
+                "  --bootstrap, -bs                   Bootstrap-build umk via Makefile",
+                "  --smoketest                        Build a single source file (UWP smoke test)",
+                "  --clean, -c                        Clean build",
                 "  --jobs N, -j N, -jN                Parallel jobs",
-                "  --verbose, -Verbose, -v            Verbose output",
-                "  --add-root P, -ar P                Add source root passed to umk (repeatable)",
-                "  --search-root P, -sr P             Add package lookup root for target/mainconf (repeatable)",
-                "  --output-dir P, -od P              Copy built executable to this directory instead of bin/",
+                "  --verbose, -v                      Verbose output",
+                "  --rainbow, -R                      Enable rainbow source root",
+                "  --add-root P                       Add source root passed to umk (repeatable)",
+                "  --search-root P                    Add package lookup root for target/mainconfig (repeatable)",
+                "  --output-dir P                     Copy built executable to this directory instead of bin/",
                 "  --dump-cmd                         Dump the umk command and exit",
-                "  --help, -Help                      Show this help",
+                "  --help, -h                         Show this help",
+                "",
+                "Compatibility aliases:",
+                "  --conf-release, --conf-debug, -cr, -cd",
+                "  --mainconf, -mc, --list-conf, -lc",
+                "  --method, -ListMethods, -ConfRelease, -ConfDebug, -Release",
+                "  -Android, -Bootstrap, -Smoketest, -Clean, -Verbose, -ar, -sr, -od",
             ]
         )
     )
@@ -55,14 +61,14 @@ def print_tutorial(prog):
                 f"  {prog} -cd -r Eon04",
                 "",
                 "Select a mainconfig explicitly:",
-                f"  {prog} --list-conf Eon00",
-                f"  {prog} --mainconf 0 Eon00",
-                f"  {prog} --mainconf \"Release (Posix)\" Eon07",
+                f"  {prog} --list-mainconfigs Eon00",
+                f"  {prog} --mainconfig 0 Eon00",
+                f"  {prog} --mainconfig \"Release (Posix)\" Eon07",
                 "",
                 "Control method selection:",
                 f"  {prog} --list-methods",
-                f"  {prog} --method 0 Eon00",
-                f"  {prog} --android --method ANDROID Eon00",
+                f"  {prog} --methods 0 Eon00",
+                f"  {prog} --android --methods ANDROID Eon00",
                 "",
                 "Bootstrap umk:",
                 f"  {prog} --bootstrap",
@@ -78,9 +84,10 @@ def parse_args(argv):
         "clean": False,
         "jobs": None,
         "verbose": False,
+        "rainbow": False,
         "method": None,
         "list_methods": False,
-        "list_conf": None,
+        "list_mainconfigs": None,
         "mainconf": None,
         "android": False,
         "bootstrap": False,
@@ -96,8 +103,59 @@ def parse_args(argv):
     while i < len(argv):
         arg = argv[i]
         lower = arg.lower()
+        if arg == "-M":
+            if i + 1 >= len(argv):
+                raise ValueError("Missing value for mainconfig")
+            i += 1
+            opts["mainconf"] = argv[i]
+            i += 1
+            continue
+        if arg.startswith("-M") and len(arg) > 2:
+            opts["mainconf"] = arg[2:]
+            i += 1
+            continue
+        if arg == "-C":
+            if i + 1 >= len(argv):
+                raise ValueError("Missing value for config")
+            i += 1
+            lower_value = argv[i].lower()
+            if lower_value in ("release", "r"):
+                opts["conf_mode"] = "release"
+            elif lower_value in ("debug", "d"):
+                opts["conf_mode"] = "debug"
+            else:
+                raise ValueError(f"Unknown config mode: {argv[i]} (expected debug|release)")
+            i += 1
+            continue
         if lower in ("--help", "-help", "-h"):
             opts["help"] = True
+            i += 1
+            continue
+        if lower in ("--config",):
+            if i + 1 >= len(argv):
+                raise ValueError("Missing value for config")
+            i += 1
+            lower_value = argv[i].lower()
+            if lower_value in ("release", "r"):
+                opts["conf_mode"] = "release"
+            elif lower_value in ("debug", "d"):
+                opts["conf_mode"] = "debug"
+            else:
+                raise ValueError(f"Unknown config mode: {argv[i]} (expected debug|release)")
+            i += 1
+            continue
+        if lower.startswith("--config="):
+            value = arg.split("=", 1)[1].strip().lower()
+            if value in ("release", "r"):
+                opts["conf_mode"] = "release"
+            elif value in ("debug", "d"):
+                opts["conf_mode"] = "debug"
+            else:
+                raise ValueError(f"Unknown config mode: {value} (expected debug|release)")
+            i += 1
+            continue
+        if arg == "-R" or lower in ("--rainbow", "-rainbow"):
+            opts["rainbow"] = True
             i += 1
             continue
         if lower in ("--conf-release", "-confrelease", "-cr"):
@@ -108,18 +166,30 @@ def parse_args(argv):
             opts["conf_mode"] = "debug"
             i += 1
             continue
-        if lower in ("--list-conf", "-list-conf", "-lc"):
+        if lower in (
+            "--list-mainconfigs",
+            "--list-mainconfig",
+            "--list-mainconfs",
+            "--list-mainconf",
+            "--list-conf",
+            "-list-conf",
+            "-lc",
+        ):
             if i + 1 >= len(argv):
-                raise ValueError("Missing value for list-conf")
+                raise ValueError("Missing value for list-mainconfigs")
             i += 1
-            opts["list_conf"] = argv[i]
+            opts["list_mainconfigs"] = argv[i]
             i += 1
             continue
-        if lower in ("--mainconf", "-mainconf", "-mc"):
+        if lower in ("--mainconfig", "--mainconf", "-mainconf", "-mc"):
             if i + 1 >= len(argv):
                 raise ValueError("Missing value for mainconf")
             i += 1
             opts["mainconf"] = argv[i]
+            i += 1
+            continue
+        if lower.startswith("--mainconfig="):
+            opts["mainconf"] = arg.split("=", 1)[1]
             i += 1
             continue
         if lower.startswith("--mainconf="):
@@ -150,11 +220,15 @@ def parse_args(argv):
             opts["smoketest"] = True
             i += 1
             continue
-        if lower in ("--method", "-method", "-m"):
+        if lower in ("--methods", "--method", "-method", "-m"):
             if i + 1 >= len(argv):
                 raise ValueError("Missing value for method")
             i += 1
             opts["method"] = argv[i]
+            i += 1
+            continue
+        if lower.startswith("--methods="):
+            opts["method"] = arg.split("=", 1)[1]
             i += 1
             continue
         if lower.startswith("--method="):
@@ -290,8 +364,10 @@ def ensure_build_wrapper(target, dependency):
     return wrapper_root, (wrapper_dir / f"{wrapper_name}.upp")
 
 
-def resolve_upp_path(repo_root, target, extra_search_roots=None):
+def resolve_upp_path(repo_root, target, extra_search_roots=None, include_rainbow=False):
     target_path = Path(target)
+    if not target_path.is_absolute():
+        target_path = repo_root / target_path
     if target_path.is_dir():
         candidates = list(target_path.glob("*.upp"))
         if len(candidates) == 1:
@@ -309,10 +385,15 @@ def resolve_upp_path(repo_root, target, extra_search_roots=None):
         if not path.exists():
             raise ValueError(f"Missing .upp file: {path}")
         return path.resolve()
-    return find_upp_by_name(repo_root, f"{target}.upp", extra_search_roots)
+    return find_upp_by_name(
+        repo_root,
+        f"{target}.upp",
+        extra_search_roots,
+        include_rainbow=include_rainbow,
+    )
 
 
-def find_upp_by_name(repo_root, filename, extra_search_roots=None):
+def find_upp_by_name(repo_root, filename, extra_search_roots=None, include_rainbow=False):
     search_roots = [
         repo_root / "upptst",
         repo_root / "uppsrc",
@@ -323,6 +404,8 @@ def find_upp_by_name(repo_root, filename, extra_search_roots=None):
         repo_root / "stdtst",
         repo_root / "game",
     ]
+    if include_rainbow:
+        search_roots.append(repo_root / "rainbow")
     if extra_search_roots:
         for path in extra_search_roots:
             root = Path(path)
@@ -694,15 +777,37 @@ def llvm_root_sort_key(path):
 def select_posix_default_method(methods):
     if not methods:
         return None
+
+    def find_by_path(path):
+        wanted = Path(path).expanduser().resolve()
+        for method in methods:
+            if method["path"].expanduser().resolve() == wanted:
+                return method
+        return None
+
+    base = Path("~/.config/u++").expanduser()
+    preferred_paths = [
+        base / "theide" / "CLANG.bm",
+        base / "theide" / "GCC.bm",
+        base / "umk" / "CLANG.bm",
+        base / "umk" / "GCC.bm",
+    ]
+    for path in preferred_paths:
+        method = find_by_path(path)
+        if method is not None:
+            return method
+
     non_auto = [method for method in methods if not method.get("auto")]
-    by_name = {method["name"].lower(): method for method in non_auto}
     for name in ("clang", "gcc"):
-        if name in by_name:
-            return by_name[name]
-    by_auto_name = {method["name"].lower(): method for method in methods}
+        for method in non_auto:
+            if method["name"].lower() == name:
+                return method
+
     for name in ("auto-clang", "auto-gcc"):
-        if name in by_auto_name:
-            return by_auto_name[name]
+        for method in methods:
+            if method["name"].lower() == name:
+                return method
+
     return methods[0]
 
 
@@ -1208,11 +1313,14 @@ def main():
             path = invocation_cwd / path
         extra_umk_roots.append(path.resolve())
 
-    if opts["list_conf"]:
+    if opts["list_mainconfigs"]:
         os.chdir(repo_root)
         try:
             upp_path = resolve_upp_path(
-                repo_root, opts["list_conf"], extra_search_roots
+                repo_root,
+                opts["list_mainconfigs"],
+                extra_search_roots,
+                include_rainbow=opts["rainbow"],
             )
         except ValueError as exc:
             print(exc, file=sys.stderr)
@@ -1243,13 +1351,18 @@ def main():
         print_tutorial(Path(sys.argv[0]).name)
         return 0
     if opts["conf_mode"] and opts["mainconf"]:
-        print("Use either --conf-* or --mainconf, not both.", file=sys.stderr)
+        print("Use either --config/--conf-* or --mainconfig/--mainconf, not both.", file=sys.stderr)
         return 2
 
     os.chdir(repo_root)
 
     try:
-        upp_path = resolve_upp_path(repo_root, opts["target"], extra_search_roots)
+        upp_path = resolve_upp_path(
+            repo_root,
+            opts["target"],
+            extra_search_roots,
+            include_rainbow=opts["rainbow"],
+        )
     except ValueError as exc:
         print(exc, file=sys.stderr)
         return 2
@@ -1344,28 +1457,32 @@ def main():
 
     roots_list = [
         "./upptst",
-        "./rainbow",
         "./uppsrc",
         "./examples",
         "./tutorial",
         "./reference",
         "./game",
     ]
-    package_root = upp_path.parent.parent
+    if opts["rainbow"]:
+        roots_list.insert(2, "./rainbow")
+    package_root = upp_path.parent.parent.resolve()
+    prioritized_roots = []
     if package_root.exists():
-        package_root_str = str(package_root)
-        if package_root_str not in roots_list:
-            roots_list.append(package_root_str)
+        prioritized_roots.append(package_root)
+    for root in roots_list:
+        p = Path(root).resolve()
+        if p not in prioritized_roots:
+            prioritized_roots.append(p)
     for path in extra_umk_roots:
-        path_str = str(path)
-        if path_str not in roots_list:
-            roots_list.append(path_str)
+        p = path.resolve()
+        if p not in prioritized_roots:
+            prioritized_roots.append(p)
     if wrapper_root is not None:
-        wrapper_root_str = str(wrapper_root)
-        if wrapper_root_str not in roots_list:
-            roots_list.append(wrapper_root_str)
+        p = wrapper_root.resolve()
+        if p not in prioritized_roots:
+            prioritized_roots.append(p)
     separator = ";" if is_windows else ","
-    roots = separator.join(roots_list)
+    roots = separator.join(str(p) for p in prioritized_roots)
     output_name = f"{requested_target}.exe" if is_windows else requested_target
     output_path = Path("bin") / output_name
     output_path.parent.mkdir(parents=True, exist_ok=True)

@@ -173,6 +173,14 @@ void NodeViewportCtrl::LeftDown(Point p, dword key)
 
 void NodeViewportCtrl::MouseMove(Point p, dword key)
 {
+	// Pan via middle mouse
+	if(panning) {
+		vp.Pan(Pointf(p - last_mouse_pos));
+		last_mouse_pos = p;
+		Refresh();
+		return;
+	}
+
 	if(editor && (key & K_MOUSELEFT)) {
 		if(editor->mode == EditorMode::DRAGGING) {
 			Pointf delta = vp.ViewToWorld(p) - vp.ViewToWorld(last_mouse_pos);
@@ -181,11 +189,10 @@ void NodeViewportCtrl::MouseMove(Point p, dword key)
 				if(n) {
 					Pointf new_pos = n->pos + delta;
 					SnapRequest sreq;
-					sreq.point = new_pos;
+					sreq.point    = new_pos;
 					sreq.grid_step = 10.0;
 					sreq.tolerance = 5.0;
-					SnapResponse sres = SnapToGrid(sreq);
-					new_pos = sres.snapped_point;
+					new_pos = SnapToGrid(sreq).snapped_point;
 					ValueMap arg;
 					arg.Add("id", id);
 					arg.Add("x", new_pos.x);
@@ -199,7 +206,33 @@ void NodeViewportCtrl::MouseMove(Point p, dword key)
 		}
 		Refresh();
 	}
+
+	// Hover tracking — update hovered entity and refresh if changed
+	if(editor && graph) {
+		Scene::HitResult hit = scene.HitTest(vp.ViewToWorld(p));
+		EntityId new_hover = hit ? hit.entity_id : EntityId();
+		if(new_hover != editor->hovered_entity) {
+			editor->hovered_entity = new_hover;
+			editor->hovered_type   = hit ? hit.type : SceneItem::NODE;
+			Refresh();
+		}
+	}
+
 	last_mouse_pos = p;
+}
+
+void NodeViewportCtrl::MiddleDown(Point p, dword key)
+{
+	SetFocus();
+	panning = true;
+	last_mouse_pos = p;
+	SetCapture();
+}
+
+void NodeViewportCtrl::MiddleUp(Point p, dword key)
+{
+	panning = false;
+	ReleaseCapture();
 }
 
 void NodeViewportCtrl::LeftUp(Point p, dword key)

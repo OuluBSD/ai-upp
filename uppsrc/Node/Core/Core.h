@@ -180,7 +180,16 @@ class Graph {
 	uint64      serial = 1;
 	Index<EntityId> dirty_entities;
 
+	// O(1) lookup indices — kept in sync with doc arrays
+	VectorMap<EntityId, int> node_idx;
+	VectorMap<EntityId, int> edge_idx;
+	VectorMap<EntityId, int> group_idx;
+
+	void RebuildIndex();
+
 public:
+	// Rebuild O(1) lookup indices from current doc state (needed after direct doc manipulation)
+	void RebuildIndexPublic() { RebuildIndex(); }
 	void      Invalidate() { serial++; dirty_entities.Clear(); }
 	void      Invalidate(const EntityId& id) { serial++; dirty_entities.FindAdd(id); }
 	uint64    GetSerial() const { return serial; }
@@ -191,13 +200,13 @@ public:
 	void      RemoveNode(const EntityId& id);
 	NodeDoc*  FindNode(const EntityId& id);
 	const NodeDoc* FindNode(const EntityId& id) const;
-	
+
 	EdgeDoc&  AddEdge(const EntityId& id, const EntityId& source_node, const EntityId& source_pin,
 	                  const EntityId& target_node, const EntityId& target_pin);
 	void      RemoveEdge(const EntityId& id);
 	EdgeDoc*  FindEdge(const EntityId& id);
 	const EdgeDoc* FindEdge(const EntityId& id) const;
-	
+
 	GroupDoc& AddGroup(const EntityId& id);
 	void      RemoveGroup(const EntityId& id);
 	GroupDoc* FindGroup(const EntityId& id);
@@ -209,18 +218,19 @@ public:
 	// IO
 	bool      LoadJson(const String& json, Vector<ValidationMessage>& errors);
 	String    SaveJson() const;
-	
+
 	bool      LoadXml(const String& xml, Vector<ValidationMessage>& errors);
 	String    SaveXml() const;
 
 	// Access
 	const GraphDoc& GetDoc() const { return doc; }
 	GraphDoc&       GetDoc()       { return doc; }
-	
-	PerfMetrics&    GetMetrics() { return metrics; }
+
+	PerfMetrics&       GetMetrics()       { return metrics; }
 	const PerfMetrics& GetMetrics() const { return metrics; }
-	
-	void Clear() { doc.nodes.Clear(); doc.edges.Clear(); doc.groups.Clear(); Invalidate(); }
+
+	void Clear() { doc.nodes.Clear(); doc.edges.Clear(); doc.groups.Clear();
+	               node_idx.Clear(); edge_idx.Clear(); group_idx.Clear(); Invalidate(); }
 };
 
 // --- Runtime State (Transient) ---

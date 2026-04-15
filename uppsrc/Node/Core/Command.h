@@ -69,7 +69,9 @@ struct MoveNodeCmd : public Command {
 struct RemoveNodeCmd : public Command {
 	EntityId id;
 	NodeDoc  removed_node;
+	int      removed_node_pos = -1;
 	Array<EdgeDoc> removed_edges;
+	Vector<int>    removed_edge_pos;
 
 	virtual String GetName() const override { return "RemoveNode"; }
 	virtual void   FromArgs(const Upp::Value& a) override { id = a["id"].ToString(); }

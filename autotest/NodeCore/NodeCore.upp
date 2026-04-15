@@ -1,0 +1,10 @@
+description "Node Core Unit Tests\377";
+
+uses
+	Node/Core;
+
+file
+	Tests.cpp;
+
+mainconfig
+	"" = "";

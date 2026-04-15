@@ -1,0 +1,10 @@
+description "Node: Core model, persistence, validation";
+
+uses
+	Node/Core;
+
+file
+	Node1.cpp;
+
+mainconfig
+	"" = "";

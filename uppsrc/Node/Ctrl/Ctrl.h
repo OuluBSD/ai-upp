@@ -2,7 +2,10 @@
 #define _Node_Ctrl_Ctrl_h_
 
 #include <CtrlLib/CtrlLib.h>
+#include <Node/Core/Core.h>
 #include <Node/Core/Scene.h>
+#include <Node/Core/Editor.h>
+#include <Node/Core/Command.h>
 #include <Node/Core/Snap.h>
 #include <Node/Core/Viewport.h>
 

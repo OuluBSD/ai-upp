@@ -93,6 +93,16 @@ void NodeViewportCtrl::SyncWidgets()
 	}
 }
 
+void NodeViewportCtrl::ZoomToFit()
+{
+	if(graph) {
+		if(builder.IsDirty(*graph))
+			builder.Build(scene, *graph);
+		vp.ZoomToFit(scene.index.bounds, GetSize());
+		Refresh();
+	}
+}
+
 void NodeViewportCtrl::Paint(Draw& w)
 {
 	Size sz = GetSize();
@@ -103,6 +113,11 @@ void NodeViewportCtrl::Paint(Draw& w)
 			builder.Build(scene, *graph);
 		}
 
+		if(fit_on_first_paint && !scene.items.IsEmpty()) {
+			fit_on_first_paint = false;
+			vp.ZoomToFit(scene.index.bounds, sz);
+		}
+
 		{
 			PaintScene(w, scene, vp, editor);
 		}
@@ -110,7 +125,7 @@ void NodeViewportCtrl::Paint(Draw& w)
 		if(editor && editor->mode == EditorMode::MARQUEE) {
 			Rect r = vp.WorldToView(editor->marquee_rect);
 			DrawFrame(w, r, Cyan());
-			w.DrawRect(r, Color(0, 255, 255));
+			w.DrawRect(r, Color(180, 240, 240));
 		}
 		
 		SyncWidgets();
@@ -127,10 +142,14 @@ void NodeViewportCtrl::MouseWheel(Point p, int zdelta, dword key)
 void NodeViewportCtrl::LeftDown(Point p, dword key)
 {
 	SetFocus();
+	SetCapture();
 	last_mouse_pos = p;
 	drag_pending = false;
 
 	if(editor && dispatcher && history) {
+		if(builder.IsDirty(*graph))
+			builder.Build(scene, *graph);
+
 		Scene::HitResult hit = scene.HitTest(vp.ViewToWorld(p));
 
 		if(hit) {
@@ -182,7 +201,7 @@ void NodeViewportCtrl::MouseMove(Point p, dword key)
 		return;
 	}
 
-	// Initiate OS drag-and-drop once threshold (4px) is crossed
+	/* OS Drag-and-drop temporarily disabled as it interferes with internal node movement
 	if(drag_pending && editor && graph && editor->selection.GetCount() &&
 	   (abs(p.x - drag_start_view.x) > 4 || abs(p.y - drag_start_view.y) > 4)) {
 		drag_pending = false;
@@ -196,6 +215,7 @@ void NodeViewportCtrl::MouseMove(Point p, dword key)
 		Refresh();
 		return;
 	}
+	*/
 
 	if(editor && (key & K_MOUSELEFT)) {
 		if(editor->mode == EditorMode::DRAGGING) {
@@ -253,6 +273,7 @@ void NodeViewportCtrl::MiddleUp(Point p, dword key)
 
 void NodeViewportCtrl::LeftUp(Point p, dword key)
 {
+	ReleaseCapture();
 	if(editor) {
 		if(editor->mode == EditorMode::DRAGGING) {
 			history->Commit();
@@ -430,6 +451,10 @@ bool NodeViewportCtrl::Key(dword key, int count)
 			}
 			history->Commit();
 			Refresh();
+			return true;
+		}
+		if(key == K_F) {
+			ZoomToFit();
 			return true;
 		}
 	}

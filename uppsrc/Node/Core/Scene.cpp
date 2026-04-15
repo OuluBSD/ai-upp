@@ -156,7 +156,7 @@ void BaselineSceneBuilder::Build(Scene& scene, const Graph& graph)
 	const GraphDoc& doc = graph.GetDoc();
 	BezierRoutingPolicy router;
 
-	if(dirty.IsEmpty()) {
+	if(dirty.IsEmpty() || scene.items.IsEmpty()) {
 		scene.Clear();
 		for(const auto& g : doc.groups) {
 			SceneItem& item = scene.Add();

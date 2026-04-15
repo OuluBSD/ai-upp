@@ -128,7 +128,8 @@ void NodeViewportCtrl::LeftDown(Point p, dword key)
 {
 	SetFocus();
 	last_mouse_pos = p;
-	
+	drag_pending = false;
+
 	if(editor && dispatcher && history) {
 		Scene::HitResult hit = scene.HitTest(vp.ViewToWorld(p));
 
@@ -146,10 +147,12 @@ void NodeViewportCtrl::LeftDown(Point p, dword key)
 				arg.Add("id", hit.entity_id);
 				arg.Add("exclusive", !(key & K_CTRL));
 				history->Execute(CommandContext(*graph, *editor), dispatcher->Create("Select", arg));
-				
+
 				if(hit.type == SceneItem::NODE) {
 					editor->mode = EditorMode::DRAGGING;
 					editor->drag_start = vp.ViewToWorld(p);
+					drag_start_view = p;
+					drag_pending = true;
 					history->Begin();
 				}
 			}
@@ -171,6 +174,21 @@ void NodeViewportCtrl::MouseMove(Point p, dword key)
 	if(panning) {
 		vp.Pan(Pointf(p.x - last_mouse_pos.x, p.y - last_mouse_pos.y));
 		last_mouse_pos = p;
+		Refresh();
+		return;
+	}
+
+	// Initiate OS drag-and-drop once threshold (4px) is crossed
+	if(drag_pending && editor && graph && editor->selection.GetCount() &&
+	   (abs(p.x - drag_start_view.x) > 4 || abs(p.y - drag_start_view.y) > 4)) {
+		drag_pending = false;
+		String payload = StoreClipboard(*graph, editor->selection);
+		VectorMap<String, ClipData> data;
+		Append(data, payload);
+		DoDragAndDrop(data, Null, DND_COPY | DND_MOVE);
+		// DoDragAndDrop is blocking; clean up any pending transaction
+		history->Commit();
+		editor->mode = EditorMode::READY;
 		Refresh();
 		return;
 	}
@@ -412,6 +430,28 @@ bool NodeViewportCtrl::Key(dword key, int count)
 		}
 	}
 	return false;
+}
+
+void NodeViewportCtrl::DragAndDrop(Point p, PasteClip& d)
+{
+	if(!graph || !history || !editor || !dispatcher) return;
+
+	// Accept text/plain drops (our own JSON subgraph payload or external text)
+	if(d.IsAnyAvailable(ClipFmtsText())) {
+		if(d.Accept()) {
+			String data = GetString(d);
+			if(!data.IsEmpty()) {
+				Vector<ValidationMessage> errors;
+				Pointf wp = vp.ViewToWorld(p);
+				history->Begin();
+				if(LoadClipboard(*graph, data, wp, errors))
+					history->Commit();
+				else
+					history->Abort(CommandContext(*graph, *editor));
+				Refresh();
+			}
+		}
+	}
 }
 
 } // namespace Node

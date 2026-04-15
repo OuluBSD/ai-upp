@@ -17,7 +17,7 @@ struct App : public TopWindow {
 
 	EntityId start_node = "Berlin";
 
-	void RunDijkstra(CommandContext& ctx) {
+	void RunDijkstra() {
 		// Run Dijkstra from start node
 		Vector<PathNode> result = Dijkstra(graph, start_node);
 
@@ -64,6 +64,11 @@ struct App : public TopWindow {
 		viewport.SetEditor(editor);
 		viewport.SetHistory(history);
 		viewport.SetDispatcher(dispatcher);
+		viewport.WhenNodeClick = [this](const EntityId& id) {
+			start_node = id;
+			RunDijkstra();
+			viewport.Refresh();
+		};
 
 		Add(viewport.SizePos());
 
@@ -133,7 +138,7 @@ struct App : public TopWindow {
 		graph.ApplyLayout(states);
 
 		// Run initial Dijkstra from Berlin
-		RunDijkstra(ctx);
+		RunDijkstra();
 	}
 };
 

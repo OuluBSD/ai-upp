@@ -43,6 +43,10 @@ public:
 	
 	NodeViewportCtrl();
 	
+	// Callbacks — fired after the default handler, before Refresh()
+	Event<EntityId> WhenNodeClick;  // left-click on a node (entity id)
+	Event<EntityId> WhenEdgeClick;  // left-click on an edge
+
 	void SetGraph(Graph& g) { graph = &g; Refresh(); }
 	void SetEditor(EditorState& e) { editor = &e; Refresh(); }
 	void SetHistory(HistoryStack& h) { history = &h; }

@@ -1,0 +1,10 @@
+description "Node: Migration, LegacyFacade, import resilience";
+
+uses
+	Node/Core;
+
+file
+	Node5.cpp;
+
+mainconfig
+	"" = "";

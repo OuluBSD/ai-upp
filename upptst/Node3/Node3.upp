@@ -1,0 +1,10 @@
+description "Node: Layout algorithms (Spring, Layered, Tree, Dijkstra)";
+
+uses
+	Node/Core;
+
+file
+	Node3.cpp;
+
+mainconfig
+	"" = "";

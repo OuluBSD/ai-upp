@@ -1,6 +1,38 @@
 # Node Plan Audit Report
 
 ## 1. Executive Verdict
+
+**Updated 2026-04-15 — post-implementation audit of actual code.**
+
+The cookie was marked fully done prematurely. A code audit found 11 of 32 phases incomplete or stub-quality. Only T1 (Core Model) and T4 (Command/Undo) are genuinely finished. The remaining six tracks range from "mostly done with specific bugs" (T2, T5) to "placeholder implementations" (T3, T6, T7, T8).
+
+### Implementation Status Summary
+
+| Track | Phases Done | Phases Incomplete | Quality |
+|-------|------------|-------------------|---------|
+| T1 Core Model | 4/4 | 0 | Solid |
+| T2 Scene/Render | 4/5 | 1 | Good — one instance-sharing bug |
+| T3 Layout/Routing | 2/4 | 2 | Stub — layered layout is non-functional quality |
+| T4 Command/Undo | 3/4 | 1 | Good — dispatcher design flaw |
+| T5 Ctrl | 2/4 | 2 | Thin — menus incomplete, no OS DnD |
+| T6 Widgets | 3/4 | 1 | Stub — 2 hardcoded widget types |
+| T7 Performance | 1/4 | 3 | Stub — hardcoded 10x10 grid, no incremental layout |
+| T8 Migration | 1/4 | 3 | Placeholder — crashes on bad input, pin IDs hardcoded |
+
+### Priority Defects (fix before any track is considered done)
+
+1. **Spring layout O(n²)**: `Spring.cpp` lines 49–52 do a linear node ID scan inside the edge-force loop. Needs an `Index<EntityId> → int` map built before the loop.
+2. **Static scene builder bug**: `static BaselineSceneBuilder builder` in `ViewportCtrl.cpp::Paint()` is shared across all viewport instances — each viewport clobbers the other's scene cache.
+3. **Incremental scene rebuild duplicate edges**: When both endpoints of an edge are dirty, the re-add loop in `Scene.cpp:180–199` can insert the same edge item twice.
+4. **ImportGraphLib resilience**: Direct `Value` field access without fallback will silently produce corrupt nodes on missing keys; no field-present checks.
+5. **LegacyFacade::AddEdge** hardcodes `"p1"` as both source and target pin ID — not a real migration.
+
+---
+
+*Original pre-implementation audit text follows.*
+
+---
+
 The planning tree is **conditionally ready** for implementation. The overall track/phase skeleton is coherent, package ownership is mostly disciplined, and the generated tasks preserve the Core/Ctrl separation intent in most files.
 
 The strongest parts are the explicit track decomposition, broad coverage of Core-first responsibilities, and repeated boundary reminders inside Node/Ctrl tasks. The plan is also materially better after this audit because several dependency chains were corrected to match `PLAN-SKELETON.md` phase intent.

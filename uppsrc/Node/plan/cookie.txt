@@ -1,0 +1,65 @@
+# Node Implementation Progress
+
+## Track T1: Core Model & Document Contract [CP]
+- [x] T1-P1: Domain Boundary Freeze
+- [x] T1-P2: Document Schema V1
+- [x] T1-P3: Core Model Implementation
+- [x] T1-P4: Persistence Implementation
+
+## Track T2: Core Scene/Render Kernel [CP]
+- [x] T2-P1: Coordinate System Spec
+- [x] T2-P2: Scene Descriptor Model
+- [x] T2-P3: Path & Style Resolver
+- [x] T2-P4: Hit Geometry Core
+- [x] T2-P5: Draw Bridge Contract — fixed: BaselineSceneBuilder moved to NodeViewportCtrl member (was static local, shared across instances)
+
+## Track T3: Core Layout & Routing Engine
+- [x] T3-P1: Legacy Algorithm Audit Port
+- [x] T3-P2: Routing Policy Layer
+- [x] T3-P3: Layered/DAG Generalization — fixed: proper barycenter crossing minimization (3 forward+backward passes), centered y-coords; replaces hardcoded ID sort
+- [x] T3-P4: Snap/Guide Geometry Core — fixed: SnapToGrid now called in MouseMove drag; Ctrl.h includes Snap.h
+
+## Track T4: Core Editor State + Command Stack [CP]
+- [x] T4-P1: Editor State Model
+- [x] T4-P2: Command Protocol
+- [x] T4-P3: Undo/Redo Engine
+- [x] T4-P4: Selection & Picking Integration — fixed: Command::FromArgs virtual added; each command owns its own arg parsing; CommandDispatcher::Create reduced to 3 lines
+
+## Track T5: Ctrl Integration & Interaction Shell [CP]
+- [x] T5-P1: Viewport Ctrl Skeleton
+- [x] T5-P2: Input Mapping Layer
+- [x] T5-P3: Menu/Focus Integration — fixed: context menu now covers NODE (single + multi-remove), EDGE remove, GROUP remove, Select All, Paste (if clipboard non-empty), Clear Selection
+- [ ] T5-P4: Clipboard/DragDrop Bridge — copy/paste nodes works; OS drag-drop (InternalDrop/ExternalDrop) not implemented
+
+## Track T6: Widgets-Inside-Nodes Host Layer
+- [x] T6-P1: Widget Slot Model
+- [x] T6-P2: Ctrl Host Container
+- [x] T6-P3: Focus/Input Arbitration
+- [x] T6-P4: Widget Persistence Hooks — fixed: RegisterWidget() factory map added to NodeViewportCtrl; factory checked before built-in fallbacks; Button/EditField still provided as built-ins
+
+## Track T7: Performance & Scaling
+- [x] T7-P1: Baseline Metrics & Budgets
+- [x] T7-P2: Scene Cache & Dirty Regions — fixed: incremental rebuild collected edge IDs into Index<EntityId> before re-adding, eliminating duplicates when both endpoints are dirty
+- [x] T7-P3: Spatial Indexing for Hit Tests — fixed: adaptive grid size (sqrt(n/4) clamped [4,64], aspect-ratio adjusted); replaces hardcoded 10x10
+- [ ] T7-P4: Incremental Layout/Path Update — not implemented; full scene rebuild on every invalidation
+
+## Track T8: Migration & Compatibility Surface
+- [x] T8-P1: Compatibility Inventory Freeze
+- [x] T8-P2: Data Migration Adapters — fixed: ImportGraphLib now uses resilient helpers (ValStr/ValDouble/ValColor) with fallbacks; skips/warns on missing/duplicate ids; validates node existence before adding edges
+- [x] T8-P3: Facade/Shim Layer — fixed: LegacyFacade::AddEdge now resolves pin IDs (uses first pin on node, or "" if none) instead of hardcoding "p1"
+- [ ] T8-P4: Tutorial & Sample Migration — tutorials still reference GraphLib; migration not done
+
+## Remaining Work
+- T5-P4: OS drag-drop bridge (InternalDrop/ExternalDrop)
+- T7-P4: Incremental layout/path update (avoid full rebuild on single-node move)
+- T8-P4: Migrate tutorial/GraphLib1..4 to Node
+
+## Fixed Issues (cross-track)
+- [x] Spring layout O(n²): node_idx Index built before iteration loop; edge force loop now O(E)
+- [x] Automated tests: Node1..Node5 in upptst/, all passing
+  - Node1: entity CRUD, ID validation, Validate(), JSON/XML roundtrip
+  - Node2: CommandDispatcher, FromArgs, undo/redo, transactions, abort, cascade
+  - Node3: TopSort, Dijkstra, SpringLayout, LayeredLayout, OrderedTreeLayout
+  - Node4: SceneBuilder, incremental rebuild (no duplicate edges), HitTest, MarqueeSelect, adaptive SpatialIndex
+  - Node5: ImportGraphLib resilience, LegacyFacade pin resolution
+- [x] Validator: empty pin IDs now treated as "unpinned edge" (skip pin check)

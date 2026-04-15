@@ -1,0 +1,7 @@
+description "Node Ctrl Bridge Tests\377";
+
+uses
+	Node/Ctrl;
+
+file
+	BridgeTest.cpp;

@@ -1,0 +1,10 @@
+description "Node: Scene building, spatial index, hit testing";
+
+uses
+	Node/Core;
+
+file
+	Node4.cpp;
+
+mainconfig
+	"" = "";

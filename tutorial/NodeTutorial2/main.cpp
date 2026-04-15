@@ -38,11 +38,7 @@ struct App : public TopWindow {
 		SpringLayout layout;
 		layout.Iterations(1000).Run(graph, states);
 		
-		// Map states back to doc (in a real app, this would be a command)
-		for(int i = 0; i < graph.GetDoc().nodes.GetCount(); i++)
-			graph.GetDoc().nodes[i].pos = states[i].layout_pos;
-		
-		graph.Invalidate();
+		graph.ApplyLayout(states);
 	}
 };
 

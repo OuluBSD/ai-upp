@@ -47,13 +47,15 @@
 - [x] T8-P1: Compatibility Inventory Freeze
 - [x] T8-P2: Data Migration Adapters — fixed: ImportGraphLib now uses resilient helpers (ValStr/ValDouble/ValColor) with fallbacks; skips/warns on missing/duplicate ids; validates node existence before adding edges
 - [x] T8-P3: Facade/Shim Layer — fixed: LegacyFacade::AddEdge now resolves pin IDs (uses first pin on node, or "" if none) instead of hardcoding "p1"
-- [ ] T8-P4: Tutorial & Sample Migration — tutorials still reference GraphLib; migration not done
+- [x] T8-P4: Tutorial & Sample Migration — done: tutorial/Node{1..4} port GraphLib{1..4} to Node API (TournamentTreeLayout, OrderedTreeLayout, SpringLayout, Dijkstra); tutorial/NodeTutorial{1,2} updated to use ApplyLayout; all 6 tutorials build
 
 ## Remaining Work
 - T5-P4: OS drag-drop bridge (InternalDrop/ExternalDrop)
-- T8-P4: Migrate tutorial/GraphLib1..4 to Node
 
+## Fixed Issues (T7-P4 / T8-P4)
 - [x] Graph::ApplyLayout: moves NodeState::layout_pos → NodeDoc::pos with per-node incremental Invalidate; idempotent (no-op if positions unchanged); tested in Node3::TestApplyLayout
+- [x] tutorial/Node{1..4}: complete Node-API ports of GraphLib{1..4}; valid entity IDs (underscores), ApplyLayout, command-based construction
+- [x] tutorial/NodeTutorial2: replaced manual pos-copy loop with ApplyLayout
 
 ## Fixed Issues (cross-track)
 - [x] Spring layout O(n²): node_idx Index built before iteration loop; edge force loop now O(E)

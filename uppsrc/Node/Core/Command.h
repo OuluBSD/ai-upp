@@ -149,12 +149,12 @@ class HistoryStack {
 public:
 	void Begin();
 	void Commit();
-	void Abort(CommandContext& ctx);
-	
-	CommandResult Execute(CommandContext& ctx, One<Command> cmd);
-	
-	bool Undo(CommandContext& ctx);
-	bool Redo(CommandContext& ctx);
+	void Abort(CommandContext&& ctx);
+
+	CommandResult Execute(CommandContext&& ctx, One<Command> cmd);
+
+	bool Undo(CommandContext&& ctx);
+	bool Redo(CommandContext&& ctx);
 	
 	bool CanUndo() const { return undo_stack.GetCount(); }
 	bool CanRedo() const { return redo_stack.GetCount(); }

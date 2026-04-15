@@ -154,6 +154,10 @@ void NodeViewportCtrl::LeftDown(Point p, dword key)
 					drag_start_view = p;
 					drag_pending = true;
 					history->Begin();
+					WhenNodeClick(hit.entity_id);
+				}
+				else if(hit.type == SceneItem::EDGE) {
+					WhenEdgeClick(hit.entity_id);
 				}
 			}
 		}

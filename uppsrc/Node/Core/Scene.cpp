@@ -91,7 +91,8 @@ static void AddNodeItems(Scene& scene, const NodeDoc& n, const Graph& graph, Bez
 	item.fill_clr = n.fill_clr;
 	item.line_clr = n.line_clr;
 	item.line_width = n.line_width;
-	
+	item.shape = n.shape;
+
 	if(!n.label.IsEmpty()) {
 		SceneItem& lbl = scene.Add();
 		lbl.type = SceneItem::LABEL;
@@ -144,6 +145,8 @@ static void AddEdgeItem(Scene& scene, const EdgeDoc& e, const Graph& graph, Bezi
 		item.path = pick(resp.path);
 		item.line_clr = e.stroke_clr;
 		item.line_width = e.line_width;
+		item.directed = e.directed;
+		item.text = e.label;
 	}
 }
 

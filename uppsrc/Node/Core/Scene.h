@@ -25,7 +25,9 @@ struct SceneItem : Moveable<SceneItem> {
 	int      font_height = 12;
 	bool     font_bold = false;
 	bool     font_italic = false;
-	
+	int      shape = 0;     // NODE: 0=Rect, 1=Ellipse, 2=Diamond
+	bool     directed = false; // EDGE: draw arrowhead at target end
+
 	void Jsonize(JsonIO& jio) {
 		jio
 			("type", (int&)type)
@@ -40,6 +42,8 @@ struct SceneItem : Moveable<SceneItem> {
 			("font_height", font_height)
 			("font_bold", font_bold)
 			("font_italic", font_italic)
+			("shape", shape)
+			("directed", directed)
 		;
 	}
 };

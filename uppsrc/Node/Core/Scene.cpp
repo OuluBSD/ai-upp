@@ -82,41 +82,244 @@ bool BaselineSceneBuilder::IsDirty(const Graph& graph) const
 	return graph.GetSerial() != last_graph_serial;
 }
 
+// ComfyUI-style layout constants (world units)
+static const double NODE_W         = 200.0;
+static const double TITLE_H        = 26.0;
+static const double PIN_ROW_H      = 22.0;
+static const double SLOT_ROW_H     = 24.0;
+static const double DOCEDIT_ROW_H  = 6 * SLOT_ROW_H; // 6 rows tall by default
+static const double DOCEDIT_MIN_W  = 160.0;           // min node width when DocEdit present
+static const double IMAGE_H        = 140.0;
+static const double PIN_R          = 5.0;   // pin circle radius
+static const double H_PAD          = 10.0;
+
+static double SlotHeight(const WidgetSlotDoc& s)
+{
+	if(s.type == "Image" || s.type == "IMAGE") return IMAGE_H;
+	if(s.type == "DocEdit")                    return DOCEDIT_ROW_H;
+	return SLOT_ROW_H;
+}
+
 static void AddNodeItems(Scene& scene, const NodeDoc& n, const Graph& graph, BezierRoutingPolicy& router)
 {
-	SceneItem& item = scene.Add();
-	item.type = SceneItem::NODE;
-	item.entity_id = n.id;
-	item.rect = Rectf(n.pos, n.sz);
-	item.fill_clr = n.fill_clr;
-	item.line_clr = n.line_clr;
-	item.line_width = n.line_width;
-	item.shape = n.shape;
+	// Count inputs/outputs to size the pin area
+	int in_count = 0, out_count = 0;
+	for (const auto& p : n.pins)
+		(p.kind == PinKind::Output ? out_count : in_count)++;
+	int pin_rows = max(in_count, out_count);
 
-	if(!n.label.IsEmpty()) {
+	// Compute slot area height and required minimum width
+	double slot_area_h = 0;
+	double min_w = n.sz.cx;
+	for (const auto& s : n.slots) {
+		slot_area_h += SlotHeight(s);
+		if(s.type == "DocEdit") min_w = max(min_w, DOCEDIT_MIN_W + H_PAD * 2);
+	}
+
+	double node_h = TITLE_H + pin_rows * PIN_ROW_H + slot_area_h + 8.0;
+	double node_w = max(n.sz.cx, min_w); // widen if needed for DocEdit
+
+	// Write computed height back so bounding boxes and hit-tests are accurate
+	const_cast<NodeDoc&>(n).sz.cy = node_h;
+
+	Rectf node_rect(n.pos.x, n.pos.y, n.pos.x + node_w, n.pos.y + node_h);
+
+	// Body color — blend tint if set
+	Color body_clr = n.fill_clr;
+	if (!IsNull(n.tint_clr)) {
+		// Simple tint blend: 60% body, 40% tint
+		body_clr = Color(
+			(body_clr.GetR() * 3 + n.tint_clr.GetR()) / 4,
+			(body_clr.GetG() * 3 + n.tint_clr.GetG()) / 4,
+			(body_clr.GetB() * 3 + n.tint_clr.GetB()) / 4
+		);
+	}
+	Color title_clr = Color(
+		max(0, body_clr.GetR() - 20),
+		max(0, body_clr.GetG() - 20),
+		max(0, body_clr.GetB() - 20)
+	);
+
+	// NODE body
+	{
+		SceneItem& item = scene.Add();
+		item.type = SceneItem::NODE;
+		item.entity_id = n.id;
+		item.rect = node_rect;
+		item.fill_clr = body_clr;
+		item.line_clr = n.line_clr;
+		item.line_width = n.line_width;
+		item.shape = 3; // rounded rect
+	}
+
+	// Title bar (dark overlay at top)
+	{
+		Rectf title_rect(node_rect.left, node_rect.top, node_rect.right, node_rect.top + TITLE_H);
 		SceneItem& lbl = scene.Add();
 		lbl.type = SceneItem::LABEL;
 		lbl.entity_id = n.id;
-		lbl.text = n.label;
-		lbl.rect = item.rect;
-		lbl.font_height = 14;
+		lbl.text = n.label.IsEmpty() ? n.id : n.label;
+		lbl.rect = title_rect;
+		lbl.font_height = 12;
 		lbl.font_bold = true;
+		lbl.fill_clr = title_clr;
+		lbl.line_clr = n.line_clr;
+		lbl.text_clr = Color(230, 230, 230);
+		lbl.shape = 3; // rounded top corners
+		lbl.badge = false;
 	}
-	
-	for(const auto& p : n.pins) {
-		SceneItem& pi = scene.Add();
-		pi.type = SceneItem::PIN;
-		pi.entity_id = n.id + ":" + p.id;
-		pi.rect = Rectf(n.pos + p.pos - p.sz/2.0, p.sz);
-		pi.fill_clr = p.color;
+
+	// Category badge — floating above top-right of the node box (overlay pass)
+	if (!n.category.IsEmpty()) {
+		double bh = 14.0;
+		double bw = min(90.0, node_w * 0.55);
+		// Positioned above the node box by bh pixels, right-aligned
+		Rectf badge_rect(node_rect.right - bw - 2, node_rect.top - bh - 2,
+		                 node_rect.right - 2,       node_rect.top - 2);
+		SceneItem& badge = scene.Add();
+		badge.type = SceneItem::LABEL;
+		badge.entity_id = n.id;
+		badge.text = n.category;
+		badge.rect = badge_rect;
+		badge.font_height = 9;
+		badge.fill_clr = Color(30, 100, 50);
+		badge.line_clr = Null;
+		badge.text_clr = Color(180, 255, 180);
+		badge.badge = true;
+		badge.overlay = true; // drawn in pass 4, above everything
+		badge.shape = 3;
 	}
-	
-	for(const auto& s : n.slots) {
-		SceneItem& si = scene.Add();
-		si.type = SceneItem::WIDGET;
-		si.entity_id = n.id + ":" + s.id;
-		si.rect = Rectf(n.pos + s.rect.TopLeft(), s.rect.GetSize());
-		si.text = s.type;
+
+	// Pin rows — pair inputs on left, outputs on right
+	// Gather inputs and outputs in order
+	Vector<const PinDoc*> inputs, outputs;
+	for (const auto& p : n.pins)
+		(p.kind == PinKind::Output ? outputs : inputs).Add(&p);
+
+	double pin_area_top = node_rect.top + TITLE_H + 4.0;
+	int max_rows = max(inputs.GetCount(), outputs.GetCount());
+
+	for (int row = 0; row < max_rows; row++) {
+		double row_cy = pin_area_top + row * PIN_ROW_H + PIN_ROW_H / 2.0;
+
+		// Input pin (left edge)
+		if (row < inputs.GetCount()) {
+			const PinDoc& p = *inputs[row];
+			Pointf pin_center(node_rect.left, row_cy);
+
+			// Write pin world position back so edges can use it
+			const_cast<PinDoc&>(p).pos = Pointf(0, row_cy - n.pos.y);
+
+			Rectf pr(pin_center.x - PIN_R, pin_center.y - PIN_R,
+			         pin_center.x + PIN_R, pin_center.y + PIN_R);
+			SceneItem& pi = scene.Add();
+			pi.type = SceneItem::PIN;
+			pi.entity_id = n.id + ":" + p.id;
+			pi.rect = pr;
+			pi.fill_clr = p.color;
+			pi.line_clr = Color(40, 40, 40);
+			pi.shape = 1; // circle
+
+			// Input label (right of pin, left-aligned)
+			SceneItem& pl = scene.Add();
+			pl.type = SceneItem::LABEL;
+			pl.entity_id = n.id + ":" + p.id;
+			pl.badge = false;
+			pl.font_italic = false;
+			pl.text = p.label;
+			pl.font_height = 11;
+			pl.rect = Rectf(node_rect.left + H_PAD + PIN_R, row_cy - PIN_ROW_H/2,
+			                node_rect.left + node_w/2, row_cy + PIN_ROW_H/2);
+			pl.text_clr = Color(200, 200, 200);
+			pl.fill_clr = Null;
+			pl.line_clr = Null;
+		}
+
+		// Output pin (right edge)
+		if (row < outputs.GetCount()) {
+			const PinDoc& p = *outputs[row];
+			Pointf pin_center(node_rect.right, row_cy);
+
+			// Write pin world position back
+			const_cast<PinDoc&>(p).pos = Pointf(node_w, row_cy - n.pos.y);
+
+			Rectf pr(pin_center.x - PIN_R, pin_center.y - PIN_R,
+			         pin_center.x + PIN_R, pin_center.y + PIN_R);
+			SceneItem& pi = scene.Add();
+			pi.type = SceneItem::PIN;
+			pi.entity_id = n.id + ":" + p.id;
+			pi.rect = pr;
+			pi.fill_clr = p.color;
+			pi.line_clr = Color(40, 40, 40);
+			pi.shape = 1; // circle
+
+			// Output label (left of pin, right-aligned)
+			SceneItem& pl = scene.Add();
+			pl.type = SceneItem::LABEL;
+			pl.entity_id = n.id + ":" + p.id;
+			pl.badge = true;
+			pl.text = p.label;
+			pl.font_height = 11;
+			pl.rect = Rectf(node_rect.left + node_w/2, row_cy - PIN_ROW_H/2,
+			                node_rect.right - H_PAD - PIN_R, row_cy + PIN_ROW_H/2);
+			pl.text_clr = Color(200, 200, 200);
+			pl.fill_clr = Null;
+			pl.line_clr = Null;
+			pl.font_italic = true; // right-align hint (drawn differently)
+		}
+	}
+
+	// Widget slots
+	double sy = pin_area_top + max_rows * PIN_ROW_H + 4.0;
+	for (const auto& s : n.slots) {
+		bool is_image = (s.type == "Image" || s.type == "IMAGE");
+		double sh = SlotHeight(s);
+
+		if (is_image) {
+			// Full-width image thumbnail widget
+			SceneItem& si = scene.Add();
+			si.type = SceneItem::WIDGET;
+			si.entity_id = n.id + ":" + s.id;
+			si.rect = Rectf(node_rect.left + 1, sy, node_rect.right - 1, sy + sh);
+			si.text = s.type;
+			Value v = s.properties["value"];
+			if (!v.IsVoid() && !v.IsNull())
+				si.image_path = v.ToString();
+		} else if (s.type == "DocEdit") {
+			// DocEdit: full-width, no label
+			SceneItem& si = scene.Add();
+			si.type = SceneItem::WIDGET;
+			si.entity_id = n.id + ":" + s.id;
+			si.rect = Rectf(node_rect.left + 2, sy + 2,
+			                node_rect.right - 2, sy + sh - 2);
+			si.text = s.type;
+		} else {
+			// Standard slot row: label on the left half, Ctrl on the right half
+			String slot_label = s.id;
+			if (!slot_label.IsEmpty()) {
+				SceneItem& lbl = scene.Add();
+				lbl.type = SceneItem::LABEL;
+				lbl.entity_id = n.id + ":" + s.id;
+				lbl.badge = false;
+				lbl.text = slot_label;
+				lbl.font_height = 10;
+				lbl.rect = Rectf(node_rect.left + H_PAD, sy,
+				                 node_rect.left + node_w * 0.5, sy + sh);
+				lbl.text_clr = Color(180, 180, 180);
+				lbl.fill_clr = Color(28, 30, 36);
+				lbl.line_clr = Null;
+			}
+
+			// Ctrl widget occupies right half
+			SceneItem& si = scene.Add();
+			si.type = SceneItem::WIDGET;
+			si.entity_id = n.id + ":" + s.id;
+			si.rect = Rectf(node_rect.left + node_w * 0.5, sy + 2,
+			                node_rect.right - 2, sy + sh - 2);
+			si.text = s.type;
+		}
+
+		sy += sh;
 	}
 }
 
@@ -124,26 +327,35 @@ static void AddEdgeItem(Scene& scene, const EdgeDoc& e, const Graph& graph, Bezi
 {
 	const NodeDoc* src_node = graph.FindNode(e.source_node);
 	const NodeDoc* tgt_node = graph.FindNode(e.target_node);
-	
+
 	if(src_node && tgt_node) {
 		Pointf p1 = src_node->pos + src_node->sz / 2.0;
 		Pointf p2 = tgt_node->pos + tgt_node->sz / 2.0;
-		
+		Color  pin_clr = Null; // use source pin color for edge
+
+		// Match by name AND kind: source must be Output, target must be Input.
+		// Nodes like ConditioningZeroOut have same name for both in and out.
 		for(const auto& p : src_node->pins)
-			if(p.id == e.source_pin) { p1 = src_node->pos + p.pos; break; }
+			if(p.id == e.source_pin && p.kind == PinKind::Output) {
+				p1 = src_node->pos + p.pos;
+				pin_clr = p.color;
+				break;
+			}
 		for(const auto& p : tgt_node->pins)
-			if(p.id == e.target_pin) { p2 = tgt_node->pos + p.pos; break; }
-		
+			if(p.id == e.target_pin && p.kind == PinKind::Input)
+				{ p2 = tgt_node->pos + p.pos; break; }
+
 		RouteRequest req;
 		req.source_pos = p1;
 		req.target_pos = p2;
 		RouteResponse resp = router.Route(req);
-		
+
 		SceneItem& item = scene.Add();
 		item.type = SceneItem::EDGE;
 		item.entity_id = e.id;
 		item.path = pick(resp.path);
-		item.line_clr = e.stroke_clr;
+		// Use source pin color if edge has no explicit stroke, otherwise edge doc color
+		item.line_clr = !IsNull(pin_clr) ? pin_clr : e.stroke_clr;
 		item.line_width = e.line_width;
 		item.directed = e.directed;
 		item.text = e.label;
@@ -155,6 +367,8 @@ void BaselineSceneBuilder::Build(Scene& scene, const Graph& graph)
 	const Index<EntityId>& dirty = graph.GetDirtyEntities();
 	const GraphDoc& doc = graph.GetDoc();
 	BezierRoutingPolicy router;
+	
+	LOG("BaselineSceneBuilder::Build " << doc.nodes.GetCount() << " nodes, " << doc.edges.GetCount() << " edges, " << dirty.GetCount() << " dirty");
 
 	if(dirty.IsEmpty() || scene.items.IsEmpty()) {
 		scene.Clear();
@@ -164,8 +378,11 @@ void BaselineSceneBuilder::Build(Scene& scene, const Graph& graph)
 			item.entity_id = g.id;
 			item.fill_clr = g.color;
 		}
-		for(const auto& e : doc.edges) AddEdgeItem(scene, e, graph, router);
+		// Nodes first: AddNodeItems writes pin positions back into PinDoc::pos
+		// which AddEdgeItem then reads. Order matters.
 		for(const auto& n : doc.nodes) AddNodeItems(scene, n, graph, router);
+		for(const auto& e : doc.edges) AddEdgeItem(scene, e, graph, router);
+		LOG("Full build: " << scene.items.GetCount() << " items");
 	}
 	else {
 		// Incremental: remove dirty entities
@@ -204,9 +421,11 @@ void BaselineSceneBuilder::Build(Scene& scene, const Graph& graph)
 			const EdgeDoc* e = graph.FindEdge(eid);
 			if(e) AddEdgeItem(scene, *e, graph, router);
 		}
+		LOG("Incremental build: " << scene.items.GetCount() << " items");
 	}
 	
 	scene.Reindex();
+	LOG("Spatial index bounds: " << scene.index.bounds);
 	last_graph_serial = graph.GetSerial();
 	scene.dirty = false;
 }

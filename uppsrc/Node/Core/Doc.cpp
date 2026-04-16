@@ -107,6 +107,7 @@ void PinDoc::operator<<=(const PinDoc& src)
 	kind = src.kind;
 	pos = src.pos;
 	color = src.color;
+	type_name = src.type_name;
 	type = src.type;
 	sz = src.sz;
 }
@@ -123,6 +124,9 @@ void NodeDoc::operator<<=(const NodeDoc& src)
 {
 	id = src.id;
 	label = src.label;
+	node_type_id = src.node_type_id;
+	category = src.category;
+	tint_clr = src.tint_clr;
 	pos = src.pos;
 	sz = src.sz;
 	shape = src.shape;

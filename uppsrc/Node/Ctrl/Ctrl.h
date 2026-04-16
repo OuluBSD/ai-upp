@@ -13,6 +13,7 @@ namespace Upp {
 
 namespace Node {
 
+void PaintBackground(Draw& w, Size sz, const Viewport& vp);
 void PaintScene(Draw& w, const Scene& scene, const Viewport& vp, const EditorState* es = nullptr);
 
 class NodeViewportCtrl : public Ctrl {

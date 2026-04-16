@@ -1,0 +1,14 @@
+description "Node Tutorial 6: Neural Network Autoencoder with Groups";
+
+uses
+	Node/Script;
+uses(GUI)
+	Node/Ctrl;
+
+file
+	main.cpp,
+	in.eon;
+
+mainconfig
+	"" = "GUI",
+	"" = "";

@@ -105,6 +105,182 @@ static void PatchNodeMetadata(Graph& graph, const String& data_dir)
 	}
 }
 
+// ---------------------------------------------------------------------------
+// Node type registry helpers
+// ---------------------------------------------------------------------------
+
+// Build a NodeDoc template from a type id and its pin/slot declarations.
+// Mirrors the node types declared in in.eon so "Add Node" can create them.
+
+static NodeDoc MakeUnetLoader()
+{
+	NodeDoc n; n.node_type_id = "comfyui.gguf.unet_loader"; n.label = "UnetLoader GGUF";
+	n.category = "comfyui"; n.fill_clr = Color(40, 44, 52); n.line_clr = Color(80, 90, 110);
+	{ auto& p = n.pins.Add(); p.id = "model"; p.kind = PinKind::Output; p.label = "MODEL"; p.color = Color(160, 80, 200); }
+	auto AddSlot = [&](const char* id, const char* type, Value val) {
+		auto& s = n.slots.Add(); s.id = id; s.type = type; s.properties.Add("value", val);
+	};
+	AddSlot("unet_file",               "DropList",      ""); AddSlot("device", "DropList", "cuda:0");
+	AddSlot("virtual_vram_gb",         "EditDoubleSpin", 8.0); AddSlot("use_other_vram", "Option", false);
+	AddSlot("expert_mode_allocations", "Null",           Value());
+	return n;
+}
+
+static NodeDoc MakeClipLoader()
+{
+	NodeDoc n; n.node_type_id = "comfyui.gguf.clip_loader"; n.label = "CLIPLoader GGUF";
+	n.category = "comfyui"; n.fill_clr = Color(40, 44, 52); n.line_clr = Color(80, 90, 110);
+	{ auto& p = n.pins.Add(); p.id = "clip"; p.kind = PinKind::Output; p.label = "CLIP"; p.color = Color(200, 180, 60); }
+	auto AddSlot = [&](const char* id, const char* type, Value val) {
+		auto& s = n.slots.Add(); s.id = id; s.type = type; s.properties.Add("value", val);
+	};
+	AddSlot("clip_name", "DropList", ""); AddSlot("type", "DropList", "wan");
+	AddSlot("device", "DropList", "cpu"); AddSlot("virtual_vram_gb", "EditDoubleSpin", 8.0);
+	AddSlot("use_other_vram", "Option", false); AddSlot("expert_mode_allocations", "Null", Value());
+	return n;
+}
+
+static NodeDoc MakeSeedEverywhere()
+{
+	NodeDoc n; n.node_type_id = "comfyui.seed_everywhere"; n.label = "Seed Everywhere";
+	n.category = "comfyui"; n.fill_clr = Color(40, 44, 52); n.line_clr = Color(80, 90, 110);
+	{ auto& p = n.pins.Add(); p.id = "seed"; p.kind = PinKind::Output; p.label = "INT"; p.color = Color(180, 180, 180); }
+	auto AddSlot = [&](const char* id, const char* type, Value val) {
+		auto& s = n.slots.Add(); s.id = id; s.type = type; s.properties.Add("value", val);
+	};
+	AddSlot("seed", "EditIntSpin", 0); AddSlot("control_after_generate", "DropList", "randomize");
+	return n;
+}
+
+static NodeDoc MakePowerLoraLoader()
+{
+	NodeDoc n; n.node_type_id = "comfyui.power_lora_loader"; n.label = "Power Lora Loader";
+	n.category = "comfyui"; n.fill_clr = Color(40, 44, 52); n.line_clr = Color(80, 90, 110);
+	{ auto& p = n.pins.Add(); p.id = "model"; p.kind = PinKind::Input;  p.label = "MODEL"; p.color = Color(160, 80, 200); }
+	{ auto& p = n.pins.Add(); p.id = "clip";  p.kind = PinKind::Input;  p.label = "CLIP";  p.color = Color(200, 180, 60); }
+	{ auto& p = n.pins.Add(); p.id = "model"; p.kind = PinKind::Output; p.label = "MODEL"; p.color = Color(160, 80, 200); }
+	{ auto& p = n.pins.Add(); p.id = "clip";  p.kind = PinKind::Output; p.label = "CLIP";  p.color = Color(200, 180, 60); }
+	auto AddSlot = [&](const char* id, const char* type, Value val) {
+		auto& s = n.slots.Add(); s.id = id; s.type = type; s.properties.Add("value", val);
+	};
+	AddSlot("toggle_all", "ToggleButton", true);
+	AddSlot("lora_0", "ToggleEditDouble", 0.80); AddSlot("lora_1", "ToggleEditDouble", 0.60);
+	AddSlot("lora_2", "ToggleEditDouble", 1.50); AddSlot("add_lora", "Button", Value());
+	return n;
+}
+
+static NodeDoc MakePositivePrompt()
+{
+	NodeDoc n; n.node_type_id = "comfyui.positive_prompt"; n.label = "Positive Prompt";
+	n.category = "comfyui"; n.fill_clr = Color(40, 44, 52); n.tint_clr = Color(50, 120, 120); n.line_clr = Color(80, 90, 110);
+	{ auto& p = n.pins.Add(); p.id = "clip";         p.kind = PinKind::Input;  p.label = "CLIP";         p.color = Color(200, 180, 60); }
+	{ auto& p = n.pins.Add(); p.id = "conditioning"; p.kind = PinKind::Output; p.label = "CONDITIONING"; p.color = Color(220, 130, 60); }
+	{ auto& s = n.slots.Add(); s.id = "text"; s.type = "DocEdit"; s.properties.Add("value", ""); }
+	return n;
+}
+
+static NodeDoc MakeConditioningZeroOut()
+{
+	NodeDoc n; n.node_type_id = "comfyui.conditioning_zero_out"; n.label = "ConditioningZeroOut";
+	n.category = "comfyui"; n.fill_clr = Color(40, 44, 52); n.line_clr = Color(80, 90, 110);
+	{ auto& p = n.pins.Add(); p.id = "conditioning"; p.kind = PinKind::Input;  p.label = "CONDITIONING"; p.color = Color(220, 130, 60); }
+	{ auto& p = n.pins.Add(); p.id = "conditioning"; p.kind = PinKind::Output; p.label = "CONDITIONING"; p.color = Color(220, 130, 60); }
+	return n;
+}
+
+static NodeDoc MakeEmptyHunyuanLatent()
+{
+	NodeDoc n; n.node_type_id = "comfyui.empty_hunyuan_latent"; n.label = "Empty Hunyuan Latent";
+	n.category = "comfyui"; n.fill_clr = Color(40, 44, 52); n.line_clr = Color(80, 90, 110);
+	{ auto& p = n.pins.Add(); p.id = "latent"; p.kind = PinKind::Output; p.label = "LATENT"; p.color = Color(220, 100, 100); }
+	auto AddSlot = [&](const char* id, Value val) {
+		auto& s = n.slots.Add(); s.id = id; s.type = "EditIntSpin"; s.properties.Add("value", val);
+	};
+	AddSlot("width", 480); AddSlot("height", 832); AddSlot("length", 81); AddSlot("batch_size", 1);
+	return n;
+}
+
+static NodeDoc MakeKSamplerAdvanced()
+{
+	NodeDoc n; n.node_type_id = "comfyui.ksampler_advanced"; n.label = "KSampler Advanced";
+	n.category = "comfyui"; n.fill_clr = Color(40, 44, 52); n.tint_clr = Color(80, 40, 120); n.line_clr = Color(80, 90, 110);
+	for(const char* id : (const char*[]){"model", "positive", "negative", "latent_image"}) {
+		auto& p = n.pins.Add(); p.id = id; p.kind = PinKind::Input;  p.label = ToUpper(String(id)); p.color = Color(180, 180, 180);
+	}
+	{ auto& p = n.pins.Add(); p.id = "latent"; p.kind = PinKind::Output; p.label = "LATENT"; p.color = Color(220, 100, 100); }
+	auto AddSlot = [&](const char* id, const char* type, Value val) {
+		auto& s = n.slots.Add(); s.id = id; s.type = type; s.properties.Add("value", val);
+	};
+	AddSlot("add_noise",              "Option",       true);
+	AddSlot("noise_seed",             "EditIntSpin",  1234567890);
+	AddSlot("control_after_generate", "DropList",     "fixed");
+	AddSlot("steps",                  "EditIntSpin",  16);
+	AddSlot("cfg",                    "EditDoubleSpin", 1.0);
+	AddSlot("sampler_name",           "DropList",     "res_2s");
+	AddSlot("scheduler",              "DropList",     "bong_tangent");
+	AddSlot("start_at_step",          "EditIntSpin",  0);
+	AddSlot("end_at_step",            "EditIntSpin",  16);
+	AddSlot("return_with_leftover_noise", "Option",   false);
+	return n;
+}
+
+static NodeDoc MakeVaeDecode()
+{
+	NodeDoc n; n.node_type_id = "comfyui.vae_decode"; n.label = "VAE Decode";
+	n.category = "comfyui"; n.fill_clr = Color(40, 44, 52); n.line_clr = Color(80, 90, 110);
+	{ auto& p = n.pins.Add(); p.id = "samples"; p.kind = PinKind::Input;  p.label = "LATENT"; p.color = Color(220, 100, 100); }
+	{ auto& p = n.pins.Add(); p.id = "vae";     p.kind = PinKind::Input;  p.label = "VAE";    p.color = Color(100, 200, 120); }
+	{ auto& p = n.pins.Add(); p.id = "image";   p.kind = PinKind::Output; p.label = "IMAGE";  p.color = Color(100, 160, 220); }
+	return n;
+}
+
+static NodeDoc MakeVaeLoader()
+{
+	NodeDoc n; n.node_type_id = "comfyui.vae_loader"; n.label = "VAELoader";
+	n.category = "comfyui"; n.fill_clr = Color(40, 44, 52); n.line_clr = Color(80, 90, 110);
+	{ auto& p = n.pins.Add(); p.id = "vae"; p.kind = PinKind::Output; p.label = "VAE"; p.color = Color(100, 200, 120); }
+	auto AddSlot = [&](const char* id, const char* type, Value val) {
+		auto& s = n.slots.Add(); s.id = id; s.type = type; s.properties.Add("value", val);
+	};
+	AddSlot("vae_name", "EditField", ""); AddSlot("device", "DropList", "cpu");
+	return n;
+}
+
+static NodeDoc MakeVideoCombine()
+{
+	NodeDoc n; n.node_type_id = "comfyui.video_combine"; n.label = "Video Combine";
+	n.category = "comfyui"; n.fill_clr = Color(40, 44, 52); n.line_clr = Color(80, 90, 110);
+	{ auto& p = n.pins.Add(); p.id = "image_batch"; p.kind = PinKind::Input;  p.label = "IMAGE"; p.color = Color(100, 160, 220); }
+	{ auto& p = n.pins.Add(); p.id = "video";       p.kind = PinKind::Output; p.label = "VIDEO"; p.color = Color(60, 180, 180); }
+	auto AddSlot = [&](const char* id, const char* type, Value val) {
+		auto& s = n.slots.Add(); s.id = id; s.type = type; s.properties.Add("value", val);
+	};
+	AddSlot("frame_rate",    "EditIntSpin",  24);
+	AddSlot("loop_count",    "EditIntSpin",  0);
+	AddSlot("filename_path", "EditField",    "");
+	AddSlot("format",        "EditField",    "video/webm");
+	AddSlot("pingpong",      "Option",       false);
+	AddSlot("save_image",    "Option",       true);
+	return n;
+}
+
+static void RegisterAllNodeTypes(NodeViewportCtrl& viewport)
+{
+	viewport.RegisterNodeType("comfyui.gguf.unet_loader",     "UnetLoader GGUF",       MakeUnetLoader);
+	viewport.RegisterNodeType("comfyui.gguf.clip_loader",     "CLIPLoader GGUF",       MakeClipLoader);
+	viewport.RegisterNodeType("comfyui.seed_everywhere",      "Seed Everywhere",       MakeSeedEverywhere);
+	viewport.RegisterNodeType("comfyui.power_lora_loader",    "Power Lora Loader",     MakePowerLoraLoader);
+	viewport.RegisterNodeType("comfyui.positive_prompt",      "Positive Prompt",       MakePositivePrompt);
+	viewport.RegisterNodeType("comfyui.conditioning_zero_out","ConditioningZeroOut",   MakeConditioningZeroOut);
+	viewport.RegisterNodeType("comfyui.empty_hunyuan_latent", "Empty Hunyuan Latent",  MakeEmptyHunyuanLatent);
+	viewport.RegisterNodeType("comfyui.ksampler_advanced",    "KSampler Advanced",     MakeKSamplerAdvanced);
+	viewport.RegisterNodeType("comfyui.vae_decode",           "VAE Decode",            MakeVaeDecode);
+	viewport.RegisterNodeType("comfyui.vae_loader",           "VAELoader",             MakeVaeLoader);
+	viewport.RegisterNodeType("comfyui.video_combine",        "Video Combine",         MakeVideoCombine);
+}
+
+// ---------------------------------------------------------------------------
+
 struct App : TopWindow {
 	Graph             graph;
 	EditorState       editor;
@@ -117,6 +293,7 @@ struct App : TopWindow {
 		Sizeable().Zoomable();
 
 		dispatcher.RegisterStandardCommands();
+		RegisterAllNodeTypes(viewport);
 		viewport.SetGraph(graph);
 		viewport.SetEditor(editor);
 		viewport.SetHistory(history);

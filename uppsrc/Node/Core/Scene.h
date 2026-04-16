@@ -32,6 +32,9 @@ struct SceneItem : Moveable<SceneItem> {
 	bool     badge = false;   // overlay label — skip hit testing
 	bool     overlay = false; // paint above all node bodies (z-layer 3)
 	Color    text_clr = Null; // explicit text color override
+	// PCB routing metadata (non-empty only for PCB style edges)
+	Vector<int> seg_layer;   // layer per segment (0=front, 1=back)
+	Vector<int> via_indices; // path[] indices that are via/bend points
 
 	void Jsonize(JsonIO& jio) {
 		jio

@@ -457,7 +457,9 @@ static void AddEdgeItem(Scene& scene, const EdgeDoc& e, const Graph& graph,
 		SceneItem& item = scene.Add();
 		item.type = SceneItem::EDGE;
 		item.entity_id = e.id;
-		item.path = pick(resp.path);
+		item.path       = pick(resp.path);
+		item.seg_layer  = pick(resp.seg_layer);
+		item.via_indices = pick(resp.via_indices);
 		// Use source pin color if edge has no explicit stroke, otherwise edge doc color
 		item.line_clr = !IsNull(pin_clr) ? pin_clr : e.stroke_clr;
 		item.line_width = e.line_width;

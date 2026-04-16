@@ -261,28 +261,79 @@ static void PaintItem(Draw& w, const SceneItem& item, const Viewport& vp,
 		for(const auto& p : item.path)
 			pts.Add(vp.WorldToView(p));
 
-		w.DrawPolyline(pts, edge_w, edge_clr);
+		bool is_pcb = !item.seg_layer.IsEmpty();
+		if(is_pcb) {
+			// PCB dual-layer rendering:
+			// Layer 0 (front copper): warm green  #4A7C59 tinted
+			// Layer 1 (back copper): cooler teal  #3A6070 tinted
+			// When selected/hovered use bright highlight on all segments
+			Color front_clr = selected || hovered ? line
+			                : Color(
+			                    max(0, min(255, edge_clr.GetR() / 2 + 40)),
+			                    max(0, min(255, edge_clr.GetG() / 2 + 100)),
+			                    max(0, min(255, edge_clr.GetB() / 2 + 50)));
+			Color back_clr  = selected || hovered ? Color(line.GetR()/2+50, line.GetG()/2+80, line.GetB()/2+120)
+			                : Color(
+			                    max(0, min(255, edge_clr.GetR() / 2 + 20)),
+			                    max(0, min(255, edge_clr.GetG() / 2 + 60)),
+			                    max(0, min(255, edge_clr.GetB() / 2 + 90)));
+			int trace_w = max(2, (int)(2.5 * scale));
 
-		// Midpoint circle dot
-		int mid = pts.GetCount() / 2;
-		int dot_r = max(3, (int)(4 * scale));
-		Rect dot_r2(pts[mid].x - dot_r, pts[mid].y - dot_r,
-		            pts[mid].x + dot_r, pts[mid].y + dot_r);
-		DrawEllipse(w, dot_r2, edge_clr, edge_clr, 1);
+			for(int i = 0; i + 1 < pts.GetCount(); i++) {
+				int layer = (i < item.seg_layer.GetCount()) ? item.seg_layer[i] : 0;
+				Color seg_clr = (layer == 0) ? front_clr : back_clr;
+				w.DrawLine(pts[i].x, pts[i].y, pts[i+1].x, pts[i+1].y, trace_w, seg_clr);
+			}
 
-		// Arrow
-		if(item.directed && pts.GetCount() >= 2) {
-			int n = pts.GetCount();
-			DrawArrow(w, pts[n-2], pts[n-1], max(6, (int)(8*scale)), edge_clr);
-		}
+			// Through-hole pads at endpoints
+			int pad_r = max(4, (int)(5 * scale));
+			Color pad_ring = Color(200, 180, 100); // gold annular ring
+			Color pad_hole = Color(20, 20, 20);
+			for(int ep : {0, pts.GetCount() - 1}) {
+				Rect pr(pts[ep].x - pad_r, pts[ep].y - pad_r,
+				        pts[ep].x + pad_r, pts[ep].y + pad_r);
+				DrawEllipse(w, pr, pad_ring, pad_ring, 1);
+				int hr = max(2, pad_r / 2);
+				Rect hr2(pts[ep].x - hr, pts[ep].y - hr,
+				         pts[ep].x + hr, pts[ep].y + hr);
+				DrawEllipse(w, hr2, pad_hole, pad_hole, 1);
+			}
 
-		// Edge label
-		if(!item.text.IsEmpty()) {
-			int m = pts.GetCount() / 2;
-			Font f = StdFont().Height(max(6, (int)(10*scale)));
-			Size ts = GetTextSize(item.text, f);
-			w.DrawText(pts[m].x - ts.cx/2, pts[m].y - ts.cy - dot_r - 2,
-			           item.text, f, edge_clr);
+			// Via dots at bend points (layer transitions)
+			int via_r = max(3, (int)(3.5 * scale));
+			Color via_ring  = Color(180, 160, 80); // gold via ring
+			Color via_fill  = Color(40, 40, 40);
+			for(int vi : item.via_indices) {
+				if(vi < 0 || vi >= pts.GetCount()) continue;
+				Rect vr(pts[vi].x - via_r, pts[vi].y - via_r,
+				        pts[vi].x + via_r, pts[vi].y + via_r);
+				DrawEllipse(w, vr, via_fill, via_ring, 1);
+			}
+		} else {
+			// Normal edge
+			w.DrawPolyline(pts, edge_w, edge_clr);
+
+			// Midpoint circle dot
+			int mid = pts.GetCount() / 2;
+			int dot_r = max(3, (int)(4 * scale));
+			Rect dot_r2(pts[mid].x - dot_r, pts[mid].y - dot_r,
+			            pts[mid].x + dot_r, pts[mid].y + dot_r);
+			DrawEllipse(w, dot_r2, edge_clr, edge_clr, 1);
+
+			// Arrow
+			if(item.directed && pts.GetCount() >= 2) {
+				int n = pts.GetCount();
+				DrawArrow(w, pts[n-2], pts[n-1], max(6, (int)(8*scale)), edge_clr);
+			}
+
+			// Edge label
+			if(!item.text.IsEmpty()) {
+				int m = pts.GetCount() / 2;
+				Font f = StdFont().Height(max(6, (int)(10*scale)));
+				Size ts = GetTextSize(item.text, f);
+				w.DrawText(pts[m].x - ts.cx/2, pts[m].y - ts.cy - dot_r - 2,
+				           item.text, f, edge_clr);
+			}
 		}
 	}
 	else if(item.type == SceneItem::LABEL) {

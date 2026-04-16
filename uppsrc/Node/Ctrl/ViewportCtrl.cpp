@@ -82,7 +82,10 @@ void NodeViewportCtrl::SetEdgeStyle(EdgeStyle s)
 void NodeViewportCtrl::SetAnimPhase(double phase)
 {
 	anim_phase = phase;
-	builder.edge_style = EdgeStyle::Realistic;
+	// Only switch to Realistic if not already on a Realistic variant
+	if(editor && editor->edge_style != EdgeStyle::RealisticTight &&
+	             editor->edge_style != EdgeStyle::RealisticLoose)
+		SetEdgeStyle(EdgeStyle::RealisticTight);
 	if(graph) graph->Invalidate();
 	Refresh();
 }
@@ -787,10 +790,12 @@ void NodeViewportCtrl::RightDown(Point p, dword key)
 				EdgeStyle cur_style = editor ? editor->edge_style : EdgeStyle::Curved;
 				menu.Sub("Theme", [=](Bar& theme) {
 					// enabled=false for the current style (acts as checkmark indicator)
-					theme.Add(cur_style != EdgeStyle::Simple,    "Simple",    [=] { SetEdgeStyle(EdgeStyle::Simple);    });
-					theme.Add(cur_style != EdgeStyle::Curved,    "Curved",    [=] { SetEdgeStyle(EdgeStyle::Curved);    });
-					theme.Add(cur_style != EdgeStyle::Schematic, "Schematic", [=] { SetEdgeStyle(EdgeStyle::Schematic); });
-					theme.Add(cur_style != EdgeStyle::Realistic, "Realistic", [=] { SetEdgeStyle(EdgeStyle::Realistic); });
+					theme.Add(cur_style != EdgeStyle::Simple,         "Simple",           [=] { SetEdgeStyle(EdgeStyle::Simple);         });
+					theme.Add(cur_style != EdgeStyle::Curved,         "Curved",           [=] { SetEdgeStyle(EdgeStyle::Curved);         });
+					theme.Add(cur_style != EdgeStyle::Schematic,      "Schematic",        [=] { SetEdgeStyle(EdgeStyle::Schematic);      });
+					theme.Add(cur_style != EdgeStyle::RealisticTight, "Realistic (tight)",[=] { SetEdgeStyle(EdgeStyle::RealisticTight); });
+					theme.Add(cur_style != EdgeStyle::RealisticLoose, "Realistic (loose)",[=] { SetEdgeStyle(EdgeStyle::RealisticLoose); });
+					theme.Add(cur_style != EdgeStyle::PCB,            "PCB",              [=] { SetEdgeStyle(EdgeStyle::PCB);            });
 				});
 			}
 

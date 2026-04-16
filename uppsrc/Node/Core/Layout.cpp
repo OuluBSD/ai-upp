@@ -374,21 +374,6 @@ void SmartPacker::ValidateLayout(Graph& graph)
 	} else {
 		LOG("LAYOUT VALIDATION PASSED: No overlaps detected");
 	}
-	
-	// Debug: print all group bounds
-	LOG("=== Group Bounds ===");
-	for(int i = 0; i < doc.groups.GetCount(); i++) {
-		const GroupDoc& g = doc.groups[i];
-		Rectf bounds = ComputeGroupBounds(graph, g);
-		LOG(g.vfs_path << " bounds=" << bounds << " nodes=" << g.nodes.GetCount());
-		for(const auto& nid : g.nodes) {
-			const NodeDoc* n = graph.FindNode(nid);
-			if(n) {
-				Rectf nrect(n->pos.x, n->pos.y, n->pos.x + n->sz.cx, n->pos.y + n->sz.cy);
-				LOG("  " << n->id << " pos=" << n->pos << " sz=" << n->sz << " rect=" << nrect);
-			}
-		}
-	}
 }
 
 Rectf SmartPacker::ComputeGroupBounds(Graph& graph, const GroupDoc& g)

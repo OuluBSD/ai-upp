@@ -1,5 +1,6 @@
 #include "Ctrl.h"
 #include <Node/Core/Clipboard.h>
+#include <Node/Core/Layout.h>
 
 namespace Upp {
 
@@ -339,6 +340,26 @@ void NodeViewportCtrl::ZoomToFit()
 		vp_pristine = false; // explicit user action — stop auto-refitting
 		Refresh();
 	}
+}
+
+void NodeViewportCtrl::ApplyLayout()
+{
+	if(!graph) return;
+	
+	// Run SmartPacker with current orientation
+	SmartPacker packer;
+	packer.GroupPadding(30.0)
+	      .NodePadding(20.0)
+	      .GroupInnerPadding(25.0)
+	      .Orientation(layout_orientation)
+	      .Viewport(Rectf(0, 0, GetSize().cx, GetSize().cy));
+	
+	packer.Pack(*graph);
+	
+	// Rebuild scene and zoom to fit
+	builder.Build(scene, *graph);
+	vp.ZoomToFit(scene.index.bounds, GetSize());
+	Refresh();
 }
 
 void NodeViewportCtrl::Paint(Draw& w)
@@ -790,12 +811,16 @@ void NodeViewportCtrl::RightDown(Point p, dword key)
 				EdgeStyle cur_style = editor ? editor->edge_style : EdgeStyle::Curved;
 				menu.Sub("Theme", [=](Bar& theme) {
 					// enabled=false for the current style (acts as checkmark indicator)
-					theme.Add(cur_style != EdgeStyle::Simple,         "Simple",           [=] { SetEdgeStyle(EdgeStyle::Simple);         });
-					theme.Add(cur_style != EdgeStyle::Curved,         "Curved",           [=] { SetEdgeStyle(EdgeStyle::Curved);         });
-					theme.Add(cur_style != EdgeStyle::Schematic,      "Schematic",        [=] { SetEdgeStyle(EdgeStyle::Schematic);      });
-					theme.Add(cur_style != EdgeStyle::RealisticTight, "Realistic (tight)",[=] { SetEdgeStyle(EdgeStyle::RealisticTight); });
-					theme.Add(cur_style != EdgeStyle::RealisticLoose, "Realistic (loose)",[=] { SetEdgeStyle(EdgeStyle::RealisticLoose); });
-					theme.Add(cur_style != EdgeStyle::PCB,            "PCB",              [=] { SetEdgeStyle(EdgeStyle::PCB);            });
+					theme.Add(cur_style != EdgeStyle::Simple,         "Simple",                [=] { SetEdgeStyle(EdgeStyle::Simple);         });
+					theme.Add(cur_style != EdgeStyle::Curved,         "Curved",                [=] { SetEdgeStyle(EdgeStyle::Curved);         });
+					theme.Add(cur_style != EdgeStyle::Schematic,      "Schematic",             [=] { SetEdgeStyle(EdgeStyle::Schematic);      });
+					theme.Add(cur_style != EdgeStyle::RealisticTight, "Realistic Tight",       [=] { SetEdgeStyle(EdgeStyle::RealisticTight); });
+					theme.Add(cur_style != EdgeStyle::RealisticLoose, "Realistic Loose",       [=] { SetEdgeStyle(EdgeStyle::RealisticLoose); });
+					theme.Separator();
+					theme.Add(cur_style != EdgeStyle::PCBHVFast,      "PCB HV-Fast",           [=] { SetEdgeStyle(EdgeStyle::PCBHVFast);      });
+					theme.Add(cur_style != EdgeStyle::PCBHVLee,       "PCB HV-Lee (BFS)",      [=] { SetEdgeStyle(EdgeStyle::PCBHVLee);       });
+					theme.Add(cur_style != EdgeStyle::PCB45Fast,      "PCB 45-Fast",           [=] { SetEdgeStyle(EdgeStyle::PCB45Fast);      });
+					theme.Add(cur_style != EdgeStyle::PCB45Lee,       "PCB 45-Lee (BFS)",      [=] { SetEdgeStyle(EdgeStyle::PCB45Lee);       });
 				});
 			}
 
@@ -814,6 +839,19 @@ void NodeViewportCtrl::RightDown(Point p, dword key)
 				Refresh();
 			});
 			menu.Add("Zoom to Fit", [=] { ZoomToFit(); });
+			
+			// Layout orientation submenu
+			menu.Separator();
+			menu.Sub("Layout Orientation", [=](Bar& layout_menu) {
+				layout_menu.Add(layout_orientation == SmartPacker::LAYOUT_TALL, "Tall (Shelf Packing)", [=] {
+					SetLayoutOrientation(SmartPacker::LAYOUT_TALL);
+					ApplyLayout();
+				});
+				layout_menu.Add(layout_orientation == SmartPacker::LAYOUT_WIDE, "Wide (Column Packing)", [=] {
+					SetLayoutOrientation(SmartPacker::LAYOUT_WIDE);
+					ApplyLayout();
+				});
+			});
 		}
 
 		menu.Execute();

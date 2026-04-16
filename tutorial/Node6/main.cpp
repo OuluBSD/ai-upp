@@ -24,8 +24,6 @@ static void ApplyGroupLayout(Graph& graph)
 	      .GroupInnerPadding(25.0);
 	
 	// Get viewport size if available (for aspect ratio adjustment)
-	// In GUI mode, we can get this from the graph/viewport
-	// For now, use a reasonable default
 	packer.Viewport(Rectf(0, 0, 1600, 1200));  // Default viewport
 	
 	packer.Pack(graph);
@@ -122,16 +120,17 @@ struct App : TopWindow {
 		String data_dir = GetDataFile("");
 		if(!FileExists(AppendFileName(data_dir, "in.eon")))
 			data_dir = GetFileDirectory(__FILE__);
-		
+
 		Vector<ValidationMessage> errors;
 		if(LoadEonFile(graph, AppendFileName(data_dir, "in.eon"), errors)) {
 			PatchNodeMetadata(graph);
 			ApplyGroupLayout(graph);
+			viewport.Refresh();
+			viewport.ZoomToFit();  // Re-zoom to fit the loaded and laid-out graph
 		} else {
 			for(const auto& e : errors)
 				LOG("ERROR: " << e.message);
 		}
-		viewport.Refresh();
 	}
 };
 

@@ -255,7 +255,7 @@ void SmartPacker::PackGlobal()
 				item.bounds = Rectf(group_padding, cursor_y, group_padding + w, cursor_y + h);
 				
 				shelf.x = group_padding + w + group_padding;
-				cursor_y += h + group_padding * 8;
+				cursor_y += h + group_padding * 4;  // Less vertical spacing
 				cursor_x = shelf.x;
 
 				shelves.Add(shelf);
@@ -270,9 +270,8 @@ void SmartPacker::PackGlobal()
 		};
 
 		Vector<Column> columns;
-		double cursor_y = group_padding;
 		double cursor_x = group_padding;
-		
+
 		// Use viewport height if available
 		double available_height = has_viewport ? (viewport.Height() - 2 * group_padding) : 2000.0;
 
@@ -282,7 +281,8 @@ void SmartPacker::PackGlobal()
 			double h = item.bounds.Height();
 
 			// Try to fit in current column
-			bool fits_in_current = !columns.IsEmpty() && (cursor_y + h + group_padding <= available_height);
+			bool fits_in_current = !columns.IsEmpty() && 
+				(columns[columns.GetCount()-1].y + h + group_padding <= available_height);
 
 			if(fits_in_current) {
 				// Place in current column
@@ -295,11 +295,11 @@ void SmartPacker::PackGlobal()
 				Column col;
 				col.x = cursor_x;
 				col.w = w;
+				col.y = group_padding + h + group_padding;
 
 				item.bounds = Rectf(cursor_x, group_padding, cursor_x + w, group_padding + h);
 				
-				col.y = group_padding + h + group_padding;
-				cursor_x += w + group_padding * 8;  // More horizontal spacing for WIDE
+				cursor_x += w + group_padding * 2;  // Compact horizontal spacing for WIDE
 
 				columns.Add(col);
 			}
@@ -346,7 +346,46 @@ void SmartPacker::Pack(Graph& graph)
 {
 	// Step 1: Analyze graph structure
 	AnalyzeGraph(graph);
-	
+
+	// Step 1.5: Sort items to place ungrouped nodes near their connected groups
+	// Strategy: For each ungrouped node, find the group it connects to most,
+	// then place the ungrouped node immediately after that group
+	Array<ConnectionInfo> sorted;
+	Vector<bool> used(items.GetCount(), false);
+
+	// Find most connected group for each ungrouped node
+	for(int i = 0; i < items.GetCount(); i++) {
+		if(used[i]) continue;
+		if(!items[i].is_group) continue;  // Process groups first
+
+		// Place this group
+		sorted.Add(pick(items[i]));
+		used[i] = true;
+
+		// Now place any ungrouped nodes that connect to this group
+		for(int j = 0; j < items.GetCount(); j++) {
+			if(used[j]) continue;
+			if(items[j].is_group) continue;
+
+			// Check if this ungrouped node connects to the group we just placed
+			for(int k = 0; k < sorted.Top().connection_ids.GetCount(); k++) {
+				if(sorted.Top().connection_ids[k] == items[j].id) {
+					sorted.Add(pick(items[j]));
+					used[j] = true;
+					break;
+				}
+			}
+		}
+	}
+
+	// Add any remaining items (shouldn't happen, but just in case)
+	for(int i = 0; i < items.GetCount(); i++) {
+		if(!used[i])
+			sorted.Add(pick(items[i]));
+	}
+
+	items = pick(sorted);
+
 	// Step 2: Global packing (groups + ungrouped nodes) FIRST
 	// This determines where each group will be placed
 	PackGlobal();

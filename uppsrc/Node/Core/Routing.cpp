@@ -522,9 +522,7 @@ static RouteResponse CellPathToResponse(const Vector<Point>& cpath, int layer_us
 	for (int i = 0; i + 1 < res.path.GetCount(); i++)
 		res.seg_layer.Add(layer_used);
 
-	// Via indices: every interior bend
-	for (int i = 1; i + 1 < res.path.GetCount(); i++)
-		res.via_indices.Add(i);
+	// Via dots only at layer transitions (none on a single-layer route)
 
 	return res;
 }

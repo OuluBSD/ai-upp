@@ -139,11 +139,12 @@ void SmartPacker::EstimateItemBounds(ConnectionInfo& item, Graph& graph)
 		int cols = max(1, (int)sqrt(item.node_count));
 		int rows = (item.node_count + cols - 1) / cols;
 
-		// Node dimensions with spacing
+		// Node dimensions with spacing - conservative estimates
+		// Scene.cpp computes: TITLE_H + pin_rows*PIN_ROW_H + slot_h + 8
 		double node_w = 200.0;
-		double node_h = 80.0;
-		double col_w = node_w + node_padding * 2;  // 240px
-		double row_h = node_h + node_padding * 2;  // 120px
+		double node_h = 150.0;
+		double col_w = node_w + node_padding * 3;  // 260px
+		double row_h = node_h + node_padding * 3;  // 210px
 
 		double w = cols * col_w + group_inner_padding * 2;
 		double h = rows * row_h + group_inner_padding * 2;
@@ -155,7 +156,7 @@ void SmartPacker::EstimateItemBounds(ConnectionInfo& item, Graph& graph)
 		if(n)
 			item.bounds = GetNodeBounds(*n);
 		else
-			item.bounds = Rectf(0, 0, 200.0, 80.0);
+			item.bounds = Rectf(0, 0, 200.0, 150.0);
 	}
 }
 
@@ -186,15 +187,16 @@ void SmartPacker::PackNodesInGroupAtPosition(Graph& graph, const String& group_p
 	int cols = max(1, (int)sqrt(nodes.GetCount()));
 	int rows = (nodes.GetCount() + cols - 1) / cols;
 	
-	// Node dimensions: computed in Scene.cpp
-	// Width varies, height = TITLE_H + pin_rows * PIN_ROW_H + slot_area_h + 8
-	// Use conservative estimates with proper spacing
+	// Node dimensions: Scene.cpp computes height as TITLE_H + pin_rows*PIN_ROW_H + slot_h + 8
+	// Use conservative estimates that account for nodes with many pins
+	// Typical node: 100-200px wide, 80-150px tall depending on pins
 	double node_w = 200.0;  // Typical node width
-	double node_h = 80.0;   // Typical node height
+	double node_h = 150.0;  // Conservative height estimate
 	
-	// Spacing between nodes (must be >= node_w to prevent overlap)
-	double col_w = node_w + node_padding * 2;  // 200 + 40 = 240px
-	double row_h = node_h + node_padding * 2;  // 80 + 40 = 120px
+	// Spacing between nodes - must provide enough gap to prevent overlap
+	// even if nodes are taller than estimated
+	double col_w = node_w + node_padding * 3;  // 200 + 60 = 260px
+	double row_h = node_h + node_padding * 3;  // 150 + 60 = 210px
 	
 	// Center the grid within the group bounds
 	double start_x = pos.x + group_inner_padding;
@@ -256,7 +258,7 @@ void SmartPacker::PackGlobal()
 			item.bounds = Rectf(group_padding, cursor_y, group_padding + w, cursor_y + h);
 			
 			shelf.x = group_padding + w + group_padding;
-			cursor_y += h + group_padding * 5;  // More padding between shelves
+			cursor_y += h + group_padding * 8;  // More padding for taller groups
 			cursor_x = shelf.x;
 
 			shelves.Add(shelf);
@@ -268,29 +270,33 @@ void SmartPacker::AdjustAspectRatio()
 {
 	if(!has_viewport) return;
 	
-	double target_ratio = viewport.Width() / viewport.Height();
-	if(target_ratio < 0.5) target_ratio = 1.0;  // Cap at 1:1 to 2:1
-	
 	// Compute current layout bounds
 	Rectf layout_bounds;
 	for(int i = 0; i < items.GetCount(); i++)
 		layout_bounds.Union(items[i].bounds);
 	
+	// Target aspect ratio from viewport
+	double target_ratio = viewport.Width() / viewport.Height();
+	if(target_ratio < 0.5) target_ratio = 1.0;
+	
+	// Current layout aspect ratio
 	double layout_ratio = layout_bounds.Width() / layout_bounds.Height();
 	
-	// If layout is too wide or too tall, re-flow
+	// Only adjust if significantly different from target
 	if(layout_ratio > target_ratio * 1.5 || layout_ratio < target_ratio / 1.5) {
-		// Adjust shelf heights/widths to better match target
-		// For now, just scale to fit viewport
+		// Calculate scale to fit viewport with margin
 		double scale_x = viewport.Width() * 0.9 / layout_bounds.Width();
 		double scale_y = viewport.Height() * 0.9 / layout_bounds.Height();
 		double scale = min(scale_x, scale_y);
 		
-		for(int i = 0; i < items.GetCount(); i++) {
-			items[i].bounds.left *= scale;
-			items[i].bounds.right *= scale;
-			items[i].bounds.top *= scale;
-			items[i].bounds.bottom *= scale;
+		// Don't scale down - only scale up if needed
+		if(scale > 1.0) {
+			for(int i = 0; i < items.GetCount(); i++) {
+				items[i].bounds.left *= scale;
+				items[i].bounds.right *= scale;
+				items[i].bounds.top *= scale;
+				items[i].bounds.bottom *= scale;
+			}
 		}
 	}
 }
@@ -320,10 +326,8 @@ void SmartPacker::Pack(Graph& graph)
 		}
 	}
 	
-	// Step 5: Validate layout (debug builds only)
-#ifdef flagDEBUG
+	// Step 5: Validate layout
 	ValidateLayout(graph);
-#endif
 }
 
 void SmartPacker::ValidateLayout(Graph& graph)
@@ -369,6 +373,21 @@ void SmartPacker::ValidateLayout(Graph& graph)
 		    << group_overlaps << " group overlaps");
 	} else {
 		LOG("LAYOUT VALIDATION PASSED: No overlaps detected");
+	}
+	
+	// Debug: print all group bounds
+	LOG("=== Group Bounds ===");
+	for(int i = 0; i < doc.groups.GetCount(); i++) {
+		const GroupDoc& g = doc.groups[i];
+		Rectf bounds = ComputeGroupBounds(graph, g);
+		LOG(g.vfs_path << " bounds=" << bounds << " nodes=" << g.nodes.GetCount());
+		for(const auto& nid : g.nodes) {
+			const NodeDoc* n = graph.FindNode(nid);
+			if(n) {
+				Rectf nrect(n->pos.x, n->pos.y, n->pos.x + n->sz.cx, n->pos.y + n->sz.cy);
+				LOG("  " << n->id << " pos=" << n->pos << " sz=" << n->sz << " rect=" << nrect);
+			}
+		}
 	}
 }
 

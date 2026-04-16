@@ -30,6 +30,7 @@ class NodeViewportCtrl : public Ctrl {
 	bool                 drag_pending = false;    // left-drag DnD threshold not yet crossed
 	Point                drag_start_view;         // view-space origin for DnD threshold
 	bool                 fit_on_first_paint = false; // ZoomToFit on next Paint after SetGraph
+	double               anim_phase = 0.0;          // for Realistic edge animation [0..1)
 	
 	typedef Function<Ctrl*()> WidgetFactory;
 	VectorMap<String, WidgetFactory> widget_factories;
@@ -56,6 +57,8 @@ public:
 	void RegisterWidget(const String& type, WidgetFactory f) { widget_factories.Add(type, f); }
 	
 	void ZoomToFit();
+	void SetEdgeStyle(EdgeStyle s);
+	void SetAnimPhase(double phase);  // called by owner for Realistic animation
 	virtual void Paint(Draw& w) override;
 	virtual void MouseWheel(Point p, int zdelta, dword key) override;
 	virtual void LeftDown(Point p, dword key) override;
@@ -66,6 +69,7 @@ public:
 	virtual void RightDown(Point p, dword key) override;
 	virtual bool Key(dword key, int count) override;
 	virtual void DragAndDrop(Point p, PasteClip& d) override;
+	virtual Image CursorImage(Point p, dword key) override;
 };
 
 } // namespace Node

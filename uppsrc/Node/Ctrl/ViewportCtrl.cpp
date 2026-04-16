@@ -31,9 +31,60 @@ static bool ParsePinEntityId(const EntityId& eid,
 	return false;
 }
 
+// ─── Corner resize helpers ──────────────────────────────────────────────────
+
+static const double CORNER_HIT_R = 8.0; // world-space radius for corner grab
+
+// Returns corner index 0=TL, 1=TR, 2=BL, 3=BR, or -1 if not near a corner.
+static int HitCorner(const NodeDoc& n, Pointf wp)
+{
+	Rectf r(n.pos.x, n.pos.y, n.pos.x + n.sz.cx, n.pos.y + n.sz.cy);
+	Pointf corners[4] = {
+		Pointf(r.left,  r.top),
+		Pointf(r.right, r.top),
+		Pointf(r.left,  r.bottom),
+		Pointf(r.right, r.bottom),
+	};
+	for(int i = 0; i < 4; i++)
+		if(Distance(wp, corners[i]) <= CORNER_HIT_R)
+			return i;
+	return -1;
+}
+
+// Returns appropriate resize cursor image for corner index
+static Image CornerCursor(int corner)
+{
+	switch(corner) {
+	case 0: return Image::SizeTopLeft();
+	case 1: return Image::SizeTopRight();
+	case 2: return Image::SizeBottomLeft();
+	case 3: return Image::SizeBottomRight();
+	}
+	return Image();
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+
 NodeViewportCtrl::NodeViewportCtrl()
 {
 	BackPaint();
+}
+
+void NodeViewportCtrl::SetEdgeStyle(EdgeStyle s)
+{
+	builder.edge_style = s;
+	if(editor) editor->edge_style = s;
+	// Force full rebuild so edges are re-routed
+	if(graph) graph->Invalidate();
+	Refresh();
+}
+
+void NodeViewportCtrl::SetAnimPhase(double phase)
+{
+	anim_phase = phase;
+	builder.edge_style = EdgeStyle::Realistic;
+	if(graph) graph->Invalidate();
+	Refresh();
 }
 
 static Ctrl* CreateSlotWidget(const String& widget_type, const String& entity_id,
@@ -197,7 +248,7 @@ void NodeViewportCtrl::SyncWidgets()
 							if(!v.IsVoid()) {
 								// Coerce value to the type expected by each widget
 								// to avoid ValueTypeError inside SetData
-								if(s.type == "EditDoubleSpin") {
+								if(s.type == "EditDoubleSpin" || s.type == "ToggleEditDouble") {
 									double d = 0;
 									if(IsNumber(v))       d = double(v);
 									else if(IsString(v))  d = ScanDouble(v.ToString());
@@ -207,7 +258,7 @@ void NodeViewportCtrl::SyncWidgets()
 									if(IsNumber(v))       i = int64(v);
 									else if(IsString(v))  i = ScanInt64(v.ToString());
 									w->SetData(i);
-								} else if(s.type == "Option") {
+								} else if(s.type == "Option" || s.type == "ToggleButton") {
 									bool b = false;
 									if(IsNumber(v))       b = (int(v) != 0);
 									else if(IsString(v))  b = (v.ToString() == "true" ||
@@ -269,6 +320,11 @@ void NodeViewportCtrl::Paint(Draw& w)
 	PaintBackground(w, sz, vp);
 
 	if(graph) {
+		// Sync edge style from EditorState so host app changes take effect
+		if(editor && builder.edge_style != editor->edge_style) {
+			builder.edge_style = editor->edge_style;
+			graph->Invalidate();
+		}
 		if(builder.IsDirty(*graph)) {
 			builder.Build(scene, *graph);
 		}
@@ -308,6 +364,22 @@ void NodeViewportCtrl::LeftDown(Point p, dword key)
 	if(editor && dispatcher && history) {
 		if(builder.IsDirty(*graph))
 			builder.Build(scene, *graph);
+
+		// Corner-resize: check selected nodes first
+		Pointf wp = vp.ViewToWorld(p);
+		for(const auto& id : editor->selection) {
+			NodeDoc* n = graph->FindNode(id);
+			if(!n) continue;
+			int corner = HitCorner(*n, wp);
+			if(corner >= 0) {
+				editor->mode = EditorMode::RESIZING;
+				editor->resize_node_id = id;
+				editor->resize_corner  = corner;
+				history->Begin();
+				last_mouse_pos = p;
+				return;
+			}
+		}
 
 		Scene::HitResult hit = scene.HitTest(vp.ViewToWorld(p));
 
@@ -407,7 +479,35 @@ void NodeViewportCtrl::MouseMove(Point p, dword key)
 	*/
 
 	if(editor && (key & K_MOUSELEFT)) {
-		if(editor->mode == EditorMode::DRAGGING) {
+		if(editor->mode == EditorMode::RESIZING) {
+			Pointf delta = vp.ViewToWorld(p) - vp.ViewToWorld(last_mouse_pos);
+			NodeDoc* n = graph->FindNode(editor->resize_node_id);
+			if(n) {
+				int corner = editor->resize_corner;
+				// TL(0): move pos, adjust sz to compensate  TR(1): widen right
+				// BL(2): move pos-y, adjust sz              BR(3): widen/tall right-bottom
+				double new_left  = n->pos.x;
+				double new_top   = n->pos.y;
+				double new_right = n->pos.x + n->sz.cx;
+				double new_bot   = n->pos.y + n->sz.cy;
+
+				if(corner == 0 || corner == 2) new_left  += delta.x;
+				if(corner == 1 || corner == 3) new_right += delta.x;
+				if(corner == 0 || corner == 1) new_top   += delta.y;
+				if(corner == 2 || corner == 3) new_bot   += delta.y;
+
+				const double MIN_W = 80.0, MIN_H = 40.0;
+				if(new_right - new_left >= MIN_W && new_bot - new_top >= MIN_H) {
+					n->pos.x = new_left;
+					n->pos.y = new_top;
+					n->sz.cx = new_right - new_left;
+					n->sz.cy = new_bot   - new_top;
+					graph->Invalidate();
+				}
+			}
+			Refresh();
+		}
+		else if(editor->mode == EditorMode::DRAGGING) {
 			Pointf delta = vp.ViewToWorld(p) - vp.ViewToWorld(last_mouse_pos);
 			for(const auto& id : editor->selection) {
 				NodeDoc* n = graph->FindNode(id);
@@ -464,7 +564,11 @@ void NodeViewportCtrl::LeftUp(Point p, dword key)
 {
 	ReleaseCapture();
 	if(editor) {
-		if(editor->mode == EditorMode::DRAGGING) {
+		if(editor->mode == EditorMode::RESIZING) {
+			history->Commit();
+			editor->resize_node_id = "";
+		}
+		else if(editor->mode == EditorMode::DRAGGING) {
 			history->Commit();
 		}
 		else if(editor->mode == EditorMode::MARQUEE) {
@@ -684,6 +788,39 @@ bool NodeViewportCtrl::Key(dword key, int count)
 		}
 	}
 	return false;
+}
+
+Image NodeViewportCtrl::CursorImage(Point p, dword key)
+{
+	if(editor && graph) {
+		Pointf wp = vp.ViewToWorld(p);
+		// Check if cursor is near a corner of any selected (or hovered) node
+		auto CheckNode = [&](const EntityId& id) -> Image {
+			const NodeDoc* n = graph->FindNode(id);
+			if(!n) return Null;
+			int c = HitCorner(*n, wp);
+			if(c >= 0) return CornerCursor(c);
+			return Null;
+		};
+		// Check hovered node first for instant feedback
+		if(!editor->hovered_entity.IsEmpty()) {
+			Image img = CheckNode(editor->hovered_entity);
+			if(!IsNull(img)) return img;
+			// Also try the node part of a compound entity_id
+			int sep = editor->hovered_entity.Find(':');
+			if(sep > 0) {
+				img = CheckNode(editor->hovered_entity.Left(sep));
+				if(!IsNull(img)) return img;
+			}
+		}
+		for(const auto& id : editor->selection) {
+			Image img = CheckNode(id);
+			if(!IsNull(img)) return img;
+		}
+	}
+	if(panning)
+		return Image::Hand();
+	return Image();
 }
 
 void NodeViewportCtrl::DragAndDrop(Point p, PasteClip& d)

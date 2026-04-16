@@ -36,8 +36,9 @@ struct PinDoc : Moveable<PinDoc> {
 	EntityId id;
 	String   label;
 	PinKind  kind = PinKind::Input;
-	Pointf   pos; // Local position relative to node
-	Color    color = Black();
+	Pointf   pos; // Local position relative to node (center of pin circle)
+	Color    color = Color(180, 180, 180);
+	String   type_name; // e.g. "MODEL", "CLIP", "LATENT"
 	int      type = 0;
 	Sizef    sz = Sizef(10, 10);
 	
@@ -57,17 +58,20 @@ struct WidgetSlotDoc : Moveable<WidgetSlotDoc> {
 	void Jsonize(JsonIO& jio);
 	void operator<<=(const WidgetSlotDoc& src);
 	WidgetSlotDoc(const WidgetSlotDoc& src) { *this <<= src; }
-	WidgetSlotDoc() {}
+	WidgetSlotDoc() : rect(0, 0, 60, 20) {}
 };
 
 struct NodeDoc : Moveable<NodeDoc> {
 	EntityId   id;
 	String     label;
+	String     node_type_id; // e.g. "comfyui.gguf.unet_loader"
+	String     category;     // e.g. "comfyui" (first segment of type id)
+	Color      tint_clr = Null; // optional hue tint for body
 	Pointf     pos; // World position
-	Sizef      sz = Sizef(100, 50);
+	Sizef      sz = Sizef(200, 50); // width fixed; height computed by scene builder
 	int        shape = 0; // 0: Rect, 1: Ellipse, 2: Diamond
-	Color      fill_clr = White();
-	Color      line_clr = Black();
+	Color      fill_clr = Color(40, 44, 52);
+	Color      line_clr = Color(80, 90, 110);
 	int        line_width = 1;
 	Array<PinDoc> pins;
 	Array<WidgetSlotDoc> slots;
@@ -88,7 +92,7 @@ struct EdgeDoc : Moveable<EdgeDoc> {
 	String   label;
 	double   weight = 1.0;
 	int      line_width = 1;
-	Color    stroke_clr = Black();
+	Color    stroke_clr = Color(160, 160, 160);
 	bool     directed = false;
 	double   attraction = 1.0;
 	

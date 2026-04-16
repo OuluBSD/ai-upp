@@ -17,7 +17,7 @@ inline bool IsValidEntityId(const EntityId& id)
 		return false;
 	for(int i = 0; i < id.GetCount(); i++) {
 		int c = id[i];
-		if(!IsAlNum(c) && c != '_' && c != '-')
+		if(!IsAlNum(c) && c != '_' && c != '-' && c != '/')
 			return false;
 	}
 	return true;
@@ -104,12 +104,46 @@ struct EdgeDoc : Moveable<EdgeDoc> {
 	EdgeDoc() {}
 };
 
+struct GroupStyle : Moveable<GroupStyle> {
+	int    saturation = 0;   // 0-100%, 0 = no color tint
+	int    hue = 0;          // 0-360 degrees
+	int    contrast = 50;    // 0-100%, affects background brightness
+	
+	Color ComputeFillColor() const {
+		// Base dark color, modulated by contrast
+		double base = 20 + contrast * 0.3; // 20-50
+		if(saturation <= 0)
+			return Color(base, base, base);
+		// Convert HSV to RGB (simplified)
+		double h = hue / 60.0;
+		int i = (int)h % 6;
+		double f = h - (int)h;
+		double p = base * (1.0 - saturation / 100.0);
+		double q = base * (1.0 - f * saturation / 100.0);
+		double t = base * (1.0 - (1.0 - f) * saturation / 100.0);
+		switch(i) {
+			case 0: return Color(base, t, p);
+			case 1: return Color(q, base, p);
+			case 2: return Color(p, base, t);
+			case 3: return Color(p, q, base);
+			case 4: return Color(t, p, base);
+			default: return Color(base, p, q);
+		}
+	}
+	
+	void Jsonize(JsonIO& jio) {
+		jio("saturation", saturation)("hue", hue)("contrast", contrast);
+	}
+};
+
 struct GroupDoc : Moveable<GroupDoc> {
 	EntityId      id;
 	String        label;
-	Vector<EntityId> nodes;
-	Color         color = Gray();
-	
+	String        vfs_path; // VFS-style path for hierarchical grouping, e.g., "/enc/e0/a4"
+	Vector<EntityId> nodes; // Explicit member node IDs
+	Color         color = Gray(); // Legacy: direct color override
+	GroupStyle    style;   // New: hue/saturation/contrast based styling
+
 	void Jsonize(JsonIO& jio);
 	void Xmlize(XmlIO& xio);
 	void operator<<=(const GroupDoc& src);

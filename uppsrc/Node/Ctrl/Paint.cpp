@@ -225,7 +225,38 @@ static void PaintItem(Draw& w, const SceneItem& item, const Viewport& vp,
 	}
 	else if(item.type == SceneItem::GROUP) {
 		Rect r = vp.WorldToView(item.rect);
-		DrawRoundRect(w, r, max(1,(int)(8*scale)), fill, line, lw);
+		int cr = max(1, (int)(8 * scale));
+		
+		// Draw main area first (filled rect with rounded corners)
+		DrawRoundRect(w, r, cr, fill, line, lw);
+		
+		// Draw title bar at top
+		double title_h = 24 * scale;
+		Rect title_bar(r.left + 4, r.top + 4, r.right - 4, r.top + title_h + 8);
+		Color title_bg = Color(max(0, (int)fill.GetR() - 5), 
+		                       max(0, (int)fill.GetG() - 5), 
+		                       max(0, (int)fill.GetB() - 5));
+		DrawRoundRect(w, title_bar, max(1,(int)(4*scale)), title_bg, line, 1);
+
+		// Draw group label
+		if(!item.text.IsEmpty()) {
+			int font_h = clamp((int)(11 * scale), 9, 14);
+			w.DrawText(title_bar.left + 8, title_bar.top + 2, item.text, StdFont(), White());
+		}
+		
+		// Draw internal grid (10x10 pattern like background)
+		double cell_w = 40 * scale;
+		double cell_h = 40 * scale;
+		Color grid_clr = Color(min(255, (int)fill.GetR() + 30),
+		                       min(255, (int)fill.GetG() + 30),
+		                       min(255, (int)fill.GetB() + 30));
+		
+		for(double x = r.left; x < r.right; x += cell_w) {
+			w.DrawLine((int)x, (int)r.top, (int)x, (int)r.bottom, 1, grid_clr);
+		}
+		for(double y = r.top + title_h + 8; y < r.bottom; y += cell_h) {
+			w.DrawLine((int)r.left, (int)y, (int)r.right, (int)y, 1, grid_clr);
+		}
 	}
 	else if(item.type == SceneItem::PIN) {
 		Rect r = vp.WorldToView(item.rect);

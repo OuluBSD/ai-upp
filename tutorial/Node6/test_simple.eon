@@ -1,0 +1,14 @@
+// Node6: Simple Demo WITHOUT Groups (for testing)
+
+node generic_node:
+	out output
+	param : string = "" (EditField)
+
+net simple_demo:
+	node1: generic_node
+		param = "Node 1"
+
+	node2: generic_node
+		param = "Node 2"
+
+	node1.output -> node2.input

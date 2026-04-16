@@ -2,6 +2,7 @@
 #define _Node_Core_Scene_h_
 
 #include "Core.h"
+#include "Routing.h"
 
 namespace Upp {
 
@@ -99,6 +100,8 @@ public:
 class BaselineSceneBuilder : public SceneBuilder {
 	mutable uint64 last_graph_serial = 0;
 public:
+	EdgeStyle edge_style = EdgeStyle::Curved;
+
 	virtual bool IsDirty(const Graph& graph) const override;
 	virtual void Build(Scene& scene, const Graph& graph) override;
 };

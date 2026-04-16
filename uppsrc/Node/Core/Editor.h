@@ -2,6 +2,7 @@
 #define _Node_Core_Editor_h_
 
 #include "Scene.h"
+#include "Routing.h"
 
 namespace Upp {
 
@@ -11,7 +12,8 @@ enum class EditorMode {
 	READY,
 	MARQUEE,
 	DRAGGING,
-	LINKING
+	LINKING,
+	RESIZING
 };
 
 struct EditorState : public Moveable<EditorState> {
@@ -30,6 +32,13 @@ struct EditorState : public Moveable<EditorState> {
 	// Linking state
 	EntityId        link_source_node;
 	EntityId        link_source_pin;
+
+	// Edge routing style (affects all edges in scene)
+	EdgeStyle       edge_style = EdgeStyle::Curved;
+
+	// Resize state
+	EntityId        resize_node_id;
+	int             resize_corner = 0; // 0=TL,1=TR,2=BL,3=BR
 	
 	void ClearSelection() { selection.Clear(); }
 	void Select(const EntityId& id) { if(selection.Find(id) < 0) selection.Add(id); }

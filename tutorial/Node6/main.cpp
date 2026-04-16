@@ -28,9 +28,7 @@ static void ApplyGroupLayout(Graph& graph)
 	// For now, use a reasonable default
 	packer.Viewport(Rectf(0, 0, 1600, 1200));  // Default viewport
 	
-	LOG("SmartPacker: Starting layout...");
 	packer.Pack(graph);
-	LOG("SmartPacker: Layout complete");
 }
 
 // Patch labels and tints for demo visual appeal

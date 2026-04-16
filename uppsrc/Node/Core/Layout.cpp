@@ -153,9 +153,18 @@ void SmartPacker::EstimateItemBounds(ConnectionInfo& item, Graph& graph)
 	}
 }
 
-void SmartPacker::PackNodesInGroup(Graph& graph, const String& group_path)
+void SmartPacker::PackNodesInGroupAtPosition(Graph& graph, const String& group_path, Pointf pos)
 {
-	const GroupDoc* grp = graph.FindGroup(group_path);
+	// Find group by vfs_path (not by EntityId)
+	const GroupDoc* grp = nullptr;
+	const GraphDoc& doc = graph.GetDoc();
+	for(int i = 0; i < doc.groups.GetCount(); i++) {
+		if(doc.groups[i].vfs_path == group_path) {
+			grp = &doc.groups[i];
+			break;
+		}
+	}
+	
 	if(!grp) return;
 	
 	// Collect nodes in this group
@@ -174,11 +183,9 @@ void SmartPacker::PackNodesInGroup(Graph& graph, const String& group_path)
 	double col_w = 150.0 + node_padding;
 	double row_h = 60.0 + node_padding;
 	
-	double total_w = cols * col_w + group_inner_padding;
-	double total_h = rows * row_h + group_inner_padding;
-	
-	double start_x = group_inner_padding;
-	double start_y = group_inner_padding;
+	// Center the grid within the group bounds
+	double start_x = pos.x + group_inner_padding;
+	double start_y = pos.y + group_inner_padding;
 	
 	int idx = 0;
 	for(int r = 0; r < rows; r++) {
@@ -194,10 +201,6 @@ void SmartPacker::PackGlobal()
 {
 	if(items.IsEmpty()) return;
 	
-	// Note: Items are already roughly ordered by analysis order
-	// Shelf packing will arrange them efficiently
-	// Skip explicit sorting to avoid copy issues with Moveable types
-
 	// Shelf packing algorithm
 	// Place items in rows (shelves), each shelf has height of tallest item
 	struct Shelf {
@@ -209,6 +212,9 @@ void SmartPacker::PackGlobal()
 	Vector<Shelf> shelves;
 	double cursor_x = group_padding;
 	double cursor_y = group_padding;
+	
+	// Use viewport width if available, otherwise use a reasonable default
+	double available_width = has_viewport ? (viewport.Width() - 2 * group_padding) : 2000.0;
 
 	for(int i = 0; i < items.GetCount(); i++) {
 		ConnectionInfo& item = items[i];
@@ -216,12 +222,13 @@ void SmartPacker::PackGlobal()
 		double h = item.bounds.Height();
 
 		// Try to fit in current shelf
-		bool fits_in_current = !shelves.IsEmpty() && (cursor_x + w + group_padding <= viewport.Width() - group_padding * 2);
+		bool fits_in_current = !shelves.IsEmpty() && (cursor_x + w <= available_width);
 
 		if(fits_in_current) {
 			// Place in current shelf
 			Shelf& shelf = shelves[shelves.GetCount()-1];
-			item.bounds.Offset(cursor_x - item.bounds.left, shelf.y - item.bounds.top);
+			// Set position: x = cursor_x, y = shelf.y
+			item.bounds = Rectf(cursor_x, shelf.y, cursor_x + w, shelf.y + h);
 			shelf.x = cursor_x + w + group_padding;
 			shelf.h = max(shelf.h, h);
 			cursor_x = shelf.x;
@@ -230,10 +237,11 @@ void SmartPacker::PackGlobal()
 			Shelf shelf;
 			shelf.y = cursor_y;
 			shelf.h = h;
+			
+			// Place at start of new shelf
+			item.bounds = Rectf(group_padding, cursor_y, group_padding + w, cursor_y + h);
+			
 			shelf.x = group_padding + w + group_padding;
-
-			item.bounds.Offset(group_padding - item.bounds.left, cursor_y - item.bounds.top);
-
 			cursor_y += shelf.h + group_padding;
 			cursor_x = shelf.x;
 
@@ -278,32 +286,20 @@ void SmartPacker::Pack(Graph& graph)
 	// Step 1: Analyze graph structure
 	AnalyzeGraph(graph);
 	
-	// Step 2: Pack nodes inside each group
-	for(const auto& item : items) {
-		if(item.is_group)
-			PackNodesInGroup(graph, item.id);
-	}
-	
-	// Step 3: Re-analyze after node positions updated
-	AnalyzeGraph(graph);
-	
-	// Step 4: Global packing (groups + ungrouped nodes)
+	// Step 2: Global packing (groups + ungrouped nodes) FIRST
+	// This determines where each group will be placed
 	PackGlobal();
 	
-	// Step 5: Adjust aspect ratio to fit viewport
+	// Step 3: Adjust aspect ratio to fit viewport
 	AdjustAspectRatio();
 	
-	// Step 6: Apply positions to group docs and nodes
+	// Step 4: Pack nodes inside each group, offset by group position
 	for(int i = 0; i < items.GetCount(); i++) {
 		const ConnectionInfo& item = items[i];
 		if(item.is_group) {
-			GroupDoc* g = graph.FindGroup(item.id);
-			if(g) {
-				// Group bounds are stored in a temporary property or computed on-demand
-				// For now, we just ensure nodes inside are positioned correctly
-				LOG("Group " << item.id << " bounds: " << item.bounds);
-			}
+			PackNodesInGroupAtPosition(graph, item.id, item.bounds.TopLeft());
 		} else {
+			// Ungrouped node: apply position directly
 			NodeDoc* n = graph.FindNode(item.id);
 			if(n)
 				n->pos = Pointf(item.bounds.left, item.bounds.top);

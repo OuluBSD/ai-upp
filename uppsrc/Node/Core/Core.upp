@@ -11,6 +11,7 @@ file
 	Scene.h,
 	Scene.cpp,
 	Layout.h,
+	Layout.cpp,
 	Spring.cpp,
 	Algo.h,
 	TopSort.cpp,

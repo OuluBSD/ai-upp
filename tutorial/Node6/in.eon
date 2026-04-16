@@ -1,70 +1,366 @@
-// Node6: Simple Autoencoder Demo with Groups
-// Demonstrates hierarchical node grouping using // GROUP: annotations
+// Node6: Neural Network Autoencoder with Hierarchical Groups
+// Based on neural-node-graph-reveng2.txt
+// Demonstrates: node groups with VFS-style paths, custom styling, typed pins
 
 // ---------------------------------------------------------------------------
 // Group definitions (using comment annotations)
+// Format: // GROUP: vfs_path {saturation: N, hue: name, contrast: N}
 // ---------------------------------------------------------------------------
 // GROUP: enc {saturation: 50, hue: green, contrast: 50}
 // GROUP: dec {saturation: 50, hue: green, contrast: 50}
+// GROUP: comp {saturation: 50, hue: yellow, contrast: 50}
+// GROUP: data {saturation: 50, hue: blue, contrast: 50}
 // GROUP: train {saturation: 50, hue: red, contrast: 50}
-// GROUP: prep {saturation: 50, hue: blue, contrast: 50}
+// GROUP: test {saturation: 50, hue: red, contrast: 50}
+// GROUP: inf {saturation: 50, hue: purple, contrast: 50}
+// GROUP: prep {saturation: 50, hue: ltblue, contrast: 50}
 // ---------------------------------------------------------------------------
 
-node generic_node:
-	out output
-	param : string = "" (EditField)
-
 // ---------------------------------------------------------------------------
-// Network: Simple autoencoder demo with groups
+// Node type declarations
 // ---------------------------------------------------------------------------
 
-net autoencoder_demo:
-	
-	// ENCODER GROUP
-	enc_node1: generic_node
-		param = "Input Layer"
+node nnt_input_layer:
+	out layer_stack : LAYER_STACK
+	input_shape_str : string = "[1,28,28]"  (EditString)
 
-	enc_node2: generic_node
-		param = "Conv Layer 1"
+node nnt_conv_layer:
+	in layer_stack : LAYER_STACK
+	out layer_stack : LAYER_STACK
+	conv_type : string = "Conv2d"  (DropList)
+	out_channels : int = 16  (EditIntSpin)
+	kernel_size : int = 3  (EditIntSpin)
+	stride : int = 1  (EditIntSpin)
+	padding : int = 1  (EditIntSpin)
+	activation_function : string = "ReLU"  (DropList)
+	normalization : string = "BatchNorm2d"  (DropList)
+	num_copies : int = 1  (EditIntSpin)
 
-	enc_node3: generic_node
-		param = "Pooling Layer"
+node nnt_pooling_layer:
+	in layer_stack : LAYER_STACK
+	out layer_stack : LAYER_STACK
+	pooling_type : string = "MaxPool2d"  (DropList)
+	kernel_size : int = 2  (EditIntSpin)
+	stride : int = 2  (EditIntSpin)
+	flatten_output : bool = false  (Option)
+	num_copies : int = 1  (EditIntSpin)
 
-	enc_node4: generic_node
-		param = "Dense Layer"
+node nnt_dense_layer:
+	in layer_stack : LAYER_STACK
+	out layer_stack : LAYER_STACK
+	num_nodes : int = 128  (EditIntSpin)
+	activation_function : string = "ReLU"  (DropList)
+	dropout_rate : float = 0.5  (EditDoubleSpin)
+	num_copies : int = 1  (EditIntSpin)
 
-	// DECODER GROUP  
-	dec_node1: generic_node
-		param = "Dense Layer"
+node nnt_reshape_layer:
+	in layer_stack : LAYER_STACK
+	out layer_stack : LAYER_STACK
+	target_shape : string = "[1, -1]"  (EditString)
 
-	dec_node2: generic_node
-		param = "Transpose Conv 1"
+node nnt_conv_transpose_layer:
+	in layer_stack : LAYER_STACK
+	out layer_stack : LAYER_STACK
+	conv_type : string = "ConvTranspose2d"  (DropList)
+	out_channels : int = 16  (EditIntSpin)
+	kernel_size : int = 3  (EditIntSpin)
+	stride : int = 2  (EditIntSpin)
+	padding : int = 1  (EditIntSpin)
+	activation_function : string = "ReLU"  (DropList)
+	num_copies : int = 1  (EditIntSpin)
 
-	dec_node3: generic_node
-		param = "Transpose Conv 2"
+node nnt_show_layer_stack:
+	in layer_stack : LAYER_STACK
+	out layer_stack : LAYER_STACK
+	show_details : string = "Detailed"  (DropList)
 
-	// TRAINING GROUP
-	train_node1: generic_node
-		param = "Train Model"
+node nnt_compile_model:
+	in model : LAYER_STACK
+	out model : MODEL
+	out report : STRING
+	mode : string = "Compile"  (DropList)
 
-	train_node2: generic_node
-		param = "Training Metrics"
+node nnt_train_model:
+	in model : MODEL
+	in training_data : IMAGE
+	in target_data : IMAGE
+	out training_log : STRING
+	out metrics : STRING
+	experiment_name : string = "autoencoder_fashion"  (EditString)
+	batch_size : int = 128  (EditIntSpin)
+	epochs : int = 200  (EditIntSpin)
+	optimizer : string = "Adam"  (DropList)
+	learning_rate : float = 0.001  (EditDoubleSpin)
+	loss_function : string = "MSELoss"  (DropList)
+	use_early_stopping : bool = true  (Option)
+	patience : int = 5  (EditIntSpin)
 
-	// PREP GROUP
-	prep_node1: generic_node
-		param = "Load Image"
+node nnt_torchvision_loader:
+	out images : IMAGE
+	out labels : STRING
+	out dataset_info : STRING
+	dataset_name : string = "FashionMNIST"  (DropList)
+	split : string = "train"  (DropList)
+	download : bool = true  (Option)
+	samples_to_return : int = 10000  (EditIntSpin)
 
-	prep_node2: generic_node
-		param = "Preprocess"
+node nnt_evaluate:
+	in model : MODEL
+	in input_data : IMAGE
+	in target_data : IMAGE
+	out metrics : STRING
+	out report : STRING
+	task_type : string = "regression"  (DropList)
 
-	// Connections
-	enc_node1.output -> enc_node2.input
-	enc_node2.output -> enc_node3.input
-	enc_node3.output -> enc_node4.input
-	dec_node1.output -> dec_node2.input
-	dec_node2.output -> dec_node3.input
-	enc_node4.output -> train_node1.input
-	dec_node3.output -> train_node1.input
-	train_node1.output -> train_node2.input
-	prep_node1.output -> prep_node2.input
-	prep_node2.output -> enc_node1.input
+node nnt_inference:
+	in model : MODEL
+	in input_tensor : IMAGE
+	out output_tensor : IMAGE
+	out inference_info : STRING
+	mode : string = "single"  (DropList)
+	device : string = "cuda"  (DropList)
+
+node nnt_image_to_tensor:
+	in image : IMAGE
+	out tensor : IMAGE
+	width : int = 28  (EditIntSpin)
+	height : int = 28  (EditIntSpin)
+	color_mode : string = "Grayscale"  (DropList)
+
+node nnt_tensor_to_image:
+	in tensor : IMAGE
+	out image : IMAGE
+	convert_mode : string = "RGB"  (DropList)
+	height : int = 28  (EditIntSpin)
+	width : int = 28  (EditIntSpin)
+
+node load_image:
+	out IMAGE : IMAGE
+	image : string = "hoodie.jpg"  (UploadFile)
+
+node preview_image:
+	in images : IMAGE
+
+node show_text:
+	in text : STRING
+	report_text : string = ""  (DocEdit)
+
+// ---------------------------------------------------------------------------
+// Network: Autoencoder for FashionMNIST
+// ---------------------------------------------------------------------------
+
+net fashion_autoencoder:
+
+	// WORKFLOW DESCRIPTION
+	node104: show_text
+		report_text = "Autoencoder for FashionMNIST: Encoder compresses 28x28 images to latent space, Decoder reconstructs them. Training uses MSE loss + Adam optimizer for 200 epochs."
+
+	// ENCODER GROUP (/enc)
+	enc_node1: nnt_input_layer
+		input_shape_str = "[1,28,28]"
+
+	enc_node80: nnt_conv_layer
+		out_channels = 16
+		kernel_size = 3
+		activation_function = "ReLU"
+		normalization = "BatchNorm2d"
+
+	enc_node4: nnt_pooling_layer
+		pooling_type = "MaxPool2d"
+		kernel_size = 2
+		stride = 2
+		flatten_output = false
+
+	enc_node81: nnt_conv_layer
+		out_channels = 8
+		kernel_size = 3
+		padding = 1
+		activation_function = "ReLU"
+		normalization = "BatchNorm2d"
+
+	enc_node41: nnt_pooling_layer
+		pooling_type = "MaxPool2d"
+		kernel_size = 2
+		stride = 2
+		flatten_output = true
+
+	enc_node42: nnt_dense_layer
+		num_nodes = 128
+		dropout_rate = 0.5
+
+	enc_node17: nnt_dense_layer
+		num_nodes = 32
+		dropout_rate = 0.0
+
+	// DECODER GROUP (/dec)
+	dec_node65: nnt_dense_layer
+		num_nodes = 128
+		dropout_rate = 0.0
+
+	dec_node66: nnt_dense_layer
+		num_nodes = 392
+		dropout_rate = 0.0
+
+	dec_node77: nnt_reshape_layer
+		target_shape = "[8, 7, 7]"
+
+	dec_node78: nnt_conv_transpose_layer
+		out_channels = 16
+		kernel_size = 3
+		stride = 2
+		padding = 1
+
+	dec_node79: nnt_conv_transpose_layer
+		out_channels = 1
+		kernel_size = 3
+		stride = 2
+		padding = 1
+		activation_function = "Sigmoid"
+
+	dec_node13: nnt_show_layer_stack
+		show_details = "Detailed"
+
+	dec_node11: show_text
+		report_text = "Decoder reconstructs 28x28 image from 32-dim latent space using dense + conv transpose layers."
+
+	// COMPILE GROUP (/comp)
+	comp_node8: nnt_compile_model
+		mode = "Compile"
+
+	comp_node64: show_text
+		report_text = "Model compiled successfully"
+
+	comp_node15: show_text
+		report_text = "Model Analysis: Total Params=110,544, Memory=0.43MB"
+
+	// DATA GROUP (/data)
+	data_node23: show_text
+		report_text = "Dataset: FashionMNIST\nSplit: train\nSamples: 10000"
+
+	data_node94: nnt_torchvision_loader
+		dataset_name = "FashionMNIST"
+		split = "train"
+		download = true
+		samples_to_return = 10000
+
+	data_node3843: nnt_tensor_to_image
+		convert_mode = "RGB"
+		height = 28
+		width = 28
+
+	data_node44: preview_image
+
+	// TRAINING GROUP (/train)
+	train_node98: nnt_train_model
+		experiment_name = "autoencoder_fashion"
+		batch_size = 128
+		epochs = 200
+		optimizer = "Adam"
+		learning_rate = 0.001
+		loss_function = "MSELoss"
+		use_early_stopping = true
+		patience = 5
+
+	train_node63: show_text
+		report_text = "Training: Epoch 1/200 Loss=0.487\nEpoch 2/200 Loss=0.236\nEpoch 3/200 Loss=0.184"
+
+	train_node22: show_text
+		report_text = "Final Loss: 0.088\nBest Loss: 0.088"
+
+	// TESTING GROUP (/test)
+	test_node95: nnt_torchvision_loader
+		dataset_name = "FashionMNIST"
+		split = "test"
+		samples_to_return = 32
+
+	test_node70: show_text
+		report_text = "Dataset: FashionMNIST\nSplit: test\nSamples: 32"
+
+	test_node73: nnt_evaluate
+		task_type = "regression"
+
+	test_node74: show_text
+		report_text = "MSE: 0.079\nMAE: 0.176"
+
+	test_node75: preview_image
+
+	// INFERENCE GROUP (/inf)
+	inf_node85: nnt_inference
+		mode = "single"
+		device = "cuda"
+
+	inf_node86: show_text
+		report_text = "Inference completed\nProcessing time: 0.001s"
+
+	inf_node87: show_text
+		report_text = "Confidence: Mean=1.000"
+
+	inf_node89: preview_image
+
+	inf_node92: show_text
+		report_text = "Inference Metrics:\nSamples: 1\nTime: 0.001s"
+
+	// PREP GROUP (/prep)
+	prep_node100: nnt_image_to_tensor
+		width = 28
+		height = 28
+		color_mode = "Grayscale"
+
+	prep_node101: nnt_tensor_to_image
+		convert_mode = "RGB"
+		height = 28
+		width = 28
+
+	prep_node99: load_image
+		image = "hoodie.jpg"
+
+	prep_node102: preview_image
+
+	// ENCODER CONNECTIONS
+	enc_node1.layer_stack -> enc_node80.layer_stack
+	enc_node80.layer_stack -> enc_node4.layer_stack
+	enc_node4.layer_stack -> enc_node81.layer_stack
+	enc_node81.layer_stack -> enc_node41.layer_stack
+	enc_node41.layer_stack -> enc_node42.layer_stack
+	enc_node42.layer_stack -> enc_node17.layer_stack
+
+	// DECODER CONNECTIONS
+	enc_node17.layer_stack -> dec_node65.layer_stack
+	dec_node65.layer_stack -> dec_node66.layer_stack
+	dec_node66.layer_stack -> dec_node77.layer_stack
+	dec_node77.layer_stack -> dec_node78.layer_stack
+	dec_node78.layer_stack -> dec_node79.layer_stack
+	dec_node79.layer_stack -> dec_node13.layer_stack
+
+	// COMPILE CONNECTIONS
+	dec_node13.layer_stack -> comp_node8.model
+	comp_node8.model -> comp_node64.text
+	comp_node8.report -> comp_node15.text
+
+	// DATA CONNECTIONS
+	data_node94.images -> data_node3843.tensor
+	data_node3843.image -> data_node44.images
+	data_node94.images -> train_node98.training_data
+	data_node94.images -> train_node98.target_data
+
+	// TRAINING CONNECTIONS
+	comp_node8.model -> train_node98.model
+	train_node98.training_log -> train_node63.text
+	train_node98.metrics -> train_node22.text
+
+	// TESTING CONNECTIONS
+	test_node95.images -> test_node73.input_data
+	test_node95.images -> test_node70.text
+	test_node73.report -> test_node74.text
+
+	// INFERENCE CONNECTIONS
+	comp_node8.model -> inf_node85.model
+	prep_node100.tensor -> inf_node85.input_tensor
+	inf_node85.inference_info -> inf_node86.text
+	inf_node85.output_tensor -> inf_node89.images
+
+	// PREP CONNECTIONS
+	prep_node99.IMAGE -> prep_node100.image
+	prep_node100.tensor -> prep_node101.tensor
+	prep_node101.image -> prep_node102.images
+	prep_node101.image -> inf_node85.input_tensor

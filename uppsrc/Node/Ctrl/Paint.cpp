@@ -289,11 +289,13 @@ static void PaintItem(Draw& w, const SceneItem& item, const Viewport& vp,
 		Rect r = vp.WorldToView(item.rect);
 		if(r.Width() <= 0 || r.Height() <= 0) return;
 
-		// Background
+		// Background — use selection/hover line color for outline when active
 		if(!IsNull(item.fill_clr)) {
 			int cr = max(1, (int)(CORNER_R * scale));
+			Color bg_line = (selected || parent_selected || hovered) ? line : item.line_clr;
+			int   bg_lw   = (selected || parent_selected || hovered) ? lw  : 1;
 			if(item.shape == 3)
-				DrawRoundRect(w, r, cr, item.fill_clr, item.line_clr, 1);
+				DrawRoundRect(w, r, cr, item.fill_clr, bg_line, bg_lw);
 			else
 				w.DrawRect(r, item.fill_clr);
 		}

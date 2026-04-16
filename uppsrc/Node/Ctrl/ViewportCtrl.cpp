@@ -5,6 +5,32 @@ namespace Upp {
 
 namespace Node {
 
+// Pin entity_id format: "nodeId:in:pinId"  or  "nodeId:out:pinId"
+// Parse helpers ---------------------------------------------------------------
+
+static bool ParsePinEntityId(const EntityId& eid,
+                              EntityId& node_id, bool& is_output, EntityId& pin_id)
+{
+	int sep1 = eid.Find(':');
+	if(sep1 < 0) return false;
+	node_id = eid.Left(sep1);
+	String rest = eid.Mid(sep1 + 1);
+	if(rest.StartsWith("in:")) {
+		is_output = false;
+		pin_id = rest.Mid(3);
+		return true;
+	}
+	if(rest.StartsWith("out:")) {
+		is_output = true;
+		pin_id = rest.Mid(4);
+		return true;
+	}
+	// Legacy single-colon format (slots: "nodeId:slotId")
+	pin_id = rest;
+	is_output = false;
+	return false;
+}
+
 NodeViewportCtrl::NodeViewportCtrl()
 {
 	BackPaint();
@@ -58,6 +84,39 @@ static Ctrl* CreateSlotWidget(const String& widget_type, const String& entity_id
 	}
 	if(widget_type == "DropList") {
 		DropList* dl = new DropList();
+		// Populate with context-aware options based on slot name + current value
+		// Parse slot name from entity_id ("nodeId:slotId")
+		int sep = entity_id.Find(':');
+		String slot_name = (sep >= 0) ? entity_id.Mid(sep + 1) : entity_id;
+		String cur_val; // filled in later by SetData; pre-populate with slot-context guesses
+		Vector<String> opts;
+		if(slot_name.Find("device") >= 0 || slot_name == "device") {
+			opts = { "cuda:0","cuda:1","cuda:2","cpu","mps" };
+		} else if(slot_name.Find("scheduler") >= 0) {
+			opts = { "simple","karras","exponential","bong_tangent","sgm_uniform",
+			         "ddim_uniform","beta","linear" };
+		} else if(slot_name.Find("sampler") >= 0) {
+			opts = { "euler","euler_ancestral","dpm_2","dpm_2_ancestral","dpm_pp_2m",
+			         "dpm_pp_3m_sde","heun","res_2s","lcm","ddim" };
+		} else if(slot_name.Find("control_after") >= 0 || slot_name.Find("generate") >= 0) {
+			opts = { "fixed","randomize","increment","decrement" };
+		} else if(slot_name.Find("type") >= 0 && slot_name.GetCount() <= 6) {
+			opts = { "wan","flux","sd3","sd1","sdxl","hunyuan","cogvideo" };
+		} else if(slot_name.Find("return_with") >= 0 || slot_name.Find("noise") >= 0
+		          || slot_name.Find("add_noise") >= 0) {
+			opts = { "enable","disable" };
+		} else if(slot_name.Find("unet") >= 0 || slot_name.Find("clip") >= 0
+		          || slot_name.Find("model") >= 0 || slot_name.Find("lora") >= 0) {
+			opts = { "Wan2.2-T2V-A14B-HighNoise-Q6_K.gguf",
+			         "Wan2.2-T2V-A14B-LowNoise-Q6_K.gguf",
+			         "Wan2.1-T2V-14B-Q4_K_M.gguf",
+			         "Flux-dev-Q8_0.gguf",
+			         "umt5-xxl-encoder-Q8_0.gguf",
+			         "umt5-xxl-encoder-Q4_K_M.gguf" };
+		} else {
+			opts = { "auto","default","custom" };
+		}
+		for(const String& o : opts) dl->Add(o);
 		return dl;
 	}
 	if(widget_type == "Option") {
@@ -139,8 +198,17 @@ void NodeViewportCtrl::SyncWidgets()
 									else if(IsString(v))  b = (v.ToString() == "true" ||
 									                           v.ToString() == "1");
 									w->SetData((int)b);
+								} else if(s.type == "DropList") {
+									// Ensure current value is in the list, then select it
+									DropList* dl = dynamic_cast<DropList*>(w);
+									if(dl) {
+										String sv = v.ToString();
+										if(!sv.IsEmpty() && dl->FindKey(sv) < 0)
+											dl->Add(sv); // insert missing value at end
+										dl->SetData(sv);
+									}
 								} else {
-									// EditField, DropList, DocEdit, StaticText — accept string
+									// EditField, DocEdit, StaticText — accept string
 									w->SetData(v.ToString());
 								}
 							}
@@ -231,10 +299,10 @@ void NodeViewportCtrl::LeftDown(Point p, dword key)
 		if(hit) {
 			if(hit.type == SceneItem::PIN) {
 				editor->mode = EditorMode::LINKING;
-				int sep = hit.entity_id.Find(':');
-				if(sep >= 0) {
-					editor->link_source_node = hit.entity_id.Left(sep);
-					editor->link_source_pin = hit.entity_id.Mid(sep + 1);
+				EntityId node_id, pin_id; bool is_out;
+				if(ParsePinEntityId(hit.entity_id, node_id, is_out, pin_id)) {
+					editor->link_source_node = node_id;
+					editor->link_source_pin  = pin_id;
 				}
 			}
 			else {
@@ -244,6 +312,28 @@ void NodeViewportCtrl::LeftDown(Point p, dword key)
 				if(hit.type == SceneItem::LABEL && hit.entity_id.Find(':') < 0) {
 					if(graph->FindNode(hit.entity_id))
 						effective_type = SceneItem::NODE;
+				}
+
+				// Hamburger icon click: left ~20px of the title bar label — open context menu
+				if(effective_type == SceneItem::NODE || hit.type == SceneItem::LABEL) {
+					// Check if click is in the hamburger zone (left side of title bar)
+					const NodeDoc* nd = graph->FindNode(hit.entity_id.Left(
+					                        max(0, hit.entity_id.Find(':') < 0
+					                            ? hit.entity_id.GetCount()
+					                            : hit.entity_id.Find(':'))));
+					if(!nd) nd = graph->FindNode(hit.entity_id);
+					if(nd) {
+						Pointf wp = vp.ViewToWorld(p);
+						Rectf title_rect(nd->pos.x, nd->pos.y, nd->pos.x + nd->sz.cx,
+						                 nd->pos.y + 26.0 /*TITLE_H*/);
+						double icon_right = nd->pos.x + 22.0; // hamburger zone width
+						if(title_rect.Contains(wp) && wp.x < icon_right) {
+							// Trigger right-click menu from the hamburger icon
+							RightDown(p, key);
+							ReleaseCapture();
+							return;
+						}
+					}
 				}
 
 				ValueMap arg;
@@ -374,11 +464,8 @@ void NodeViewportCtrl::LeftUp(Point p, dword key)
 		else if(editor->mode == EditorMode::LINKING) {
 			Scene::HitResult hit = scene.HitTest(vp.ViewToWorld(p));
 			if(hit && hit.type == SceneItem::PIN) {
-				int sep = hit.entity_id.Find(':');
-				if(sep >= 0) {
-					EntityId target_node = hit.entity_id.Left(sep);
-					EntityId target_pin = hit.entity_id.Mid(sep + 1);
-					
+				EntityId target_node, target_pin; bool is_out;
+				if(ParsePinEntityId(hit.entity_id, target_node, is_out, target_pin)) {
 					if(target_node != editor->link_source_node) {
 						ValueMap arg;
 						arg.Add("id", "e_" + Uuid::Create().ToString());
@@ -403,6 +490,45 @@ void NodeViewportCtrl::RightDown(Point p, dword key)
 		Pointf wp = vp.ViewToWorld(p);
 		Scene::HitResult hit = scene.HitTest(wp);
 		MenuBar menu;
+
+		if(hit && hit.type == SceneItem::PIN) {
+			EntityId node_id, pin_id; bool is_out;
+			ParsePinEntityId(hit.entity_id, node_id, is_out, pin_id);
+
+			menu.Add("Disconnect", [=] {
+				// Remove all edges connected to this specific pin
+				const GraphDoc& doc = graph->GetDoc();
+				Vector<EntityId> to_remove;
+				for(const auto& e : doc.edges) {
+					bool matches = is_out
+						? (e.source_node == node_id && e.source_pin == pin_id)
+						: (e.target_node == node_id && e.target_pin == pin_id);
+					if(matches) to_remove.Add(e.id);
+				}
+				for(const auto& eid : to_remove)
+					graph->RemoveEdge(eid);
+				Refresh();
+			});
+			menu.Add("Disconnect All", [=] {
+				const GraphDoc& doc = graph->GetDoc();
+				Vector<EntityId> to_remove;
+				for(const auto& e : doc.edges) {
+					if(e.source_node == node_id || e.target_node == node_id)
+						to_remove.Add(e.id);
+				}
+				for(const auto& eid : to_remove)
+					graph->RemoveEdge(eid);
+				Refresh();
+			});
+			menu.Add("Connect ->", [=] {
+				// Start a linking drag from this pin
+				editor->mode = EditorMode::LINKING;
+				editor->link_source_node = node_id;
+				editor->link_source_pin  = pin_id;
+			});
+			menu.Execute();
+			return;
+		}
 
 		if(hit) {
 			if(hit.type == SceneItem::NODE) {

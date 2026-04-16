@@ -203,6 +203,8 @@ static void AddNodeItems(Scene& scene, const NodeDoc& n, const Graph& graph, Bez
 		double row_cy = pin_area_top + row * PIN_ROW_H + PIN_ROW_H / 2.0;
 
 		// Input pin (left edge)
+		// Entity ID format: "nodeId:in:pinId" — the "in:"/"out:" infix makes
+		// same-named input and output pins unique in the scene (e.g. ConditioningZeroOut)
 		if (row < inputs.GetCount()) {
 			const PinDoc& p = *inputs[row];
 			Pointf pin_center(node_rect.left, row_cy);
@@ -214,7 +216,7 @@ static void AddNodeItems(Scene& scene, const NodeDoc& n, const Graph& graph, Bez
 			         pin_center.x + PIN_R, pin_center.y + PIN_R);
 			SceneItem& pi = scene.Add();
 			pi.type = SceneItem::PIN;
-			pi.entity_id = n.id + ":" + p.id;
+			pi.entity_id = n.id + ":in:" + p.id;
 			pi.rect = pr;
 			pi.fill_clr = p.color;
 			pi.line_clr = Color(40, 40, 40);
@@ -223,7 +225,7 @@ static void AddNodeItems(Scene& scene, const NodeDoc& n, const Graph& graph, Bez
 			// Input label (right of pin, left-aligned)
 			SceneItem& pl = scene.Add();
 			pl.type = SceneItem::LABEL;
-			pl.entity_id = n.id + ":" + p.id;
+			pl.entity_id = n.id + ":in:" + p.id;
 			pl.badge = false;
 			pl.font_italic = false;
 			pl.text = p.label;
@@ -247,7 +249,7 @@ static void AddNodeItems(Scene& scene, const NodeDoc& n, const Graph& graph, Bez
 			         pin_center.x + PIN_R, pin_center.y + PIN_R);
 			SceneItem& pi = scene.Add();
 			pi.type = SceneItem::PIN;
-			pi.entity_id = n.id + ":" + p.id;
+			pi.entity_id = n.id + ":out:" + p.id;
 			pi.rect = pr;
 			pi.fill_clr = p.color;
 			pi.line_clr = Color(40, 40, 40);
@@ -256,7 +258,7 @@ static void AddNodeItems(Scene& scene, const NodeDoc& n, const Graph& graph, Bez
 			// Output label (left of pin, right-aligned)
 			SceneItem& pl = scene.Add();
 			pl.type = SceneItem::LABEL;
-			pl.entity_id = n.id + ":" + p.id;
+			pl.entity_id = n.id + ":out:" + p.id;
 			pl.badge = true;
 			pl.text = p.label;
 			pl.font_height = 11;

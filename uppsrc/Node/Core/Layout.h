@@ -72,6 +72,8 @@ class SmartPacker {
 	void   PackGlobal();
 	void   PackNodesInGroupAtPosition(Graph& graph, const String& group_path, Pointf pos);
 	void   AdjustAspectRatio();
+	void   ValidateLayout(Graph& graph);
+	Rectf  ComputeGroupBounds(Graph& graph, const GroupDoc& g);
 	
 	int    CountConnections(const String& id1, bool is_group1, const String& id2, bool is_group2, Graph& graph);
 	Rectf  GetNodeBounds(const NodeDoc& n);

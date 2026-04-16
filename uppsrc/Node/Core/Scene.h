@@ -25,8 +25,12 @@ struct SceneItem : Moveable<SceneItem> {
 	int      font_height = 12;
 	bool     font_bold = false;
 	bool     font_italic = false;
-	int      shape = 0;     // NODE: 0=Rect, 1=Ellipse, 2=Diamond
+	int      shape = 0;     // NODE: 0=Rect, 1=Ellipse, 2=Diamond, 3=RoundRect
 	bool     directed = false; // EDGE: draw arrowhead at target end
+	String   image_path;    // WIDGET image items
+	bool     badge = false;   // overlay label — skip hit testing
+	bool     overlay = false; // paint above all node bodies (z-layer 3)
+	Color    text_clr = Null; // explicit text color override
 
 	void Jsonize(JsonIO& jio) {
 		jio

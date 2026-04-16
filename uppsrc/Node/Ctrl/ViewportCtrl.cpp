@@ -839,17 +839,18 @@ void NodeViewportCtrl::RightDown(Point p, dword key)
 				Refresh();
 			});
 			menu.Add("Zoom to Fit", [=] { ZoomToFit(); });
-			
+
 			// Layout orientation submenu
 			menu.Separator();
+			NodeViewportCtrl* self = this;
 			menu.Sub("Layout Orientation", [=](Bar& layout_menu) {
-				layout_menu.Add(layout_orientation == SmartPacker::LAYOUT_TALL, "Tall (Shelf Packing)", [=] {
-					SetLayoutOrientation(SmartPacker::LAYOUT_TALL);
-					ApplyLayout();
+				layout_menu.Add(self->layout_orientation == SmartPacker::LAYOUT_TALL, "Tall (Shelf Packing)", [=] {
+					self->SetLayoutOrientation(SmartPacker::LAYOUT_TALL);
+					self->ApplyLayout();
 				});
-				layout_menu.Add(layout_orientation == SmartPacker::LAYOUT_WIDE, "Wide (Column Packing)", [=] {
-					SetLayoutOrientation(SmartPacker::LAYOUT_WIDE);
-					ApplyLayout();
+				layout_menu.Add(self->layout_orientation == SmartPacker::LAYOUT_WIDE, "Wide (Column Packing)", [=] {
+					self->SetLayoutOrientation(SmartPacker::LAYOUT_WIDE);
+					self->ApplyLayout();
 				});
 			});
 		}

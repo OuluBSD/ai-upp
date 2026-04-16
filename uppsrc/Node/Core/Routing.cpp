@@ -32,7 +32,6 @@ static void SampleBezier(Vector<Pointf>& path,
 		path.Add(CubicBezier(p1, p2, p3, p4, (double)i / n));
 }
 
-// Liang-Barsky segment-AABB intersection, with optional margin expansion.
 static bool SegmentHitsObstacle(Pointf a, Pointf b,
                                 const Rectf& box, double margin = 8.0)
 {
@@ -68,19 +67,16 @@ static bool PathHitsAny(const Pointf& a, const Pointf& b,
 }
 
 static double SegLen(Pointf a, Pointf b) {
-	double dx = b.x-a.x, dy = b.y-a.y;
+	double dx = b.x - a.x, dy = b.y - a.y;
 	return sqrt(dx*dx + dy*dy);
 }
 
 // ─── Visibility-graph shortest path ─────────────────────────────────────────
-// Builds a small waypoint graph from obstacle corners + src/dst,
-// finds shortest non-blocked path using Dijkstra.
 
 static Vector<Pointf> VisibilityShortestPath(
     Pointf src, Pointf dst,
     const Vector<Rectf>& obstacles, double margin = 8.0)
 {
-	// Candidate waypoints: obstacle corners (expanded by margin + gap)
 	const double GAP = margin + 4.0;
 	Vector<Pointf> pts;
 	pts.Add(src);
@@ -93,15 +89,11 @@ static Vector<Pointf> VisibilityShortestPath(
 	}
 
 	int n = pts.GetCount();
-	// Adjacency: cost = Euclidean if segment is clear
 	Vector<double> dist(n, 1e18);
 	Vector<int>    prev(n, -1);
 	dist[0] = 0;
-
-	// Simple O(n²) Dijkstra (n is small: ~4*obstacles+2)
 	Vector<bool> visited(n, false);
 	for (int iter = 0; iter < n; iter++) {
-		// Pick unvisited node with lowest dist
 		int u = -1;
 		for (int i = 0; i < n; i++)
 			if (!visited[i] && (u < 0 || dist[i] < dist[u])) u = i;
@@ -115,25 +107,21 @@ static Vector<Pointf> VisibilityShortestPath(
 		}
 	}
 
-	// Reconstruct path (index 1 = dst)
 	Vector<Pointf> path;
-	if (dist[1] >= 1e17) {
-		// No clear path found — just use direct line
-		path.Add(src); path.Add(dst);
-		return path;
-	}
+	if (dist[1] >= 1e17) { path.Add(src); path.Add(dst); return path; }
 	Vector<int> idx;
-	for (int cur = 1; cur >= 0; cur = prev[cur]) {
+	for (int cur = 1; cur >= 0; ) {
 		idx.Add(cur);
-		if (cur == 0) break;
-		if (prev[cur] < 0) break;
+		int p = prev[cur];
+		if (p < 0 || p == cur) break;
+		cur = p;
 	}
 	for (int i = idx.GetCount() - 1; i >= 0; i--)
 		path.Add(pts[idx[i]]);
 	return path;
 }
 
-// Round a polyline: replace each interior vertex with a bezier arc of given radius.
+// Round a polyline: replace each interior vertex with a quadratic bezier arc.
 static void RoundedPolyline(Vector<Pointf>& out, const Vector<Pointf>& pts, double radius)
 {
 	if (pts.GetCount() < 2) return;
@@ -143,78 +131,58 @@ static void RoundedPolyline(Vector<Pointf>& out, const Vector<Pointf>& pts, doub
 		double d1 = SegLen(prev, cur), d2 = SegLen(cur, next);
 		double r = min(radius, min(d1, d2) * 0.4);
 		if (r < 1.0) { out.Add(cur); continue; }
-		// Entry point: r before corner on incoming segment
-		double t1 = (d1 > 0) ? r / d1 : 0;
+		double t1 = r / d1, t2 = r / d2;
 		Pointf e((1-t1)*prev.x + t1*cur.x, (1-t1)*prev.y + t1*cur.y);
-		// On-ramp point (at corner - r from prev side, interpolate toward next)
-		double t2 = (d2 > 0) ? r / d2 : 0;
 		Pointf x(cur.x + t2*(next.x-cur.x), cur.y + t2*(next.y-cur.y));
-		// Quadratic bezier: e → cur → x (3 samples enough for small arcs)
 		const int ARC = 6;
 		for (int j = 0; j <= ARC; j++) {
 			double t = (double)j / ARC;
-			double bx = (1-t)*(1-t)*e.x + 2*(1-t)*t*cur.x + t*t*x.x;
-			double by = (1-t)*(1-t)*e.y + 2*(1-t)*t*cur.y + t*t*x.y;
-			out.Add(Pointf(bx, by));
+			out.Add(Pointf((1-t)*(1-t)*e.x + 2*(1-t)*t*cur.x + t*t*x.x,
+			               (1-t)*(1-t)*e.y + 2*(1-t)*t*cur.y + t*t*x.y));
 		}
 	}
 	out.Add(pts[pts.GetCount() - 1]);
 }
 
 // ─── Orthogonal channel router for Schematic ─────────────────────────────────
-// Routes H/V segments through corridors between obstacles.
-// Strategy:
-//   1. Try a direct mid-X Z-route if the 3 segments are all clear.
-//   2. Otherwise pick the best X (from a set of candidates) that keeps segments clear.
-//   3. If even that fails (very crowded), fall back to a multi-hop route around the union
-//      of blocking obstacles.
 
 static Vector<Pointf> OrthoRoute(Pointf src, Pointf dst,
                                  const Vector<Rectf>& obstacles)
 {
 	const double MARGIN = 6.0;
-	const double STEP   = 20.0; // candidate vertical channel spacing
+	const double STEP   = 20.0;
 
-	// Build candidate mid-X values: midpoint, obstacle edges with padding, plus extremes
+	auto ThreeSeg = [&](double mx) -> Vector<Pointf> {
+		Vector<Pointf> segs;
+		segs.Add(src);
+		if (fabs(src.y - dst.y) < 0.5) { segs.Add(dst); return segs; }
+		segs.Add(Pointf(mx, src.y));
+		segs.Add(Pointf(mx, dst.y));
+		segs.Add(dst);
+		return segs;
+	};
+	auto SegsBlocked = [&](const Vector<Pointf>& segs) -> bool {
+		for (int i = 0; i + 1 < segs.GetCount(); i++)
+			if (PathHitsAny(segs[i], segs[i+1], obstacles, MARGIN)) return true;
+		return false;
+	};
+	auto PathLen = [&](const Vector<Pointf>& segs) -> double {
+		double d = 0;
+		for (int i = 0; i + 1 < segs.GetCount(); i++) d += SegLen(segs[i], segs[i+1]);
+		return d;
+	};
+
 	Vector<double> cands;
 	cands.Add((src.x + dst.x) * 0.5);
 	for (const Rectf& r : obstacles) {
 		cands.Add(r.left  - MARGIN * 2);
 		cands.Add(r.right + MARGIN * 2);
 	}
-	// Also try X positions stepping outward from mid
 	double mid = (src.x + dst.x) * 0.5;
 	for (double delta = 0; delta < 800; delta += STEP) {
 		cands.Add(mid + delta);
 		cands.Add(mid - delta);
 	}
-
-	// Score each candidate: prefer clear + shorter total length
-	auto ThreeSeg = [&](double mx) -> Vector<Pointf> {
-		// src → (mx, src.y) → (mx, dst.y) → dst
-		Vector<Pointf> segs;
-		segs.Add(src);
-		if (fabs(src.y - dst.y) < 0.5) {
-			segs.Add(dst);
-		} else {
-			segs.Add(Pointf(mx, src.y));
-			segs.Add(Pointf(mx, dst.y));
-			segs.Add(dst);
-		}
-		return segs;
-	};
-
-	auto SegsBlocked = [&](const Vector<Pointf>& segs) -> bool {
-		for (int i = 0; i + 1 < segs.GetCount(); i++)
-			if (PathHitsAny(segs[i], segs[i+1], obstacles, MARGIN)) return true;
-		return false;
-	};
-
-	auto PathLen = [&](const Vector<Pointf>& segs) -> double {
-		double d = 0;
-		for (int i = 0; i + 1 < segs.GetCount(); i++) d += SegLen(segs[i], segs[i+1]);
-		return d;
-	};
 
 	Vector<Pointf> best;
 	double best_len = 1e18;
@@ -227,15 +195,11 @@ static Vector<Pointf> OrthoRoute(Pointf src, Pointf dst,
 	}
 	if (!best.IsEmpty()) return best;
 
-	// All simple 3-seg routes blocked: route around the union bounding box of obstacles
-	// that are actually hit by the direct route
-	Rectf union_box(src.x, src.y, src.x, src.y);
-	bool any = false;
-	Pointf direct_mid((src.x+dst.x)/2, (src.y+dst.y)/2);
+	// Fall back: route around union box of blocking obstacles
+	Rectf union_box; bool any = false;
 	for (const Rectf& r : obstacles) {
-		if (SegmentHitsObstacle(src, dst, r, MARGIN) ||
-		    SegmentHitsObstacle(src, direct_mid, r, MARGIN) ||
-		    SegmentHitsObstacle(direct_mid, dst, r, MARGIN)) {
+		if (SegsBlocked(ThreeSeg((src.x+dst.x)*0.5)) ||
+		    SegmentHitsObstacle(src, dst, r, MARGIN)) {
 			if (!any) { union_box = r; any = true; }
 			else {
 				union_box.left   = min(union_box.left,   r.left);
@@ -245,24 +209,16 @@ static Vector<Pointf> OrthoRoute(Pointf src, Pointf dst,
 			}
 		}
 	}
-	if (!any) {
-		// No real obstacle intersects — return simple 3-seg
-		return ThreeSeg((src.x + dst.x) * 0.5);
-	}
+	if (!any) return ThreeSeg(mid);
 
-	// Route around: go to right of union box, then vertical, then to dst
-	// Pick side (right or left) that minimises total travel
 	double right_x = union_box.right + MARGIN * 3;
 	double left_x  = union_box.left  - MARGIN * 3;
-	double dist_r  = fabs(src.x - right_x) + fabs(dst.x - right_x);
-	double dist_l  = fabs(src.x - left_x)  + fabs(dst.x - left_x);
-	double jog_x   = (dist_r <= dist_l) ? right_x : left_x;
-
+	double jog_x = (fabs(src.x - right_x) + fabs(dst.x - right_x) <=
+	                fabs(src.x - left_x)  + fabs(dst.x - left_x))
+	               ? right_x : left_x;
 	Vector<Pointf> route;
-	route.Add(src);
-	route.Add(Pointf(jog_x, src.y));
-	route.Add(Pointf(jog_x, dst.y));
-	route.Add(dst);
+	route.Add(src); route.Add(Pointf(jog_x, src.y));
+	route.Add(Pointf(jog_x, dst.y)); route.Add(dst);
 	return route;
 }
 
@@ -287,15 +243,11 @@ static RouteResponse RouteSimple(const RouteRequest& req)
 }
 
 // ─── Curved ─────────────────────────────────────────────────────────────────
-// Finds the shortest clear path via visibility graph, then rounds the corners
-// with bezier arcs.
 
 static RouteResponse RouteCurved(const RouteRequest& req)
 {
 	RouteResponse res;
 	Pointf src = req.source_pos, dst = req.target_pos;
-
-	// If direct line is clear, just use a simple bezier
 	if (!PathHitsAny(src, dst, req.obstacles, 6.0)) {
 		double hdx = max(abs(dst.x - src.x) * 0.4, 30.0);
 		SampleBezier(res.path, src,
@@ -304,12 +256,8 @@ static RouteResponse RouteCurved(const RouteRequest& req)
 		             dst, 24);
 		return res;
 	}
-
-	// Visibility graph → shortest clear polyline → round corners
 	Vector<Pointf> raw = VisibilityShortestPath(src, dst, req.obstacles, 8.0);
-	Vector<Pointf> rounded;
-	RoundedPolyline(rounded, raw, 18.0);
-	res.path = pick(rounded);
+	RoundedPolyline(res.path, raw, 18.0);
 	return res;
 }
 
@@ -319,7 +267,6 @@ static RouteResponse RouteSchematic(const RouteRequest& req)
 {
 	RouteResponse res;
 	Vector<Pointf> ortho = OrthoRoute(req.source_pos, req.target_pos, req.obstacles);
-	// Apply small 4-px corner radius for a neat schematic look
 	RoundedPolyline(res.path, ortho, 4.0);
 	return res;
 }
@@ -331,134 +278,395 @@ static RouteResponse RouteRealistic(const RouteRequest& req, double slack_factor
 	RouteResponse res;
 	Pointf src = req.source_pos, dst = req.target_pos;
 	const int N = 32;
-	double dist = SegLen(src, dst);
-	double slack = dist * slack_factor;
-	double sag   = slack * 0.8;
-
+	double dist  = SegLen(src, dst);
+	double sag   = dist * slack_factor * 0.8;
 	double phase = req.anim_phase * 2.0 * M_PI;
 	double sway  = sin(phase) * dist * 0.015;
-
 	double len   = dist > 0.001 ? dist : 0.001;
 	double perp_x = -(dst.y - src.y) / len;
 	double perp_y =  (dst.x - src.x) / len;
-
 	res.path.Reserve(N + 1);
 	for (int i = 0; i <= N; i++) {
-		double t  = (double)i / N;
-		double cx = src.x + (dst.x - src.x) * t;
-		double cy = src.y + (dst.y - src.y) * t;
+		double t   = (double)i / N;
+		double cx  = src.x + (dst.x - src.x) * t;
+		double cy  = src.y + (dst.y - src.y) * t;
 		double drop = sag * 4.0 * t * (1.0 - t);
 		double sw   = sway * sin(t * M_PI);
-		res.path.Add(Pointf(cx + sw * perp_x,
-		                    cy + drop + sw * perp_y));
+		res.path.Add(Pointf(cx + sw * perp_x, cy + drop + sw * perp_y));
 	}
 	return res;
 }
 
-// ─── PCB ─────────────────────────────────────────────────────────────────────
-// Uses H/V/45° routing (like real PCB autorouters).
-// Algorithm:
-//   1. Find shortest clear path using visibility graph.
-//   2. Snap waypoints to H/V/45° segments.
-//   3. Assign layers: straight/horizontal → front (0), diagonal → back (1).
-//      When two wires would share the same H/V track, route one on back layer.
-//   4. Mark bend points as via_indices for through-hole via rendering.
+// ─── PCB grid / Lee maze router ──────────────────────────────────────────────
 
-static double SnapAngle(double angle_deg)
-{
-	// Snap to nearest multiple of 45°
-	return round(angle_deg / 45.0) * 45.0;
-}
+// Cell states
+enum : int8_t {
+	CELL_FREE    = 0,
+	CELL_BLOCKED = 1,   // node box
+	CELL_TRACE0  = 2,   // front-copper trace
+	CELL_TRACE1  = 3,   // back-copper trace
+};
 
-static Vector<Pointf> HV45Route(Pointf src, Pointf dst, const Vector<Rectf>& obstacles)
-{
-	// For H/V/45°: prefer going horizontal first to an X midpoint, then diagonally,
-	// then horizontally to destination.
-	// But use obstacle-aware routing if direct route is blocked.
+// A 2-layer grid.  Layer index 0 = front, 1 = back.
+// A cell is "available on layer L" when it is either FREE or holds the *other* layer's trace.
+struct PcbGrid {
+	int    gw = 0, gh = 0;       // grid dimensions in cells
+	double ox = 0, oy = 0;       // world origin of cell (0,0)
+	double cell = 10.0;          // world units per cell
+	Vector<int8_t> layer[2];     // per-cell state, one array per layer
 
-	// Try direct H/V/45° decomposition:
-	// Δx = dx, Δy = dy.  Use 45° diagonal for the min(|dx|,|dy|) portion,
-	// then straight for the remainder.
-	double dx = dst.x - src.x, dy = dst.y - src.y;
-	double adx = fabs(dx), ady = fabs(dy);
-	double diag = min(adx, ady);
-	double sx = (dx >= 0 ? 1.0 : -1.0), sy = (dy >= 0 ? 1.0 : -1.0);
-
-	Vector<Pointf> direct;
-	direct.Add(src);
-	if (adx > ady + 0.5) {
-		// More horizontal: diagonal first, then horizontal
-		Pointf corner1(src.x + sx * diag, src.y + sy * diag);
-		direct.Add(corner1);
-		direct.Add(dst);
-	} else if (ady > adx + 0.5) {
-		// More vertical: horizontal first, then diagonal
-		Pointf corner1(src.x + sx * (adx > 0.5 ? adx : 0), src.y);
-		if (adx > 0.5) {
-			direct.Add(corner1);
-			direct.Add(dst);
-		} else {
-			// Pure vertical: use diagonal + horizontal stub
-			Pointf corner2(src.x + sy * (ady - adx), src.y + sy * (ady - adx));
-			direct.Add(Pointf(src.x, src.y + sy * (ady - adx)));
-			direct.Add(dst);
+	void Init(const Rectf& bounds, double cell_size, const Vector<Rectf>& node_boxes)
+	{
+		cell = cell_size;
+		const double PAD = cell * 3;   // padding around scene bounds
+		ox = floor((bounds.left   - PAD) / cell) * cell;
+		oy = floor((bounds.top    - PAD) / cell) * cell;
+		double x1 = ceil((bounds.right  + PAD) / cell) * cell;
+		double y1 = ceil((bounds.bottom + PAD) / cell) * cell;
+		gw = max(1, (int)((x1 - ox) / cell) + 1);
+		gh = max(1, (int)((y1 - oy) / cell) + 1);
+		// Clamp to a reasonable maximum (e.g. 400×400 = 160k cells)
+		gw = min(gw, 400);
+		gh = min(gh, 400);
+		for (int L = 0; L < 2; L++) {
+			layer[L].SetCount(gw * gh, CELL_FREE);
 		}
-	} else {
-		// Equal: pure 45° diagonal
-		direct.Add(dst);
+		// Mark node boxes as blocked on both layers
+		const double NODE_PAD = cell * 0.5; // half-cell margin around nodes
+		for (const Rectf& r : node_boxes) {
+			int x0c = max(0, (int)floor((r.left  - NODE_PAD - ox) / cell));
+			int y0c = max(0, (int)floor((r.top   - NODE_PAD - oy) / cell));
+			int x1c = min(gw-1, (int)ceil((r.right  + NODE_PAD - ox) / cell));
+			int y1c = min(gh-1, (int)ceil((r.bottom + NODE_PAD - oy) / cell));
+			for (int cy = y0c; cy <= y1c; cy++)
+				for (int cx = x0c; cx <= x1c; cx++) {
+					layer[0][cy * gw + cx] = CELL_BLOCKED;
+					layer[1][cy * gw + cx] = CELL_BLOCKED;
+				}
+		}
 	}
 
-	// Check if direct route is clear
-	bool blocked = false;
-	for (int i = 0; i + 1 < direct.GetCount(); i++)
-		if (PathHitsAny(direct[i], direct[i+1], obstacles, 6.0)) { blocked = true; break; }
-	if (!blocked) return direct;
-
-	// Blocked: fall back to visibility shortest path then quantize to H/V/45°
-	Vector<Pointf> raw = VisibilityShortestPath(src, dst, obstacles, 8.0);
-	// Quantize each segment direction to nearest 45°
-	Vector<Pointf> quantized;
-	quantized.Add(raw[0]);
-	Pointf cur = raw[0];
-	for (int i = 1; i < raw.GetCount(); i++) {
-		double seg_dx = raw[i].x - cur.x;
-		double seg_dy = raw[i].y - cur.y;
-		double angle  = atan2(seg_dy, seg_dx) * 180.0 / M_PI;
-		double snapped = SnapAngle(angle) * M_PI / 180.0;
-		double len = SegLen(cur, raw[i]);
-		Pointf next(cur.x + len * cos(snapped), cur.y + len * sin(snapped));
-		quantized.Add(next);
-		cur = next;
+	// Convert world point to nearest grid cell, clamped to grid.
+	Point WorldToCell(Pointf p) const {
+		return Point(
+		    max(0, min(gw-1, (int)round((p.x - ox) / cell))),
+		    max(0, min(gh-1, (int)round((p.y - oy) / cell))));
 	}
-	return quantized;
+
+	// Convert cell to world point (cell centre).
+	Pointf CellToWorld(int cx, int cy) const {
+		return Pointf(ox + cx * cell, oy + cy * cell);
+	}
+
+	bool InBounds(int cx, int cy) const {
+		return cx >= 0 && cx < gw && cy >= 0 && cy < gh;
+	}
+
+	int8_t Get(int L, int cx, int cy) const { return layer[L][cy * gw + cx]; }
+	void   Set(int L, int cx, int cy, int8_t v) { layer[L][cy * gw + cx] = v; }
+};
+
+// Lee BFS on one layer.  Returns cell path src→dst, or empty if unreachable.
+// allow_diagonal: if true, 8-connected; if false, 4-connected (pure H/V).
+static Vector<Point> LeeBFS(PcbGrid& grid, int L,
+                             Point src, Point dst,
+                             bool allow_diagonal)
+{
+	// Guard: if src or dst is blocked, find nearest free cell
+	auto NearestFree = [&](Point p) -> Point {
+		if (grid.InBounds(p.x, p.y) && grid.Get(L, p.x, p.y) != CELL_BLOCKED)
+			return p;
+		// Spiral search outward
+		for (int r = 1; r < 8; r++)
+			for (int dy = -r; dy <= r; dy++)
+				for (int dx = -r; dx <= r; dx++) {
+					Point q(p.x + dx, p.y + dy);
+					if (grid.InBounds(q.x, q.y) && grid.Get(L, q.x, q.y) != CELL_BLOCKED)
+						return q;
+				}
+		return p;
+	};
+	src = NearestFree(src);
+	dst = NearestFree(dst);
+
+	if (src == dst) {
+		Vector<Point> p; p.Add(src); return p;
+	}
+
+	// BFS using flat array of prev-cell indices (-1 = unvisited)
+	int N = grid.gw * grid.gh;
+	Vector<int> prev(N, -1);
+	int src_idx = src.y * grid.gw + src.x;
+	int dst_idx = dst.y * grid.gw + dst.x;
+	prev[src_idx] = src_idx; // mark visited
+
+	// Directions: H/V first (lower cost), diagonals second
+	static const int DX4[] = { 1,-1, 0, 0 };
+	static const int DY4[] = { 0, 0, 1,-1 };
+	static const int DX8[] = { 1,-1, 0, 0, 1,-1, 1,-1 };
+	static const int DY8[] = { 0, 0, 1,-1, 1,-1,-1, 1 };
+	const int* DX = allow_diagonal ? DX8 : DX4;
+	const int* DY = allow_diagonal ? DY8 : DY4;
+	int NDIRS    = allow_diagonal ? 8 : 4;
+
+	// Use a simple deque-based BFS (0-1 BFS: diagonals cost 1.4 → use priority queue)
+	// For simplicity use a plain FIFO (unweighted) — all moves equal cost
+	Vector<int> queue;
+	queue.Reserve(N / 4);
+	queue.Add(src_idx);
+	int qi = 0;
+
+	while (qi < queue.GetCount()) {
+		int cur = queue[qi++];
+		if (cur == dst_idx) break;
+		int cx = cur % grid.gw, cy = cur / grid.gw;
+		for (int d = 0; d < NDIRS; d++) {
+			int nx = cx + DX[d], ny = cy + DY[d];
+			if (!grid.InBounds(nx, ny)) continue;
+			int nidx = ny * grid.gw + nx;
+			if (prev[nidx] >= 0) continue; // already visited
+			int8_t cell = grid.Get(L, nx, ny);
+			if (cell == CELL_BLOCKED) continue;
+			// Allow traversal through existing traces (same net could reuse track)
+			// but treat them as slightly penalised (still allow)
+			prev[nidx] = cur;
+			queue.Add(nidx);
+		}
+	}
+
+	// Reconstruct
+	Vector<Point> path;
+	if (prev[dst_idx] < 0) return path; // unreachable
+	for (int cur = dst_idx; cur != src_idx; ) {
+		path.Add(Point(cur % grid.gw, cur / grid.gw));
+		int p = prev[cur];
+		if (p == cur) break;
+		cur = p;
+	}
+	path.Add(src);
+	// Reverse
+	for (int i = 0, j = path.GetCount()-1; i < j; i++, j--)
+		Swap(path[i], path[j]);
+	return path;
 }
 
-static RouteResponse RoutePCB(const RouteRequest& req)
+// Compress collinear/diagonal runs: keep only bend points + endpoints.
+static Vector<Point> CompressCellPath(const Vector<Point>& raw)
+{
+	Vector<Point> out;
+	if (raw.GetCount() < 2) { out <<= raw; return out; }
+	out.Add(raw[0]);
+	for (int i = 1; i < raw.GetCount() - 1; i++) {
+		int dx1 = raw[i].x - raw[i-1].x, dy1 = raw[i].y - raw[i-1].y;
+		int dx2 = raw[i+1].x - raw[i].x, dy2 = raw[i+1].y - raw[i].y;
+		if (dx1 != dx2 || dy1 != dy2) out.Add(raw[i]); // direction changed
+	}
+	out.Add(raw[raw.GetCount()-1]);
+	return out;
+}
+
+// Mark grid cells occupied by a routed cell path on layer L.
+static void MarkPath(PcbGrid& grid, int L, const Vector<Point>& path)
+{
+	int8_t val = (L == 0) ? CELL_TRACE0 : CELL_TRACE1;
+	// Walk each segment cell-by-cell using Bresenham
+	for (int i = 0; i + 1 < path.GetCount(); i++) {
+		int x0 = path[i].x, y0 = path[i].y;
+		int x1 = path[i+1].x, y1 = path[i+1].y;
+		int dx = abs(x1-x0), dy = abs(y1-y0);
+		int sx = x0 < x1 ? 1 : -1, sy = y0 < y1 ? 1 : -1;
+		int err = dx - dy;
+		while (true) {
+			if (grid.InBounds(x0, y0) && grid.Get(0, x0, y0) != CELL_BLOCKED)
+				grid.Set(L, x0, y0, val);
+			if (x0 == x1 && y0 == y1) break;
+			int e2 = 2 * err;
+			if (e2 > -dy) { err -= dy; x0 += sx; }
+			if (e2 <  dx) { err += dx; y0 += sy; }
+		}
+	}
+}
+
+// Route one net via Lee BFS.  Returns (cell path, layer used).
+static Vector<Point> RoutePCBNet(PcbGrid& grid, Point src, Point dst,
+                                 bool allow_diagonal, int& layer_used)
+{
+	// Try layer 0 first
+	for (int L = 0; L < 2; L++) {
+		Vector<Point> path = LeeBFS(grid, L, src, dst, allow_diagonal);
+		if (!path.IsEmpty()) {
+			layer_used = L;
+			Vector<Point> compressed = CompressCellPath(path);
+			MarkPath(grid, L, path); // mark using full path (not compressed)
+			return compressed;
+		}
+	}
+	layer_used = 0;
+	Vector<Point> fallback;
+	fallback.Add(src); fallback.Add(dst);
+	return fallback;
+}
+
+// Convert cell path to world-space RouteResponse.
+static RouteResponse CellPathToResponse(const Vector<Point>& cpath, int layer_used,
+                                        const PcbGrid& grid, bool allow_diagonal)
 {
 	RouteResponse res;
-	Pointf src = req.source_pos, dst = req.target_pos;
+	if (cpath.IsEmpty()) return res;
 
-	Vector<Pointf> pts = HV45Route(src, dst, req.obstacles);
+	// Build world points
+	for (const Point& cp : cpath)
+		res.path.Add(grid.CellToWorld(cp.x, cp.y));
 
-	// Build path and segment layers.
-	// H/V segments → layer 0 (front copper, green)
-	// 45° diagonal segments → layer 1 (back copper, slightly blue-shifted)
-	res.path = pick(pts);
+	// All segments are on layer_used
+	for (int i = 0; i + 1 < res.path.GetCount(); i++)
+		res.seg_layer.Add(layer_used);
 
-	for (int i = 0; i + 1 < res.path.GetCount(); i++) {
-		double sdx = res.path[i+1].x - res.path[i].x;
-		double sdy = res.path[i+1].y - res.path[i].y;
-		double angle = atan2(fabs(sdy), fabs(sdx)) * 180.0 / M_PI;
-		// 0° = horizontal (H), 90° = vertical (V), 45° = diagonal
-		bool is_diagonal = (fabs(angle - 45.0) < 5.0);
-		res.seg_layer.Add(is_diagonal ? 1 : 0);
-	}
-
-	// Via points at every bend (interior vertices)
+	// Via indices: every interior bend
 	for (int i = 1; i + 1 < res.path.GetCount(); i++)
 		res.via_indices.Add(i);
 
 	return res;
+}
+
+// ─── PCB variants ────────────────────────────────────────────────────────────
+
+// HV-Fast: greedy obstacle-avoidance (visibility graph) then snap to H/V grid segments.
+// Marks grid but uses non-BFS routing (fast, ~O(n) per net).
+static RouteResponse RoutePCBHVFast(const RouteRequest& req, PcbGrid& grid)
+{
+	Pointf src = req.source_pos, dst = req.target_pos;
+	Point csrc = grid.WorldToCell(src);
+	Point cdst = grid.WorldToCell(dst);
+
+	// Check if H/V 3-segment route is free on layer 0
+	auto TryCellRoute = [&](int mx, int L) -> Vector<Point> {
+		// src → (mx, csrc.y) → (mx, cdst.y) → dst  (all H/V)
+		Vector<Point> pts;
+		pts.Add(csrc);
+		if (csrc.y != cdst.y) {
+			pts.Add(Point(mx, csrc.y));
+			pts.Add(Point(mx, cdst.y));
+		}
+		pts.Add(cdst);
+		// Check no BLOCKED cell along each segment
+		for (int i = 0; i + 1 < pts.GetCount(); i++) {
+			int x0 = pts[i].x, y0 = pts[i].y;
+			int x1 = pts[i+1].x, y1 = pts[i+1].y;
+			int steps = max(abs(x1-x0), abs(y1-y0));
+			for (int s = 0; s <= steps; s++) {
+				int cx = (steps > 0) ? x0 + (x1-x0)*s/steps : x0;
+				int cy = (steps > 0) ? y0 + (y1-y0)*s/steps : y0;
+				if (grid.InBounds(cx, cy) && grid.Get(L, cx, cy) == CELL_BLOCKED)
+					return Vector<Point>(); // blocked
+				// Also check if occupied by a trace (avoid overlap)
+				int8_t c = grid.Get(L, cx, cy);
+				if (c == CELL_TRACE0 || c == CELL_TRACE1) return Vector<Point>();
+			}
+		}
+		return pts;
+	};
+
+	// Try mid-X candidates on both layers
+	Vector<int> cands_x;
+	cands_x.Add((csrc.x + cdst.x) / 2);
+	for (const Rectf& r : req.obstacles) {
+		cands_x.Add(grid.WorldToCell(Pointf(r.left  - 15, 0)).x);
+		cands_x.Add(grid.WorldToCell(Pointf(r.right + 15, 0)).x);
+	}
+	for (int delta = 0; delta <= 30; delta += 2) {
+		cands_x.Add((csrc.x + cdst.x)/2 + delta);
+		cands_x.Add((csrc.x + cdst.x)/2 - delta);
+	}
+
+	for (int L = 0; L < 2; L++) {
+		for (int mx : cands_x) {
+			mx = max(0, min(grid.gw-1, mx));
+			Vector<Point> pts = TryCellRoute(mx, L);
+			if (!pts.IsEmpty()) {
+				MarkPath(grid, L, pts);
+				return CellPathToResponse(CompressCellPath(pts), L, grid, false);
+			}
+		}
+	}
+
+	// Full BFS fallback
+	int layer_used = 0;
+	Vector<Point> bfs = RoutePCBNet(grid, csrc, cdst, false, layer_used);
+	return CellPathToResponse(bfs, layer_used, grid, false);
+}
+
+// HV-Lee: full Lee BFS, pure H/V (4-connected).
+static RouteResponse RoutePCBHVLee(const RouteRequest& req, PcbGrid& grid)
+{
+	Point csrc = grid.WorldToCell(req.source_pos);
+	Point cdst = grid.WorldToCell(req.target_pos);
+	int layer_used = 0;
+	Vector<Point> path = RoutePCBNet(grid, csrc, cdst, false, layer_used);
+	return CellPathToResponse(path, layer_used, grid, false);
+}
+
+// 45-Fast: greedy with diagonal moves allowed.
+static RouteResponse RoutePCB45Fast(const RouteRequest& req, PcbGrid& grid)
+{
+	Pointf src = req.source_pos, dst = req.target_pos;
+	Point csrc = grid.WorldToCell(src);
+	Point cdst = grid.WorldToCell(dst);
+
+	// Try direct H/V/45° decomposition on layer 0, then 1
+	// Δcell = (dcx, dcy). Use 45° for min(|dcx|,|dcy|), then straight.
+	int dcx = cdst.x - csrc.x, dcy = cdst.y - csrc.y;
+	int diag = min(abs(dcx), abs(dcy));
+	int sx = (dcx >= 0 ? 1 : -1), sy = (dcy >= 0 ? 1 : -1);
+
+	auto MakeDirect = [&]() -> Vector<Point> {
+		Vector<Point> pts;
+		pts.Add(csrc);
+		// diagonal portion
+		Point after_diag(csrc.x + sx * diag, csrc.y + sy * diag);
+		if (diag > 0) pts.Add(after_diag);
+		if (after_diag != cdst) pts.Add(cdst);
+		return pts;
+	};
+
+	auto PathFreeOnLayer = [&](const Vector<Point>& pts, int L) -> bool {
+		for (int i = 0; i + 1 < pts.GetCount(); i++) {
+			int x0 = pts[i].x, y0 = pts[i].y, x1 = pts[i+1].x, y1 = pts[i+1].y;
+			int steps = max(abs(x1-x0), abs(y1-y0));
+			for (int s = 0; s <= steps; s++) {
+				int cx = x0 + (steps > 0 ? (x1-x0)*s/steps : 0);
+				int cy = y0 + (steps > 0 ? (y1-y0)*s/steps : 0);
+				if (!grid.InBounds(cx, cy)) continue;
+				int8_t c = grid.Get(L, cx, cy);
+				if (c == CELL_BLOCKED || c == CELL_TRACE0 || c == CELL_TRACE1)
+					return false;
+			}
+		}
+		return true;
+	};
+
+	for (int L = 0; L < 2; L++) {
+		Vector<Point> direct = MakeDirect();
+		if (PathFreeOnLayer(direct, L)) {
+			MarkPath(grid, L, direct);
+			return CellPathToResponse(direct, L, grid, true);
+		}
+	}
+
+	// BFS with diagonals
+	int layer_used = 0;
+	Vector<Point> path = RoutePCBNet(grid, csrc, cdst, true, layer_used);
+	return CellPathToResponse(path, layer_used, grid, true);
+}
+
+// 45-Lee: full Lee BFS with diagonal moves (8-connected).
+static RouteResponse RoutePCB45Lee(const RouteRequest& req, PcbGrid& grid)
+{
+	Point csrc = grid.WorldToCell(req.source_pos);
+	Point cdst = grid.WorldToCell(req.target_pos);
+	int layer_used = 0;
+	Vector<Point> path = RoutePCBNet(grid, csrc, cdst, true, layer_used);
+	return CellPathToResponse(path, layer_used, grid, true);
 }
 
 // ─── Dispatch ───────────────────────────────────────────────────────────────
@@ -471,9 +679,24 @@ RouteResponse BezierRoutingPolicy::Route(const RouteRequest& req)
 	case EdgeStyle::Schematic:      return RouteSchematic(req);
 	case EdgeStyle::RealisticTight: return RouteRealistic(req, 0.18);
 	case EdgeStyle::RealisticLoose: return RouteRealistic(req, 0.50);
-	case EdgeStyle::PCB:            return RoutePCB(req);
+	case EdgeStyle::PCBHVFast:      return RoutePCBHVFast(req, *pcb_grid);
+	case EdgeStyle::PCBHVLee:       return RoutePCBHVLee(req, *pcb_grid);
+	case EdgeStyle::PCB45Fast:      return RoutePCB45Fast(req, *pcb_grid);
+	case EdgeStyle::PCB45Lee:       return RoutePCB45Lee(req, *pcb_grid);
 	default:                        return RouteSimple(req);
 	}
+}
+
+void BezierRoutingPolicy::BeginBatch(const Rectf& scene_bounds,
+                                     const Vector<Rectf>& node_boxes,
+                                     EdgeStyle style)
+{
+	bool is_pcb = (style == EdgeStyle::PCBHVFast || style == EdgeStyle::PCBHVLee ||
+	               style == EdgeStyle::PCB45Fast  || style == EdgeStyle::PCB45Lee);
+	if (!is_pcb) { pcb_grid.Clear(); return; }
+
+	pcb_grid = MakeOne<PcbGrid>();
+	pcb_grid->Init(scene_bounds, 10.0, node_boxes);
 }
 
 } // namespace Node

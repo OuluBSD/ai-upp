@@ -135,13 +135,19 @@ void SmartPacker::EstimateItemBounds(ConnectionInfo& item, Graph& graph)
 {
 	if(item.is_group) {
 		// Group bounds: estimate based on node count
-		// Assume nodes arranged in 2-3 columns inside group
+		// Assume nodes arranged in grid inside group
 		int cols = max(1, (int)sqrt(item.node_count));
 		int rows = (item.node_count + cols - 1) / cols;
-		
-		double w = cols * (150.0 + node_padding) + group_inner_padding * 2;
-		double h = rows * (60.0 + node_padding) + group_inner_padding * 2;
-		
+
+		// Node dimensions with spacing
+		double node_w = 200.0;
+		double node_h = 80.0;
+		double col_w = node_w + node_padding * 2;  // 240px
+		double row_h = node_h + node_padding * 2;  // 120px
+
+		double w = cols * col_w + group_inner_padding * 2;
+		double h = rows * row_h + group_inner_padding * 2;
+
 		item.bounds = Rectf(0, 0, w, h);
 	} else {
 		// Ungrouped node: use estimated node bounds
@@ -149,7 +155,7 @@ void SmartPacker::EstimateItemBounds(ConnectionInfo& item, Graph& graph)
 		if(n)
 			item.bounds = GetNodeBounds(*n);
 		else
-			item.bounds = Rectf(0, 0, 150.0, 60.0);
+			item.bounds = Rectf(0, 0, 200.0, 80.0);
 	}
 }
 
@@ -180,8 +186,15 @@ void SmartPacker::PackNodesInGroupAtPosition(Graph& graph, const String& group_p
 	int cols = max(1, (int)sqrt(nodes.GetCount()));
 	int rows = (nodes.GetCount() + cols - 1) / cols;
 	
-	double col_w = 150.0 + node_padding;
-	double row_h = 60.0 + node_padding;
+	// Node dimensions: computed in Scene.cpp
+	// Width varies, height = TITLE_H + pin_rows * PIN_ROW_H + slot_area_h + 8
+	// Use conservative estimates with proper spacing
+	double node_w = 200.0;  // Typical node width
+	double node_h = 80.0;   // Typical node height
+	
+	// Spacing between nodes (must be >= node_w to prevent overlap)
+	double col_w = node_w + node_padding * 2;  // 200 + 40 = 240px
+	double row_h = node_h + node_padding * 2;  // 80 + 40 = 120px
 	
 	// Center the grid within the group bounds
 	double start_x = pos.x + group_inner_padding;
@@ -201,7 +214,7 @@ void SmartPacker::PackGlobal()
 {
 	if(items.IsEmpty()) return;
 	
-	// Shelf packing algorithm
+	// Shelf packing algorithm with proper spacing
 	// Place items in rows (shelves), each shelf has height of tallest item
 	struct Shelf {
 		double y = 0;
@@ -222,10 +235,11 @@ void SmartPacker::PackGlobal()
 		double h = item.bounds.Height();
 
 		// Try to fit in current shelf
-		bool fits_in_current = !shelves.IsEmpty() && (cursor_x + w <= available_width);
+		// Need: cursor_x + w + group_padding <= available_width
+		bool fits_in_current = !shelves.IsEmpty() && (cursor_x + w + group_padding <= available_width);
 
 		if(fits_in_current) {
-			// Place in current shelf
+			// Place in current shelf with spacing
 			Shelf& shelf = shelves[shelves.GetCount()-1];
 			// Set position: x = cursor_x, y = shelf.y
 			item.bounds = Rectf(cursor_x, shelf.y, cursor_x + w, shelf.y + h);
@@ -233,7 +247,7 @@ void SmartPacker::PackGlobal()
 			shelf.h = max(shelf.h, h);
 			cursor_x = shelf.x;
 		} else {
-			// Start new shelf
+			// Start new shelf with extra vertical spacing
 			Shelf shelf;
 			shelf.y = cursor_y;
 			shelf.h = h;
@@ -242,7 +256,7 @@ void SmartPacker::PackGlobal()
 			item.bounds = Rectf(group_padding, cursor_y, group_padding + w, cursor_y + h);
 			
 			shelf.x = group_padding + w + group_padding;
-			cursor_y += shelf.h + group_padding;
+			cursor_y += h + group_padding * 5;  // More padding between shelves
 			cursor_x = shelf.x;
 
 			shelves.Add(shelf);
@@ -305,6 +319,90 @@ void SmartPacker::Pack(Graph& graph)
 				n->pos = Pointf(item.bounds.left, item.bounds.top);
 		}
 	}
+	
+	// Step 5: Validate layout (debug builds only)
+#ifdef flagDEBUG
+	ValidateLayout(graph);
+#endif
+}
+
+void SmartPacker::ValidateLayout(Graph& graph)
+{
+	const GraphDoc& doc = graph.GetDoc();
+	int node_overlaps = 0;
+	int group_overlaps = 0;
+	
+	// Check node-node overlaps
+	for(int i = 0; i < doc.nodes.GetCount(); i++) {
+		const NodeDoc& a = doc.nodes[i];
+		Rectf rect_a(a.pos.x, a.pos.y, a.pos.x + a.sz.cx, a.pos.y + a.sz.cy);
+		
+		for(int j = i + 1; j < doc.nodes.GetCount(); j++) {
+			const NodeDoc& b = doc.nodes[j];
+			Rectf rect_b(b.pos.x, b.pos.y, b.pos.x + b.sz.cx, b.pos.y + b.sz.cy);
+			
+			if(rect_a.Intersects(rect_b)) {
+				node_overlaps++;
+				LOG("OVERLAP: " << a.id << " " << rect_a << " vs " << b.id << " " << rect_b);
+			}
+		}
+	}
+	
+	// Check group-group overlaps (based on node bounds)
+	for(int i = 0; i < doc.groups.GetCount(); i++) {
+		const GroupDoc& ga = doc.groups[i];
+		Rectf bounds_a = ComputeGroupBounds(graph, ga);
+		
+		for(int j = i + 1; j < doc.groups.GetCount(); j++) {
+			const GroupDoc& gb = doc.groups[j];
+			Rectf bounds_b = ComputeGroupBounds(graph, gb);
+			
+			if(bounds_a.Intersects(bounds_b)) {
+				group_overlaps++;
+				LOG("GROUP OVERLAP: " << ga.vfs_path << " " << bounds_a << " vs " << gb.vfs_path << " " << bounds_b);
+			}
+		}
+	}
+	
+	if(node_overlaps > 0 || group_overlaps > 0) {
+		LOG("LAYOUT VALIDATION FAILED: " << node_overlaps << " node overlaps, " 
+		    << group_overlaps << " group overlaps");
+	} else {
+		LOG("LAYOUT VALIDATION PASSED: No overlaps detected");
+	}
+}
+
+Rectf SmartPacker::ComputeGroupBounds(Graph& graph, const GroupDoc& g)
+{
+	Rectf bounds(1e300, 1e300, -1e300, -1e300);
+	bool first = true;
+
+	for(const auto& nid : g.nodes) {
+		const NodeDoc* node = graph.FindNode(nid);
+		if(!node) continue;
+
+		Rectf node_rect(node->pos.x, node->pos.y,
+		                node->pos.x + node->sz.cx, node->pos.y + node->sz.cy);
+
+		if(first) {
+			bounds = node_rect;
+			first = false;
+		} else {
+			bounds.Union(node_rect);
+		}
+	}
+
+	if(first) return Rectf(0, 0, 200, 200);
+
+	// Add padding
+	const double GROUP_PAD = 40.0;
+	const double TITLE_H = 30.0;
+	bounds.left -= GROUP_PAD;
+	bounds.top -= TITLE_H + GROUP_PAD;
+	bounds.right += GROUP_PAD;
+	bounds.bottom += GROUP_PAD;
+
+	return bounds;
 }
 
 } // namespace Node

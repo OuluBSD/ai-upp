@@ -67,6 +67,7 @@ struct NodeDoc : Moveable<NodeDoc> {
 	String     node_type_id; // e.g. "comfyui.gguf.unet_loader"
 	String     category;     // e.g. "comfyui" (first segment of type id)
 	Color      tint_clr = Null; // optional hue tint for body
+	String     time_str;        // e.g. "519.4s" — shown as floating badge above node (left side)
 	Pointf     pos; // World position
 	Sizef      sz = Sizef(200, 50); // width fixed; height computed by scene builder
 	int        shape = 0; // 0: Rect, 1: Ellipse, 2: Diamond

@@ -1,0 +1,223 @@
+// Node5 demo: WAN2.2 T2V pipeline in extended .eon syntax
+// Demonstrates: node type declarations, typed pins, named ports,
+//               widget hints, connection metadata (color)
+
+// ---------------------------------------------------------------------------
+// Node type declarations
+// ---------------------------------------------------------------------------
+
+node comfyui.gguf.unet_loader:
+	out model : MODEL
+	unet_file : string = ""  (DropList)
+	device : string = "cuda:0"  (DropList)
+	virtual_vram_gb : float = 8.0  (EditDoubleSpin)
+	use_other_vram : bool = false  (Option)
+	expert_mode_allocations : null = null  (Null)
+
+node comfyui.gguf.clip_loader:
+	out clip : CLIP
+	clip_name : string = ""  (DropList)
+	type : string = "wan"  (DropList)
+	device : string = "cpu"  (DropList)
+	virtual_vram_gb : float = 8.0  (EditDoubleSpin)
+	use_other_vram : bool = false  (Option)
+	expert_mode_allocations : null = null  (Null)
+
+node comfyui.seed_everywhere:
+	out seed : INT
+	seed : int = 0  (EditIntSpin)
+	control_after_generate : string = "randomize"  (DropList)
+
+node comfyui.power_lora_loader:
+	in model : MODEL
+	in clip : CLIP
+	out model : MODEL
+	out clip : CLIP
+	toggle_all : bool = true  (ToggleButton)
+	lora_0 : float = 0.80  (ToggleEditDouble)
+	lora_1 : float = 0.60  (ToggleEditDouble)
+	lora_2 : float = 1.50  (ToggleEditDouble)
+	add_lora : null = null  (Button)
+
+node comfyui.positive_prompt:
+	in clip : CLIP
+	out conditioning : CONDITIONING
+	text : string = ""  (DocEdit)
+
+node comfyui.conditioning_zero_out:
+	in conditioning : CONDITIONING
+	out conditioning : CONDITIONING
+
+node comfyui.empty_hunyuan_latent:
+	out latent : LATENT
+	width : int = 480  (EditIntSpin)
+	height : int = 832  (EditIntSpin)
+	length : int = 81  (EditIntSpin)
+	batch_size : int = 1  (EditIntSpin)
+
+node comfyui.ksampler_advanced:
+	in model : MODEL
+	in positive : CONDITIONING
+	in negative : CONDITIONING
+	in latent_image : LATENT
+	out latent : LATENT
+	add_noise : bool = true  (Option)
+	noise_seed : int = 1234567890  (EditIntSpin)
+	control_after_generate : string = "fixed"  (DropList)
+	steps : int = 16  (EditIntSpin)
+	cfg : float = 1.0  (EditDoubleSpin)
+	sampler_name : string = "res_2s"  (DropList)
+	scheduler : string = "bong_tangent"  (DropList)
+	start_at_step : int = 0  (EditIntSpin)
+	end_at_step : int = 8  (EditIntSpin)
+	return_with_leftover_noise : bool = false  (Option)
+
+node comfyui.vae_decode:
+	in samples : LATENT
+	in vae : VAE
+	out image : IMAGE
+
+node comfyui.vae_loader:
+	out vae : VAE
+	vae_name : string = ""  (EditString)
+	device : string = "cpu"  (DropList)
+
+node comfyui.video_combine:
+	in image_batch : IMAGE
+	out video : VIDEO
+	frame_rate : int = 24  (EditIntSpin)
+	loop_count : int = 0  (EditIntSpin)
+	filename_path : string = ""  (EditString)
+	format : string = "video/webm"  (EditString)
+	pingpong : bool = false  (Option)
+	save_image : bool = true  (Option)
+
+// ---------------------------------------------------------------------------
+// Network: WAN 2.2 T2V pipeline
+// ---------------------------------------------------------------------------
+
+net wan22_t2v:
+	n0: comfyui.gguf.unet_loader
+		unet_file = "Wan2.2-T2V-A148-HighNoise-Q6_K.gguf"
+		device = "cuda:0"
+		virtual_vram_gb = 8.0
+
+	n1: comfyui.gguf.unet_loader
+		unet_file = "Wan2.2-T2V-A148-LowNoise-Q6_K.gguf"
+		device = "cuda:0"
+		virtual_vram_gb = 8.0
+
+	n2: comfyui.gguf.clip_loader
+		clip_name = "umt5-xxl-encoder-Q8_0.gguf"
+		type = "wan"
+		device = "cpu"
+
+	n3: comfyui.seed_everywhere
+		seed = 1234867890
+		control_after_generate = "randomize"
+
+	n4: comfyui.power_lora_loader
+		lora_0 = 0.80
+		lora_1 = 0.60
+		lora_2 = 1.50
+
+	n5: comfyui.power_lora_loader
+		lora_0 = 0.80
+		lora_1 = 0.60
+		lora_2 = 1.50
+
+	n6: comfyui.positive_prompt
+		text = "A high quality anime style full body scene of frieren, elf, white hair, twintails, pointy ears, green eyes. She is casting fire magic. Epic dynamic scene."
+
+	n7: comfyui.conditioning_zero_out
+
+	n8: comfyui.empty_hunyuan_latent
+		width = 480
+		height = 832
+		length = 81
+
+	n9: comfyui.ksampler_advanced
+		add_noise = true
+		noise_seed = 1234567890
+		control_after_generate = "fixed"
+		steps = 16
+		cfg = 1.0
+		sampler_name = "res_2s"
+		scheduler = "bong_tangent"
+		start_at_step = 0
+		end_at_step = 8
+		return_with_leftover_noise = false
+
+	n10: comfyui.ksampler_advanced
+		add_noise = true
+		noise_seed = 1234567890
+		control_after_generate = "fixed"
+		steps = 16
+		cfg = 1.0
+		sampler_name = "res_2s"
+		scheduler = "bong_tangent"
+		start_at_step = 8
+		end_at_step = 16
+		return_with_leftover_noise = false
+
+	n11: comfyui.vae_decode
+
+	n12: comfyui.vae_loader
+		vae_name = "wan2.1-vae.safetensors"
+		device = "cpu"
+
+	n13: comfyui.video_combine
+		frame_rate = 24
+		loop_count = 0
+		filename_path = "WAN/22/videos/video.webm"
+		format = "video/webm"
+		pingpong = false
+		save_image = true
+
+	// Connections with named ports and color metadata
+	n0.model -> n4.model:
+		color = "purple"
+
+	n1.model -> n5.model:
+		color = "purple"
+
+	n2.clip -> n4.clip:
+		color = "yellow"
+
+	n4.model -> n9.model:
+		color = "purple"
+
+	n4.clip -> n6.clip:
+		color = "yellow"
+
+	n5.model -> n10.model:
+		color = "purple"
+
+	n6.conditioning -> n9.positive:
+		color = "orange"
+
+	n6.conditioning -> n10.positive:
+		color = "orange"
+
+	n6.conditioning -> n7.conditioning:
+		color = "orange"
+
+	n7.conditioning -> n9.negative:
+		color = "orange"
+
+	n7.conditioning -> n10.negative:
+		color = "orange"
+
+	n8.latent -> n9.latent_image:
+		color = "pink"
+
+	n9.latent -> n10.latent_image:
+		color = "pink"
+
+	n10.latent -> n11.samples:
+		color = "pink"
+
+	n12.vae -> n11.vae
+
+	n11.image -> n13.image_batch:
+		color = "green"

@@ -34,10 +34,8 @@ static void ApplyGroupLayout(Graph& graph)
 	  g.node_ids = { "n0","n1","n2","n3" }; columns.Add(pick(g)); }
 	{ ColGroup g; g.label = "LoRA";
 	  g.node_ids = { "n4","n5" }; columns.Add(pick(g)); }
-	{ ColGroup g; g.label = "Prompts";
-	  g.node_ids = { "n6","n7" }; columns.Add(pick(g)); }
-	{ ColGroup g; g.label = "Latent";
-	  g.node_ids = { "n8" }; columns.Add(pick(g)); }
+	{ ColGroup g; g.label = "Conditioning";
+	  g.node_ids = { "n6","n7","n8" }; columns.Add(pick(g)); }
 	{ ColGroup g; g.label = "Samplers";
 	  g.node_ids = { "n9","n10" }; columns.Add(pick(g)); }
 	{ ColGroup g; g.label = "Output";

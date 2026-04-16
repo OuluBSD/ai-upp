@@ -56,12 +56,12 @@ static int HitCorner(const NodeDoc& n, Pointf wp)
 static Image CornerCursor(int corner)
 {
 	switch(corner) {
-	case 0: return Image::SizeTopLeft();
-	case 1: return Image::SizeTopRight();
-	case 2: return Image::SizeBottomLeft();
-	case 3: return Image::SizeBottomRight();
+	case 0: return FBImg::SizeTopLeft();   // TL: ↖↘
+	case 1: return FBImg::SizeTopRight();  // TR: ↗↙
+	case 2: return FBImg::SizeTopRight();  // BL: ↗↙
+	case 3: return FBImg::SizeTopLeft();   // BR: ↖↘
 	}
-	return Image();
+	return FBImg::Arrow();
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -945,8 +945,8 @@ Image NodeViewportCtrl::CursorImage(Point p, dword key)
 		}
 	}
 	if(panning)
-		return Image::Hand();
-	return Image();
+		return FBImg::Hand();
+	return FBImg::Arrow();
 }
 
 void NodeViewportCtrl::DragAndDrop(Point p, PasteClip& d)

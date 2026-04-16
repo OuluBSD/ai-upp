@@ -244,18 +244,33 @@ static void PaintItem(Draw& w, const SceneItem& item, const Viewport& vp,
 			w.DrawText(title_bar.left + 8, title_bar.top + 2, item.text, StdFont(), White());
 		}
 		
-		// Draw internal grid (10x10 pattern like background)
-		double cell_w = 40 * scale;
-		double cell_h = 40 * scale;
-		Color grid_clr = Color(min(255, (int)fill.GetR() + 30),
-		                       min(255, (int)fill.GetG() + 30),
-		                       min(255, (int)fill.GetB() + 30));
-		
-		for(double x = r.left; x < r.right; x += cell_w) {
-			w.DrawLine((int)x, (int)r.top, (int)x, (int)r.bottom, 1, grid_clr);
+		// Draw internal grid aligned to world coordinates (matches background grid)
+		const double SMALL_STEP = 10.0;  // world units
+		const double LARGE_STEP = 100.0; // world units
+		Color grid_small = Color(min(255, (int)fill.GetR() + 18),
+		                         min(255, (int)fill.GetG() + 18),
+		                         min(255, (int)fill.GetB() + 18));
+		Color grid_large = Color(min(255, (int)fill.GetR() + 35),
+		                         min(255, (int)fill.GetG() + 35),
+		                         min(255, (int)fill.GetB() + 35));
+
+		Pointf wbox_tl = vp.ViewToWorld(Pointf(r.left,  r.top));
+		Pointf wbox_br = vp.ViewToWorld(Pointf(r.right, r.bottom));
+		double wx0 = floor(wbox_tl.x / SMALL_STEP) * SMALL_STEP;
+		double wy0 = floor(wbox_tl.y / SMALL_STEP) * SMALL_STEP;
+		int clip_top  = r.top + (int)(title_h + 8); // don't draw grid over title bar
+
+		for(double wx = wx0; wx <= wbox_br.x + SMALL_STEP; wx += SMALL_STEP) {
+			int vx = (int)vp.WorldToView(Pointf(wx, 0)).x;
+			if(vx <= r.left || vx >= r.right) continue;
+			bool large = fmod(fabs(wx), LARGE_STEP) < 0.5;
+			w.DrawLine(vx, clip_top, vx, r.bottom, 1, large ? grid_large : grid_small);
 		}
-		for(double y = r.top + title_h + 8; y < r.bottom; y += cell_h) {
-			w.DrawLine((int)r.left, (int)y, (int)r.right, (int)y, 1, grid_clr);
+		for(double wy = wy0; wy <= wbox_br.y + SMALL_STEP; wy += SMALL_STEP) {
+			int vy = (int)vp.WorldToView(Pointf(0, wy)).y;
+			if(vy <= clip_top || vy >= r.bottom) continue;
+			bool large = fmod(fabs(wy), LARGE_STEP) < 0.5;
+			w.DrawLine(r.left, vy, r.right, vy, 1, large ? grid_large : grid_small);
 		}
 	}
 	else if(item.type == SceneItem::PIN) {
@@ -294,51 +309,37 @@ static void PaintItem(Draw& w, const SceneItem& item, const Viewport& vp,
 
 		bool is_pcb = !item.seg_layer.IsEmpty();
 		if(is_pcb) {
-			// PCB dual-layer rendering:
-			// Layer 0 (front copper): warm green  #4A7C59 tinted
-			// Layer 1 (back copper): cooler teal  #3A6070 tinted
-			// When selected/hovered use bright highlight on all segments
-			Color front_clr = selected || hovered ? line
-			                : Color(
-			                    max(0, min(255, edge_clr.GetR() / 2 + 40)),
-			                    max(0, min(255, edge_clr.GetG() / 2 + 100)),
-			                    max(0, min(255, edge_clr.GetB() / 2 + 50)));
-			Color back_clr  = selected || hovered ? Color(line.GetR()/2+50, line.GetG()/2+80, line.GetB()/2+120)
-			                : Color(
-			                    max(0, min(255, edge_clr.GetR() / 2 + 20)),
-			                    max(0, min(255, edge_clr.GetG() / 2 + 60)),
-			                    max(0, min(255, edge_clr.GetB() / 2 + 90)));
+			// PCB rendering: use port color (edge_clr) for layer 0.
+			// Layer 1 (back copper, used only when crossing): slightly darker + blue-shifted.
+			// Selected/hovered: use highlight color.
+			auto LayerColor = [&](int layer) -> Color {
+				if(selected || hovered) return line;
+				if(layer == 0) return edge_clr;
+				// Back layer: darken and shift hue slightly towards blue
+				return Color(
+				    max(0, (int)(edge_clr.GetR() * 0.6)),
+				    max(0, (int)(edge_clr.GetG() * 0.6)),
+				    min(255, (int)(edge_clr.GetB() * 0.6 + 80)));
+			};
 			int trace_w = max(2, (int)(2.5 * scale));
 
 			for(int i = 0; i + 1 < pts.GetCount(); i++) {
 				int layer = (i < item.seg_layer.GetCount()) ? item.seg_layer[i] : 0;
-				Color seg_clr = (layer == 0) ? front_clr : back_clr;
-				w.DrawLine(pts[i].x, pts[i].y, pts[i+1].x, pts[i+1].y, trace_w, seg_clr);
+				w.DrawLine(pts[i].x, pts[i].y, pts[i+1].x, pts[i+1].y, trace_w, LayerColor(layer));
 			}
 
-			// Through-hole pads at endpoints
-			int pad_r = max(4, (int)(5 * scale));
-			Color pad_ring = Color(200, 180, 100); // gold annular ring
-			Color pad_hole = Color(20, 20, 20);
-			for(int ep : {0, pts.GetCount() - 1}) {
-				Rect pr(pts[ep].x - pad_r, pts[ep].y - pad_r,
-				        pts[ep].x + pad_r, pts[ep].y + pad_r);
-				DrawEllipse(w, pr, pad_ring, pad_ring, 1);
-				int hr = max(2, pad_r / 2);
-				Rect hr2(pts[ep].x - hr, pts[ep].y - hr,
-				         pts[ep].x + hr, pts[ep].y + hr);
-				DrawEllipse(w, hr2, pad_hole, pad_hole, 1);
-			}
-
-			// Via dots at bend points (layer transitions)
+			// Via dots only at layer transitions mid-path
 			int via_r = max(3, (int)(3.5 * scale));
-			Color via_ring  = Color(180, 160, 80); // gold via ring
-			Color via_fill  = Color(40, 40, 40);
+			Color via_fill = Color(40, 40, 40);
 			for(int vi : item.via_indices) {
-				if(vi < 0 || vi >= pts.GetCount()) continue;
+				if(vi <= 0 || vi >= pts.GetCount() - 1) continue;
+				int prev_layer = (vi - 1 < item.seg_layer.GetCount()) ? item.seg_layer[vi - 1] : 0;
+				int next_layer = (vi     < item.seg_layer.GetCount()) ? item.seg_layer[vi]     : 0;
+				if(prev_layer == next_layer) continue; // not a real transition
+				Color via_ring = LayerColor(next_layer);
 				Rect vr(pts[vi].x - via_r, pts[vi].y - via_r,
 				        pts[vi].x + via_r, pts[vi].y + via_r);
-				DrawEllipse(w, vr, via_fill, via_ring, 1);
+				DrawEllipse(w, vr, via_fill, via_ring, 2);
 			}
 		} else {
 			// Normal edge

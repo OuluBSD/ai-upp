@@ -87,6 +87,29 @@ void NodeViewportCtrl::SetAnimPhase(double phase)
 	Refresh();
 }
 
+void NodeViewportCtrl::RegisterNodeType(const String& type_id, const String& label,
+                                         Function<NodeDoc()> factory)
+{
+	NodeTypeEntry& e = node_type_registry.Add();
+	e.type_id  = type_id;
+	e.label    = label;
+	int dot = type_id.Find('.');
+	e.category = (dot >= 0) ? type_id.Left(dot) : type_id;
+	e.factory  = pick(factory);
+}
+
+void NodeViewportCtrl::Layout()
+{
+	// If the user hasn't panned or zoomed yet, recalculate ZoomToFit for the new size
+	if(vp_pristine && graph && !scene.items.IsEmpty()) {
+		Size sz = GetSize();
+		if(sz.cx > 100 && sz.cy > 100) {
+			vp.ZoomToFit(scene.index.bounds, sz);
+			Refresh();
+		}
+	}
+}
+
 static Ctrl* CreateSlotWidget(const String& widget_type, const String& entity_id,
                                NodeViewportCtrl* viewport,
                                Graph* graph, EditorState* editor,
@@ -310,6 +333,7 @@ void NodeViewportCtrl::ZoomToFit()
 		if(builder.IsDirty(*graph))
 			builder.Build(scene, *graph);
 		vp.ZoomToFit(scene.index.bounds, GetSize());
+		vp_pristine = false; // explicit user action — stop auto-refitting
 		Refresh();
 	}
 }
@@ -351,6 +375,7 @@ void NodeViewportCtrl::MouseWheel(Point p, int zdelta, dword key)
 {
 	double factor = (zdelta > 0 ? 1.1 : 0.9);
 	vp.Zoom(vp.GetScale() * factor, p);
+	vp_pristine = false;
 	Refresh();
 }
 
@@ -457,6 +482,7 @@ void NodeViewportCtrl::MouseMove(Point p, dword key)
 	// Pan via middle mouse
 	if(panning) {
 		vp.Pan(Pointf(p.x - last_mouse_pos.x, p.y - last_mouse_pos.y));
+		vp_pristine = false;
 		last_mouse_pos = p;
 		Refresh();
 		return;
@@ -608,6 +634,16 @@ void NodeViewportCtrl::RightDown(Point p, dword key)
 	if(editor && graph && dispatcher && history) {
 		Pointf wp = vp.ViewToWorld(p);
 		Scene::HitResult hit = scene.HitTest(wp);
+
+		// Promote LABEL hit to NODE when the label belongs to a plain node id (title bar)
+		EntityId effective_id = hit ? hit.entity_id : EntityId();
+		SceneItem::Type effective_type = hit ? hit.type : SceneItem::NODE;
+		if(hit && hit.type == SceneItem::LABEL && hit.entity_id.Find(':') < 0) {
+			if(graph->FindNode(hit.entity_id)) {
+				effective_type = SceneItem::NODE;
+			}
+		}
+
 		MenuBar menu;
 
 		if(hit && hit.type == SceneItem::PIN) {
@@ -615,7 +651,6 @@ void NodeViewportCtrl::RightDown(Point p, dword key)
 			ParsePinEntityId(hit.entity_id, node_id, is_out, pin_id);
 
 			menu.Add("Disconnect", [=] {
-				// Remove all edges connected to this specific pin
 				const GraphDoc& doc = graph->GetDoc();
 				Vector<EntityId> to_remove;
 				for(const auto& e : doc.edges) {
@@ -640,7 +675,6 @@ void NodeViewportCtrl::RightDown(Point p, dword key)
 				Refresh();
 			});
 			menu.Add("Connect ->", [=] {
-				// Start a linking drag from this pin
 				editor->mode = EditorMode::LINKING;
 				editor->link_source_node = node_id;
 				editor->link_source_pin  = pin_id;
@@ -649,35 +683,20 @@ void NodeViewportCtrl::RightDown(Point p, dword key)
 			return;
 		}
 
-		if(hit) {
-			if(hit.type == SceneItem::NODE) {
-				menu.Add("Remove Node", [=] {
-					ValueMap arg; arg.Add("id", hit.entity_id);
-					history->Execute(CommandContext(*graph, *editor), dispatcher->Create("RemoveNode", arg));
-					Refresh();
-				});
-				if(editor->IsSelected(hit.entity_id) && editor->selection.GetCount() > 1) {
-					menu.Add("Remove Selected Nodes", [=] {
-						history->Begin();
-						for(const auto& id : editor->selection) {
-							ValueMap arg; arg.Add("id", id);
-							history->Execute(CommandContext(*graph, *editor), dispatcher->Create("RemoveNode", arg));
-						}
-						history->Commit();
-						Refresh();
-					});
-				}
-			}
-			else if(hit.type == SceneItem::EDGE) {
-				menu.Add("Remove Edge", [=] {
-					// RemoveEdge via direct graph mutation + invalidate (no command yet — use graph directly)
-					graph->RemoveEdge(hit.entity_id);
-					Refresh();
-				});
-			}
-			else if(hit.type == SceneItem::GROUP) {
-				menu.Add("Remove Group", [=] {
-					graph->RemoveGroup(hit.entity_id);
+		if(hit && effective_type == SceneItem::NODE) {
+			menu.Add("Remove Node", [=] {
+				ValueMap arg; arg.Add("id", effective_id);
+				history->Execute(CommandContext(*graph, *editor), dispatcher->Create("RemoveNode", arg));
+				Refresh();
+			});
+			if(editor->IsSelected(effective_id) && editor->selection.GetCount() > 1) {
+				menu.Add("Remove Selected Nodes", [=] {
+					history->Begin();
+					for(const auto& id : editor->selection) {
+						ValueMap arg; arg.Add("id", id);
+						history->Execute(CommandContext(*graph, *editor), dispatcher->Create("RemoveNode", arg));
+					}
+					history->Commit();
 					Refresh();
 				});
 			}
@@ -692,15 +711,62 @@ void NodeViewportCtrl::RightDown(Point p, dword key)
 				Refresh();
 			});
 		}
-		else {
-			menu.Add("Add Node", [=] {
-				ValueMap arg;
-				arg.Add("id", "n_" + Uuid::Create().ToString());
-				arg.Add("x", wp.x);
-				arg.Add("y", wp.y);
-				history->Execute(CommandContext(*graph, *editor), dispatcher->Create("AddNode", arg));
+		else if(hit && effective_type == SceneItem::EDGE) {
+			menu.Add("Remove Edge", [=] {
+				graph->RemoveEdge(effective_id);
 				Refresh();
 			});
+		}
+		else if(hit && effective_type == SceneItem::GROUP) {
+			menu.Add("Remove Group", [=] {
+				graph->RemoveGroup(effective_id);
+				Refresh();
+			});
+		}
+		else {
+			// Background right-click: Add Node (with registered types submenu), Paste, Theme, etc.
+
+			// "Add Node" — plain blank node if no registry; submenu by category if registry exists
+			if(node_type_registry.IsEmpty()) {
+				menu.Add("Add Node", [=] {
+					ValueMap arg;
+					arg.Add("id", "n_" + Uuid::Create().ToString());
+					arg.Add("x", wp.x);
+					arg.Add("y", wp.y);
+					history->Execute(CommandContext(*graph, *editor), dispatcher->Create("AddNode", arg));
+					Refresh();
+				});
+			}
+			else {
+				// Collect unique categories (preserving order)
+				Shared<Vector<String>> categories = MakeShared<Vector<String>>();
+				for(const auto& entry : node_type_registry) {
+					if(FindIndex(*categories, entry.category) < 0)
+						categories->Add(entry.category);
+				}
+
+				menu.Sub("Add Node", [=](Bar& add_bar) {
+					for(const String& cat : *categories) {
+						add_bar.Sub(cat, [=](Bar& cat_bar) {
+							for(int i = 0; i < node_type_registry.GetCount(); i++) {
+								if(node_type_registry[i].category != cat) continue;
+								int reg_idx = i;
+								String lbl = node_type_registry[reg_idx].label;
+								cat_bar.Add(lbl, [=] {
+									NodeDoc tmpl = node_type_registry[reg_idx].factory();
+									tmpl.id  = "n_" + Uuid::Create().ToString();
+									tmpl.pos = wp;
+									graph->GetDoc().nodes.Add(tmpl);
+									graph->RebuildIndexPublic();
+									graph->Invalidate();
+									Refresh();
+								});
+							}
+						});
+					}
+				});
+			}
+
 			String clip = ReadClipboardText();
 			if(!clip.IsEmpty()) {
 				menu.Add("Paste", [=] {
@@ -713,6 +779,21 @@ void NodeViewportCtrl::RightDown(Point p, dword key)
 					Refresh();
 				});
 			}
+
+			menu.Separator();
+
+			// Theme submenu
+			{
+				EdgeStyle cur_style = editor ? editor->edge_style : EdgeStyle::Curved;
+				menu.Sub("Theme", [=](Bar& theme) {
+					// enabled=false for the current style (acts as checkmark indicator)
+					theme.Add(cur_style != EdgeStyle::Simple,    "Simple",    [=] { SetEdgeStyle(EdgeStyle::Simple);    });
+					theme.Add(cur_style != EdgeStyle::Curved,    "Curved",    [=] { SetEdgeStyle(EdgeStyle::Curved);    });
+					theme.Add(cur_style != EdgeStyle::Schematic, "Schematic", [=] { SetEdgeStyle(EdgeStyle::Schematic); });
+					theme.Add(cur_style != EdgeStyle::Realistic, "Realistic", [=] { SetEdgeStyle(EdgeStyle::Realistic); });
+				});
+			}
+
 			menu.Separator();
 			menu.Add("Select All", [=] {
 				history->Begin();
@@ -727,6 +808,7 @@ void NodeViewportCtrl::RightDown(Point p, dword key)
 				history->Execute(CommandContext(*graph, *editor), dispatcher->Create("ClearSelection", ValueMap()));
 				Refresh();
 			});
+			menu.Add("Zoom to Fit", [=] { ZoomToFit(); });
 		}
 
 		menu.Execute();

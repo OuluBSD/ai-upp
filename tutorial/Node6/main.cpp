@@ -14,52 +14,23 @@ using namespace Upp::Node;
 
 #ifdef flagGUI
 
-// Autoencoder workflow: groups are horizontally arranged
+// Autoencoder workflow: smart packing with groups and ungrouped nodes
 static void ApplyGroupLayout(Graph& graph)
 {
-	const double COL_W   = 340.0;  // Width between group columns (includes padding)
-	const double V_GAP   = 40.0;   // Gap between nodes in a column
-	const double START_X = 30.0;   // Starting X position
-	const double START_Y = 50.0;   // Starting Y position (for title bar space)
-
-	// Read group definitions from the graph and arrange them horizontally
-	// Order matches the workflow: encoder, decoder, compile, data, train, test, inference, prep
-	Vector<String> group_order = {"enc", "dec", "comp", "data", "train", "test", "inf", "prep"};
-
-	// Position nodes in their respective group columns
-	for(int ci = 0; ci < group_order.GetCount(); ci++) {
-		String grp_id = group_order[ci];
-		double cx = START_X + ci * COL_W;
-		double cy = START_Y;
-		
-		// Try to get nodes from group definition first
-		const GroupDoc* grp = graph.FindGroup(grp_id);
-		int count = 0;
-		if(grp) {
-			LOG("Positioning group " << grp_id << ": ");
-			for(const String& nid : grp->nodes) {
-				NodeDoc* n = graph.FindNode(nid);
-				if(!n) continue;
-				n->pos = Pointf(cx, cy);
-				cy += 75.0 + V_GAP;  // Node height (~75) + gap
-				graph.Invalidate(nid);
-				LOG(nid << "(" << n->pos << ") ");
-				count++;
-			}
-		} else {
-			// Fallback: find nodes by prefix matching
-			String prefix = grp_id + "_";
-			for(NodeDoc& n : graph.GetDoc().nodes) {
-				if(n.id.StartsWith(prefix)) {
-					n.pos = Pointf(cx, cy);
-					cy += 75.0 + V_GAP;
-					graph.Invalidate(n.id);
-					count++;
-				}
-			}
-		}
-		LOG("(total: " << count << ")\n");
-	}
+	// Use SmartPacker for intelligent two-level packing
+	SmartPacker packer;
+	packer.GroupPadding(30.0)
+	      .NodePadding(20.0)
+	      .GroupInnerPadding(25.0);
+	
+	// Get viewport size if available (for aspect ratio adjustment)
+	// In GUI mode, we can get this from the graph/viewport
+	// For now, use a reasonable default
+	packer.Viewport(Rectf(0, 0, 1600, 1200));  // Default viewport
+	
+	LOG("SmartPacker: Starting layout...");
+	packer.Pack(graph);
+	LOG("SmartPacker: Layout complete");
 }
 
 // Patch labels and tints for demo visual appeal

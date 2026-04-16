@@ -422,7 +422,8 @@ static void AddNodeItems(Scene& scene, const NodeDoc& n, const Graph& graph, Bez
 	}
 }
 
-static void AddEdgeItem(Scene& scene, const EdgeDoc& e, const Graph& graph, BezierRoutingPolicy& router)
+static void AddEdgeItem(Scene& scene, const EdgeDoc& e, const Graph& graph,
+                        BezierRoutingPolicy& router, EdgeStyle style, const Vector<Rectf>& obstacles)
 {
 	const NodeDoc* src_node = graph.FindNode(e.source_node);
 	const NodeDoc* tgt_node = graph.FindNode(e.target_node);
@@ -447,6 +448,10 @@ static void AddEdgeItem(Scene& scene, const EdgeDoc& e, const Graph& graph, Bezi
 		RouteRequest req;
 		req.source_pos = p1;
 		req.target_pos = p2;
+		req.style = style;
+		// Pass all node boxes except source and target as obstacles
+		for(const Rectf& r : obstacles)
+			req.obstacles.Add(r);
 		RouteResponse resp = router.Route(req);
 
 		SceneItem& item = scene.Add();
@@ -469,6 +474,17 @@ void BaselineSceneBuilder::Build(Scene& scene, const Graph& graph)
 	
 	LOG("BaselineSceneBuilder::Build " << doc.nodes.GetCount() << " nodes, " << doc.edges.GetCount() << " edges, " << dirty.GetCount() << " dirty");
 
+	// Collect all node bounding boxes for obstacle avoidance in edge routing.
+	// Built after AddNodeItems (which writes computed sz.cy back), so heights are accurate.
+	auto CollectObstacles = [&](const String& skip_src, const String& skip_tgt) {
+		Vector<Rectf> obs;
+		for(const auto& n : doc.nodes) {
+			if(n.id == skip_src || n.id == skip_tgt) continue;
+			obs.Add(Rectf(n.pos.x, n.pos.y, n.pos.x + n.sz.cx, n.pos.y + n.sz.cy));
+		}
+		return obs;
+	};
+
 	if(dirty.IsEmpty() || scene.items.IsEmpty()) {
 		scene.Clear();
 		for(const auto& g : doc.groups) {
@@ -480,7 +496,10 @@ void BaselineSceneBuilder::Build(Scene& scene, const Graph& graph)
 		// Nodes first: AddNodeItems writes pin positions back into PinDoc::pos
 		// which AddEdgeItem then reads. Order matters.
 		for(const auto& n : doc.nodes) AddNodeItems(scene, n, graph, router);
-		for(const auto& e : doc.edges) AddEdgeItem(scene, e, graph, router);
+		for(const auto& e : doc.edges) {
+			Vector<Rectf> obs = CollectObstacles(e.source_node, e.target_node);
+			AddEdgeItem(scene, e, graph, router, edge_style, obs);
+		}
 		LOG("Full build: " << scene.items.GetCount() << " items");
 	}
 	else {
@@ -500,7 +519,7 @@ void BaselineSceneBuilder::Build(Scene& scene, const Graph& graph)
 				}
 			}
 		}
-		
+
 		// Re-add dirty entities; collect edges to re-add in a set to avoid duplicates
 		Index<EntityId> edges_to_add;
 		for(const auto& id : dirty) {
@@ -518,7 +537,10 @@ void BaselineSceneBuilder::Build(Scene& scene, const Graph& graph)
 		}
 		for(const auto& eid : edges_to_add) {
 			const EdgeDoc* e = graph.FindEdge(eid);
-			if(e) AddEdgeItem(scene, *e, graph, router);
+			if(e) {
+				Vector<Rectf> obs = CollectObstacles(e->source_node, e->target_node);
+				AddEdgeItem(scene, *e, graph, router, edge_style, obs);
+			}
 		}
 		LOG("Incremental build: " << scene.items.GetCount() << " items");
 	}

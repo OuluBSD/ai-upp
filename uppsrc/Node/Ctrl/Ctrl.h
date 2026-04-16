@@ -8,6 +8,7 @@
 #include <Node/Core/Command.h>
 #include <Node/Core/Snap.h>
 #include <Node/Core/Viewport.h>
+#include <Node/Core/Layout.h>
 
 namespace Upp {
 
@@ -32,6 +33,7 @@ class NodeViewportCtrl : public Ctrl {
 	bool                 fit_on_first_paint = false; // ZoomToFit on next Paint after SetGraph
 	bool                 vp_pristine = true;  // true until user first pans/zooms
 	double               anim_phase = 0.0;          // for Realistic edge animation [0..1)
+	SmartPacker::LayoutOrientation layout_orientation = SmartPacker::LAYOUT_TALL;  // Layout orientation preference
 
 	// Node type registry: type_id -> template NodeDoc factory
 	struct NodeTypeEntry : Moveable<NodeTypeEntry> {
@@ -66,12 +68,18 @@ public:
 	void SetDispatcher(CommandDispatcher& d) { dispatcher = &d; }
 	void RegisterWidget(const String& type, WidgetFactory f) { widget_factories.Add(type, f); }
 	
-	void ZoomToFit();
-	void SetEdgeStyle(EdgeStyle s);
-	void SetAnimPhase(double phase);  // called by owner for Realistic animation
+	void             ZoomToFit();
+	void             SetEdgeStyle(EdgeStyle s);
+	void             SetAnimPhase(double phase);  // called by owner for Realistic animation
 	// Register a node type for the "Add Node" menu. factory() returns a pre-filled template.
-	void RegisterNodeType(const String& type_id, const String& label,
-	                      Function<NodeDoc()> factory);
+	void             RegisterNodeType(const String& type_id, const String& label,
+	                                  Function<NodeDoc()> factory);
+	
+	// Layout orientation
+	SmartPacker::LayoutOrientation GetLayoutOrientation() const { return layout_orientation; }
+	void             SetLayoutOrientation(SmartPacker::LayoutOrientation o) { layout_orientation = o; }
+	void             ToggleLayoutOrientation() { layout_orientation = (layout_orientation == SmartPacker::LAYOUT_TALL) ? SmartPacker::LAYOUT_WIDE : SmartPacker::LAYOUT_TALL; }
+	void             ApplyLayout();  // Re-run layout with current orientation
 	virtual void Layout() override; // handles auto-refit on size change
 	virtual void Paint(Draw& w) override;
 	virtual void MouseWheel(Point p, int zdelta, dword key) override;

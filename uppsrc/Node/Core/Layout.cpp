@@ -216,52 +216,94 @@ void SmartPacker::PackGlobal()
 {
 	if(items.IsEmpty()) return;
 	
-	// Shelf packing algorithm with proper spacing
-	// Place items in rows (shelves), each shelf has height of tallest item
-	struct Shelf {
-		double y = 0;
-		double h = 0;
-		double x = 0;  // Current x position in this shelf
-	};
+	if(orientation == LAYOUT_TALL) {
+		// Shelf packing - arrange in horizontal rows
+		struct Shelf {
+			double y = 0;
+			double h = 0;
+			double x = 0;  // Current x position in this shelf
+		};
 
-	Vector<Shelf> shelves;
-	double cursor_x = group_padding;
-	double cursor_y = group_padding;
-	
-	// Use viewport width if available, otherwise use a reasonable default
-	double available_width = has_viewport ? (viewport.Width() - 2 * group_padding) : 2000.0;
+		Vector<Shelf> shelves;
+		double cursor_x = group_padding;
+		double cursor_y = group_padding;
+		
+		// Use viewport width if available, otherwise use a reasonable default
+		double available_width = has_viewport ? (viewport.Width() - 2 * group_padding) : 2000.0;
 
-	for(int i = 0; i < items.GetCount(); i++) {
-		ConnectionInfo& item = items[i];
-		double w = item.bounds.Width();
-		double h = item.bounds.Height();
+		for(int i = 0; i < items.GetCount(); i++) {
+			ConnectionInfo& item = items[i];
+			double w = item.bounds.Width();
+			double h = item.bounds.Height();
 
-		// Try to fit in current shelf
-		// Need: cursor_x + w + group_padding <= available_width
-		bool fits_in_current = !shelves.IsEmpty() && (cursor_x + w + group_padding <= available_width);
+			// Try to fit in current shelf
+			bool fits_in_current = !shelves.IsEmpty() && (cursor_x + w + group_padding <= available_width);
 
-		if(fits_in_current) {
-			// Place in current shelf with spacing
-			Shelf& shelf = shelves[shelves.GetCount()-1];
-			// Set position: x = cursor_x, y = shelf.y
-			item.bounds = Rectf(cursor_x, shelf.y, cursor_x + w, shelf.y + h);
-			shelf.x = cursor_x + w + group_padding;
-			shelf.h = max(shelf.h, h);
-			cursor_x = shelf.x;
-		} else {
-			// Start new shelf with extra vertical spacing
-			Shelf shelf;
-			shelf.y = cursor_y;
-			shelf.h = h;
-			
-			// Place at start of new shelf
-			item.bounds = Rectf(group_padding, cursor_y, group_padding + w, cursor_y + h);
-			
-			shelf.x = group_padding + w + group_padding;
-			cursor_y += h + group_padding * 8;  // More padding for taller groups
-			cursor_x = shelf.x;
+			if(fits_in_current) {
+				// Place in current shelf
+				Shelf& shelf = shelves[shelves.GetCount()-1];
+				item.bounds = Rectf(cursor_x, shelf.y, cursor_x + w, shelf.y + h);
+				shelf.x = cursor_x + w + group_padding;
+				shelf.h = max(shelf.h, h);
+				cursor_x = shelf.x;
+			} else {
+				// Start new shelf
+				Shelf shelf;
+				shelf.y = cursor_y;
+				shelf.h = h;
+				
+				item.bounds = Rectf(group_padding, cursor_y, group_padding + w, cursor_y + h);
+				
+				shelf.x = group_padding + w + group_padding;
+				cursor_y += h + group_padding * 8;
+				cursor_x = shelf.x;
 
-			shelves.Add(shelf);
+				shelves.Add(shelf);
+			}
+		}
+	} else {
+		// WIDE orientation - LAYOUT_WIDE
+		struct Column {
+			double x = 0;
+			double w = 0;
+			double y = 0;  // Current y position in this column
+		};
+
+		Vector<Column> columns;
+		double cursor_y = group_padding;
+		double cursor_x = group_padding;
+		
+		// Use viewport height if available
+		double available_height = has_viewport ? (viewport.Height() - 2 * group_padding) : 2000.0;
+
+		for(int i = 0; i < items.GetCount(); i++) {
+			ConnectionInfo& item = items[i];
+			double w = item.bounds.Width();
+			double h = item.bounds.Height();
+
+			// Try to fit in current column
+			bool fits_in_current = !columns.IsEmpty() && (cursor_y + h + group_padding <= available_height);
+
+			if(fits_in_current) {
+				// Place in current column
+				Column& col = columns[columns.GetCount()-1];
+				item.bounds = Rectf(col.x, cursor_y, col.x + w, cursor_y + h);
+				col.y = cursor_y + h + group_padding;
+				col.w = max(col.w, w);
+				cursor_y = col.y;
+			} else {
+				// Start new column
+				Column col;
+				col.x = cursor_x;
+				col.w = w;
+				
+				item.bounds = Rectf(cursor_x, group_padding, cursor_x + w, group_padding + h);
+				
+				col.y = group_padding + h + group_padding;
+				cursor_x += w + group_padding * 3;
+
+				columns.Add(col);
+			}
 		}
 	}
 }

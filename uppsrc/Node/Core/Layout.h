@@ -70,7 +70,7 @@ class SmartPacker {
 	void   AnalyzeGraph(Graph& graph);
 	void   EstimateItemBounds(ConnectionInfo& item, Graph& graph);
 	void   PackGlobal();
-	void   PackNodesInGroup(Graph& graph, const String& group_path);
+	void   PackNodesInGroupAtPosition(Graph& graph, const String& group_path, Pointf pos);
 	void   AdjustAspectRatio();
 	
 	int    CountConnections(const String& id1, bool is_group1, const String& id2, bool is_group2, Graph& graph);

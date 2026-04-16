@@ -34,11 +34,18 @@ public:
 // ---------------------------------------------------------------------------
 
 class SmartPacker {
+public:
+	// Layout orientation
+	enum LayoutOrientation { LAYOUT_TALL, LAYOUT_WIDE };
+
+private:
 	// Configuration
 	double group_padding        = 30.0;  // Space around groups
 	double node_padding         = 20.0;  // Space between nodes inside groups
 	double group_inner_padding  = 25.0;  // Space from group edge to nodes
 	double min_node_spacing     = 15.0;  // Minimum spacing between any nodes
+
+	LayoutOrientation orientation = LAYOUT_TALL;  // LAYOUT_TALL = shelf packing (rows), LAYOUT_WIDE = column packing
 	
 	// Viewport for aspect ratio
 	Rectf viewport;
@@ -89,6 +96,7 @@ public:
 	SmartPacker& GroupPadding(double d)   { group_padding = d; return *this; }
 	SmartPacker& NodePadding(double d)    { node_padding = d; return *this; }
 	SmartPacker& GroupInnerPadding(double d) { group_inner_padding = d; return *this; }
+	SmartPacker& Orientation(LayoutOrientation o) { orientation = o; return *this; }
 	
 	// Main entry point
 	void Pack(Graph& graph);

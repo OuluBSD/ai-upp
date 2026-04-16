@@ -476,8 +476,19 @@ void BaselineSceneBuilder::Build(Scene& scene, const Graph& graph)
 	
 	LOG("BaselineSceneBuilder::Build " << doc.nodes.GetCount() << " nodes, " << doc.edges.GetCount() << " edges, " << dirty.GetCount() << " dirty");
 
-	// Collect all node bounding boxes for obstacle avoidance in edge routing.
-	// Built after AddNodeItems (which writes computed sz.cy back), so heights are accurate.
+	// Collect all node bounding boxes.
+	// For PCB routing these are BOTH obstacles (passed per-edge to avoid routing through
+	// src/tgt nodes) AND the source of truth for the shared PCB grid.
+	// Note: computed sz.cy is only accurate AFTER AddNodeItems() has run — so we build
+	// nodes first, then collect boxes, then call BeginBatch, then route edges.
+
+	auto CollectAllBoxes = [&]() {
+		Vector<Rectf> all;
+		for(const auto& n : doc.nodes)
+			all.Add(Rectf(n.pos.x, n.pos.y, n.pos.x + n.sz.cx, n.pos.y + n.sz.cy));
+		return all;
+	};
+
 	auto CollectObstacles = [&](const String& skip_src, const String& skip_tgt) {
 		Vector<Rectf> obs;
 		for(const auto& n : doc.nodes) {
@@ -487,17 +498,83 @@ void BaselineSceneBuilder::Build(Scene& scene, const Graph& graph)
 		return obs;
 	};
 
+	// Compute bounding box for a group based on its member nodes
+	auto ComputeGroupBounds = [&](const GroupDoc& g) -> Rectf {
+		Rectf bounds(1e300, 1e300, -1e300, -1e300);
+		bool first = true;
+		
+		for(const auto& nid : g.nodes) {
+			const NodeDoc* node = graph.FindNode(nid);
+			if(!node) continue;
+			
+			Rectf node_rect(node->pos.x, node->pos.y, 
+			                node->pos.x + node->sz.cx, node->pos.y + node->sz.cy);
+			
+			if(first) {
+				bounds = node_rect;
+				first = false;
+			} else {
+				bounds.left   = min(bounds.left,   node_rect.left);
+				bounds.top    = min(bounds.top,    node_rect.top);
+				bounds.right  = max(bounds.right,  node_rect.right);
+				bounds.bottom = max(bounds.bottom, node_rect.bottom);
+			}
+		}
+		
+		if(first) {
+			// Empty group or no valid nodes - use default
+			return Rectf(0, 0, 200, 200);
+		}
+		
+		// Add padding around the group (40px on all sides)
+		const double GROUP_PAD = 40.0;
+		const double TITLE_H   = 30.0; // Space for group title bar
+		bounds.left   -= GROUP_PAD;
+		bounds.top    -= TITLE_H + GROUP_PAD;
+		bounds.right  += GROUP_PAD;
+		bounds.bottom += GROUP_PAD;
+		
+		return bounds;
+	};
+	
+	auto SceneBounds = [&](const Vector<Rectf>& boxes) -> Rectf {
+		if(boxes.IsEmpty()) return Rectf(0, 0, 200, 200);
+		Rectf b = boxes[0];
+		for(const auto& r : boxes) {
+			b.left   = min(b.left,   r.left);
+			b.top    = min(b.top,    r.top);
+			b.right  = max(b.right,  r.right);
+			b.bottom = max(b.bottom, r.bottom);
+		}
+		return b;
+	};
+
 	if(dirty.IsEmpty() || scene.items.IsEmpty()) {
 		scene.Clear();
+		
+		// Nodes first: AddNodeItems writes pin positions + sz.cy back into NodeDoc.
+		for(const auto& n : doc.nodes) AddNodeItems(scene, n, graph, router);
+		
+		// Now build groups AFTER nodes have their positions
 		for(const auto& g : doc.groups) {
 			SceneItem& item = scene.Add();
 			item.type = SceneItem::GROUP;
 			item.entity_id = g.id;
-			item.fill_clr = g.color;
+			item.text = g.label;  // Pass label to scene for rendering
+			// Use style-based color or fallback to legacy color
+			item.fill_clr = g.style.saturation > 0 ? g.style.ComputeFillColor() : g.color;
+			item.line_clr = Color(min(100, (int)item.fill_clr.GetR() + 30),
+			                      min(100, (int)item.fill_clr.GetG() + 30),
+			                      min(100, (int)item.fill_clr.GetB() + 30));
+			item.rect = ComputeGroupBounds(g);
 		}
-		// Nodes first: AddNodeItems writes pin positions back into PinDoc::pos
-		// which AddEdgeItem then reads. Order matters.
-		for(const auto& n : doc.nodes) AddNodeItems(scene, n, graph, router);
+
+		// Now that node heights are known, initialise the PCB shared grid.
+		{
+			Vector<Rectf> all_boxes = CollectAllBoxes();
+			router.BeginBatch(SceneBounds(all_boxes), all_boxes, edge_style);
+		}
+
 		for(const auto& e : doc.edges) {
 			Vector<Rectf> obs = CollectObstacles(e.source_node, e.target_node);
 			AddEdgeItem(scene, e, graph, router, edge_style, obs);
@@ -505,46 +582,117 @@ void BaselineSceneBuilder::Build(Scene& scene, const Graph& graph)
 		LOG("Full build: " << scene.items.GetCount() << " items");
 	}
 	else {
-		// Incremental: remove dirty entities
-		for(const auto& id : dirty) {
-			for(int i = scene.items.GetCount() - 1; i >= 0; i--) {
-				if(scene.items[i].entity_id == id || scene.items[i].entity_id.StartsWith(id + ":"))
-					scene.items.Remove(i);
+		// Incremental: for PCB styles do a full rebuild (grid state would be inconsistent
+		// if only some edges are re-routed into a partial grid).
+		bool is_pcb = (edge_style == EdgeStyle::PCBHVFast ||
+		               edge_style == EdgeStyle::PCBHVLee  ||
+		               edge_style == EdgeStyle::PCB45Fast  ||
+		               edge_style == EdgeStyle::PCB45Lee);
+		if(is_pcb) {
+			// Re-run full build: clear and redo everything
+			scene.Clear();
+			for(const auto& n : doc.nodes) AddNodeItems(scene, n, graph, router);
+			
+			// Build groups after nodes
+			for(const auto& g : doc.groups) {
+				SceneItem& item = scene.Add();
+				item.type = SceneItem::GROUP;
+				item.entity_id = g.id;
+				item.text = g.label;  // Pass label to scene for rendering
+				item.fill_clr = g.style.saturation > 0 ? g.style.ComputeFillColor() : g.color;
+				item.line_clr = Color(min(100, (int)item.fill_clr.GetR() + 30),
+				                      min(100, (int)item.fill_clr.GetG() + 30),
+				                      min(100, (int)item.fill_clr.GetB() + 30));
+				item.rect = ComputeGroupBounds(g);
 			}
-			// Also edges connected to dirty nodes
+			{
+				Vector<Rectf> all_boxes = CollectAllBoxes();
+				router.BeginBatch(SceneBounds(all_boxes), all_boxes, edge_style);
+			}
 			for(const auto& e : doc.edges) {
-				if(e.source_node == id || e.target_node == id) {
-					for(int i = scene.items.GetCount() - 1; i >= 0; i--) {
-						if(scene.items[i].entity_id == e.id)
-							scene.items.Remove(i);
+				Vector<Rectf> obs = CollectObstacles(e.source_node, e.target_node);
+				AddEdgeItem(scene, e, graph, router, edge_style, obs);
+			}
+			LOG("Full build (PCB incremental promoted): " << scene.items.GetCount() << " items");
+		}
+		else {
+			router.BeginBatch(Rectf(0,0,0,0), Vector<Rectf>(), edge_style);
+
+			// Standard incremental: remove dirty entities
+			for(const auto& id : dirty) {
+				for(int i = scene.items.GetCount() - 1; i >= 0; i--) {
+					if(scene.items[i].entity_id == id || scene.items[i].entity_id.StartsWith(id + ":"))
+						scene.items.Remove(i);
+				}
+				for(const auto& e : doc.edges) {
+					if(e.source_node == id || e.target_node == id) {
+						for(int i = scene.items.GetCount() - 1; i >= 0; i--) {
+							if(scene.items[i].entity_id == e.id)
+								scene.items.Remove(i);
+						}
+					}
+				}
+				// Also remove affected group items
+				for(const auto& g : doc.groups) {
+					for(const auto& nid : g.nodes) {
+						if(nid == id) {
+							// Rebuild this group's rect
+							for(int i = scene.items.GetCount() - 1; i >= 0; i--) {
+								if(scene.items[i].entity_id == g.id && scene.items[i].type == SceneItem::GROUP)
+									scene.items.Remove(i);
+							}
+							break;
+						}
 					}
 				}
 			}
-		}
 
-		// Re-add dirty entities; collect edges to re-add in a set to avoid duplicates
-		Index<EntityId> edges_to_add;
-		for(const auto& id : dirty) {
-			const NodeDoc* n = graph.FindNode(id);
-			if(n) {
-				AddNodeItems(scene, *n, graph, router);
-				for(const auto& e : doc.edges)
-					if(e.source_node == id || e.target_node == id)
-						edges_to_add.FindAdd(e.id);
+			Index<EntityId> edges_to_add;
+			for(const auto& id : dirty) {
+				const NodeDoc* n = graph.FindNode(id);
+				if(n) {
+					AddNodeItems(scene, *n, graph, router);
+					for(const auto& e : doc.edges)
+						if(e.source_node == id || e.target_node == id)
+							edges_to_add.FindAdd(e.id);
+				}
+				else {
+					const EdgeDoc* e = graph.FindEdge(id);
+					if(e) edges_to_add.FindAdd(e->id);
+				}
 			}
-			else {
-				const EdgeDoc* e = graph.FindEdge(id);
-				if(e) edges_to_add.FindAdd(e->id);
+			
+			// Rebuild affected groups after node updates
+			for(const auto& g : doc.groups) {
+				bool rebuild_needed = false;
+				for(const auto& nid : g.nodes) {
+					if(dirty.Find(nid) >= 0) {
+						rebuild_needed = true;
+						break;
+					}
+				}
+				if(rebuild_needed) {
+					SceneItem& item = scene.Add();
+					item.type = SceneItem::GROUP;
+					item.entity_id = g.id;
+					item.text = g.label;  // Pass label to scene for rendering
+					item.fill_clr = g.style.saturation > 0 ? g.style.ComputeFillColor() : g.color;
+					item.line_clr = Color(min(100, (int)item.fill_clr.GetR() + 30),
+					                      min(100, (int)item.fill_clr.GetG() + 30),
+					                      min(100, (int)item.fill_clr.GetB() + 30));
+					item.rect = ComputeGroupBounds(g);
+				}
 			}
+			
+			for(const auto& eid : edges_to_add) {
+				const EdgeDoc* e = graph.FindEdge(eid);
+				if(e) {
+					Vector<Rectf> obs = CollectObstacles(e->source_node, e->target_node);
+					AddEdgeItem(scene, *e, graph, router, edge_style, obs);
+				}
+			}
+			LOG("Incremental build: " << scene.items.GetCount() << " items");
 		}
-		for(const auto& eid : edges_to_add) {
-			const EdgeDoc* e = graph.FindEdge(eid);
-			if(e) {
-				Vector<Rectf> obs = CollectObstacles(e->source_node, e->target_node);
-				AddEdgeItem(scene, *e, graph, router, edge_style, obs);
-			}
-		}
-		LOG("Incremental build: " << scene.items.GetCount() << " items");
 	}
 	
 	scene.Reindex();

@@ -1,0 +1,70 @@
+// Node6: Simple Autoencoder Demo with Groups
+// Demonstrates hierarchical node grouping using // GROUP: annotations
+
+// ---------------------------------------------------------------------------
+// Group definitions (using comment annotations)
+// ---------------------------------------------------------------------------
+// GROUP: enc {saturation: 50, hue: green, contrast: 50}
+// GROUP: dec {saturation: 50, hue: green, contrast: 50}
+// GROUP: train {saturation: 50, hue: red, contrast: 50}
+// GROUP: prep {saturation: 50, hue: blue, contrast: 50}
+// ---------------------------------------------------------------------------
+
+node generic_node:
+	out output
+	param : string = "" (EditField)
+
+// ---------------------------------------------------------------------------
+// Network: Simple autoencoder demo with groups
+// ---------------------------------------------------------------------------
+
+net autoencoder_demo:
+	
+	// ENCODER GROUP
+	enc_node1: generic_node
+		param = "Input Layer"
+
+	enc_node2: generic_node
+		param = "Conv Layer 1"
+
+	enc_node3: generic_node
+		param = "Pooling Layer"
+
+	enc_node4: generic_node
+		param = "Dense Layer"
+
+	// DECODER GROUP  
+	dec_node1: generic_node
+		param = "Dense Layer"
+
+	dec_node2: generic_node
+		param = "Transpose Conv 1"
+
+	dec_node3: generic_node
+		param = "Transpose Conv 2"
+
+	// TRAINING GROUP
+	train_node1: generic_node
+		param = "Train Model"
+
+	train_node2: generic_node
+		param = "Training Metrics"
+
+	// PREP GROUP
+	prep_node1: generic_node
+		param = "Load Image"
+
+	prep_node2: generic_node
+		param = "Preprocess"
+
+	// Connections
+	enc_node1.output -> enc_node2.input
+	enc_node2.output -> enc_node3.input
+	enc_node3.output -> enc_node4.input
+	dec_node1.output -> dec_node2.input
+	dec_node2.output -> dec_node3.input
+	enc_node4.output -> train_node1.input
+	dec_node3.output -> train_node1.input
+	train_node1.output -> train_node2.input
+	prep_node1.output -> prep_node2.input
+	prep_node2.output -> enc_node1.input

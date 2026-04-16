@@ -17,13 +17,14 @@ using namespace Upp::Node;
 // Autoencoder workflow: groups are horizontally arranged
 static void ApplyGroupLayout(Graph& graph)
 {
-	const double COL_W   = 320.0;  // Width between group columns (includes padding)
-	const double V_GAP   = 45.0;   // Gap between nodes in a column
-	const double START_X = 40.0;   // Starting X position
-	const double START_Y = 40.0;   // Starting Y position (for title bar space)
+	const double COL_W   = 340.0;  // Width between group columns (includes padding)
+	const double V_GAP   = 40.0;   // Gap between nodes in a column
+	const double START_X = 30.0;   // Starting X position
+	const double START_Y = 50.0;   // Starting Y position (for title bar space)
 
 	// Read group definitions from the graph and arrange them horizontally
-	Vector<String> group_order = {"enc", "prep", "dec", "train"};
+	// Order matches the workflow: encoder, decoder, compile, data, train, test, inference, prep
+	Vector<String> group_order = {"enc", "dec", "comp", "data", "train", "test", "inf", "prep"};
 
 	// Position nodes in their respective group columns
 	for(int ci = 0; ci < group_order.GetCount(); ci++) {
@@ -40,7 +41,7 @@ static void ApplyGroupLayout(Graph& graph)
 				NodeDoc* n = graph.FindNode(nid);
 				if(!n) continue;
 				n->pos = Pointf(cx, cy);
-				cy += 80.0 + V_GAP;
+				cy += 75.0 + V_GAP;  // Node height (~75) + gap
 				graph.Invalidate(nid);
 				LOG(nid << "(" << n->pos << ") ");
 				count++;
@@ -51,7 +52,7 @@ static void ApplyGroupLayout(Graph& graph)
 			for(NodeDoc& n : graph.GetDoc().nodes) {
 				if(n.id.StartsWith(prefix)) {
 					n.pos = Pointf(cx, cy);
-					cy += 80.0 + V_GAP;
+					cy += 75.0 + V_GAP;
 					graph.Invalidate(n.id);
 					count++;
 				}

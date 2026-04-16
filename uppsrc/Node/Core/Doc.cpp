@@ -127,6 +127,7 @@ void NodeDoc::operator<<=(const NodeDoc& src)
 	node_type_id = src.node_type_id;
 	category = src.category;
 	tint_clr = src.tint_clr;
+	time_str = src.time_str;
 	pos = src.pos;
 	sz = src.sz;
 	shape = src.shape;

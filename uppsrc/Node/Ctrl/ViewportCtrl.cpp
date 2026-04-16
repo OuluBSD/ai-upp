@@ -51,6 +51,7 @@ static Ctrl* CreateSlotWidget(const String& widget_type, const String& entity_id
 	}
 	if(widget_type == "EditField" || widget_type == "EditString" || widget_type == "param") {
 		EditField* ef = new EditField();
+		ef->AlignRight();
 		String eid = entity_id;
 		ef->WhenAction = [viewport, ef, eid, graph, editor, history, dispatcher] {
 			ValueMap arg;
@@ -62,6 +63,7 @@ static Ctrl* CreateSlotWidget(const String& widget_type, const String& entity_id
 	}
 	if(widget_type == "EditIntSpin") {
 		EditInt* ei = new EditInt();
+		ei->AlignRight();
 		String eid = entity_id;
 		ei->WhenAction = [viewport, ei, eid, graph, editor, history, dispatcher] {
 			ValueMap arg;
@@ -73,6 +75,7 @@ static Ctrl* CreateSlotWidget(const String& widget_type, const String& entity_id
 	}
 	if(widget_type == "EditDoubleSpin") {
 		EditDouble* ed = new EditDouble();
+		ed->AlignRight();
 		String eid = entity_id;
 		ed->WhenAction = [viewport, ed, eid, graph, editor, history, dispatcher] {
 			ValueMap arg;
@@ -81,6 +84,18 @@ static Ctrl* CreateSlotWidget(const String& widget_type, const String& entity_id
 			history->Execute(CommandContext(*graph, *editor), dispatcher->Create("SetWidgetValue", arg));
 		};
 		return ed;
+	}
+	if(widget_type == "ToggleButton") {
+		Option* opt = new Option();
+		opt->SetLabel("");
+		String eid = entity_id;
+		opt->WhenAction = [viewport, opt, eid, graph, editor, history, dispatcher] {
+			ValueMap arg;
+			arg.Add("id", eid);
+			arg.Add("value", opt->GetData());
+			history->Execute(CommandContext(*graph, *editor), dispatcher->Create("SetWidgetValue", arg));
+		};
+		return opt;
 	}
 	if(widget_type == "DropList") {
 		DropList* dl = new DropList();

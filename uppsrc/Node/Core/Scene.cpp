@@ -100,6 +100,19 @@ static double SlotHeight(const WidgetSlotDoc& s)
 	return SLOT_ROW_H;
 }
 
+static bool IsFullWidthSlot(const WidgetSlotDoc& s)
+{
+	// Slots that span full width (no separate left-side label)
+	return s.type == "IMAGE" || s.type == "Image" ||
+	       s.type == "DocEdit" || s.type == "Button" ||
+	       s.type == "Null";
+}
+
+static bool HasToggle(const WidgetSlotDoc& s)
+{
+	return s.type == "ToggleButton" || s.type == "ToggleEditDouble";
+}
+
 static void AddNodeItems(Scene& scene, const NodeDoc& n, const Graph& graph, BezierRoutingPolicy& router)
 {
 	// Count inputs/outputs to size the pin area
@@ -169,25 +182,33 @@ static void AddNodeItems(Scene& scene, const NodeDoc& n, const Graph& graph, Bez
 		lbl.badge = false;
 	}
 
-	// Category badge — floating above top-right of the node box (overlay pass)
-	if (!n.category.IsEmpty()) {
-		double bh = 14.0;
-		double bw = min(90.0, node_w * 0.55);
-		// Positioned above the node box by bh pixels, right-aligned
-		Rectf badge_rect(node_rect.right - bw - 2, node_rect.top - bh - 2,
-		                 node_rect.right - 2,       node_rect.top - 2);
-		SceneItem& badge = scene.Add();
-		badge.type = SceneItem::LABEL;
-		badge.entity_id = n.id;
-		badge.text = n.category;
-		badge.rect = badge_rect;
-		badge.font_height = 9;
-		badge.fill_clr = Color(30, 100, 50);
-		badge.line_clr = Null;
-		badge.text_clr = Color(180, 255, 180);
-		badge.badge = true;
-		badge.overlay = true; // drawn in pass 4, above everything
-		badge.shape = 3;
+	// Floating overlay badges above the node box (drawn in pass 4, on top of everything)
+	{
+		const double BH = 14.0;
+		// Category badge — top-right, dark green
+		if(!n.category.IsEmpty()) {
+			double bw = min(90.0, node_w * 0.55);
+			Rectf r(node_rect.right - bw - 2, node_rect.top - BH - 2,
+			        node_rect.right - 2,       node_rect.top - 2);
+			SceneItem& b = scene.Add();
+			b.type = SceneItem::LABEL; b.entity_id = n.id;
+			b.text = n.category; b.rect = r;
+			b.font_height = 9; b.fill_clr = Color(30, 100, 50);
+			b.line_clr = Null; b.text_clr = Color(180, 255, 180);
+			b.badge = true; b.overlay = true; b.shape = 3;
+		}
+		// Time badge — top-left, same style as category but default color
+		if(!n.time_str.IsEmpty()) {
+			double bw = min(70.0, node_w * 0.4);
+			Rectf r(node_rect.left + 2, node_rect.top - BH - 2,
+			        node_rect.left + bw + 2, node_rect.top - 2);
+			SceneItem& b = scene.Add();
+			b.type = SceneItem::LABEL; b.entity_id = n.id;
+			b.text = n.time_str; b.rect = r;
+			b.font_height = 9; b.fill_clr = Color(45, 45, 55);
+			b.line_clr = Color(70, 70, 80); b.text_clr = Color(200, 200, 200);
+			b.badge = true; b.overlay = true; b.shape = 3;
+		}
 	}
 
 	// Pin rows — pair inputs on left, outputs on right
@@ -255,12 +276,12 @@ static void AddNodeItems(Scene& scene, const NodeDoc& n, const Graph& graph, Bez
 			pi.line_clr = Color(40, 40, 40);
 			pi.shape = 1; // circle
 
-			// Output label (left of pin, right-aligned)
+			// Output label (left of pin, right-aligned, uppercase)
 			SceneItem& pl = scene.Add();
 			pl.type = SceneItem::LABEL;
 			pl.entity_id = n.id + ":out:" + p.id;
 			pl.badge = true;
-			pl.text = p.label;
+			pl.text = ToUpper(p.label.IsEmpty() ? p.id : p.label);
 			pl.font_height = 11;
 			pl.rect = Rectf(node_rect.left + node_w/2, row_cy - PIN_ROW_H/2,
 			                node_rect.right - H_PAD - PIN_R, row_cy + PIN_ROW_H/2);
@@ -273,51 +294,127 @@ static void AddNodeItems(Scene& scene, const NodeDoc& n, const Graph& graph, Bez
 
 	// Widget slots
 	double sy = pin_area_top + max_rows * PIN_ROW_H + 4.0;
-	for (const auto& s : n.slots) {
-		bool is_image = (s.type == "Image" || s.type == "IMAGE");
-		double sh = SlotHeight(s);
+	const double TOGGLE_W  = 18.0; // width of the toggle button square
+	const double SLOT_PAD  = 2.0;
 
-		if (is_image) {
-			// Full-width image thumbnail widget
+	for (const auto& s : n.slots) {
+		double sh = SlotHeight(s);
+		EntityId slot_eid = n.id + ":" + s.id;
+
+		if (s.type == "Image" || s.type == "IMAGE") {
+			// Full-width image thumbnail
 			SceneItem& si = scene.Add();
 			si.type = SceneItem::WIDGET;
-			si.entity_id = n.id + ":" + s.id;
+			si.entity_id = slot_eid;
 			si.rect = Rectf(node_rect.left + 1, sy, node_rect.right - 1, sy + sh);
 			si.text = s.type;
 			Value v = s.properties["value"];
-			if (!v.IsVoid() && !v.IsNull())
+			if(!v.IsVoid() && !v.IsNull())
 				si.image_path = v.ToString();
-		} else if (s.type == "DocEdit") {
-			// DocEdit: full-width, no label
-			SceneItem& si = scene.Add();
-			si.type = SceneItem::WIDGET;
-			si.entity_id = n.id + ":" + s.id;
-			si.rect = Rectf(node_rect.left + 2, sy + 2,
-			                node_rect.right - 2, sy + sh - 2);
-			si.text = s.type;
-		} else {
-			// Standard slot row: label on the left half, Ctrl on the right half
-			String slot_label = s.id;
-			if (!slot_label.IsEmpty()) {
-				SceneItem& lbl = scene.Add();
-				lbl.type = SceneItem::LABEL;
-				lbl.entity_id = n.id + ":" + s.id;
-				lbl.badge = false;
-				lbl.text = slot_label;
-				lbl.font_height = 10;
-				lbl.rect = Rectf(node_rect.left + H_PAD, sy,
-				                 node_rect.left + node_w * 0.5, sy + sh);
-				lbl.text_clr = Color(180, 180, 180);
-				lbl.fill_clr = Color(28, 30, 36);
-				lbl.line_clr = Null;
-			}
 
-			// Ctrl widget occupies right half
+		} else if (s.type == "DocEdit") {
+			// Full-width multiline edit
 			SceneItem& si = scene.Add();
 			si.type = SceneItem::WIDGET;
-			si.entity_id = n.id + ":" + s.id;
-			si.rect = Rectf(node_rect.left + node_w * 0.5, sy + 2,
-			                node_rect.right - 2, sy + sh - 2);
+			si.entity_id = slot_eid;
+			si.rect = Rectf(node_rect.left + SLOT_PAD, sy + SLOT_PAD,
+			                node_rect.right - SLOT_PAD, sy + sh - SLOT_PAD);
+			si.text = s.type;
+
+		} else if (s.type == "Button") {
+			// Full-width button
+			SceneItem& si = scene.Add();
+			si.type = SceneItem::WIDGET;
+			si.entity_id = slot_eid;
+			si.rect = Rectf(node_rect.left + SLOT_PAD, sy + SLOT_PAD,
+			                node_rect.right - SLOT_PAD, sy + sh - SLOT_PAD);
+			si.text = s.type;
+
+		} else if (s.type == "Null") {
+			// Null slot: just a plain label (no editable ctrl)
+			SceneItem& lbl = scene.Add();
+			lbl.type = SceneItem::LABEL;
+			lbl.entity_id = slot_eid;
+			lbl.badge = false;
+			lbl.text = s.id;
+			lbl.font_height = 10;
+			lbl.rect = Rectf(node_rect.left + H_PAD, sy,
+			                 node_rect.right - H_PAD, sy + sh);
+			lbl.text_clr = Color(120, 120, 130);
+			lbl.fill_clr = Color(28, 30, 36);
+			lbl.line_clr = Null;
+
+		} else if (s.type == "ToggleButton") {
+			// ToggleButton row: toggle square on left, label "Toggle All" centered, value label on right
+			SceneItem& toggle = scene.Add();
+			toggle.type = SceneItem::WIDGET;
+			toggle.entity_id = slot_eid;
+			toggle.rect = Rectf(node_rect.left + H_PAD, sy + SLOT_PAD,
+			                    node_rect.left + H_PAD + TOGGLE_W, sy + sh - SLOT_PAD);
+			toggle.text = s.type;
+
+			SceneItem& lbl = scene.Add();
+			lbl.type = SceneItem::LABEL;
+			lbl.entity_id = slot_eid;
+			lbl.badge = true; // center aligned
+			lbl.text = s.id;
+			lbl.font_height = 10;
+			lbl.rect = Rectf(node_rect.left + H_PAD + TOGGLE_W + 4, sy,
+			                 node_rect.right - H_PAD, sy + sh);
+			lbl.text_clr = Color(180, 180, 180);
+			lbl.fill_clr = Null;
+			lbl.line_clr = Null;
+
+		} else if (s.type == "ToggleEditDouble") {
+			// ToggleEditDouble: toggle square on left, slot name in middle, EditDouble on right
+			SceneItem& toggle = scene.Add();
+			toggle.type = SceneItem::WIDGET;
+			toggle.entity_id = slot_eid + ":toggle";
+			toggle.rect = Rectf(node_rect.left + H_PAD, sy + SLOT_PAD,
+			                    node_rect.left + H_PAD + TOGGLE_W, sy + sh - SLOT_PAD);
+			toggle.text = "ToggleButton";
+
+			// Label — truncated slot id as the lora name
+			SceneItem& lbl = scene.Add();
+			lbl.type = SceneItem::LABEL;
+			lbl.entity_id = slot_eid;
+			lbl.badge = false;
+			lbl.text = s.id;
+			lbl.font_height = 9;
+			double label_right = node_rect.right - 40.0;
+			lbl.rect = Rectf(node_rect.left + H_PAD + TOGGLE_W + 4, sy,
+			                 label_right, sy + sh);
+			lbl.text_clr = Color(180, 180, 180);
+			lbl.fill_clr = Null;
+			lbl.line_clr = Null;
+
+			// EditDouble on the right
+			SceneItem& si = scene.Add();
+			si.type = SceneItem::WIDGET;
+			si.entity_id = slot_eid;
+			si.rect = Rectf(label_right + SLOT_PAD, sy + SLOT_PAD,
+			                node_rect.right - SLOT_PAD, sy + sh - SLOT_PAD);
+			si.text = "EditDoubleSpin";
+
+		} else {
+			// Standard slot row: label on left half, Ctrl on right half
+			SceneItem& lbl = scene.Add();
+			lbl.type = SceneItem::LABEL;
+			lbl.entity_id = slot_eid;
+			lbl.badge = false;
+			lbl.text = s.id;
+			lbl.font_height = 10;
+			lbl.rect = Rectf(node_rect.left + H_PAD, sy,
+			                 node_rect.left + node_w * 0.5, sy + sh);
+			lbl.text_clr = Color(180, 180, 180);
+			lbl.fill_clr = Color(28, 30, 36);
+			lbl.line_clr = Null;
+
+			SceneItem& si = scene.Add();
+			si.type = SceneItem::WIDGET;
+			si.entity_id = slot_eid;
+			si.rect = Rectf(node_rect.left + node_w * 0.5, sy + SLOT_PAD,
+			                node_rect.right - SLOT_PAD, sy + sh - SLOT_PAD);
 			si.text = s.type;
 		}
 

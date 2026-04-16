@@ -347,20 +347,49 @@ void SmartPacker::Pack(Graph& graph)
 	// Step 1: Analyze graph structure
 	AnalyzeGraph(graph);
 
+	LOG("SmartPacker::Pack: items.GetCount()=" << items.GetCount() 
+	    << " groups=" << graph.GetDoc().groups.GetCount() 
+	    << " nodes=" << graph.GetDoc().nodes.GetCount());
+
 	// Step 1.5: Sort items to place ungrouped nodes near their connected groups
 	// Strategy: For each ungrouped node, find the group it connects to most,
 	// then place the ungrouped node immediately after that group
+	// For unconnected ungrouped nodes, place them after the first group
 	Array<ConnectionInfo> sorted;
 	Vector<bool> used(items.GetCount(), false);
 
-	// Find most connected group for each ungrouped node
+	// Collect ungrouped nodes that have no connections
+	Vector<int> ungrouped_indices;
+	
+	// Place groups first, with their connected ungrouped nodes
+	bool placed_first_group = false;
 	for(int i = 0; i < items.GetCount(); i++) {
 		if(used[i]) continue;
-		if(!items[i].is_group) continue;  // Process groups first
+		if(!items[i].is_group) {
+			// This is an ungrouped node - collect it for later
+			ungrouped_indices.Add(i);
+			continue;
+		}
 
 		// Place this group
 		sorted.Add(pick(items[i]));
 		used[i] = true;
+		placed_first_group = true;
+
+		// If there are unconnected ungrouped nodes, place the first one after this first group
+		// This keeps unconnected nodes visually near the layout start
+		if(placed_first_group && ungrouped_indices.GetCount() > 0) {
+			// Only place ungrouped nodes that have NO connections at all
+			for(int m = ungrouped_indices.GetCount()-1; m >= 0; m--) {
+				int idx = ungrouped_indices[m];
+				if(items[idx].connection_ids.GetCount() == 0) {
+					// This node has no connections - place it near first group
+					sorted.Add(pick(items[idx]));
+					used[idx] = true;
+					ungrouped_indices.Remove(m);
+				}
+			}
+		}
 
 		// Now place any ungrouped nodes that connect to this group
 		for(int j = 0; j < items.GetCount(); j++) {
@@ -368,13 +397,33 @@ void SmartPacker::Pack(Graph& graph)
 			if(items[j].is_group) continue;
 
 			// Check if this ungrouped node connects to the group we just placed
-			for(int k = 0; k < sorted.Top().connection_ids.GetCount(); k++) {
-				if(sorted.Top().connection_ids[k] == items[j].id) {
-					sorted.Add(pick(items[j]));
-					used[j] = true;
+			const ConnectionInfo& last_group = sorted.Top();
+			bool connects = false;
+			for(int k = 0; k < last_group.connection_ids.GetCount(); k++) {
+				if(last_group.connection_ids[k] == items[j].id) {
+					connects = true;
 					break;
 				}
 			}
+			if(connects) {
+				sorted.Add(pick(items[j]));
+				used[j] = true;
+				// Remove from ungrouped_indices if present
+				for(int m = ungrouped_indices.GetCount()-1; m >= 0; m--) {
+					if(ungrouped_indices[m] == j) {
+						ungrouped_indices.Remove(m);
+						break;
+					}
+				}
+			}
+		}
+	}
+
+	// Place remaining ungrouped nodes (unconnected ones) after the last group
+	for(int idx : ungrouped_indices) {
+		if(!used[idx]) {
+			sorted.Add(pick(items[idx]));
+			used[idx] = true;
 		}
 	}
 
@@ -384,7 +433,10 @@ void SmartPacker::Pack(Graph& graph)
 			sorted.Add(pick(items[i]));
 	}
 
-	items = pick(sorted);
+	items.Clear();
+	for(int i = 0; i < sorted.GetCount(); i++)
+		items.Add(pick(sorted[i]));
+	sorted.Clear();
 
 	// Step 2: Global packing (groups + ungrouped nodes) FIRST
 	// This determines where each group will be placed

@@ -287,20 +287,19 @@ void SmartPacker::PackGlobal()
 			if(fits_in_current) {
 				// Place in current column
 				Column& col = columns[columns.GetCount()-1];
-				item.bounds = Rectf(col.x, cursor_y, col.x + w, cursor_y + h);
-				col.y = cursor_y + h + group_padding;
+				item.bounds = Rectf(col.x, col.y, col.x + w, col.y + h);
+				col.y = col.y + h + group_padding;
 				col.w = max(col.w, w);
-				cursor_y = col.y;
 			} else {
 				// Start new column
 				Column col;
 				col.x = cursor_x;
 				col.w = w;
-				
+
 				item.bounds = Rectf(cursor_x, group_padding, cursor_x + w, group_padding + h);
 				
 				col.y = group_padding + h + group_padding;
-				cursor_x += w + group_padding * 3;
+				cursor_x += w + group_padding * 8;  // More horizontal spacing for WIDE
 
 				columns.Add(col);
 			}

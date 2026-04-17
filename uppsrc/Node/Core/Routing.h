@@ -26,6 +26,10 @@ struct RouteRequest {
 	Vector<Rectf>     obstacles;
 	// Animation phase [0..1) for animated styles
 	double            anim_phase = 0.0;
+	// Net identity: source_pin_id + "→" + target_pin_id.
+	// Traces belonging to the same net (shared source or target port) are
+	// not penalized for overlap — they may share the same physical track.
+	String            net_id;
 };
 
 struct RouteResponse {

@@ -452,6 +452,8 @@ static void AddEdgeItem(Scene& scene, const EdgeDoc& e, const Graph& graph,
 		req.source_pos = p1;
 		req.target_pos = p2;
 		req.style = style;
+		// Net id: source_pin \x01 target_pin — shared port = same net, no overlap penalty
+		req.net_id = e.source_pin + "\x01" + e.target_pin;
 		// Pass all node boxes except source and target as obstacles
 		for(const Rectf& r : obstacles)
 			req.obstacles.Add(r);

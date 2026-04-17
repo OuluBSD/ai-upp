@@ -329,10 +329,10 @@ struct PcbGrid {
 		double y1 = ceil((bounds.bottom + PAD) / cell) * cell;
 		gw = max(1, (int)((x1 - ox) / cell) + 1);
 		gh = max(1, (int)((y1 - oy) / cell) + 1);
-		// Cap at 800×800 to keep memory and BFS time reasonable.
-		// (400 was too small once coord_scale compresses node areas.)
-		gw = min(gw, 800);
-		gh = min(gh, 800);
+		// Cap at 1024×1024. BeginBatch() computes cell_size so the scene fits
+		// within this, so hitting the cap means the scene is unusually large.
+		gw = min(gw, 1024);
+		gh = min(gh, 1024);
 		int N = gw * gh;
 		for (int L = 0; L < 2; L++)
 			layer[L].SetCount(N, CELL_FREE);
@@ -775,19 +775,34 @@ void BezierRoutingPolicy::BeginBatch(const Rectf& scene_bounds,
 	               style == EdgeStyle::PCBDiag);
 	if (!is_pcb) { pcb_grid.Clear(); return; }
 
-	// Compute cell size from the node boxes so the grid resolution matches the
-	// actual scene scale.  Target: ~10 cells across the smallest node dimension,
-	// clamped to [2, 40] world units so the grid stays manageable.
+	// Compute cell size so that:
+	//   (a) the full scene fits within the MAX_CELLS × MAX_CELLS grid, AND
+	//   (b) there are ~10 cells across the smallest node dimension (routing detail).
+	// We take the larger of the two requirements so both constraints are met,
+	// then clamp to a sane absolute range [1, 100].
+	const int MAX_CELLS = 1024;
 	double cell_size = 10.0;
-	if (!node_boxes.IsEmpty()) {
-		double min_dim = 1e18;
-		for (const Rectf& r : node_boxes) {
-			double w = r.Width(), h = r.Height();
-			if (w > 1) min_dim = min(min_dim, w);
-			if (h > 1) min_dim = min(min_dim, h);
+	{
+		// (a) scene coverage: cell must be large enough to fit whole scene
+		// Add 10% margin for the grid padding added in PcbGrid::Init
+		double sw = scene_bounds.Width()  * 1.1;
+		double sh = scene_bounds.Height() * 1.1;
+		double cell_from_scene = max(sw, sh) / MAX_CELLS;
+
+		// (b) routing detail: ~10 cells per smallest node dimension
+		double cell_from_nodes = 10.0;
+		if (!node_boxes.IsEmpty()) {
+			double min_dim = 1e18;
+			for (const Rectf& r : node_boxes) {
+				double w = r.Width(), h = r.Height();
+				if (w > 1) min_dim = min(min_dim, w);
+				if (h > 1) min_dim = min(min_dim, h);
+			}
+			if (min_dim < 1e17)
+				cell_from_nodes = min_dim / 10.0;
 		}
-		if (min_dim < 1e17)
-			cell_size = clamp(min_dim / 10.0, 2.0, 40.0);
+
+		cell_size = clamp(max(cell_from_scene, cell_from_nodes), 1.0, 100.0);
 	}
 
 	pcb_grid = MakeOne<PcbGrid>();

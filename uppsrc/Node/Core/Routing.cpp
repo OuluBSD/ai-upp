@@ -314,25 +314,29 @@ struct PcbGrid {
 	double ox = 0, oy = 0;       // world origin of cell (0,0)
 	double cell = 10.0;          // world units per cell
 	Vector<int8_t> layer[2];     // per-cell state, one array per layer
+	// Net tracking: cell_net[idx] = net index (-1 = none). net_ids maps index→id string.
+	// Two edges share a net if they share the same source OR target pin.
+	Vector<int16_t>  cell_net;   // flat, indexed same as layer[L]
+	Vector<String>   net_ids;    // net index → net_id string
 
 	void Init(const Rectf& bounds, double cell_size, const Vector<Rectf>& node_boxes)
 	{
 		cell = cell_size;
-		const double PAD = cell * 3;   // padding around scene bounds
+		const double PAD = cell * 3;
 		ox = floor((bounds.left   - PAD) / cell) * cell;
 		oy = floor((bounds.top    - PAD) / cell) * cell;
 		double x1 = ceil((bounds.right  + PAD) / cell) * cell;
 		double y1 = ceil((bounds.bottom + PAD) / cell) * cell;
 		gw = max(1, (int)((x1 - ox) / cell) + 1);
 		gh = max(1, (int)((y1 - oy) / cell) + 1);
-		// Clamp to a reasonable maximum (e.g. 400×400 = 160k cells)
 		gw = min(gw, 400);
 		gh = min(gh, 400);
-		for (int L = 0; L < 2; L++) {
-			layer[L].SetCount(gw * gh, CELL_FREE);
-		}
-		// Mark node boxes as blocked on both layers
-		const double NODE_PAD = cell * 0.5; // half-cell margin around nodes
+		int N = gw * gh;
+		for (int L = 0; L < 2; L++)
+			layer[L].SetCount(N, CELL_FREE);
+		cell_net.SetCount(N, -1);
+		net_ids.Clear();
+		const double NODE_PAD = cell * 0.5;
 		for (const Rectf& r : node_boxes) {
 			int x0c = max(0, (int)floor((r.left  - NODE_PAD - ox) / cell));
 			int y0c = max(0, (int)floor((r.top   - NODE_PAD - oy) / cell));
@@ -346,31 +350,51 @@ struct PcbGrid {
 		}
 	}
 
-	// Convert world point to nearest grid cell, clamped to grid.
+	// Register a net_id string and return its index (creates if new).
+	int16_t GetOrAddNet(const String& net_id) {
+		for (int i = 0; i < net_ids.GetCount(); i++)
+			if (net_ids[i] == net_id) return (int16_t)i;
+		net_ids.Add(net_id);
+		return (int16_t)(net_ids.GetCount() - 1);
+	}
+
+	// Returns true if the cell already belongs to a net that shares a port with net_id.
+	// "Same net" = same source pin OR same target pin, encoded in net_id as "src→dst".
+	bool IsSameNet(int cell_idx, const String& net_id) const {
+		int16_t ni = cell_net[cell_idx];
+		if (ni < 0 || ni >= net_ids.GetCount()) return false;
+		const String& other = net_ids[ni];
+		// Extract source pin (before "→") and target pin (after "→")
+		int arrow = net_id.Find('\x01'); // use ctrl-char as separator (pins can have any text)
+		int oarrow = other.Find('\x01');
+		if (arrow < 0 || oarrow < 0) return net_id == other;
+		// Share net if source pins match OR target pins match
+		return net_id.Left(arrow) == other.Left(oarrow) ||
+		       net_id.Mid(arrow+1) == other.Mid(oarrow+1);
+	}
+
 	Point WorldToCell(Pointf p) const {
 		return Point(
 		    max(0, min(gw-1, (int)round((p.x - ox) / cell))),
 		    max(0, min(gh-1, (int)round((p.y - oy) / cell))));
 	}
-
-	// Convert cell to world point (cell centre).
 	Pointf CellToWorld(int cx, int cy) const {
 		return Pointf(ox + cx * cell, oy + cy * cell);
 	}
-
 	bool InBounds(int cx, int cy) const {
 		return cx >= 0 && cx < gw && cy >= 0 && cy < gh;
 	}
-
 	int8_t Get(int L, int cx, int cy) const { return layer[L][cy * gw + cx]; }
 	void   Set(int L, int cx, int cy, int8_t v) { layer[L][cy * gw + cx] = v; }
 };
 
 // Lee BFS on one layer.  Returns cell path src→dst, or empty if unreachable.
 // allow_diagonal: if true, 8-connected; if false, 4-connected (pure H/V).
+// net_id: current route's net — same-net trace cells are not penalized.
 static Vector<Point> LeeBFS(PcbGrid& grid, int L,
                              Point src, Point dst,
-                             bool allow_diagonal)
+                             bool allow_diagonal,
+                             const String& net_id = String())
 {
 	// Guard: if src or dst is blocked, find nearest free cell
 	auto NearestFree = [&](Point p) -> Point {
@@ -393,63 +417,81 @@ static Vector<Point> LeeBFS(PcbGrid& grid, int L,
 		Vector<Point> p; p.Add(src); return p;
 	}
 
-	// Weighted pathfinding: prev[] for path reconstruction, dist_arr[] for costs.
+	// Weighted pathfinding using Dial's bucket queue.
+	// Costs (integer, scaled ×10 for sub-unit accuracy):
+	//   H/V move:        10  (1.0 cells)
+	//   Diagonal move:   14  (√2 ≈ 1.414 cells — makes H/V competitive)
+	//   Turn penalty:     3  (slight deterrent against zigzag)
+	//   Trace cell:     +300 (strong deterrent against overlapping existing routes)
+	// Total max step cost = 14 + 3 + 300 = 317 → bucket count = 318
+	const int COST_HV    = 10;
+	const int COST_DIAG  = 14;
+	const int COST_TURN  =  3;
+	const int COST_TRACE = 300;
+	const int MAX_BUCKET = COST_DIAG + COST_TURN + COST_TRACE + 1; // 318
+
 	int N = grid.gw * grid.gh;
-	Vector<int> prev(N, -1);
+	// prev[]: parent cell index for path reconstruction (-1 = unvisited)
+	// dir[]:  direction index used to reach that cell (for turn-penalty)
+	Vector<int>   prev(N, -1);
+	Vector<int8_t> dir_arr(N, -1);
+	Vector<int>   dist_arr(N, INT_MAX);
+
 	int src_idx = src.y * grid.gw + src.x;
 	int dst_idx = dst.y * grid.gw + dst.x;
-	prev[src_idx] = src_idx; // mark source
+	prev[src_idx]    = src_idx;
+	dist_arr[src_idx] = 0;
+	dir_arr[src_idx]  = -1;
 
-	// Directions: H/V first, diagonals second
+	// Directions: 0-3 = H/V, 4-7 = diagonals
 	static const int DX4[] = { 1,-1, 0, 0 };
 	static const int DY4[] = { 0, 0, 1,-1 };
 	static const int DX8[] = { 1,-1, 0, 0, 1,-1, 1,-1 };
 	static const int DY8[] = { 0, 0, 1,-1, 1,-1,-1, 1 };
 	const int* DX = allow_diagonal ? DX8 : DX4;
 	const int* DY = allow_diagonal ? DY8 : DY4;
-	int NDIRS    = allow_diagonal ? 8 : 4;
+	int NDIRS = allow_diagonal ? 8 : 4;
 
-	// Weighted BFS: free cell costs 1, existing trace costs TRACE_COST.
-	// High penalty steers routes around already-routed traces.
-	// Uses a circular bucket queue (dial's algorithm) — O(N * max_cost).
-	const int TRACE_COST = 30;
-	const int MAX_COST   = TRACE_COST + 1;
-	Vector<int> dist_arr(N, INT_MAX);
-	dist_arr[src_idx] = 0;
-	// Bucket queue: buckets[cost % MAX_COST] holds cell indices at that distance
-	Vector<Vector<int>> buckets(MAX_COST);
+	Vector<Vector<int>> buckets(MAX_BUCKET);
 	buckets[0].Add(src_idx);
 	int cur_cost = 0;
 	int remaining = 1;
 
 	while (remaining > 0) {
-		// Advance to next non-empty bucket
-		while (buckets[cur_cost % MAX_COST].IsEmpty()) {
+		while (buckets[cur_cost % MAX_BUCKET].IsEmpty()) {
 			cur_cost++;
-			if (cur_cost > N * MAX_COST) break; // safety
+			if (cur_cost > N * MAX_BUCKET) break;
 		}
-		if (cur_cost > N * MAX_COST) break;
+		if (cur_cost > N * MAX_BUCKET) break;
 
-		int bucket_idx = cur_cost % MAX_COST;
-		int cur = buckets[bucket_idx].Pop();
+		int bk = cur_cost % MAX_BUCKET;
+		int cur = buckets[bk].Pop();
 		remaining--;
 
 		if (dist_arr[cur] != cur_cost) continue; // stale entry
 		if (cur == dst_idx) break;
 
 		int cx = cur % grid.gw, cy = cur / grid.gw;
+		int cur_dir = dir_arr[cur];
 		for (int d = 0; d < NDIRS; d++) {
 			int nx = cx + DX[d], ny = cy + DY[d];
 			if (!grid.InBounds(nx, ny)) continue;
 			int nidx = ny * grid.gw + nx;
 			int8_t cell = grid.Get(L, nx, ny);
 			if (cell == CELL_BLOCKED) continue;
-			int step_cost = (cell == CELL_FREE) ? 1 : TRACE_COST;
-			int new_dist = cur_cost + step_cost;
+
+			int step = (d < 4) ? COST_HV : COST_DIAG;           // move cost
+			if (cur_dir >= 0 && d != cur_dir) step += COST_TURN; // turn penalty
+			// Trace overlap penalty — waived for same-net traces (shared ports)
+			if (cell != CELL_FREE && !grid.IsSameNet(nidx, net_id))
+				step += COST_TRACE;
+
+			int new_dist = cur_cost + step;
 			if (new_dist < dist_arr[nidx]) {
 				dist_arr[nidx] = new_dist;
-				prev[nidx] = cur;
-				buckets[new_dist % MAX_COST].Add(nidx);
+				prev[nidx]     = cur;
+				dir_arr[nidx]  = (int8_t)d;
+				buckets[new_dist % MAX_BUCKET].Add(nidx);
 				remaining++;
 			}
 		}
@@ -486,11 +528,11 @@ static Vector<Point> CompressCellPath(const Vector<Point>& raw)
 	return out;
 }
 
-// Mark grid cells occupied by a routed cell path on layer L.
-static void MarkPath(PcbGrid& grid, int L, const Vector<Point>& path)
+// Mark grid cells occupied by a routed cell path on layer L, tagged with net_id.
+static void MarkPath(PcbGrid& grid, int L, const Vector<Point>& path, const String& net_id)
 {
 	int8_t val = (L == 0) ? CELL_TRACE0 : CELL_TRACE1;
-	// Walk each segment cell-by-cell using Bresenham
+	int16_t net_idx = net_id.IsEmpty() ? -1 : grid.GetOrAddNet(net_id);
 	for (int i = 0; i + 1 < path.GetCount(); i++) {
 		int x0 = path[i].x, y0 = path[i].y;
 		int x1 = path[i+1].x, y1 = path[i+1].y;
@@ -498,8 +540,10 @@ static void MarkPath(PcbGrid& grid, int L, const Vector<Point>& path)
 		int sx = x0 < x1 ? 1 : -1, sy = y0 < y1 ? 1 : -1;
 		int err = dx - dy;
 		while (true) {
-			if (grid.InBounds(x0, y0) && grid.Get(0, x0, y0) != CELL_BLOCKED)
+			if (grid.InBounds(x0, y0) && grid.Get(0, x0, y0) != CELL_BLOCKED) {
 				grid.Set(L, x0, y0, val);
+				grid.cell_net[y0 * grid.gw + x0] = net_idx;
+			}
 			if (x0 == x1 && y0 == y1) break;
 			int e2 = 2 * err;
 			if (e2 > -dy) { err -= dy; x0 += sx; }
@@ -512,7 +556,8 @@ static void MarkPath(PcbGrid& grid, int L, const Vector<Point>& path)
 // Temporarily unblocks a 1-cell radius around src/dst endpoints so BFS can
 // enter/exit through the node-boundary margin that Init() marks as blocked.
 static Vector<Point> RoutePCBNet(PcbGrid& grid, Point src, Point dst,
-                                 bool allow_diagonal, int& layer_used)
+                                 bool allow_diagonal, int& layer_used,
+                                 const String& net_id = String())
 {
 	// Save and unblock BLOCKED cells in a 1-cell radius around each endpoint
 	struct SavedCell : Moveable<SavedCell> { Point p; int L; int8_t val; };
@@ -543,12 +588,12 @@ static Vector<Point> RoutePCBNet(PcbGrid& grid, Point src, Point dst,
 
 	// Try layer 0 first, then layer 1
 	for (int L = 0; L < 2; L++) {
-		Vector<Point> path = LeeBFS(grid, L, src, dst, allow_diagonal);
+		Vector<Point> path = LeeBFS(grid, L, src, dst, allow_diagonal, net_id);
 		if (!path.IsEmpty()) {
 			layer_used = L;
 			Vector<Point> compressed = CompressCellPath(path);
 			Restore();
-			MarkPath(grid, L, path);
+			MarkPath(grid, L, path, net_id);
 			return compressed;
 		}
 	}
@@ -613,7 +658,9 @@ static RouteResponse RoutePCBHVFast(const RouteRequest& req, PcbGrid& grid)
 				int cy = (steps > 0) ? y0 + (y1-y0)*s/steps : y0;
 				if (!grid.InBounds(cx, cy)) continue;
 				int8_t c = grid.Get(L, cx, cy);
-				if (c == CELL_BLOCKED || c == CELL_TRACE0 || c == CELL_TRACE1)
+				if (c == CELL_BLOCKED) return Vector<Point>();
+				if ((c == CELL_TRACE0 || c == CELL_TRACE1) &&
+				    !grid.IsSameNet(cy * grid.gw + cx, req.net_id))
 					return Vector<Point>();
 			}
 		}
@@ -637,7 +684,7 @@ static RouteResponse RoutePCBHVFast(const RouteRequest& req, PcbGrid& grid)
 			mx = max(0, min(grid.gw-1, mx));
 			Vector<Point> pts = TryCellRoute(mx, L);
 			if (!pts.IsEmpty()) {
-				MarkPath(grid, L, pts);
+				MarkPath(grid, L, pts, req.net_id);
 				return CellPathToResponse(CompressCellPath(pts), L, grid, false);
 			}
 		}
@@ -645,7 +692,7 @@ static RouteResponse RoutePCBHVFast(const RouteRequest& req, PcbGrid& grid)
 
 	// Full BFS fallback
 	int layer_used = 0;
-	Vector<Point> bfs = RoutePCBNet(grid, csrc, cdst, false, layer_used);
+	Vector<Point> bfs = RoutePCBNet(grid, csrc, cdst, false, layer_used, req.net_id);
 	return CellPathToResponse(bfs, layer_used, grid, false);
 }
 
@@ -655,7 +702,7 @@ static RouteResponse RoutePCBHVLee(const RouteRequest& req, PcbGrid& grid)
 	Point csrc = grid.WorldToCell(req.source_pos);
 	Point cdst = grid.WorldToCell(req.target_pos);
 	int layer_used = 0;
-	Vector<Point> path = RoutePCBNet(grid, csrc, cdst, false, layer_used);
+	Vector<Point> path = RoutePCBNet(grid, csrc, cdst, false, layer_used, req.net_id);
 	return CellPathToResponse(path, layer_used, grid, false);
 }
 
@@ -665,7 +712,7 @@ static RouteResponse RoutePCB45(const RouteRequest& req, PcbGrid& grid)
 	Point csrc = grid.WorldToCell(req.source_pos);
 	Point cdst = grid.WorldToCell(req.target_pos);
 	int layer_used = 0;
-	Vector<Point> path = RoutePCBNet(grid, csrc, cdst, true, layer_used);
+	Vector<Point> path = RoutePCBNet(grid, csrc, cdst, true, layer_used, req.net_id);
 	return CellPathToResponse(path, layer_used, grid, true);
 }
 

@@ -130,12 +130,18 @@ struct App : TopWindow {
 		if(!FileExists(AppendFileName(data_dir, "in.eon")))
 			data_dir = GetFileDirectory(__FILE__);
 
+		// Register the prescribed-coordinate autoencoder layout as a named entry.
+		// It appears in the Layout Orientation menu; ApplyLayout() calls it.
+		viewport.RegisterLayout("Autoencoder (Prescribed)", [this](Graph& g) {
+			PatchNodeMetadata(g);
+			ApplyGroupLayout(g);
+		});
+
 		Vector<ValidationMessage> errors;
 		if(LoadEonFile(graph, AppendFileName(data_dir, "in.eon"), errors)) {
-			PatchNodeMetadata(graph);
-			ApplyGroupLayout(graph);
-			viewport.Refresh();
-			viewport.ZoomToFit();  // Re-zoom to fit the loaded and laid-out graph
+			// Activate the custom layout so it's pre-selected in the menu
+			viewport.SetActiveLayout("Autoencoder (Prescribed)");
+			viewport.ApplyLayout();
 		} else {
 			for(const auto& e : errors)
 				LOG("ERROR: " << e.message);

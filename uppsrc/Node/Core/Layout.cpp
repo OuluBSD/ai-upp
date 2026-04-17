@@ -541,6 +541,254 @@ Rectf SmartPacker::ComputeGroupBounds(Graph& graph, const GroupDoc& g)
 	return bounds;
 }
 
+// ---------------------------------------------------------------------------
+// ScriptedLayout implementation
+// ---------------------------------------------------------------------------
+
+Rectf ScriptedLayout::PackGroupNodes(Graph& graph, const GroupDoc& grp)
+{
+	// Collect member nodes
+	Vector<NodeDoc*> nodes;
+	for(const EntityId& nid : grp.nodes) {
+		NodeDoc* n = graph.FindNode(nid);
+		if(n) nodes.Add(n);
+	}
+	if(nodes.IsEmpty())
+		return Rectf(0, 0, 0, 0);
+
+	// Estimate each node's rendered size.
+	// Scene.cpp sets sz after a build; before that it may be zero.
+	// Use the stored sz if non-zero, otherwise fall back to an estimate.
+	auto NodeW = [&](const NodeDoc* n) -> double {
+		return n->sz.cx > 0 ? n->sz.cx : 200.0;
+	};
+	auto NodeH = [&](const NodeDoc* n) -> double {
+		return n->sz.cy > 0 ? n->sz.cy : 150.0;
+	};
+
+	// Simple linear chain: if the group nodes are connected in a sequence
+	// (each has one output → next), lay them out left-to-right.
+	// Otherwise fall back to a grid.
+	// Determine order by following the chain from the source node.
+	// A node is a "source" within this group if no other group node's
+	// output pin feeds into it.
+
+	// Build a quick adjacency among group nodes
+	const GraphDoc& doc = graph.GetDoc();
+	// node_id -> index in nodes[]
+	VectorMap<String, int> idx_map;
+	for(int i = 0; i < nodes.GetCount(); i++)
+		idx_map.Add(nodes[i]->id, i);
+
+	Vector<int> in_degree(nodes.GetCount(), 0);
+	struct Arc { int from, to; };
+	Vector<Arc> arcs;
+	for(const EdgeDoc& e : doc.edges) {
+		int fi = idx_map.Find(e.source_node);
+		int ti = idx_map.Find(e.target_node);
+		if(fi >= 0 && ti >= 0 && fi != ti) {
+			arcs.Add({fi, ti});
+			in_degree[ti]++;
+		}
+	}
+
+	// Topological sort (Kahn's algorithm)
+	Vector<int> order;
+	Vector<int> queue;
+	for(int i = 0; i < nodes.GetCount(); i++)
+		if(in_degree[i] == 0)
+			queue.Add(i);
+	Vector<int> deg = clone(in_degree);
+	while(!queue.IsEmpty()) {
+		int cur = queue[0]; queue.Remove(0);
+		order.Add(cur);
+		for(const Arc& a : arcs) {
+			if(a.from == cur) {
+				deg[a.to]--;
+				if(deg[a.to] == 0)
+					queue.Add(a.to);
+			}
+		}
+	}
+	// If cycle or disconnected nodes, append remaining
+	{
+		Vector<bool> visited(nodes.GetCount(), false);
+		for(int i : order) visited[i] = true;
+		for(int i = 0; i < nodes.GetCount(); i++)
+			if(!visited[i]) order.Add(i);
+	}
+
+	// Decide layout direction: horizontal if chain fits in roughly 2:1 ratio
+	// (more nodes → go vertical)
+	bool horizontal = nodes.GetCount() <= 4;
+
+	double x = 0, y = 0;
+	double max_row_h = 0;
+	Rectf tight(0, 0, 0, 0);
+	bool first_node = true;
+
+	for(int oi = 0; oi < order.GetCount(); oi++) {
+		int i    = order[oi];
+		double w = NodeW(nodes[i]);
+		double h = NodeH(nodes[i]);
+
+		nodes[i]->pos = Pointf(x, y);
+		graph.Invalidate(nodes[i]->id);
+
+		Rectf nr(x, y, x + w, y + h);
+		if(first_node) { tight = nr; first_node = false; }
+		else           { tight.Union(nr); }
+
+		if(horizontal) {
+			x += w + node_padding_;
+		} else {
+			y += h + node_padding_;
+		}
+	}
+
+	return tight;
+}
+
+void ScriptedLayout::Run(Graph& graph)
+{
+	const GraphDoc& doc = graph.GetDoc();
+
+	// --- Step 1: Determine scale factor from the reference node (if provided) ---
+	// The reference tells us: in source coords, node80 has rect ref_prescribed_.
+	// We need to know the actual rendered size of that node (or estimate it).
+	// Then scale = actual_size / prescribed_size.
+	// If no reference is given, scale = 1.
+
+	double coord_scale = 1.0;  // source-coord → world-coord scale
+	if(has_scale_ref_) {
+		double prescribed_w = ref_prescribed_.Width();
+		double prescribed_h = ref_prescribed_.Height();
+		// Find the reference node to get actual size
+		const NodeDoc* ref_node = graph.FindNode(ref_node_id_);
+		double actual_w = (ref_node && ref_node->sz.cx > 0) ? ref_node->sz.cx : 200.0;
+		double actual_h = (ref_node && ref_node->sz.cy > 0) ? ref_node->sz.cy : 150.0;
+		// Use height as the more reliable dimension for node sizing
+		double scale_w = actual_w / prescribed_w;
+		double scale_h = actual_h / prescribed_h;
+		coord_scale = max(scale_w, scale_h);
+		LOG("ScriptedLayout: ref node=" << ref_node_id_
+		    << " prescribed=" << prescribed_w << "x" << prescribed_h
+		    << " actual=" << actual_w << "x" << actual_h
+		    << " coord_scale=" << coord_scale);
+	}
+
+	// --- Step 2: For each group, auto-pack its nodes into local coords ---
+	// Collect the packing results and compute the required scale per group.
+
+	struct GroupPack : Moveable<GroupPack> {
+		String vfs_path;
+		Rectf  prescribed;   // from group_rects (source-space, unscaled)
+		Rectf  node_tight;   // bounding box of auto-laid nodes (local coords)
+	};
+	Vector<GroupPack> packs;
+
+	for(int gi = 0; gi < doc.groups.GetCount(); gi++) {
+		const GroupDoc& grp = doc.groups[gi];
+		int ri = group_rects.Find(grp.vfs_path);
+		if(ri < 0) {
+			LOG("ScriptedLayout: no prescribed rect for group " << grp.vfs_path << ", skipping");
+			continue;
+		}
+		GroupPack gp;
+		gp.vfs_path   = grp.vfs_path;
+		gp.prescribed = group_rects[ri];
+
+		// Pack nodes into local space (starting at (inner_padding_, inner_padding_))
+		// temporarily — we'll re-offset them later
+		Rectf tight = PackGroupNodes(graph, grp);
+		gp.node_tight = tight;
+		packs.Add(pick(gp));
+	}
+
+	// --- Step 3: Find the group needing the largest *scale-up* ---
+	// For each group, the available internal area (in world coords) is:
+	//   avail = prescribed.Size() * coord_scale - 2*inner_padding
+	// The packed nodes occupy node_tight.Size().
+	// group_scale = max(nodes_w / avail_w, nodes_h / avail_h)
+	// We want all groups to use the same (worst-case) group_scale so the
+	// layout proportions stay consistent.
+
+	double worst_scale = 1.0;
+
+	for(const GroupPack& gp : packs) {
+		double avail_w = gp.prescribed.Width()  * coord_scale - 2 * inner_padding_;
+		double avail_h = gp.prescribed.Height() * coord_scale - 2 * inner_padding_;
+		if(avail_w <= 0) avail_w = 1;
+		if(avail_h <= 0) avail_h = 1;
+
+		double nw = gp.node_tight.Width();
+		double nh = gp.node_tight.Height();
+		if(nw <= 0) nw = 1;
+		if(nh <= 0) nh = 1;
+
+		double gscale = max(nw / avail_w, nh / avail_h);
+		LOG("ScriptedLayout: group " << gp.vfs_path
+		    << " avail=" << avail_w << "x" << avail_h
+		    << " nodes=" << nw << "x" << nh
+		    << " gscale=" << gscale);
+		if(gscale > worst_scale) worst_scale = gscale;
+	}
+	LOG("ScriptedLayout: worst_scale=" << worst_scale
+	    << " coord_scale=" << coord_scale);
+
+	// --- Step 4: Apply uniform scale and position everything ---
+	// World-space group origin = prescribed.TopLeft() * coord_scale
+	// World-space group area   = prescribed.Size()    * coord_scale
+	// Node positions within group are re-packed with the uniform group_scale
+	// (i.e. the packed positions are multiplied by worst_scale so that the
+	//  tightest group exactly fills its area; all looser groups scale identically,
+	//  leaving whitespace).
+
+	for(const GroupPack& gp : packs) {
+		// World-space group top-left
+		double gx = gp.prescribed.left  * coord_scale;
+		double gy = gp.prescribed.top   * coord_scale;
+
+		// Repack nodes at (gx + inner_padding + local_pos * worst_scale, gy + inner_padding + ...)
+		const GroupDoc* grp = nullptr;
+		for(const GroupDoc& g : doc.groups)
+			if(g.vfs_path == gp.vfs_path) { grp = &g; break; }
+		if(!grp) continue;
+
+		// Gather nodes in order (reuse the same topo order by re-running PackGroupNodes
+		// with a scale applied).  Instead of calling PackGroupNodes again we scale
+		// the already-set node positions (they are currently in local coords starting from 0).
+		for(const EntityId& nid : grp->nodes) {
+			NodeDoc* n = graph.FindNode(nid);
+			if(!n) continue;
+			// n->pos currently holds the local position set by PackGroupNodes
+			double local_x = n->pos.x;
+			double local_y = n->pos.y;
+			n->pos = Pointf(
+				gx + inner_padding_ + local_x * worst_scale,
+				gy + inner_padding_ + local_y * worst_scale
+			);
+			graph.Invalidate(n->id);
+		}
+	}
+
+	// --- Step 5: Position standalone (ungrouped) nodes ---
+	// Build set of grouped node ids for fast lookup
+	Index<String> grouped;
+	for(const GroupDoc& g : doc.groups)
+		for(const EntityId& nid : g.nodes)
+			grouped.FindAdd(nid);
+
+	for(NodeDoc& n : graph.GetDoc().nodes) {
+		if(grouped.Find(n.id) >= 0) continue;  // already positioned above
+		int ri = group_rects.Find(n.id);
+		if(ri < 0) continue;
+		Rectf r = group_rects[ri];
+		n.pos = Pointf(r.left * coord_scale, r.top * coord_scale);
+		graph.Invalidate(n.id);
+	}
+}
+
 } // namespace Node
 
 } // namespace Upp

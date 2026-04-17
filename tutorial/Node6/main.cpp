@@ -14,19 +14,33 @@ using namespace Upp::Node;
 
 #ifdef flagGUI
 
-// Autoencoder workflow: smart packing with groups and ungrouped nodes
+// Autoencoder workflow: scripted layout from the neural-node-graph-reveng2.txt
+// ## Layout coordinates section, with auto-packed nodes inside each group.
 static void ApplyGroupLayout(Graph& graph)
 {
-	// Use SmartPacker for intelligent two-level packing
-	SmartPacker packer;
-	packer.GroupPadding(30.0)
-	      .NodePadding(20.0)
-	      .GroupInnerPadding(25.0);
-	
-	// Get viewport size if available (for aspect ratio adjustment)
-	packer.Viewport(Rectf(0, 0, 1600, 1200));  // Default viewport
-	
-	packer.Pack(graph);
+	// Prescribed coordinates from the workflow description.
+	// Format: [x, y, width, height] → converted to Rectf(x, y, x+w, y+h).
+	ScriptedLayout sl;
+	sl.NodePadding(20.0)
+	  .GroupInnerPadding(25.0)
+	  // Top-level nodes
+	  .SetGroupRect("node104",  Rectf(200,  140, 200+1420, 140+2350))
+	  // Groups
+	  .SetGroupRect("/enc",     Rectf(1700, 100, 1700+4300, 100+1600))
+	  .SetGroupRect("/dec",     Rectf(6100, 100, 6100+4600, 100+1600))
+	  .SetGroupRect("/comp",    Rectf(2100, 1800, 2100+3000, 1800+1200))
+	  .SetGroupRect("/data",    Rectf(1500, 3100, 1500+1600, 3100+1400))
+	  .SetGroupRect("/train",   Rectf(3200, 3100, 3200+1700, 3100+1700))
+	  .SetGroupRect("/test",    Rectf(4900, 3100, 4900+1600, 3100+1600))
+	  .SetGroupRect("/testdata",Rectf(6700, 3100, 6700+1600, 3100+1600))
+	  .SetGroupRect("/inf",     Rectf(8400, 1800, 8400+2400, 1800+2800))
+	  .SetGroupRect("/prep",    Rectf(11000,1900, 11000+1700,1900+1600))
+	  // Scale calibration: /enc/node80 in source coords is [1750,430,700,1200]
+	  // i.e. the node has prescribed width=700, height=1200.
+	  // The actual rendered node "enc_node80" gives us the real size.
+	  .SetScaleRef("enc_node80", Rectf(1750, 430, 1750+700, 430+1200));
+
+	sl.Run(graph);
 }
 
 // Patch labels and tints for demo visual appeal
@@ -56,7 +70,7 @@ static void PatchNodeMetadata(Graph& graph)
 
 #else
 
-// Console version stubs
+// Console version: just dump group info (no GUI layout needed)
 static void ApplyGroupLayout(Graph& graph) {
 	for(const auto& g : graph.GetDoc().groups) {
 		Cout() << "Group " << g.id << " has " << g.nodes.GetCount() << " nodes\n";

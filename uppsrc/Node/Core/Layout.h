@@ -2,6 +2,8 @@
 #define _Node_Core_Layout_h_
 
 #include "Core.h"
+#include "ForceLayout.h"
+#include "Spiral.h"
 
 namespace Upp {
 
@@ -35,31 +37,37 @@ public:
 
 class SmartPacker {
 public:
-	// Layout orientation
-	enum LayoutOrientation { LAYOUT_TALL, LAYOUT_WIDE, LAYOUT_WINDOW };
+	enum LayoutOrientation {
+		LAYOUT_TALL,    // shelf packing (horizontal rows)
+		LAYOUT_WIDE,    // column packing (vertical columns)
+		LAYOUT_WINDOW,  // 2-D grid fitted to viewport aspect ratio
+		LAYOUT_SPIRAL,  // Archimedean spiral group+node placement
+		LAYOUT_CIRCLE,  // uniform circle group+node placement
+	};
 
 private:
 	// Configuration
-	double group_padding        = 30.0;  // Space around groups
-	double node_padding         = 20.0;  // Space between nodes inside groups
-	double group_inner_padding  = 25.0;  // Space from group edge to nodes
-	double min_node_spacing     = 15.0;  // Minimum spacing between any nodes
+	double group_padding        = 30.0;
+	double node_padding         = 20.0;
+	double group_inner_padding  = 25.0;
+	double min_node_spacing     = 15.0;
 
-	LayoutOrientation orientation = LAYOUT_TALL;  // LAYOUT_TALL = shelf packing (rows), LAYOUT_WIDE = column packing
-	
+	LayoutOrientation orientation  = LAYOUT_TALL;
+	bool              force_refine = true;   // run ForceRefine pass after placement
+
 	// Viewport for aspect ratio
 	Rectf viewport;
-	bool    has_viewport = false;
-	
+	bool  has_viewport = false;
+
 	// Connection graph: maps group/ungrouped-node ID to connection counts
 	struct ConnectionInfo {
-		String id;           // Group path or node ID
-		bool   is_group;     // true = group, false = ungrouped node
-		int    node_count;   // For groups: number of nodes inside
-		Rectf  bounds;       // Estimated or actual bounds
-		Vector<String> connection_ids;  // Connected item IDs
-		Vector<int> connection_counts;  // Connection counts (parallel to connection_ids)
-		
+		String id;
+		bool   is_group;
+		int    node_count;
+		Rectf  bounds;
+		Vector<String> connection_ids;
+		Vector<int>    connection_counts;
+
 		ConnectionInfo() : is_group(false), node_count(0) {}
 		ConnectionInfo(const ConnectionInfo&) = delete;
 		ConnectionInfo& operator=(const ConnectionInfo&) = delete;
@@ -70,89 +78,76 @@ private:
 			connection_counts = pick(o.connection_counts); return *this;
 		}
 	};
-	
-	Array<ConnectionInfo> items;  // All packable items (groups + ungrouped nodes)
-	
+
+	Array<ConnectionInfo> items;
+
 	// Helpers
 	void   AnalyzeGraph(Graph& graph);
 	void   EstimateItemBounds(ConnectionInfo& item, Graph& graph);
 	void   PackGlobal();
-	void   PackNodesInGroupAtPosition(Graph& graph, const String& group_path, Pointf pos);
+	void   PackGlobalWindow();                          // LAYOUT_WINDOW: 2-D grid
+	void   PackGlobalSpiral(bool circle);               // LAYOUT_SPIRAL / LAYOUT_CIRCLE
+	void   PackNodesInGroupAtPosition(Graph& graph, const String& group_path,
+	                                  Pointf pos, bool use_spiral, bool use_circle);
 	void   AdjustAspectRatio();
 	void   ValidateLayout(Graph& graph);
 	Rectf  ComputeGroupBounds(Graph& graph, const GroupDoc& g);
-	
-	int    CountConnections(const String& id1, bool is_group1, const String& id2, bool is_group2, Graph& graph);
+
+	int    CountConnections(const String& id1, bool is_group1,
+	                        const String& id2, bool is_group2, Graph& graph);
 	Rectf  GetNodeBounds(const NodeDoc& n);
-	
-	// Helper to get total connection count for an item
 	int    GetTotalConnectionCount(const ConnectionInfo& item) const;
-	
+
+	// Compute a cell_size equivalent from node boxes (matches PCB router formula)
+	static double ComputeCellSize(const Graph& graph);
+
 public:
 	SmartPacker() {}
-	
+
 	// Fluent interface
-	SmartPacker& Viewport(Rectf r)  { viewport = r; has_viewport = true; return *this; }
-	SmartPacker& GroupPadding(double d)   { group_padding = d; return *this; }
-	SmartPacker& NodePadding(double d)    { node_padding = d; return *this; }
-	SmartPacker& GroupInnerPadding(double d) { group_inner_padding = d; return *this; }
-	SmartPacker& Orientation(LayoutOrientation o) { orientation = o; return *this; }
-	
+	SmartPacker& Viewport(Rectf r)              { viewport = r; has_viewport = true; return *this; }
+	SmartPacker& GroupPadding(double d)         { group_padding = d; return *this; }
+	SmartPacker& NodePadding(double d)          { node_padding = d; return *this; }
+	SmartPacker& GroupInnerPadding(double d)    { group_inner_padding = d; return *this; }
+	SmartPacker& Orientation(LayoutOrientation o){ orientation = o; return *this; }
+	SmartPacker& UseForceRefine(bool b)         { force_refine = b; return *this; }
+
 	// Main entry point
 	void Pack(Graph& graph);
 };
 
 // ---------------------------------------------------------------------------
 // ScriptedLayout: positions groups from prescribed coordinates,
-// auto-packs nodes inside each group, and uniformly scales so the
-// tightest group doesn't overflow its allotted area.
-//
-// Usage:
-//   ScriptedLayout sl;
-//   sl.SetGroupRect("/enc",  Rectf(1700, 100, 6000, 1700));
-//   sl.SetGroupRect("/dec",  Rectf(6100, 100, 10700, 1700));
-//   // … repeat for every group and top-level node …
-//   sl.SetScaleRef("/enc/node80", Rectf(1750, 430, 2450, 1630)); // known node rect for calibration
-//   sl.Run(graph);
+// auto-packs nodes inside each group via SA+GRASP, then optionally
+// runs a ForceRefine pass.
 // ---------------------------------------------------------------------------
 
 class ScriptedLayout {
 public:
 	ScriptedLayout() {}
 
-	// Register a prescribed bounding rect for a group (vfs_path, e.g. "/enc")
-	// or for a standalone top-level node (node id).
-	// Format: [x, y, x+width, y+height] in the source coordinate space.
 	ScriptedLayout& SetGroupRect(const String& vfs_path_or_node_id, Rectf r)
 	{
 		group_rects.Add(vfs_path_or_node_id, r);
 		return *this;
 	}
 
-	// Provide a single reference node whose prescribed rect is known.
-	// This lets us compute how much the source coordinate space differs
-	// from the actual rendered node size, so we can scale group areas
-	// to guarantee the nodes fit.
-	// ref_node_id: node id (e.g. "enc_node80")
-	// prescribed_rect: the rect from the layout file for that node
 	ScriptedLayout& SetScaleRef(const String& ref_node_id, Rectf prescribed_rect)
 	{
-		ref_node_id_     = ref_node_id;
-		ref_prescribed_  = prescribed_rect;
-		has_scale_ref_   = true;
+		ref_node_id_    = ref_node_id;
+		ref_prescribed_ = prescribed_rect;
+		has_scale_ref_  = true;
 		return *this;
 	}
 
-	// Padding around nodes inside a group
-	ScriptedLayout& NodePadding(double d)  { node_padding_ = d; return *this; }
-	// Padding between the group border and inner nodes
+	ScriptedLayout& NodePadding(double d)       { node_padding_  = d; return *this; }
 	ScriptedLayout& GroupInnerPadding(double d) { inner_padding_ = d; return *this; }
+	ScriptedLayout& UseForceRefine(bool b)      { force_refine_  = b; return *this; }
 
-	// Main entry point
 	void Run(Graph& graph);
 
 private:
-	VectorMap<String, Rectf> group_rects;  // prescribed rects (source-space)
+	VectorMap<String, Rectf> group_rects;
 
 	String ref_node_id_;
 	Rectf  ref_prescribed_;
@@ -160,9 +155,8 @@ private:
 
 	double node_padding_  = 20.0;
 	double inner_padding_ = 25.0;
+	bool   force_refine_  = true;
 
-	// Auto-pack nodes inside a group using SA+GRASP; return bounding rect.
-	// avail_w/avail_h: inner available area (already scaled to world coords).
 	Rectf PackGroupNodes(Graph& graph, const GroupDoc& grp, double avail_w, double avail_h);
 };
 

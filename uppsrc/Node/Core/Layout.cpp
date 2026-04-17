@@ -1,4 +1,6 @@
 #include "Layout.h"
+#include "ForceLayout.h"
+#include "Spiral.h"
 
 namespace Upp {
 
@@ -160,62 +162,155 @@ void SmartPacker::EstimateItemBounds(ConnectionInfo& item, Graph& graph)
 	}
 }
 
-void SmartPacker::PackNodesInGroupAtPosition(Graph& graph, const String& group_path, Pointf pos)
+void SmartPacker::PackNodesInGroupAtPosition(Graph& graph, const String& group_path,
+                                              Pointf pos, bool use_spiral, bool use_circle)
 {
-	// Find group by vfs_path (not by EntityId)
 	const GroupDoc* grp = nullptr;
 	const GraphDoc& doc = graph.GetDoc();
 	for(int i = 0; i < doc.groups.GetCount(); i++) {
-		if(doc.groups[i].vfs_path == group_path) {
-			grp = &doc.groups[i];
-			break;
-		}
+		if(doc.groups[i].vfs_path == group_path) { grp = &doc.groups[i]; break; }
 	}
-	
 	if(!grp) return;
-	
-	// Collect nodes in this group
+
 	Vector<NodeDoc*> nodes;
 	for(int i = 0; i < grp->nodes.GetCount(); i++) {
 		NodeDoc* n = graph.FindNode(grp->nodes[i]);
 		if(n) nodes.Add(n);
 	}
-	
 	if(nodes.IsEmpty()) return;
-	
-	// Simple grid packing inside group
-	int cols = max(1, (int)sqrt(nodes.GetCount()));
-	int rows = (nodes.GetCount() + cols - 1) / cols;
-	
-	// Node dimensions: Scene.cpp computes height as TITLE_H + pin_rows*PIN_ROW_H + slot_h + 8
-	// Use conservative estimates that account for nodes with many pins
-	// Typical node: 100-200px wide, 80-150px tall depending on pins
-	double node_w = 200.0;  // Typical node width
-	double node_h = 150.0;  // Conservative height estimate
-	
-	// Spacing between nodes - must provide enough gap to prevent overlap
-	// even if nodes are taller than estimated
-	double col_w = node_w + node_padding * 3;  // 200 + 60 = 260px
-	double row_h = node_h + node_padding * 3;  // 150 + 60 = 210px
-	
-	// Center the grid within the group bounds
+
+	int N = nodes.GetCount();
+	double spacing = node_padding * 12.0; // generous initial spacing for spiral/circle
+
 	double start_x = pos.x + group_inner_padding;
 	double start_y = pos.y + group_inner_padding;
-	
-	int idx = 0;
-	for(int r = 0; r < rows; r++) {
-		for(int c = 0; c < cols && idx < nodes.GetCount(); c++) {
-			NodeDoc* n = nodes[idx++];
-			n->pos = Pointf(start_x + c * col_w, start_y + r * row_h);
-			graph.Invalidate(n->id);
+
+	if(use_spiral || use_circle) {
+		Vector<Pointf> pts = use_circle
+		    ? CirclePositions(N, spacing)
+		    : SpiralPositions(N, spacing);
+		// Find bounding box of pts so we can offset to start_x/y
+		double minx = pts[0].x, miny = pts[0].y;
+		for(const Pointf& p : pts) { minx = min(minx, p.x); miny = min(miny, p.y); }
+		for(int i = 0; i < N; i++) {
+			nodes[i]->pos = Pointf(start_x + pts[i].x - minx, start_y + pts[i].y - miny);
+			graph.Invalidate(nodes[i]->id);
 		}
+	} else {
+		// Simple grid (used by TALL and WIDE)
+		int cols  = max(1, (int)sqrt((double)N));
+		double node_w = 200.0, node_h = 150.0;
+		double col_w = node_w + node_padding * 3;
+		double row_h = node_h + node_padding * 3;
+		for(int i = 0; i < N; i++) {
+			nodes[i]->pos = Pointf(start_x + (i % cols) * col_w,
+			                      start_y + (i / cols) * row_h);
+			graph.Invalidate(nodes[i]->id);
+		}
+	}
+}
+
+// ---------------------------------------------------------------------------
+// ComputeCellSize: smallest-node-dim / 10 (mirrors PCB router formula)
+// ---------------------------------------------------------------------------
+
+double SmartPacker::ComputeCellSize(const Graph& graph)
+{
+	const GraphDoc& doc = graph.GetDoc();
+	double min_dim = 1e18;
+	for(const NodeDoc& n : doc.nodes) {
+		if(n.sz.cx > 1) min_dim = min(min_dim, (double)n.sz.cx);
+		if(n.sz.cy > 1) min_dim = min(min_dim, (double)n.sz.cy);
+	}
+	return (min_dim < 1e17) ? clamp(min_dim / 10.0, 1.0, 100.0) : 10.0;
+}
+
+// ---------------------------------------------------------------------------
+// PackGlobalWindow: arrange items in a 2-D grid matching viewport AR
+// ---------------------------------------------------------------------------
+
+void SmartPacker::PackGlobalWindow()
+{
+	if(items.IsEmpty()) return;
+
+	int total = items.GetCount();
+	double target_ar = (has_viewport && viewport.Height() > 0)
+	                   ? viewport.Width() / viewport.Height() : 1.5;
+
+	// Find best column count: minimise |log(actual_ar / target_ar)|
+	int best_cols = 1;
+	double best_score = 1e300;
+	for(int cols = 1; cols <= total; cols++) {
+		int rows = (total + cols - 1) / cols;
+		// Estimate bounding box for this grid
+		double max_w = 0, max_h = 0;
+		for(int i = 0; i < total; i++) {
+			max_w = max(max_w, items[i].bounds.Width());
+			max_h = max(max_h, items[i].bounds.Height());
+		}
+		double grid_w = cols * (max_w + group_padding);
+		double grid_h = rows * (max_h + group_padding);
+		if(grid_h <= 0) continue;
+		double score = fabs(log(grid_w / grid_h / target_ar));
+		if(score < best_score) { best_score = score; best_cols = cols; }
+	}
+
+	// Place items in the chosen grid
+	double col_w = 0, row_h = 0;
+	for(int i = 0; i < total; i++) {
+		col_w = max(col_w, items[i].bounds.Width());
+		row_h = max(row_h, items[i].bounds.Height());
+	}
+	col_w += group_padding;
+	row_h += group_padding;
+
+	double ox = group_padding, oy = group_padding;
+	for(int i = 0; i < total; i++) {
+		int col = i % best_cols, row = i / best_cols;
+		items[i].bounds = Rectf(ox + col * col_w, oy + row * row_h,
+		                        ox + col * col_w + items[i].bounds.Width(),
+		                        oy + row * row_h + items[i].bounds.Height());
+	}
+}
+
+// ---------------------------------------------------------------------------
+// PackGlobalSpiral / PackGlobalCircle
+// ---------------------------------------------------------------------------
+
+void SmartPacker::PackGlobalSpiral(bool circle)
+{
+	if(items.IsEmpty()) return;
+
+	// Spacing between group centres = largest group diagonal + group_padding
+	double max_diag = 0;
+	for(const ConnectionInfo& ci : items)
+		max_diag = max(max_diag, sqrt(ci.bounds.Width()*ci.bounds.Width()
+		                            + ci.bounds.Height()*ci.bounds.Height()));
+	double spacing = max_diag + group_padding * 2;
+
+	int N = items.GetCount();
+	Vector<Pointf> pts = circle ? CirclePositions(N, spacing) : SpiralPositions(N, spacing);
+
+	// Shift so top-left is at (group_padding, group_padding)
+	double minx = pts[0].x, miny = pts[0].y;
+	for(const Pointf& p : pts) { minx = min(minx, p.x); miny = min(miny, p.y); }
+
+	for(int i = 0; i < N; i++) {
+		double x = group_padding + pts[i].x - minx;
+		double y = group_padding + pts[i].y - miny;
+		double w = items[i].bounds.Width(), h = items[i].bounds.Height();
+		items[i].bounds = Rectf(x - w*0.5, y - h*0.5, x + w*0.5, y + h*0.5);
 	}
 }
 
 void SmartPacker::PackGlobal()
 {
 	if(items.IsEmpty()) return;
-	
+
+	if(orientation == LAYOUT_WINDOW) { PackGlobalWindow(); return; }
+	if(orientation == LAYOUT_SPIRAL) { PackGlobalSpiral(false); return; }
+	if(orientation == LAYOUT_CIRCLE) { PackGlobalSpiral(true);  return; }
+
 	if(orientation == LAYOUT_TALL) {
 		// Shelf packing - arrange in horizontal rows
 		struct Shelf {
@@ -438,27 +533,33 @@ void SmartPacker::Pack(Graph& graph)
 		items.Add(pick(sorted[i]));
 	sorted.Clear();
 
-	// Step 2: Global packing (groups + ungrouped nodes) FIRST
-	// This determines where each group will be placed
+	// Step 2: Global packing
 	PackGlobal();
-	
-	// Step 3: Adjust aspect ratio to fit viewport
-	AdjustAspectRatio();
-	
-	// Step 4: Pack nodes inside each group, offset by group position
+
+	// Step 3: Adjust aspect ratio (not needed for WINDOW/SPIRAL/CIRCLE — they already target AR)
+	if(orientation == LAYOUT_TALL || orientation == LAYOUT_WIDE)
+		AdjustAspectRatio();
+
+	// Step 4: Pack nodes inside each group
+	bool use_spiral = (orientation == LAYOUT_SPIRAL);
+	bool use_circle = (orientation == LAYOUT_CIRCLE);
 	for(int i = 0; i < items.GetCount(); i++) {
 		const ConnectionInfo& item = items[i];
 		if(item.is_group) {
-			PackNodesInGroupAtPosition(graph, item.id, item.bounds.TopLeft());
+			PackNodesInGroupAtPosition(graph, item.id, item.bounds.TopLeft(),
+			                          use_spiral, use_circle);
 		} else {
-			// Ungrouped node: apply position directly
 			NodeDoc* n = graph.FindNode(item.id);
 			if(n)
 				n->pos = Pointf(item.bounds.left, item.bounds.top);
 		}
 	}
-	
-	// Step 5: Validate layout
+
+	// Step 5: Force-directed refinement
+	if(force_refine)
+		ForceRefineGraph(graph);
+
+	// Step 6: Validate layout
 	ValidateLayout(graph);
 }
 
@@ -1041,6 +1142,10 @@ void ScriptedLayout::Run(Graph& graph)
 		               group_rects[ri].top   * coord_scale);
 		graph.Invalidate(n.id);
 	}
+
+	// --- Step 3: Force-directed refinement ---
+	if(force_refine_)
+		ForceRefineGraph(graph);
 }
 
 } // namespace Node

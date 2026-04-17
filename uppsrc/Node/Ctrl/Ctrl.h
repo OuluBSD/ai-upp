@@ -34,7 +34,16 @@ class NodeViewportCtrl : public Ctrl {
 	bool                 vp_pristine = true;        // true until user first pans/zooms
 	bool                 auto_layout_active = false; // true while automatic layout is in effect; manual drag clears it
 	double               anim_phase = 0.0;          // for Realistic edge animation [0..1)
-	SmartPacker::LayoutOrientation layout_orientation = SmartPacker::LAYOUT_TALL;  // Layout orientation preference
+	SmartPacker::LayoutOrientation layout_orientation = SmartPacker::LAYOUT_TALL;
+	bool force_refine = true;  // run ForceRefine after any layout
+
+	// Custom layout registry: name → callback
+	struct CustomLayoutEntry : Moveable<CustomLayoutEntry> {
+		String name;
+		Function<void(Graph&)> fn;
+	};
+	Vector<CustomLayoutEntry> custom_layouts;
+	String active_custom_layout;  // empty = using built-in orientation
 
 	// Node type registry: type_id -> template NodeDoc factory
 	struct NodeTypeEntry : Moveable<NodeTypeEntry> {
@@ -78,8 +87,16 @@ public:
 	
 	// Layout orientation
 	SmartPacker::LayoutOrientation GetLayoutOrientation() const { return layout_orientation; }
-	void             SetLayoutOrientation(SmartPacker::LayoutOrientation o) { layout_orientation = o; }
-	void             ToggleLayoutOrientation() { layout_orientation = (layout_orientation == SmartPacker::LAYOUT_TALL) ? SmartPacker::LAYOUT_WIDE : SmartPacker::LAYOUT_TALL; }
+	void             SetLayoutOrientation(SmartPacker::LayoutOrientation o) { layout_orientation = o; active_custom_layout = String(); }
+	void             ToggleLayoutOrientation() { layout_orientation = (layout_orientation == SmartPacker::LAYOUT_TALL) ? SmartPacker::LAYOUT_WIDE : SmartPacker::LAYOUT_TALL; active_custom_layout = String(); }
+	bool             GetForceRefine() const  { return force_refine; }
+	void             SetForceRefine(bool b)  { force_refine = b; }
+
+	// Register a named custom layout function (appears in the Layout Orientation menu).
+	void             RegisterLayout(const String& name, Function<void(Graph&)> fn);
+	// Activate a previously registered layout by name (clears built-in orientation selection).
+	void             SetActiveLayout(const String& name) { active_custom_layout = name; layout_orientation = SmartPacker::LAYOUT_TALL; }
+
 	void             ApplyLayout();  // Re-run layout with current orientation
 	virtual void Layout() override; // handles auto-refit on size change
 	virtual void Paint(Draw& w) override;

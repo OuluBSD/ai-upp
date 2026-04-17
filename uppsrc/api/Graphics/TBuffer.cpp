@@ -198,7 +198,7 @@ bool BufferT<Gfx>::ImageInitialize(bool is_win_fbo, Size screen_sz, bool add_dat
 
 template <class Gfx>
 bool BufferT<Gfx>::InitializeRenderer() {
-	DLOG("BufferT::Initialize: load new program");
+	RLOG("BufferT::Initialize: load new program");
 	
 	auto& fb = stages.Top().fb[0];
 	

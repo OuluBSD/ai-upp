@@ -25,7 +25,7 @@ struct AudioFormat :
 	bool	IsValid() const;
 	bool	IsSame(const AudioFormat& fmt) const;
 
-	byte pad[STD_FMT_SIZE - base_size - 4];
+	byte pad[STD_FMT_SIZE - base_size];
 };
 
 #define TEST_TRIVIAL(x) \
@@ -82,7 +82,7 @@ struct VolumeFormat :
 	bool	IsCopyCompatible(const VolumeFormat& b) const;
 	int		GetChannels() const {return SampleBase<BinarySample>::GetPackedCount();}
 
-	byte pad[STD_FMT_SIZE - base_size - 4];
+	byte pad[STD_FMT_SIZE - base_size];
 };
 
 struct FboFormat :
@@ -187,6 +187,47 @@ struct GuiFormat :
 	byte pad[STD_FMT_SIZE - base_size - 4];
 };
 
+struct NeuralFormat {
+	enum Kind : byte {
+		UNKNOWN = 0,
+		LAYER_STACK,
+		MODEL,
+		TENSOR,
+		METRICS,
+		SCRIPT,
+		HYPERPARAMETERS,
+		DATASET,
+		REPORT,
+		KIND_COUNT
+	};
+	static constexpr int shape_dims = 6;
+	static constexpr int base_size =
+		sizeof(byte) * 4 +
+		sizeof(int) * (3 + shape_dims);
+
+	byte kind;
+	byte precision;
+	byte flags;
+	byte reserved;
+	int  rank;
+	int  shape[shape_dims];
+	int  aux;
+	int  aux2;
+
+	void   SetDefault();
+	void   Set(Kind k, int rank = 0);
+	String ToString() const;
+	bool   IsValid() const;
+	bool   IsSame(const NeuralFormat& fmt) const;
+	bool   IsCopyCompatible(const NeuralFormat& fmt) const;
+	int    GetSampleSize() const;
+	int    GetScalar() const;
+	int    GetFrameSize() const;
+	double GetFrameSeconds() const;
+
+	byte pad[STD_FMT_SIZE - base_size];
+};
+
 #define TEST_FORMAT(x) \
 	static_assert(std::is_trivially_constructible<x>::value == true, #x " must be trivial to construct"); \
 	static_assert(sizeof(x) == STD_FMT_SIZE, "Expecting standard format size in " #x);
@@ -195,6 +236,7 @@ TEST_FORMAT(AudioFormat)
 TEST_FORMAT(VideoFormat)
 TEST_FORMAT(DataFormat)
 TEST_FORMAT(EventFormat)
+TEST_FORMAT(NeuralFormat)
 
 class ValueFormat {
 public:
@@ -210,6 +252,7 @@ public:
 		FboFormat			fbo;
 		ProgFormat			prog;
 		GuiFormat			gui;
+		NeuralFormat		neural;
 	};
 
 public:
@@ -236,6 +279,7 @@ public:
 	bool IsFbo()   const {return vd.val == ValCls::FBO;}
 	bool IsProg()  const {return vd.val == ValCls::PROG;}
 	bool IsGui()   const {return vd.val == ValCls::GUI;}
+	bool IsNeural() const {return vd.val == ValCls::NEURAL;}
 	bool IsOgl()   const {return vd.dev == DevCls::OGL;}
 	bool IsValid() const;
 	bool IsSame(const ValueFormat& f) const;
@@ -258,6 +302,7 @@ public:
 	void SetEvent(DevCls dev);
 	void SetProg(DevCls dev);
 	void SetGui(DevCls dev);
+	void SetNeural(DevCls dev, NeuralFormat::Kind kind = NeuralFormat::UNKNOWN, int rank = 0);
 
 	operator const AudioFormat&() const {ASSERT(IsAudio()); return aud;}
 	operator       AudioFormat&()       {ASSERT(IsAudio()); return aud;}
@@ -273,6 +318,8 @@ public:
 	operator       FboFormat&()         {ASSERT(IsFbo()); return fbo;}
 	operator const ProgFormat&() const  {ASSERT(IsProg()); return prog;}
 	operator       ProgFormat&()        {ASSERT(IsProg()); return prog;}
+	operator const NeuralFormat&() const {ASSERT(IsNeural()); return neural;}
+	operator       NeuralFormat&()       {ASSERT(IsNeural()); return neural;}
 };
 
 GVar::Sample GetGVarSampleFromBinarySample(BinarySample::Type t);

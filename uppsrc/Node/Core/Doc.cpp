@@ -12,6 +12,7 @@ void PinDoc::Jsonize(JsonIO& jio)
 		("kind", (int&)kind)
 		("pos", pos)
 		("color", color)
+		("type_name", type_name)
 		("type", type)
 		("sz", sz)
 	;
@@ -32,6 +33,10 @@ void NodeDoc::Jsonize(JsonIO& jio)
 	jio
 		("id", id)
 		("label", label)
+		("node_type_id", node_type_id)
+		("category", category)
+		("tint_clr", tint_clr)
+		("time_str", time_str)
 		("pos", pos)
 		("sz", sz)
 		("shape", shape)
@@ -75,8 +80,10 @@ void GroupDoc::Jsonize(JsonIO& jio)
 	jio
 		("id", id)
 		("label", label)
+		("vfs_path", vfs_path)
 		("nodes", nodes)
 		("color", color)
+		("style", style)
 	;
 }
 
@@ -157,8 +164,10 @@ void GroupDoc::operator<<=(const GroupDoc& src)
 {
 	id = src.id;
 	label = src.label;
+	vfs_path = src.vfs_path;
 	nodes <<= src.nodes;
 	color = src.color;
+	style = src.style;
 }
 
 void GraphDoc::operator<<=(const GraphDoc& src)

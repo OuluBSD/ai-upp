@@ -577,6 +577,7 @@ static Sizef EstimateNodeSize(const NodeDoc& n)
 	return Sizef(w, h);
 }
 
+
 // Compute grid sizes for each node: width/height per slot in the grid.
 // Returns per-column widths and per-row heights.
 static void ComputeGridBands(const Vector<NodeDoc*>& nodes, const Vector<int>& order,
@@ -660,7 +661,7 @@ static Rectf ApplyGridLayout(Graph& graph,
 	return tight;
 }
 
-Rectf ScriptedLayout::PackGroupNodes(Graph& graph, const GroupDoc& grp, double coord_scale)
+Rectf ScriptedLayout::PackGroupNodes(Graph& graph, const GroupDoc& grp, double /*unused*/)
 {
 	// Collect member nodes
 	Vector<NodeDoc*> nodes;
@@ -714,8 +715,8 @@ Rectf ScriptedLayout::PackGroupNodes(Graph& graph, const GroupDoc& grp, double c
 	double target_ar = 1.0;
 	int ri = group_rects.Find(grp.vfs_path);
 	if(ri >= 0) {
-		avail_w = max(0.0, group_rects[ri].Width()  * coord_scale - 2 * inner_padding_);
-		avail_h = max(0.0, group_rects[ri].Height() * coord_scale - 2 * inner_padding_);
+		avail_w = max(0.0, group_rects[ri].Width()  - 2 * inner_padding_);
+		avail_h = max(0.0, group_rects[ri].Height() - 2 * inner_padding_);
 		if(avail_h > 0) target_ar = avail_w / avail_h;
 	}
 
@@ -736,20 +737,29 @@ Rectf ScriptedLayout::PackGroupNodes(Graph& graph, const GroupDoc& grp, double c
 			best_cols  = cols;
 		}
 	}
-	// If every candidate was rejected (all exceeded area), fall back to
-	// the one whose tight area / available area overflow is smallest.
+	// If every candidate was rejected (all exceeded area), pick the layout
+	// whose tight size best matches the target aspect ratio (ignoring overflow),
+	// then expand avail_w/avail_h to fit so nodes aren't squeezed.
 	if(best_score >= 1e300) {
-		double best_overflow = 1e300;
+		double best_ar_score = 1e300;
 		for(int cols = 1; cols <= N; cols++) {
 			Sizef sz = ComputeGridSize(nodes, order, cols, node_padding_);
 			if(sz.cy <= 0) continue;
-			double overflow = max(avail_w > 0 ? sz.cx / avail_w : 1.0,
-			                      avail_h > 0 ? sz.cy / avail_h : 1.0);
-			if(overflow < best_overflow) {
-				best_overflow = overflow;
+			double ar = sz.cx / sz.cy;
+			double score = fabs(log(ar / target_ar));
+			if(score < best_ar_score) {
+				best_ar_score = score;
 				best_cols = cols;
 			}
 		}
+	}
+
+	// Expand avail_w/avail_h to at least fit the chosen grid tightly,
+	// so ApplyGridLayout doesn't try to squash nodes into too small a space.
+	{
+		Sizef tight = ComputeGridSize(nodes, order, best_cols, node_padding_);
+		avail_w = max(avail_w, tight.cx);
+		avail_h = max(avail_h, tight.cy);
 	}
 
 	// Apply layout filling the available area
@@ -760,47 +770,28 @@ void ScriptedLayout::Run(Graph& graph)
 {
 	const GraphDoc& doc = graph.GetDoc();
 
-	// --- Step 1: Determine scale factor from the reference node (if provided) ---
-	// The reference tells us: in source coords, node80 has rect ref_prescribed_.
-	// We need to know the actual rendered size of that node (or estimate it).
-	// Then scale = actual_size / prescribed_size.
-	// If no reference is given, scale = 1.
+	// The prescribed rects are used directly as world coordinates.
+	// No coord_scale: the source coordinate space (e.g. 12000×6000 units)
+	// is already a sensible world space since node widths (~200px) fit
+	// comfortably inside group areas (~1600–4300px wide).
 
-	double coord_scale = 1.0;  // source-coord → world-coord scale
-	if(has_scale_ref_) {
-		double prescribed_w = ref_prescribed_.Width();
-		double prescribed_h = ref_prescribed_.Height();
-		// Find the reference node to get actual size
-		const NodeDoc* ref_node = graph.FindNode(ref_node_id_);
-		double actual_w = (ref_node && ref_node->sz.cx > 0) ? ref_node->sz.cx : 200.0;
-		double actual_h = (ref_node && ref_node->sz.cy > 0) ? ref_node->sz.cy : 150.0;
-		// Use height as the more reliable dimension for node sizing
-		double scale_w = actual_w / prescribed_w;
-		double scale_h = actual_h / prescribed_h;
-		coord_scale = max(scale_w, scale_h);
-		LOG("ScriptedLayout: ref node=" << ref_node_id_
-		    << " prescribed=" << prescribed_w << "x" << prescribed_h
-		    << " actual=" << actual_w << "x" << actual_h
-		    << " coord_scale=" << coord_scale);
-	}
-
-	// --- Step 2 & 3: Pack each group's nodes into local (0-based) world coords,
-	// then offset by the group's world-space origin. ---
+	// --- Step 1: Pack each group's nodes to fill its prescribed area ---
 
 	for(int gi = 0; gi < doc.groups.GetCount(); gi++) {
 		const GroupDoc& grp = doc.groups[gi];
 		int ri = group_rects.Find(grp.vfs_path);
 		if(ri < 0) {
-			LOG("ScriptedLayout: no prescribed rect for group " << grp.vfs_path << ", skipping");
+			RLOG("ScriptedLayout: no prescribed rect for group " << grp.vfs_path << ", skipping");
 			continue;
 		}
+		const Rectf& prescribed = group_rects[ri];
 
-		// PackGroupNodes places nodes in local coords [0..avail_w) × [0..avail_h)
-		PackGroupNodes(graph, grp, coord_scale);
+		// Pack nodes into local (0-based) coords, filling the available area
+		PackGroupNodes(graph, grp, 1.0);
 
-		// Offset by world-space group top-left + inner padding
-		double gx = group_rects[ri].left * coord_scale + inner_padding_;
-		double gy = group_rects[ri].top  * coord_scale + inner_padding_;
+		// Shift from local coords to the group's world-space origin
+		double gx = prescribed.left + inner_padding_;
+		double gy = prescribed.top  + inner_padding_;
 		for(const EntityId& nid : grp.nodes) {
 			NodeDoc* n = graph.FindNode(nid);
 			if(!n) continue;
@@ -808,23 +799,21 @@ void ScriptedLayout::Run(Graph& graph)
 			n->pos.y += gy;
 			graph.Invalidate(n->id);
 		}
-		LOG("ScriptedLayout: group " << grp.vfs_path
-		    << " origin=(" << gx << "," << gy << ")");
+		RLOG("ScriptedLayout: group " << grp.vfs_path
+		     << " rect=" << prescribed << " origin=(" << gx << "," << gy << ")");
 	}
 
-	// --- Step 3: Position standalone (ungrouped) nodes ---
-	// Build set of grouped node ids for fast lookup
+	// --- Step 2: Position standalone (ungrouped) nodes ---
 	Index<String> grouped;
 	for(const GroupDoc& g : doc.groups)
 		for(const EntityId& nid : g.nodes)
 			grouped.FindAdd(nid);
 
 	for(NodeDoc& n : graph.GetDoc().nodes) {
-		if(grouped.Find(n.id) >= 0) continue;  // already positioned above
+		if(grouped.Find(n.id) >= 0) continue;
 		int ri = group_rects.Find(n.id);
 		if(ri < 0) continue;
-		Rectf r = group_rects[ri];
-		n.pos = Pointf(r.left * coord_scale, r.top * coord_scale);
+		n.pos = Pointf(group_rects[ri].left, group_rects[ri].top);
 		graph.Invalidate(n.id);
 	}
 }

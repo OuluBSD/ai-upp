@@ -285,6 +285,13 @@ static Color PinTypeColor(const String& type_name)
 	if (type_name == "INT")          return Color(150, 200, 255); // light blue
 	if (type_name == "FLOAT")        return Color(200, 230, 180); // light green
 	if (type_name == "STRING")       return Color(200, 200, 200); // gray
+	if (type_name == "LAYER_STACK")  return Color(105, 185, 255); // neural stack
+	if (type_name == "TENSOR")       return Color(150, 120, 255); // neural tensor
+	if (type_name == "MODEL_STRING") return Color(205, 185, 255); // textual model
+	if (type_name == "METRICS")      return Color(255, 165, 110); // metrics
+	if (type_name == "REPORT")       return Color(235, 185, 115);
+	if (type_name == "SCRIPT")       return Color(210, 210, 170);
+	if (type_name == "HYPERPARAMETERS") return Color(180, 210, 150);
 	return Color(160, 160, 160);
 }
 
@@ -558,7 +565,14 @@ bool LoadEon(Graph& g, const String& eon_text,
 		        "No net block found in eon file"));
 
 	g.RebuildIndexPublic();
-	return true;
+	Vector<ValidationMessage> val_msgs = g.Validate();
+	bool has_error = false;
+	for (const auto& m : val_msgs) {
+		out.Add(m);
+		if (m.severity == ValidationMessage::ERROR)
+			has_error = true;
+	}
+	return !has_error;
 }
 
 bool LoadEonFile(Graph& g, const String& path,
@@ -596,7 +610,8 @@ String SaveEon(const Graph& g)
 		for (const PinDoc& pin : nd.pins) {
 			s << "\t" << (pin.kind == PinKind::Output ? "out" : "in")
 			  << " " << pin.id;
-			// PinDoc has int type, not String — type name not stored yet; skip
+			if(!pin.type_name.IsEmpty())
+				s << " : " << pin.type_name;
 			s << "\n";
 		}
 		for (WidgetSlotDoc& slot : const_cast<NodeDoc&>(nd).slots) {

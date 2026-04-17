@@ -14,6 +14,7 @@
 	IFACE(FBO) \
 	IFACE(PROG) \
 	IFACE(GUI) \
+	IFACE(NEURAL) \
 
 #define ATOM_ROLE_LIST \
 	ATOM_ROLE(DRIVER) \
@@ -42,6 +43,7 @@ typedef enum : int {
 	ValFbo = FBO,
 	ValProg = PROG,
 	ValGui = GUI,
+	ValNeural = NEURAL,
 } ValCls;
 
 typedef enum : int {

@@ -440,6 +440,10 @@ static void AddEdgeItem(Scene& scene, const EdgeDoc& e, const Graph& graph,
 		Pointf p1 = src_node->pos + src_node->sz / 2.0;
 		Pointf p2 = tgt_node->pos + tgt_node->sz / 2.0;
 		Color  pin_clr = Null; // use source pin color for edge
+		String src_type;
+		String tgt_type;
+		bool src_kind_ok = false;
+		bool tgt_kind_ok = false;
 
 		// Match by name AND kind: source must be Output, target must be Input.
 		// Nodes like ConditioningZeroOut have same name for both in and out.
@@ -447,11 +451,17 @@ static void AddEdgeItem(Scene& scene, const EdgeDoc& e, const Graph& graph,
 			if(p.id == e.source_pin && p.kind == PinKind::Output) {
 				p1 = src_node->pos + p.pos;
 				pin_clr = p.color;
+				src_type = p.type_name;
+				src_kind_ok = true;
 				break;
 			}
 		for(const auto& p : tgt_node->pins)
-			if(p.id == e.target_pin && p.kind == PinKind::Input)
-				{ p2 = tgt_node->pos + p.pos; break; }
+			if(p.id == e.target_pin && p.kind == PinKind::Input) {
+				p2 = tgt_node->pos + p.pos;
+				tgt_type = p.type_name;
+				tgt_kind_ok = true;
+				break;
+			}
 
 		RouteRequest req;
 		req.source_pos = p1;
@@ -472,11 +482,16 @@ static void AddEdgeItem(Scene& scene, const EdgeDoc& e, const Graph& graph,
 		item.via_indices = pick(resp.via_indices);
 		item.src_pin_eid = e.source_node + ":out:" + e.source_pin;
 		item.tgt_pin_eid = e.target_node + ":in:"  + e.target_pin;
-		// Use source pin color if edge has no explicit stroke, otherwise edge doc color
-		item.line_clr = !IsNull(pin_clr) ? pin_clr : e.stroke_clr;
-		item.line_width = e.line_width;
+		// Use source pin color unless typed-pin validation marks this edge invalid.
+		bool type_mismatch = !src_type.IsEmpty() && !tgt_type.IsEmpty() && src_type != tgt_type;
+		bool invalid_edge = !src_kind_ok || !tgt_kind_ok || type_mismatch;
+		item.line_clr = invalid_edge ? Color(235, 70, 70)
+		                             : (!IsNull(pin_clr) ? pin_clr : e.stroke_clr);
+		item.line_width = invalid_edge ? max(2, e.line_width) : e.line_width;
 		item.directed = e.directed;
 		item.text = e.label;
+		if(invalid_edge && item.text.IsEmpty())
+			item.text = "TYPE!";
 	}
 }
 

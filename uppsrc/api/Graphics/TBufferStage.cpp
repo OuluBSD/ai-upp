@@ -834,7 +834,7 @@ TNG NativeColorBufferConstPtr BufferStageT<Gfx>::GetOutputTexture(bool reading_s
 	if (reading_self)
 		buf_i = (buf_i + 1) % 2;
 	
-	if (fb.color_buf[buf_i] == 0) {DLOG("BufferT::GetOutputTexture failed");}
+	if (fb.color_buf[buf_i] == 0) {RLOG("BufferT::GetOutputTexture failed");}
 	ASSERT(fb.color_buf[buf_i]);
 	return fb.color_buf[buf_i];
 }

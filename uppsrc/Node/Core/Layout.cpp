@@ -545,87 +545,122 @@ Rectf SmartPacker::ComputeGroupBounds(Graph& graph, const GroupDoc& g)
 // ScriptedLayout implementation
 // ---------------------------------------------------------------------------
 
-// Compute the bounding box of a grid layout with a given column count,
-// without applying positions. Returns Sizef(total_w, total_h).
-static Sizef ComputeGridSize(const Vector<NodeDoc*>& nodes, const Vector<int>& order,
-                              int cols, double node_padding)
+// Scene layout constants (must stay in sync with Scene.cpp)
+static const double LAY_NODE_W      = 200.0;
+static const double LAY_TITLE_H     = 26.0;
+static const double LAY_PIN_ROW_H   = 22.0;
+static const double LAY_SLOT_ROW_H  = 24.0;
+static const double LAY_DOCEDIT_H   = 6 * LAY_SLOT_ROW_H;
+static const double LAY_IMAGE_H     = 140.0;
+
+// Estimate rendered node height from its doc (mirrors Scene.cpp::AddNodeItems).
+static Sizef EstimateNodeSize(const NodeDoc& n)
 {
-	int N = nodes.GetCount();
-	if(N == 0 || cols <= 0) return Sizef(0, 0);
-	int rows = (N + cols - 1) / cols;
+	double w = n.sz.cx > 0 ? n.sz.cx : LAY_NODE_W;
 
-	// Per-column max-width, per-row max-height
-	Vector<double> col_w(cols, 0.0);
-	Vector<double> row_h(rows, 0.0);
+	int in_count = 0, out_count = 0;
+	for(const PinDoc& p : n.pins)
+		(p.kind == PinKind::Output ? out_count : in_count)++;
+	int pin_rows = max(in_count, out_count);
 
-	for(int oi = 0; oi < N; oi++) {
-		int i   = order[oi];
-		int col = oi % cols;
-		int row = oi / cols;
-		double w = nodes[i]->sz.cx > 0 ? nodes[i]->sz.cx : 200.0;
-		double h = nodes[i]->sz.cy > 0 ? nodes[i]->sz.cy : 150.0;
-		col_w[col] = max(col_w[col], w);
-		row_h[row] = max(row_h[row], h);
+	double slot_h = 0;
+	for(const WidgetSlotDoc& s : n.slots) {
+		if(s.type == "Image" || s.type == "IMAGE")
+			slot_h += LAY_IMAGE_H;
+		else if(s.type == "DocEdit")
+			slot_h += LAY_DOCEDIT_H;
+		else
+			slot_h += LAY_SLOT_ROW_H;
 	}
 
-	double total_w = 0, total_h = 0;
-	for(double cw : col_w) total_w += cw + node_padding;
-	for(double rh : row_h) total_h += rh + node_padding;
-	// Remove trailing padding
-	if(total_w > node_padding) total_w -= node_padding;
-	if(total_h > node_padding) total_h -= node_padding;
-
-	return Sizef(total_w, total_h);
+	double h = LAY_TITLE_H + pin_rows * LAY_PIN_ROW_H + slot_h + 8.0;
+	return Sizef(w, h);
 }
 
-// Apply a grid layout with a given column count and return tight bounding box.
-static Rectf ApplyGridLayout(Graph& graph, const Vector<NodeDoc*>& nodes,
-                              const Vector<int>& order, int cols, double node_padding)
+// Compute grid sizes for each node: width/height per slot in the grid.
+// Returns per-column widths and per-row heights.
+static void ComputeGridBands(const Vector<NodeDoc*>& nodes, const Vector<int>& order,
+                              int cols,
+                              Vector<double>& col_w, Vector<double>& row_h)
+{
+	int N = nodes.GetCount();
+	int rows = (N + cols - 1) / cols;
+	col_w.SetCount(cols, 0.0);
+	row_h.SetCount(rows, 0.0);
+	for(int oi = 0; oi < N; oi++) {
+		Sizef sz = EstimateNodeSize(*nodes[order[oi]]);
+		col_w[oi % cols] = max(col_w[oi % cols], sz.cx);
+		row_h[oi / cols] = max(row_h[oi / cols], sz.cy);
+	}
+}
+
+// Tight (minimum) bounding size for a given column count.
+static Sizef ComputeGridSize(const Vector<NodeDoc*>& nodes, const Vector<int>& order,
+                              int cols, double padding)
+{
+	Vector<double> col_w, row_h;
+	ComputeGridBands(nodes, order, cols, col_w, row_h);
+	double tw = 0, th = 0;
+	for(double v : col_w) tw += v + padding;
+	for(double v : row_h) th += v + padding;
+	if(tw > padding) tw -= padding;
+	if(th > padding) th -= padding;
+	return Sizef(tw, th);
+}
+
+// Apply a grid layout, distributing nodes to fill avail_w × avail_h.
+// If avail_w/avail_h <= 0, falls back to tight packing.
+static Rectf ApplyGridLayout(Graph& graph,
+                              const Vector<NodeDoc*>& nodes, const Vector<int>& order,
+                              int cols, double padding,
+                              double avail_w = 0, double avail_h = 0)
 {
 	int N = nodes.GetCount();
 	if(N == 0 || cols <= 0) return Rectf(0, 0, 0, 0);
 	int rows = (N + cols - 1) / cols;
 
-	Vector<double> col_w(cols, 0.0);
-	Vector<double> row_h(rows, 0.0);
+	Vector<double> col_w, row_h;
+	ComputeGridBands(nodes, order, cols, col_w, row_h);
 
-	for(int oi = 0; oi < N; oi++) {
-		int i   = order[oi];
-		int col = oi % cols;
-		int row = oi / cols;
-		double w = nodes[i]->sz.cx > 0 ? nodes[i]->sz.cx : 200.0;
-		double h = nodes[i]->sz.cy > 0 ? nodes[i]->sz.cy : 150.0;
-		col_w[col] = max(col_w[col], w);
-		row_h[row] = max(row_h[row], h);
-	}
+	// Compute tight totals
+	double tight_w = 0, tight_h = 0;
+	for(double v : col_w) tight_w += v;
+	for(double v : row_h) tight_h += v;
 
-	// Column/row offsets
-	Vector<double> col_x(cols, 0.0), row_y(rows, 0.0);
-	for(int c = 1; c < cols; c++) col_x[c] = col_x[c-1] + col_w[c-1] + node_padding;
-	for(int r = 1; r < rows; r++) row_y[r] = row_y[r-1] + row_h[r-1] + node_padding;
+	// Extra space to distribute as equal gaps between items
+	// gap = (avail - tight) / (count + 1)  — includes leading + trailing gaps
+	double gap_x = padding, gap_y = padding;
+	if(avail_w > tight_w && cols > 0)
+		gap_x = (avail_w - tight_w) / (cols + 1);
+	if(avail_h > tight_h && rows > 0)
+		gap_y = (avail_h - tight_h) / (rows + 1);
+
+	// Build column/row offsets
+	Vector<double> col_x(cols), row_y(rows);
+	col_x[0] = gap_x;
+	for(int c = 1; c < cols; c++) col_x[c] = col_x[c-1] + col_w[c-1] + gap_x;
+	row_y[0] = gap_y;
+	for(int r = 1; r < rows; r++) row_y[r] = row_y[r-1] + row_h[r-1] + gap_y;
 
 	Rectf tight(0, 0, 0, 0);
 	bool first = true;
 	for(int oi = 0; oi < N; oi++) {
 		int i   = order[oi];
-		int col = oi % cols;
-		int row = oi / cols;
-		double x = col_x[col];
-		double y = row_y[row];
-		double w = nodes[i]->sz.cx > 0 ? nodes[i]->sz.cx : 200.0;
-		double h = nodes[i]->sz.cy > 0 ? nodes[i]->sz.cy : 150.0;
+		double x = col_x[oi % cols];
+		double y = row_y[oi / cols];
+		Sizef sz = EstimateNodeSize(*nodes[i]);
 
 		nodes[i]->pos = Pointf(x, y);
 		graph.Invalidate(nodes[i]->id);
 
-		Rectf nr(x, y, x + w, y + h);
+		Rectf nr(x, y, x + sz.cx, y + sz.cy);
 		if(first) { tight = nr; first = false; }
-		else       { tight.Union(nr); }
+		else       tight.Union(nr);
 	}
 	return tight;
 }
 
-Rectf ScriptedLayout::PackGroupNodes(Graph& graph, const GroupDoc& grp)
+Rectf ScriptedLayout::PackGroupNodes(Graph& graph, const GroupDoc& grp, double coord_scale)
 {
 	// Collect member nodes
 	Vector<NodeDoc*> nodes;
@@ -636,8 +671,7 @@ Rectf ScriptedLayout::PackGroupNodes(Graph& graph, const GroupDoc& grp)
 	int N = nodes.GetCount();
 	if(N == 0) return Rectf(0, 0, 0, 0);
 
-	// Build topological order so nodes read left-to-right / top-to-bottom
-	// in the direction of data flow.
+	// Topological order — follows data-flow direction
 	const GraphDoc& doc = graph.GetDoc();
 	VectorMap<String, int> idx_map;
 	for(int i = 0; i < N; i++)
@@ -647,8 +681,8 @@ Rectf ScriptedLayout::PackGroupNodes(Graph& graph, const GroupDoc& grp)
 		int from, to;
 		Arc(int f, int t) : from(f), to(t) {}
 	};
-	Vector<int>  in_degree(N, 0);
-	Vector<Arc>  arcs;
+	Vector<int> in_degree(N, 0);
+	Vector<Arc> arcs;
 	for(const EdgeDoc& e : doc.edges) {
 		int fi = idx_map.Find(e.source_node);
 		int ti = idx_map.Find(e.target_node);
@@ -675,25 +709,26 @@ Rectf ScriptedLayout::PackGroupNodes(Graph& graph, const GroupDoc& grp)
 		for(int i = 0; i < N; i++) if(!vis[i]) order.Add(i);
 	}
 
-	// Look up the prescribed area for this group so we can score candidates.
-	// If not available, use a square-ish target aspect ratio.
-	double target_ar = 1.0;  // width / height
+	// Available inner area from prescribed rect (converted to world coords)
+	double avail_w = 0, avail_h = 0;
+	double target_ar = 1.0;
 	int ri = group_rects.Find(grp.vfs_path);
 	if(ri >= 0) {
-		double pw = group_rects[ri].Width()  - 2 * inner_padding_;
-		double ph = group_rects[ri].Height() - 2 * inner_padding_;
-		if(ph > 0) target_ar = pw / ph;
+		avail_w = max(0.0, group_rects[ri].Width()  * coord_scale - 2 * inner_padding_);
+		avail_h = max(0.0, group_rects[ri].Height() * coord_scale - 2 * inner_padding_);
+		if(avail_h > 0) target_ar = avail_w / avail_h;
 	}
 
-	// Try every column count from 1 to N and score by how well the aspect
-	// ratio matches the target.  Prefer layouts that are slightly wider than
-	// tall (to match left-to-right reading of a data-flow graph).
-	// Score = |log(actual_ar / target_ar)| — lower is better.
+	// Try every column count; score by aspect-ratio match to available area.
+	// Among ties, prefer the layout whose tight size is smallest (less waste).
 	int best_cols = 1;
 	double best_score = 1e300;
 	for(int cols = 1; cols <= N; cols++) {
 		Sizef sz = ComputeGridSize(nodes, order, cols, node_padding_);
 		if(sz.cy <= 0) continue;
+		// Reject if tight footprint already exceeds available area
+		if(avail_w > 0 && sz.cx > avail_w * 1.05) continue;
+		if(avail_h > 0 && sz.cy > avail_h * 1.05) continue;
 		double ar = sz.cx / sz.cy;
 		double score = fabs(log(ar / target_ar));
 		if(score < best_score) {
@@ -701,8 +736,24 @@ Rectf ScriptedLayout::PackGroupNodes(Graph& graph, const GroupDoc& grp)
 			best_cols  = cols;
 		}
 	}
+	// If every candidate was rejected (all exceeded area), fall back to
+	// the one whose tight area / available area overflow is smallest.
+	if(best_score >= 1e300) {
+		double best_overflow = 1e300;
+		for(int cols = 1; cols <= N; cols++) {
+			Sizef sz = ComputeGridSize(nodes, order, cols, node_padding_);
+			if(sz.cy <= 0) continue;
+			double overflow = max(avail_w > 0 ? sz.cx / avail_w : 1.0,
+			                      avail_h > 0 ? sz.cy / avail_h : 1.0);
+			if(overflow < best_overflow) {
+				best_overflow = overflow;
+				best_cols = cols;
+			}
+		}
+	}
 
-	return ApplyGridLayout(graph, nodes, order, best_cols, node_padding_);
+	// Apply layout filling the available area
+	return ApplyGridLayout(graph, nodes, order, best_cols, node_padding_, avail_w, avail_h);
 }
 
 void ScriptedLayout::Run(Graph& graph)
@@ -733,15 +784,8 @@ void ScriptedLayout::Run(Graph& graph)
 		    << " coord_scale=" << coord_scale);
 	}
 
-	// --- Step 2: For each group, auto-pack its nodes into local coords ---
-	// Collect the packing results and compute the required scale per group.
-
-	struct GroupPack : Moveable<GroupPack> {
-		String vfs_path;
-		Rectf  prescribed;   // from group_rects (source-space, unscaled)
-		Rectf  node_tight;   // bounding box of auto-laid nodes (local coords)
-	};
-	Vector<GroupPack> packs;
+	// --- Step 2 & 3: Pack each group's nodes into local (0-based) world coords,
+	// then offset by the group's world-space origin. ---
 
 	for(int gi = 0; gi < doc.groups.GetCount(); gi++) {
 		const GroupDoc& grp = doc.groups[gi];
@@ -750,85 +794,25 @@ void ScriptedLayout::Run(Graph& graph)
 			LOG("ScriptedLayout: no prescribed rect for group " << grp.vfs_path << ", skipping");
 			continue;
 		}
-		GroupPack gp;
-		gp.vfs_path   = grp.vfs_path;
-		gp.prescribed = group_rects[ri];
 
-		// Pack nodes into local space (starting at (inner_padding_, inner_padding_))
-		// temporarily — we'll re-offset them later
-		Rectf tight = PackGroupNodes(graph, grp);
-		gp.node_tight = tight;
-		packs.Add(pick(gp));
-	}
+		// PackGroupNodes places nodes in local coords [0..avail_w) × [0..avail_h)
+		PackGroupNodes(graph, grp, coord_scale);
 
-	// --- Step 3: Find the group needing the largest *scale-up* ---
-	// For each group, the available internal area (in world coords) is:
-	//   avail = prescribed.Size() * coord_scale - 2*inner_padding
-	// The packed nodes occupy node_tight.Size().
-	// group_scale = max(nodes_w / avail_w, nodes_h / avail_h)
-	// We want all groups to use the same (worst-case) group_scale so the
-	// layout proportions stay consistent.
-
-	double worst_scale = 1.0;
-
-	for(const GroupPack& gp : packs) {
-		double avail_w = gp.prescribed.Width()  * coord_scale - 2 * inner_padding_;
-		double avail_h = gp.prescribed.Height() * coord_scale - 2 * inner_padding_;
-		if(avail_w <= 0) avail_w = 1;
-		if(avail_h <= 0) avail_h = 1;
-
-		double nw = gp.node_tight.Width();
-		double nh = gp.node_tight.Height();
-		if(nw <= 0) nw = 1;
-		if(nh <= 0) nh = 1;
-
-		double gscale = max(nw / avail_w, nh / avail_h);
-		LOG("ScriptedLayout: group " << gp.vfs_path
-		    << " avail=" << avail_w << "x" << avail_h
-		    << " nodes=" << nw << "x" << nh
-		    << " gscale=" << gscale);
-		if(gscale > worst_scale) worst_scale = gscale;
-	}
-	LOG("ScriptedLayout: worst_scale=" << worst_scale
-	    << " coord_scale=" << coord_scale);
-
-	// --- Step 4: Apply uniform scale and position everything ---
-	// World-space group origin = prescribed.TopLeft() * coord_scale
-	// World-space group area   = prescribed.Size()    * coord_scale
-	// Node positions within group are re-packed with the uniform group_scale
-	// (i.e. the packed positions are multiplied by worst_scale so that the
-	//  tightest group exactly fills its area; all looser groups scale identically,
-	//  leaving whitespace).
-
-	for(const GroupPack& gp : packs) {
-		// World-space group top-left
-		double gx = gp.prescribed.left  * coord_scale;
-		double gy = gp.prescribed.top   * coord_scale;
-
-		// Repack nodes at (gx + inner_padding + local_pos * worst_scale, gy + inner_padding + ...)
-		const GroupDoc* grp = nullptr;
-		for(const GroupDoc& g : doc.groups)
-			if(g.vfs_path == gp.vfs_path) { grp = &g; break; }
-		if(!grp) continue;
-
-		// Gather nodes in order (reuse the same topo order by re-running PackGroupNodes
-		// with a scale applied).  Instead of calling PackGroupNodes again we scale
-		// the already-set node positions (they are currently in local coords starting from 0).
-		for(const EntityId& nid : grp->nodes) {
+		// Offset by world-space group top-left + inner padding
+		double gx = group_rects[ri].left * coord_scale + inner_padding_;
+		double gy = group_rects[ri].top  * coord_scale + inner_padding_;
+		for(const EntityId& nid : grp.nodes) {
 			NodeDoc* n = graph.FindNode(nid);
 			if(!n) continue;
-			// n->pos currently holds the local position set by PackGroupNodes
-			double local_x = n->pos.x;
-			double local_y = n->pos.y;
-			n->pos = Pointf(
-				gx + inner_padding_ + local_x * worst_scale,
-				gy + inner_padding_ + local_y * worst_scale
-			);
+			n->pos.x += gx;
+			n->pos.y += gy;
 			graph.Invalidate(n->id);
 		}
+		LOG("ScriptedLayout: group " << grp.vfs_path
+		    << " origin=(" << gx << "," << gy << ")");
 	}
 
-	// --- Step 5: Position standalone (ungrouped) nodes ---
+	// --- Step 3: Position standalone (ungrouped) nodes ---
 	// Build set of grouped node ids for fast lookup
 	Index<String> grouped;
 	for(const GroupDoc& g : doc.groups)

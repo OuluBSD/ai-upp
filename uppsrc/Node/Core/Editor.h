@@ -34,7 +34,7 @@ struct EditorState : public Moveable<EditorState> {
 	EntityId        link_source_pin;
 
 	// Edge routing style (affects all edges in scene)
-	EdgeStyle       edge_style = EdgeStyle::Curved;
+	EdgeStyle       edge_style = EdgeStyle::PCB45;
 
 	// Resize state
 	EntityId        resize_node_id;

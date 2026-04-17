@@ -808,19 +808,18 @@ void NodeViewportCtrl::RightDown(Point p, dword key)
 
 			// Theme submenu
 			{
-				EdgeStyle cur_style = editor ? editor->edge_style : EdgeStyle::Curved;
+				EdgeStyle cur_style = editor ? editor->edge_style : EdgeStyle::PCB45;
 				menu.Sub("Theme", [=](Bar& theme) {
 					// enabled=false for the current style (acts as checkmark indicator)
-					theme.Add(cur_style != EdgeStyle::Simple,         "Simple",                [=] { SetEdgeStyle(EdgeStyle::Simple);         });
-					theme.Add(cur_style != EdgeStyle::Curved,         "Curved",                [=] { SetEdgeStyle(EdgeStyle::Curved);         });
-					theme.Add(cur_style != EdgeStyle::Schematic,      "Schematic",             [=] { SetEdgeStyle(EdgeStyle::Schematic);      });
-					theme.Add(cur_style != EdgeStyle::RealisticTight, "Realistic Tight",       [=] { SetEdgeStyle(EdgeStyle::RealisticTight); });
-					theme.Add(cur_style != EdgeStyle::RealisticLoose, "Realistic Loose",       [=] { SetEdgeStyle(EdgeStyle::RealisticLoose); });
+					theme.Add(cur_style != EdgeStyle::Simple,         "Simple",          [=] { SetEdgeStyle(EdgeStyle::Simple);         });
+					theme.Add(cur_style != EdgeStyle::Curved,         "Curved",          [=] { SetEdgeStyle(EdgeStyle::Curved);         });
+					theme.Add(cur_style != EdgeStyle::Schematic,      "Schematic",       [=] { SetEdgeStyle(EdgeStyle::Schematic);      });
+					theme.Add(cur_style != EdgeStyle::RealisticTight, "Realistic Tight", [=] { SetEdgeStyle(EdgeStyle::RealisticTight); });
+					theme.Add(cur_style != EdgeStyle::RealisticLoose, "Realistic Loose", [=] { SetEdgeStyle(EdgeStyle::RealisticLoose); });
 					theme.Separator();
-					theme.Add(cur_style != EdgeStyle::PCBHVFast,      "PCB HV-Fast",           [=] { SetEdgeStyle(EdgeStyle::PCBHVFast);      });
-					theme.Add(cur_style != EdgeStyle::PCBHVLee,       "PCB HV-Lee (BFS)",      [=] { SetEdgeStyle(EdgeStyle::PCBHVLee);       });
-					theme.Add(cur_style != EdgeStyle::PCB45Fast,      "PCB 45-Fast",           [=] { SetEdgeStyle(EdgeStyle::PCB45Fast);      });
-					theme.Add(cur_style != EdgeStyle::PCB45Lee,       "PCB 45-Lee (BFS)",      [=] { SetEdgeStyle(EdgeStyle::PCB45Lee);       });
+					theme.Add(cur_style != EdgeStyle::PCBHVFast,      "PCB HV-Fast",     [=] { SetEdgeStyle(EdgeStyle::PCBHVFast);      });
+					theme.Add(cur_style != EdgeStyle::PCBHVLee,       "PCB HV (BFS)",    [=] { SetEdgeStyle(EdgeStyle::PCBHVLee);       });
+					theme.Add(cur_style != EdgeStyle::PCB45,          "PCB 45°",         [=] { SetEdgeStyle(EdgeStyle::PCB45);          });
 				});
 			}
 

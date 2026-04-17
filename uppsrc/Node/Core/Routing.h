@@ -15,8 +15,7 @@ enum class EdgeStyle {
 	RealisticLoose,  // catenary cable, heavy sag (~50% slack)
 	PCBHVFast,       // PCB Manhattan (H/V only), greedy layer assignment
 	PCBHVLee,        // PCB Manhattan (H/V only), Lee/BFS maze router
-	PCB45Fast,       // PCB H/V/45°, greedy layer assignment
-	PCB45Lee,        // PCB H/V/45°, Lee/BFS maze router
+	PCB45,           // PCB H/V/45°, Lee/BFS maze router (default)
 };
 
 struct RouteRequest {

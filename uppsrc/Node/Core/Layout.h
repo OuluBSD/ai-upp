@@ -102,6 +102,70 @@ public:
 	void Pack(Graph& graph);
 };
 
+// ---------------------------------------------------------------------------
+// ScriptedLayout: positions groups from prescribed coordinates,
+// auto-packs nodes inside each group, and uniformly scales so the
+// tightest group doesn't overflow its allotted area.
+//
+// Usage:
+//   ScriptedLayout sl;
+//   sl.SetGroupRect("/enc",  Rectf(1700, 100, 6000, 1700));
+//   sl.SetGroupRect("/dec",  Rectf(6100, 100, 10700, 1700));
+//   // … repeat for every group and top-level node …
+//   sl.SetScaleRef("/enc/node80", Rectf(1750, 430, 2450, 1630)); // known node rect for calibration
+//   sl.Run(graph);
+// ---------------------------------------------------------------------------
+
+class ScriptedLayout {
+public:
+	ScriptedLayout() {}
+
+	// Register a prescribed bounding rect for a group (vfs_path, e.g. "/enc")
+	// or for a standalone top-level node (node id).
+	// Format: [x, y, x+width, y+height] in the source coordinate space.
+	ScriptedLayout& SetGroupRect(const String& vfs_path_or_node_id, Rectf r)
+	{
+		group_rects.Add(vfs_path_or_node_id, r);
+		return *this;
+	}
+
+	// Provide a single reference node whose prescribed rect is known.
+	// This lets us compute how much the source coordinate space differs
+	// from the actual rendered node size, so we can scale group areas
+	// to guarantee the nodes fit.
+	// ref_node_id: node id (e.g. "enc_node80")
+	// prescribed_rect: the rect from the layout file for that node
+	ScriptedLayout& SetScaleRef(const String& ref_node_id, Rectf prescribed_rect)
+	{
+		ref_node_id_     = ref_node_id;
+		ref_prescribed_  = prescribed_rect;
+		has_scale_ref_   = true;
+		return *this;
+	}
+
+	// Padding around nodes inside a group
+	ScriptedLayout& NodePadding(double d)  { node_padding_ = d; return *this; }
+	// Padding between the group border and inner nodes
+	ScriptedLayout& GroupInnerPadding(double d) { inner_padding_ = d; return *this; }
+
+	// Main entry point
+	void Run(Graph& graph);
+
+private:
+	VectorMap<String, Rectf> group_rects;  // prescribed rects (source-space)
+
+	String ref_node_id_;
+	Rectf  ref_prescribed_;
+	bool   has_scale_ref_ = false;
+
+	double node_padding_  = 20.0;
+	double inner_padding_ = 25.0;
+
+	// Auto-pack nodes inside a group; return the bounding rect of the result
+	// (without inner_padding offset — just the tight box of the packed nodes).
+	Rectf PackGroupNodes(Graph& graph, const GroupDoc& grp);
+};
+
 } // namespace Node
 
 } // namespace Upp

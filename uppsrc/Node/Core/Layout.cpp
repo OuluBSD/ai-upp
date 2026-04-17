@@ -661,7 +661,83 @@ static Rectf ApplyGridLayout(Graph& graph,
 	return tight;
 }
 
-Rectf ScriptedLayout::PackGroupNodes(Graph& graph, const GroupDoc& grp, double /*unused*/)
+// ---------------------------------------------------------------------------
+// SA (Simulated Annealing) layout with GRASP initialization
+//
+// State  : position of each node (Pointf array indexed [0..N-1])
+// Energy : W_ov * total_overlap_area
+//        + W_bd * total_out_of_bounds_area
+//        + W_cn * sum of intra-group edge lengths
+//
+// GRASP init: topological grid layout (same as old grid search), provides
+//             a structured starting point with data-flow order preserved.
+// ---------------------------------------------------------------------------
+
+static const double SA_W_OV = 1.0;    // overlap weight
+static const double SA_W_BD = 2.0;    // boundary-penalty weight
+static const double SA_W_CN = 0.005;  // connection-distance weight
+
+// Compute axis-aligned overlap area between two rectangles (0 if no overlap).
+static double OverlapArea(const Rectf& a, const Rectf& b)
+{
+	double dx = min(a.right, b.right)  - max(a.left, b.left);
+	double dy = min(a.bottom, b.bottom) - max(a.top, b.top);
+	return (dx > 0 && dy > 0) ? dx * dy : 0.0;
+}
+
+// Area of the portion of rect r that lies outside the boundary [0..bw] x [0..bh].
+static double OutsideArea(const Rectf& r, double bw, double bh)
+{
+	double ix0 = max(r.left,   0.0),  ix1 = min(r.right,  bw);
+	double iy0 = max(r.top,    0.0),  iy1 = min(r.bottom, bh);
+	double inner = (ix1 > ix0 && iy1 > iy0) ? (ix1 - ix0) * (iy1 - iy0) : 0.0;
+	return r.Width() * r.Height() - inner;
+}
+
+struct SaState {
+	Vector<Pointf>  pos;    // position of node[i]
+	Vector<Sizef>   sz;     // size of node[i] (constant)
+	double          energy = 0;
+
+	SaState Copy() const {
+		SaState r;
+		r.pos    = clone(pos);
+		r.sz     = clone(sz);
+		r.energy = energy;
+		return r;
+	}
+};
+
+static double ComputeEnergy(const SaState& s, double bw, double bh,
+                             const Vector<int>& arc_from, const Vector<int>& arc_to)
+{
+	int N = s.pos.GetCount();
+	double ov = 0, bd = 0, cn = 0;
+
+	for(int i = 0; i < N; i++) {
+		Rectf ri(s.pos[i].x, s.pos[i].y,
+		         s.pos[i].x + s.sz[i].cx, s.pos[i].y + s.sz[i].cy);
+		bd += OutsideArea(ri, bw, bh);
+		for(int j = i + 1; j < N; j++) {
+			Rectf rj(s.pos[j].x, s.pos[j].y,
+			         s.pos[j].x + s.sz[j].cx, s.pos[j].y + s.sz[j].cy);
+			ov += OverlapArea(ri, rj);
+		}
+	}
+	for(int k = 0; k < arc_from.GetCount(); k++) {
+		int fi = arc_from[k], ti = arc_to[k];
+		double cx_f = s.pos[fi].x + s.sz[fi].cx * 0.5;
+		double cy_f = s.pos[fi].y + s.sz[fi].cy * 0.5;
+		double cx_t = s.pos[ti].x + s.sz[ti].cx * 0.5;
+		double cy_t = s.pos[ti].y + s.sz[ti].cy * 0.5;
+		double dx = cx_f - cx_t, dy = cy_f - cy_t;
+		cn += sqrt(dx*dx + dy*dy);
+	}
+	return SA_W_OV * ov + SA_W_BD * bd + SA_W_CN * cn;
+}
+
+Rectf ScriptedLayout::PackGroupNodes(Graph& graph, const GroupDoc& grp,
+                                      double avail_w, double avail_h)
 {
 	// Collect member nodes
 	Vector<NodeDoc*> nodes;
@@ -672,7 +748,7 @@ Rectf ScriptedLayout::PackGroupNodes(Graph& graph, const GroupDoc& grp, double /
 	int N = nodes.GetCount();
 	if(N == 0) return Rectf(0, 0, 0, 0);
 
-	// Topological order — follows data-flow direction
+	// --- Topological order (data-flow) ---
 	const GraphDoc& doc = graph.GetDoc();
 	VectorMap<String, int> idx_map;
 	for(int i = 0; i < N; i++)
@@ -684,6 +760,7 @@ Rectf ScriptedLayout::PackGroupNodes(Graph& graph, const GroupDoc& grp, double /
 	};
 	Vector<int> in_degree(N, 0);
 	Vector<Arc> arcs;
+	// Build arcs for edges within this group
 	for(const EdgeDoc& e : doc.edges) {
 		int fi = idx_map.Find(e.source_node);
 		int ti = idx_map.Find(e.target_node);
@@ -710,72 +787,211 @@ Rectf ScriptedLayout::PackGroupNodes(Graph& graph, const GroupDoc& grp, double /
 		for(int i = 0; i < N; i++) if(!vis[i]) order.Add(i);
 	}
 
-	// Available inner area from prescribed rect (converted to world coords)
-	double avail_w = 0, avail_h = 0;
-	double target_ar = 1.0;
-	int ri = group_rects.Find(grp.vfs_path);
-	if(ri >= 0) {
-		avail_w = max(0.0, group_rects[ri].Width()  - 2 * inner_padding_);
-		avail_h = max(0.0, group_rects[ri].Height() - 2 * inner_padding_);
-		if(avail_h > 0) target_ar = avail_w / avail_h;
-	}
-
-	// Try every column count; score by aspect-ratio match to available area.
-	// Among ties, prefer the layout whose tight size is smallest (less waste).
+	// --- Grid search for best column count (GRASP init) ---
+	double target_ar = (avail_h > 0) ? avail_w / avail_h : 1.0;
 	int best_cols = 1;
-	double best_score = 1e300;
-	for(int cols = 1; cols <= N; cols++) {
-		Sizef sz = ComputeGridSize(nodes, order, cols, node_padding_);
-		if(sz.cy <= 0) continue;
-		// Reject if tight footprint already exceeds available area
-		if(avail_w > 0 && sz.cx > avail_w * 1.05) continue;
-		if(avail_h > 0 && sz.cy > avail_h * 1.05) continue;
-		double ar = sz.cx / sz.cy;
-		double score = fabs(log(ar / target_ar));
-		if(score < best_score) {
-			best_score = score;
-			best_cols  = cols;
-		}
-	}
-	// If every candidate was rejected (all exceeded area), pick the layout
-	// whose tight size best matches the target aspect ratio (ignoring overflow),
-	// then expand avail_w/avail_h to fit so nodes aren't squeezed.
-	if(best_score >= 1e300) {
-		double best_ar_score = 1e300;
+	{
+		double best_score = 1e300;
 		for(int cols = 1; cols <= N; cols++) {
 			Sizef sz = ComputeGridSize(nodes, order, cols, node_padding_);
 			if(sz.cy <= 0) continue;
 			double ar = sz.cx / sz.cy;
 			double score = fabs(log(ar / target_ar));
-			if(score < best_ar_score) {
-				best_ar_score = score;
-				best_cols = cols;
-			}
+			if(score < best_score) { best_score = score; best_cols = cols; }
 		}
 	}
 
-	// Expand avail_w/avail_h to at least fit the chosen grid tightly,
-	// so ApplyGridLayout doesn't try to squash nodes into too small a space.
+	// Ensure avail fits the tight grid
 	{
 		Sizef tight = ComputeGridSize(nodes, order, best_cols, node_padding_);
 		avail_w = max(avail_w, tight.cx);
 		avail_h = max(avail_h, tight.cy);
 	}
 
-	// Apply layout filling the available area
-	return ApplyGridLayout(graph, nodes, order, best_cols, node_padding_, avail_w, avail_h);
+	// GRASP: use grid layout as initial SA state
+	ApplyGridLayout(graph, nodes, order, best_cols, node_padding_, avail_w, avail_h);
+
+	// --- Build SA state ---
+	SaState state;
+	state.pos.SetCount(N);
+	state.sz.SetCount(N);
+	for(int i = 0; i < N; i++) {
+		state.pos[i] = nodes[i]->pos;
+		state.sz[i]  = EstimateNodeSize(*nodes[i]);
+	}
+
+	// Arc arrays for energy computation
+	Vector<int> arc_from, arc_to;
+	for(const Arc& a : arcs) { arc_from.Add(a.from); arc_to.Add(a.to); }
+
+	state.energy = ComputeEnergy(state, avail_w, avail_h, arc_from, arc_to);
+
+	// If already clean (no overlap, no oob), skip SA entirely
+	if(state.energy < 1e-6) {
+		Rectf bounds(0, 0, 0, 0);
+		bool first = true;
+		for(int i = 0; i < N; i++) {
+			Rectf r(state.pos[i].x, state.pos[i].y,
+			        state.pos[i].x + state.sz[i].cx, state.pos[i].y + state.sz[i].cy);
+			if(first) { bounds = r; first = false; } else bounds.Union(r);
+		}
+		return bounds;
+	}
+
+	// --- Simulated Annealing ---
+	// Seeded RNG from group path hash → deterministic per-group
+	uint64 rng = 0xcbf29ce484222325ULL;
+	for(char c : grp.vfs_path) rng = (rng ^ (unsigned char)c) * 0x100000001b3ULL;
+	auto Rnd01 = [&]() -> double {
+		rng ^= rng >> 33; rng *= 0xff51afd7ed558ccdULL;
+		rng ^= rng >> 33; rng *= 0xc4ceb9fe1a85ec53ULL;
+		rng ^= rng >> 33;
+		return (rng >> 11) * (1.0 / (1ULL << 53));
+	};
+	auto RndInt = [&](int n) -> int { return (int)(Rnd01() * n) % n; };
+
+	double T_start = max(avail_w, avail_h) * 0.5;  // large initial temperature
+	double T_end   = node_padding_ * 0.01;
+	int    iters   = max(2000, N * 200);
+	double cool    = (T_end < T_start) ? pow(T_end / T_start, 1.0 / iters) : 0.995;
+	double T = T_start;
+
+	SaState best = state.Copy();
+
+	for(int it = 0; it < iters; it++, T *= cool) {
+		SaState trial = state.Copy();
+
+		if(N == 1 || Rnd01() < 0.7) {
+			// Move: translate one random node
+			int ni = RndInt(N);
+			double dx = (Rnd01() * 2 - 1) * T;
+			double dy = (Rnd01() * 2 - 1) * T;
+			trial.pos[ni].x = max(0.0, min(avail_w - trial.sz[ni].cx, state.pos[ni].x + dx));
+			trial.pos[ni].y = max(0.0, min(avail_h - trial.sz[ni].cy, state.pos[ni].y + dy));
+		} else {
+			// Move: swap two random nodes' positions
+			int a = RndInt(N), b = RndInt(N);
+			while(b == a) b = RndInt(N);
+			Swap(trial.pos[a], trial.pos[b]);
+		}
+
+		trial.energy = ComputeEnergy(trial, avail_w, avail_h, arc_from, arc_to);
+		double dE = trial.energy - state.energy;
+		if(dE < 0 || Rnd01() < exp(-dE / (T + 1e-12))) {
+			state = pick(trial);
+			if(state.energy < best.energy)
+				best = state.Copy();
+		}
+	}
+
+	// Write best positions back to nodes
+	Rectf bounds(0, 0, 0, 0);
+	bool first = true;
+	for(int i = 0; i < N; i++) {
+		nodes[i]->pos = best.pos[i];
+		graph.Invalidate(nodes[i]->id);
+		Rectf r(best.pos[i].x, best.pos[i].y,
+		        best.pos[i].x + best.sz[i].cx, best.pos[i].y + best.sz[i].cy);
+		if(first) { bounds = r; first = false; } else bounds.Union(r);
+	}
+	RLOG("SA group=" << grp.vfs_path << " N=" << N
+	     << " energy_start=" << best.energy
+	     << " iters=" << iters);
+	return bounds;
 }
 
 void ScriptedLayout::Run(Graph& graph)
 {
 	const GraphDoc& doc = graph.GetDoc();
 
-	// The prescribed rects are used directly as world coordinates.
-	// No coord_scale: the source coordinate space (e.g. 12000×6000 units)
-	// is already a sensible world space since node widths (~200px) fit
-	// comfortably inside group areas (~1600–4300px wide).
+	// --- Compute coord_scale ---
+	// We want the prescribed source coords scaled so that each group area
+	// (in world pixels) is large enough to comfortably contain its nodes.
+	//
+	// For each group that has a prescribed rect, compute:
+	//   group_scale = max( tight_node_w / (prescribed_w - 2*inner),
+	//                      tight_node_h / (prescribed_h - 2*inner) )
+	// where tight_node_* is the bounding size when all nodes are packed
+	// tightly at their estimated sizes.
+	//
+	// We want world_size = prescribed_size * coord_scale >= tight_size * margin
+	// => coord_scale >= tight_size * margin / prescribed_size  (per group)
+	// Take the maximum over all groups so the most space-constrained group fits.
 
-	// --- Step 1: Pack each group's nodes to fill its prescribed area ---
+	// coord_scale < 1: compress source coords so nodes fill the groups sensibly.
+	// coord_scale > 1: expand source coords if nodes need more space than prescribed.
+	// We start at 0 (unset) and take the max of all per-group requirements.
+	double coord_scale = 0.0;
+	const double FIT_MARGIN = 1.6;  // 60% headroom so nodes aren't packed wall-to-wall
+
+	for(int gi = 0; gi < doc.groups.GetCount(); gi++) {
+		const GroupDoc& grp = doc.groups[gi];
+		int ri = group_rects.Find(grp.vfs_path);
+		if(ri < 0) continue;
+		const Rectf& pr = group_rects[ri];
+
+		// Collect nodes
+		Vector<NodeDoc*> nodes;
+		for(const EntityId& nid : grp.nodes) {
+			NodeDoc* n = graph.FindNode(nid);
+			if(n) nodes.Add(n);
+		}
+		if(nodes.IsEmpty()) continue;
+
+		// Build a simple topological order for grid-size estimation
+		int N2 = nodes.GetCount();
+		VectorMap<String, int> idx2;
+		for(int i = 0; i < N2; i++) idx2.Add(nodes[i]->id, i);
+		Vector<int> in2(N2, 0);
+		for(const EdgeDoc& e : doc.edges) {
+			int fi = idx2.Find(e.source_node), ti = idx2.Find(e.target_node);
+			if(fi >= 0 && ti >= 0 && fi != ti) in2[ti]++;
+		}
+		Vector<int> ord2;
+		{
+			Vector<int> q, dg = clone(in2);
+			for(int i = 0; i < N2; i++) if(!dg[i]) q.Add(i);
+			while(!q.IsEmpty()) {
+				int c = q[0]; q.Remove(0); ord2.Add(c);
+				for(const EdgeDoc& e : doc.edges) {
+					int fi = idx2.Find(e.source_node), ti = idx2.Find(e.target_node);
+					if(fi == c && ti >= 0 && fi != ti && --dg[ti] == 0) q.Add(ti);
+				}
+			}
+			Vector<bool> vis(N2, false);
+			for(int i : ord2) vis[i] = true;
+			for(int i = 0; i < N2; i++) if(!vis[i]) ord2.Add(i);
+		}
+
+		// Best column count for this group's aspect ratio
+		double pr_ar = (pr.Height() > 0) ? pr.Width() / pr.Height() : 1.0;
+		int best_c = 1; double best_s = 1e300;
+		for(int c=1; c<=N2; c++) {
+			Sizef sz = ComputeGridSize(nodes, ord2, c, node_padding_);
+			if(sz.cy <= 0) continue;
+			double s = fabs(log(sz.cx/sz.cy / pr_ar));
+			if(s < best_s) { best_s = s; best_c = c; }
+		}
+		Sizef tight = ComputeGridSize(nodes, ord2, best_c, node_padding_);
+		tight.cx += 2 * inner_padding_;
+		tight.cy += 2 * inner_padding_;
+
+		// Scale needed so that prescribed_rect * scale >= tight * margin
+		double pr_w = pr.Width(),  pr_h = pr.Height();
+		if(pr_w > 0 && tight.cx > 0) {
+			double s = (tight.cx * FIT_MARGIN) / pr_w;
+			coord_scale = max(coord_scale, s);
+		}
+		if(pr_h > 0 && tight.cy > 0) {
+			double s = (tight.cy * FIT_MARGIN) / pr_h;
+			coord_scale = max(coord_scale, s);
+		}
+	}
+
+	if(coord_scale <= 0.0) coord_scale = 1.0;  // fallback if no groups have rects
+	RLOG("ScriptedLayout::Run coord_scale=" << coord_scale);
+
+	// --- Step 1: Pack each group's nodes to fill its (scaled) prescribed area ---
 
 	for(int gi = 0; gi < doc.groups.GetCount(); gi++) {
 		const GroupDoc& grp = doc.groups[gi];
@@ -784,10 +1000,18 @@ void ScriptedLayout::Run(Graph& graph)
 			RLOG("ScriptedLayout: no prescribed rect for group " << grp.vfs_path << ", skipping");
 			continue;
 		}
-		const Rectf& prescribed = group_rects[ri];
+		// Scale the prescribed rect
+		Rectf prescribed = group_rects[ri];
+		prescribed.left   *= coord_scale;
+		prescribed.top    *= coord_scale;
+		prescribed.right  *= coord_scale;
+		prescribed.bottom *= coord_scale;
 
-		// Pack nodes into local (0-based) coords, filling the available area
-		PackGroupNodes(graph, grp, 1.0);
+		double aw = max(0.0, prescribed.Width()  - 2 * inner_padding_);
+		double ah = max(0.0, prescribed.Height() - 2 * inner_padding_);
+
+		// Pack nodes into local (0-based) coords via SA+GRASP
+		PackGroupNodes(graph, grp, aw, ah);
 
 		// Shift from local coords to the group's world-space origin
 		double gx = prescribed.left + inner_padding_;
@@ -800,7 +1024,7 @@ void ScriptedLayout::Run(Graph& graph)
 			graph.Invalidate(n->id);
 		}
 		RLOG("ScriptedLayout: group " << grp.vfs_path
-		     << " rect=" << prescribed << " origin=(" << gx << "," << gy << ")");
+		     << " scaled_rect=" << prescribed << " origin=(" << gx << "," << gy << ")");
 	}
 
 	// --- Step 2: Position standalone (ungrouped) nodes ---
@@ -813,7 +1037,8 @@ void ScriptedLayout::Run(Graph& graph)
 		if(grouped.Find(n.id) >= 0) continue;
 		int ri = group_rects.Find(n.id);
 		if(ri < 0) continue;
-		n.pos = Pointf(group_rects[ri].left, group_rects[ri].top);
+		n.pos = Pointf(group_rects[ri].left  * coord_scale,
+		               group_rects[ri].top   * coord_scale);
 		graph.Invalidate(n.id);
 	}
 }

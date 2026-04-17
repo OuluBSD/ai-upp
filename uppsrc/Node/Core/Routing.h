@@ -64,6 +64,13 @@ public:
 	                EdgeStyle style);
 
 	virtual RouteResponse Route(const RouteRequest& req) override;
+
+	// PCB 2nd-pass helpers: only meaningful during a PCB batch.
+	// Count how many cells of req's path overlap with OTHER nets' traces.
+	// Returns 0 for non-PCB styles.
+	int  CountOverlapCells(const RouteResponse& resp, const String& net_id) const;
+	// Erase the cells belonging to net_id from the grid so it can be re-routed.
+	void UnmarkNet(const String& net_id);
 };
 
 } // namespace Node

@@ -31,7 +31,8 @@ class NodeViewportCtrl : public Ctrl {
 	bool                 drag_pending = false;    // left-drag DnD threshold not yet crossed
 	Point                drag_start_view;         // view-space origin for DnD threshold
 	bool                 fit_on_first_paint = false; // ZoomToFit on next Paint after SetGraph
-	bool                 vp_pristine = true;  // true until user first pans/zooms
+	bool                 vp_pristine = true;        // true until user first pans/zooms
+	bool                 auto_layout_active = false; // true while automatic layout is in effect; manual drag clears it
 	double               anim_phase = 0.0;          // for Realistic edge animation [0..1)
 	SmartPacker::LayoutOrientation layout_orientation = SmartPacker::LAYOUT_TALL;  // Layout orientation preference
 

@@ -591,6 +591,64 @@ void BaselineSceneBuilder::Build(Scene& scene, const Graph& graph)
 			Vector<Rectf> obs = CollectObstacles(e.source_node, e.target_node);
 			AddEdgeItem(scene, e, graph, router, edge_style, obs);
 		}
+
+		// PCB 2nd pass: find heavily overlapping edges and re-route them.
+		// Edges that got routed early "claimed" the best paths; later edges had
+		// to overlap them. We re-route the worst offenders on an updated grid
+		// (their own cells erased) so they can find cleaner paths.
+		bool is_pcb = (edge_style == EdgeStyle::PCBHV ||
+		               edge_style == EdgeStyle::PCB45 ||
+		               edge_style == EdgeStyle::PCBDiag);
+		if(is_pcb) {
+			// Build a list of (overlap_count, edge_index_in_doc, scene_item_index)
+			struct OverlapInfo : Moveable<OverlapInfo> {
+				int overlap;
+				int edge_idx;
+				int scene_item_idx; // index into scene.items
+			};
+			Vector<OverlapInfo> overlaps;
+			// Map edge id → scene item index
+			VectorMap<String, int> edge_to_scene;
+			for(int i = 0; i < scene.items.GetCount(); i++)
+				if(scene.items[i].type == SceneItem::EDGE)
+					edge_to_scene.Add(scene.items[i].entity_id, i);
+
+			for(int ei = 0; ei < doc.edges.GetCount(); ei++) {
+				const EdgeDoc& e = doc.edges[ei];
+				int si = edge_to_scene.Find(e.id);
+				if(si < 0) continue;
+				const SceneItem& item = scene.items[edge_to_scene[si]];
+				String net_id = e.source_pin + "\x01" + e.target_pin;
+				RouteResponse tmp;
+				tmp.path = clone(item.path); // path stored as world points
+				int ov = router.CountOverlapCells(tmp, net_id);
+				if(ov > 0) {
+					OverlapInfo oi;
+					oi.overlap = ov;
+					oi.edge_idx = ei;
+					oi.scene_item_idx = edge_to_scene[si];
+					overlaps.Add(pick(oi));
+				}
+			}
+			// Sort: most overlapping first — reroute up to the top 40% or max 8 edges
+			Sort(overlaps, [](const OverlapInfo& a, const OverlapInfo& b){ return a.overlap > b.overlap; });
+			int reroute_count = min(overlaps.GetCount(), max(1, overlaps.GetCount() * 2 / 5));
+			reroute_count = min(reroute_count, 8);
+			for(int ri = 0; ri < reroute_count; ri++) {
+				const OverlapInfo& oi = overlaps[ri];
+				const EdgeDoc& e = doc.edges[oi.edge_idx];
+				String net_id = e.source_pin + "\x01" + e.target_pin;
+				// Erase from grid so the path is "open" again
+				router.UnmarkNet(net_id);
+				// Remove the old scene item
+				scene.items.Remove(oi.scene_item_idx);
+				// Re-route
+				Vector<Rectf> obs = CollectObstacles(e.source_node, e.target_node);
+				AddEdgeItem(scene, e, graph, router, edge_style, obs);
+			}
+			LOG("PCB 2nd pass: re-routed " << reroute_count << " overlapping edges");
+		}
+
 		LOG("Full build: " << scene.items.GetCount() << " items");
 	}
 	else {
@@ -623,6 +681,36 @@ void BaselineSceneBuilder::Build(Scene& scene, const Graph& graph)
 			for(const auto& e : doc.edges) {
 				Vector<Rectf> obs = CollectObstacles(e.source_node, e.target_node);
 				AddEdgeItem(scene, e, graph, router, edge_style, obs);
+			}
+			// 2nd pass (same logic as full build above)
+			{
+				struct OverlapInfo2 : Moveable<OverlapInfo2> { int overlap, edge_idx, scene_item_idx; };
+				Vector<OverlapInfo2> overlaps2;
+				VectorMap<String, int> e2s;
+				for(int i = 0; i < scene.items.GetCount(); i++)
+					if(scene.items[i].type == SceneItem::EDGE)
+						e2s.Add(scene.items[i].entity_id, i);
+				for(int ei = 0; ei < doc.edges.GetCount(); ei++) {
+					const EdgeDoc& e = doc.edges[ei];
+					int si = e2s.Find(e.id);
+					if(si < 0) continue;
+					RouteResponse tmp; tmp.path = clone(scene.items[e2s[si]].path);
+					String net_id = e.source_pin + "\x01" + e.target_pin;
+					int ov = router.CountOverlapCells(tmp, net_id);
+					if(ov > 0) { OverlapInfo2 oi; oi.overlap=ov; oi.edge_idx=ei; oi.scene_item_idx=e2s[si]; overlaps2.Add(pick(oi)); }
+				}
+				Sort(overlaps2, [](const OverlapInfo2& a, const OverlapInfo2& b){ return a.overlap > b.overlap; });
+				int rc = min(overlaps2.GetCount(), max(1, overlaps2.GetCount() * 2 / 5));
+				rc = min(rc, 8);
+				for(int ri = 0; ri < rc; ri++) {
+					const OverlapInfo2& oi = overlaps2[ri];
+					const EdgeDoc& e = doc.edges[oi.edge_idx];
+					String net_id = e.source_pin + "\x01" + e.target_pin;
+					router.UnmarkNet(net_id);
+					scene.items.Remove(oi.scene_item_idx);
+					Vector<Rectf> obs = CollectObstacles(e.source_node, e.target_node);
+					AddEdgeItem(scene, e, graph, router, edge_style, obs);
+				}
 			}
 			LOG("Full build (PCB incremental promoted): " << scene.items.GetCount() << " items");
 		}

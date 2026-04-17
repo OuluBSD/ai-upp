@@ -354,20 +354,34 @@ void NodeViewportCtrl::ZoomToFit()
 void NodeViewportCtrl::ApplyLayout()
 {
 	if(!graph) return;
-	
-	// Run SmartPacker with current orientation
+
+	Size sz = GetSize();
+
 	SmartPacker packer;
 	packer.GroupPadding(30.0)
 	      .NodePadding(20.0)
-	      .GroupInnerPadding(25.0)
-	      .Orientation(layout_orientation)
-	      .Viewport(Rectf(0, 0, GetSize().cx, GetSize().cy));
-	
-	packer.Pack(*graph);
-	
-	// Rebuild scene and zoom to fit
-	builder.Build(scene, *graph);
-	vp.ZoomToFit(scene.index.bounds, GetSize());
+	      .GroupInnerPadding(25.0);
+
+	if(layout_orientation == SmartPacker::LAYOUT_WINDOW) {
+		// WINDOW: pack into the current viewport size; preserve aspect ratio but allow expansion
+		// Pass current ctrl size so SmartPacker can target that aspect ratio
+		packer.Orientation(SmartPacker::LAYOUT_TALL)
+		      .Viewport(Rectf(0, 0, sz.cx, sz.cy));
+		packer.Pack(*graph);
+
+		// After packing, fit the result into the window (may scale down)
+		builder.Build(scene, *graph);
+		if(sz.cx > 10 && sz.cy > 10)
+			vp.ZoomToFit(scene.index.bounds, sz);
+	} else {
+		packer.Orientation(layout_orientation)
+		      .Viewport(Rectf(0, 0, sz.cx, sz.cy));
+		packer.Pack(*graph);
+		builder.Build(scene, *graph);
+		vp.ZoomToFit(scene.index.bounds, sz);
+	}
+
+	auto_layout_active = true;
 	Refresh();
 }
 
@@ -568,6 +582,7 @@ void NodeViewportCtrl::MouseMove(Point p, dword key)
 		}
 		else if(editor->mode == EditorMode::DRAGGING) {
 			Pointf delta = vp.ViewToWorld(p) - vp.ViewToWorld(last_mouse_pos);
+			bool moved = false;
 			for(const auto& id : editor->selection) {
 				NodeDoc* n = graph->FindNode(id);
 				if(n) {
@@ -582,8 +597,11 @@ void NodeViewportCtrl::MouseMove(Point p, dword key)
 					arg.Add("x", new_pos.x);
 					arg.Add("y", new_pos.y);
 					history->Execute(CommandContext(*graph, *editor), dispatcher->Create("MoveNode", arg));
+					moved = true;
 				}
 			}
+			// Manual move breaks automatic layout
+			if(moved) auto_layout_active = false;
 		}
 		else if(editor->mode == EditorMode::MARQUEE) {
 			editor->marquee_rect = Rectf(editor->drag_start, vp.ViewToWorld(p)).Normalized();
@@ -881,14 +899,15 @@ void NodeViewportCtrl::RightDown(Point p, dword key)
 			menu.Separator();
 			NodeViewportCtrl* self = this;
 			menu.Sub("Layout Orientation", [=](Bar& layout_menu) {
-				layout_menu.Add(self->layout_orientation == SmartPacker::LAYOUT_TALL, "Tall (Shelf Packing)", [=] {
-					self->SetLayoutOrientation(SmartPacker::LAYOUT_TALL);
-					self->ApplyLayout();
-				});
-				layout_menu.Add(self->layout_orientation == SmartPacker::LAYOUT_WIDE, "Wide (Column Packing)", [=] {
-					self->SetLayoutOrientation(SmartPacker::LAYOUT_WIDE);
-					self->ApplyLayout();
-				});
+				auto AddLayout = [&](SmartPacker::LayoutOrientation o, const char* label) {
+					layout_menu.Add(true, label, [=] {
+						self->SetLayoutOrientation(o);
+						self->ApplyLayout();
+					}).Check(self->layout_orientation == o);
+				};
+				AddLayout(SmartPacker::LAYOUT_TALL,   "Tall (Shelf Packing)");
+				AddLayout(SmartPacker::LAYOUT_WIDE,   "Wide (Column Packing)");
+				AddLayout(SmartPacker::LAYOUT_WINDOW, "Window (Fit to View)");
 			});
 		}
 

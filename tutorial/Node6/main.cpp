@@ -34,11 +34,7 @@ static void ApplyGroupLayout(Graph& graph)
 	  .SetGroupRect("/test",    Rectf(4900, 3100, 4900+1600, 3100+1600))
 	  .SetGroupRect("/testdata",Rectf(6700, 3100, 6700+1600, 3100+1600))
 	  .SetGroupRect("/inf",     Rectf(8400, 1800, 8400+2400, 1800+2800))
-	  .SetGroupRect("/prep",    Rectf(11000,1900, 11000+1700,1900+1600))
-	  // Scale calibration: /enc/node80 in source coords is [1750,430,700,1200]
-	  // i.e. the node has prescribed width=700, height=1200.
-	  // The actual rendered node "enc_node80" gives us the real size.
-	  .SetScaleRef("enc_node80", Rectf(1750, 430, 1750+700, 430+1200));
+	  .SetGroupRect("/prep",    Rectf(11000,1900, 11000+1700,1900+1600));
 
 	sl.Run(graph);
 }

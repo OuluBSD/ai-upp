@@ -161,10 +161,9 @@ private:
 	double node_padding_  = 20.0;
 	double inner_padding_ = 25.0;
 
-	// Auto-pack nodes inside a group; return the bounding rect of the result
-	// (without inner_padding offset — just the tight box of the packed nodes).
-	// coord_scale converts source-space prescribed sizes to world coords.
-	Rectf PackGroupNodes(Graph& graph, const GroupDoc& grp, double coord_scale);
+	// Auto-pack nodes inside a group using SA+GRASP; return bounding rect.
+	// avail_w/avail_h: inner available area (already scaled to world coords).
+	Rectf PackGroupNodes(Graph& graph, const GroupDoc& grp, double avail_w, double avail_h);
 };
 
 } // namespace Node

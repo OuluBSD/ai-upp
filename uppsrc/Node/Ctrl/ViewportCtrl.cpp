@@ -351,35 +351,49 @@ void NodeViewportCtrl::ZoomToFit()
 	}
 }
 
+void NodeViewportCtrl::RegisterLayout(const String& name, Function<void(Graph&)> fn)
+{
+	// Replace if already registered under same name
+	for(auto& e : custom_layouts)
+		if(e.name == name) { e.fn = pick(fn); return; }
+	CustomLayoutEntry e;
+	e.name = name;
+	e.fn   = pick(fn);
+	custom_layouts.Add(pick(e));
+}
+
 void NodeViewportCtrl::ApplyLayout()
 {
 	if(!graph) return;
 
 	Size sz = GetSize();
 
+	if(!active_custom_layout.IsEmpty()) {
+		// Run the registered custom layout callback
+		for(auto& e : custom_layouts) {
+			if(e.name == active_custom_layout) {
+				e.fn(*graph);
+				if(force_refine)
+					ForceRefineGraph(*graph);
+				builder.Build(scene, *graph);
+				vp.ZoomToFit(scene.index.bounds, sz);
+				auto_layout_active = true;
+				Refresh();
+				return;
+			}
+		}
+	}
+
 	SmartPacker packer;
 	packer.GroupPadding(30.0)
 	      .NodePadding(20.0)
-	      .GroupInnerPadding(25.0);
-
-	if(layout_orientation == SmartPacker::LAYOUT_WINDOW) {
-		// WINDOW: pack into the current viewport size; preserve aspect ratio but allow expansion
-		// Pass current ctrl size so SmartPacker can target that aspect ratio
-		packer.Orientation(SmartPacker::LAYOUT_TALL)
-		      .Viewport(Rectf(0, 0, sz.cx, sz.cy));
-		packer.Pack(*graph);
-
-		// After packing, fit the result into the window (may scale down)
-		builder.Build(scene, *graph);
-		if(sz.cx > 10 && sz.cy > 10)
-			vp.ZoomToFit(scene.index.bounds, sz);
-	} else {
-		packer.Orientation(layout_orientation)
-		      .Viewport(Rectf(0, 0, sz.cx, sz.cy));
-		packer.Pack(*graph);
-		builder.Build(scene, *graph);
-		vp.ZoomToFit(scene.index.bounds, sz);
-	}
+	      .GroupInnerPadding(25.0)
+	      .Orientation(layout_orientation)
+	      .Viewport(Rectf(0, 0, sz.cx, sz.cy))
+	      .UseForceRefine(force_refine);
+	packer.Pack(*graph);
+	builder.Build(scene, *graph);
+	vp.ZoomToFit(scene.index.bounds, sz);
 
 	auto_layout_active = true;
 	Refresh();
@@ -899,15 +913,37 @@ void NodeViewportCtrl::RightDown(Point p, dword key)
 			menu.Separator();
 			NodeViewportCtrl* self = this;
 			menu.Sub("Layout Orientation", [=](Bar& layout_menu) {
+				bool no_custom = self->active_custom_layout.IsEmpty();
 				auto AddLayout = [&](SmartPacker::LayoutOrientation o, const char* label) {
 					layout_menu.Add(true, label, [=] {
 						self->SetLayoutOrientation(o);
 						self->ApplyLayout();
-					}).Check(self->layout_orientation == o);
+					}).Check(no_custom && self->layout_orientation == o);
 				};
 				AddLayout(SmartPacker::LAYOUT_TALL,   "Tall (Shelf Packing)");
 				AddLayout(SmartPacker::LAYOUT_WIDE,   "Wide (Column Packing)");
 				AddLayout(SmartPacker::LAYOUT_WINDOW, "Window (Fit to View)");
+				AddLayout(SmartPacker::LAYOUT_SPIRAL, "Spiral");
+				AddLayout(SmartPacker::LAYOUT_CIRCLE, "Circle");
+
+				// Custom layouts (registered by the host app)
+				if(!self->custom_layouts.IsEmpty()) {
+					layout_menu.Separator();
+					for(const auto& e : self->custom_layouts) {
+						String name = e.name;
+						layout_menu.Add(true, name, [=] {
+							self->active_custom_layout = name;
+							self->ApplyLayout();
+						}).Check(!no_custom && self->active_custom_layout == name);
+					}
+				}
+
+				// Force Refinement toggle — separated at the bottom
+				layout_menu.Separator();
+				layout_menu.Add(true, "Force Refinement", [=] {
+					self->SetForceRefine(!self->GetForceRefine());
+					self->ApplyLayout();
+				}).Check(self->GetForceRefine());
 			});
 		}
 

@@ -163,7 +163,8 @@ private:
 
 	// Auto-pack nodes inside a group; return the bounding rect of the result
 	// (without inner_padding offset — just the tight box of the packed nodes).
-	Rectf PackGroupNodes(Graph& graph, const GroupDoc& grp);
+	// coord_scale converts source-space prescribed sizes to world coords.
+	Rectf PackGroupNodes(Graph& graph, const GroupDoc& grp, double coord_scale);
 };
 
 } // namespace Node

@@ -393,14 +393,14 @@ static Vector<Point> LeeBFS(PcbGrid& grid, int L,
 		Vector<Point> p; p.Add(src); return p;
 	}
 
-	// BFS using flat array of prev-cell indices (-1 = unvisited)
+	// Weighted pathfinding: prev[] for path reconstruction, dist_arr[] for costs.
 	int N = grid.gw * grid.gh;
 	Vector<int> prev(N, -1);
 	int src_idx = src.y * grid.gw + src.x;
 	int dst_idx = dst.y * grid.gw + dst.x;
-	prev[src_idx] = src_idx; // mark visited
+	prev[src_idx] = src_idx; // mark source
 
-	// Directions: H/V first (lower cost), diagonals second
+	// Directions: H/V first, diagonals second
 	static const int DX4[] = { 1,-1, 0, 0 };
 	static const int DY4[] = { 0, 0, 1,-1 };
 	static const int DX8[] = { 1,-1, 0, 0, 1,-1, 1,-1 };
@@ -409,28 +409,49 @@ static Vector<Point> LeeBFS(PcbGrid& grid, int L,
 	const int* DY = allow_diagonal ? DY8 : DY4;
 	int NDIRS    = allow_diagonal ? 8 : 4;
 
-	// Use a simple deque-based BFS (0-1 BFS: diagonals cost 1.4 → use priority queue)
-	// For simplicity use a plain FIFO (unweighted) — all moves equal cost
-	Vector<int> queue;
-	queue.Reserve(N / 4);
-	queue.Add(src_idx);
-	int qi = 0;
+	// Weighted BFS: free cell costs 1, existing trace costs TRACE_COST.
+	// High penalty steers routes around already-routed traces.
+	// Uses a circular bucket queue (dial's algorithm) — O(N * max_cost).
+	const int TRACE_COST = 30;
+	const int MAX_COST   = TRACE_COST + 1;
+	Vector<int> dist_arr(N, INT_MAX);
+	dist_arr[src_idx] = 0;
+	// Bucket queue: buckets[cost % MAX_COST] holds cell indices at that distance
+	Vector<Vector<int>> buckets(MAX_COST);
+	buckets[0].Add(src_idx);
+	int cur_cost = 0;
+	int remaining = 1;
 
-	while (qi < queue.GetCount()) {
-		int cur = queue[qi++];
+	while (remaining > 0) {
+		// Advance to next non-empty bucket
+		while (buckets[cur_cost % MAX_COST].IsEmpty()) {
+			cur_cost++;
+			if (cur_cost > N * MAX_COST) break; // safety
+		}
+		if (cur_cost > N * MAX_COST) break;
+
+		int bucket_idx = cur_cost % MAX_COST;
+		int cur = buckets[bucket_idx].Pop();
+		remaining--;
+
+		if (dist_arr[cur] != cur_cost) continue; // stale entry
 		if (cur == dst_idx) break;
+
 		int cx = cur % grid.gw, cy = cur / grid.gw;
 		for (int d = 0; d < NDIRS; d++) {
 			int nx = cx + DX[d], ny = cy + DY[d];
 			if (!grid.InBounds(nx, ny)) continue;
 			int nidx = ny * grid.gw + nx;
-			if (prev[nidx] >= 0) continue; // already visited
 			int8_t cell = grid.Get(L, nx, ny);
 			if (cell == CELL_BLOCKED) continue;
-			// Allow traversal through existing traces (same net could reuse track)
-			// but treat them as slightly penalised (still allow)
-			prev[nidx] = cur;
-			queue.Add(nidx);
+			int step_cost = (cell == CELL_FREE) ? 1 : TRACE_COST;
+			int new_dist = cur_cost + step_cost;
+			if (new_dist < dist_arr[nidx]) {
+				dist_arr[nidx] = new_dist;
+				prev[nidx] = cur;
+				buckets[new_dist % MAX_COST].Add(nidx);
+				remaining++;
+			}
 		}
 	}
 

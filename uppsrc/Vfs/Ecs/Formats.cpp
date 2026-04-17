@@ -239,12 +239,104 @@ int ProgFormat::GetFrameSize() const {
 				SampleBase<BinarySample>::GetSampleSize();
 }
 
+namespace {
 
+String NeuralKindToString(NeuralFormat::Kind kind) {
+	switch (kind) {
+		case NeuralFormat::LAYER_STACK:		return "layer_stack";
+		case NeuralFormat::MODEL:			return "model";
+		case NeuralFormat::TENSOR:			return "tensor";
+		case NeuralFormat::METRICS:			return "metrics";
+		case NeuralFormat::SCRIPT:			return "script";
+		case NeuralFormat::HYPERPARAMETERS:	return "hyperparameters";
+		case NeuralFormat::DATASET:			return "dataset";
+		case NeuralFormat::REPORT:			return "report";
+		case NeuralFormat::UNKNOWN:
+		default:							return "unknown";
+	}
+}
 
+}
 
+void NeuralFormat::SetDefault() {
+	kind = UNKNOWN;
+	precision = 0;
+	flags = 0;
+	reserved = 0;
+	rank = 0;
+	for (int i = 0; i < shape_dims; i++)
+		shape[i] = 0;
+	aux = 0;
+	aux2 = 0;
+}
 
+void NeuralFormat::Set(Kind k, int rank) {
+	SetDefault();
+	kind = k;
+	this->rank = min(shape_dims, max(0, rank));
+	for (int i = 0; i < this->rank; i++)
+		shape[i] = 1;
+}
 
+String NeuralFormat::ToString() const {
+	String s;
+	s << "kind:" << NeuralKindToString((Kind)kind);
+	s << ", rank:" << rank;
+	if (rank > 0) {
+		s << ", shape:[";
+		for (int i = 0; i < rank; i++) {
+			if (i) s << ",";
+			s << shape[i];
+		}
+		s << "]";
+	}
+	return s;
+}
 
+bool NeuralFormat::IsValid() const {
+	if ((int)kind < (int)UNKNOWN || (int)kind >= (int)KIND_COUNT)
+		return false;
+	if (rank < 0 || rank > shape_dims)
+		return false;
+	for (int i = 0; i < rank; i++)
+		if (shape[i] <= 0)
+			return false;
+	return true;
+}
+
+bool NeuralFormat::IsSame(const NeuralFormat& fmt) const {
+	if (kind != fmt.kind || precision != fmt.precision || flags != fmt.flags || rank != fmt.rank)
+		return false;
+	for (int i = 0; i < shape_dims; i++)
+		if (shape[i] != fmt.shape[i])
+			return false;
+	return aux == fmt.aux && aux2 == fmt.aux2;
+}
+
+bool NeuralFormat::IsCopyCompatible(const NeuralFormat& fmt) const {
+	return kind == fmt.kind;
+}
+
+int NeuralFormat::GetSampleSize() const {
+	return 1;
+}
+
+int NeuralFormat::GetScalar() const {
+	if (rank <= 0)
+		return 1;
+	int s = 1;
+	for (int i = 0; i < rank; i++)
+		s *= max(1, shape[i]);
+	return s;
+}
+
+int NeuralFormat::GetFrameSize() const {
+	return GetScalar();
+}
+
+double NeuralFormat::GetFrameSeconds() const {
+	return 0;
+}
 
 #define PROXY(x) \
 	if (IsAudio()) return aud.x(); \
@@ -255,6 +347,7 @@ int ProgFormat::GetFrameSize() const {
 	if (IsFbo())   return fbo.x(); \
 	if (IsProg())  return prog.x(); \
 	if (IsGui())   return gui.x(); \
+	if (IsNeural()) return neural.x(); \
 	Panic("Invalid type");
 
 #define PROXY_(x,y) \
@@ -266,6 +359,7 @@ int ProgFormat::GetFrameSize() const {
 	if (IsFbo())   return fbo.x((const FboFormat&)y); \
 	if (IsProg())  return prog.x((const ProgFormat&)y); \
 	if (IsGui())   return gui.x((const GuiFormat&)y); \
+	if (IsNeural()) return neural.x((const NeuralFormat&)y); \
 	Panic("Invalid type");
 
 #define PROXY_CHK(x) ASSERT(IsValid()); PROXY(x)
@@ -281,6 +375,7 @@ String ValueFormat::ToString() const {
 	if (IsFbo())   return "FboFormat(" + vd.ToString() + ", " + fbo.ToString() + ")";
 	if (IsProg())   return "ProgFormat(" + vd.ToString() + ", " + prog.ToString() + ")";
 	if (IsGui())   return "GuiFormat(" + vd.ToString() + ", " + gui.ToString() + ")";
+	if (IsNeural()) return "NeuralFormat(" + vd.ToString() + ", " + neural.ToString() + ")";
 	if (vd.val == ValCls::ORDER) return "OrderFormat";
 	if (vd.val == ValCls::RECEIPT) return "ReceiptFormat";
 	return "Invalid ValueFormat";
@@ -424,6 +519,13 @@ void ValueFormat::SetGui(DevCls dev) {
 	memset(data, 0, sizeof(data));
 }
 
+void ValueFormat::SetNeural(DevCls dev, NeuralFormat::Kind kind, int rank) {
+	vd.dev = dev;
+	vd.val = ValCls::NEURAL;
+	memset(data, 0, sizeof(data));
+	neural.Set(kind, rank);
+}
+
 void ValueFormat::operator=(const ValueFormat& f) {
 	vd = f.vd;
 	memcpy(data, f.data, sizeof(data));
@@ -486,6 +588,9 @@ ValueFormat GetDefaultFormat(ValDevCls type) {
 	}
 	else if (type.val == ValCls::GUI) {
 		fmt.SetGui(type.dev);
+	}
+	else if (type.val == ValCls::NEURAL) {
+		fmt.SetNeural(type.dev, NeuralFormat::UNKNOWN, 0);
 	}
 	else {
 		TODO

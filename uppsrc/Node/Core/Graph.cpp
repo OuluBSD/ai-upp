@@ -161,26 +161,43 @@ Vector<ValidationMessage> Graph::Validate() const
 	}
 
 	for(const auto& e : doc.edges) {
+		const PinDoc* src_pin = nullptr;
+		const PinDoc* tgt_pin = nullptr;
+
 		int si = node_ids.Find(e.source_node);
 		if(si < 0)
 			res.Add(ValidationMessage(ValidationMessage::ERROR, "Edge " + e.id + " refers to non-existent source node " + e.source_node, e.id));
 		else if(!e.source_pin.IsEmpty()) {
-			bool found = false;
 			for(const auto& p : doc.nodes[si].pins)
-				if(p.id == e.source_pin) { found = true; break; }
-			if(!found)
+				if(p.id == e.source_pin) { src_pin = &p; break; }
+			if(!src_pin)
 				res.Add(ValidationMessage(ValidationMessage::ERROR, "Edge " + e.id + " refers to non-existent source pin " + e.source_pin + " in node " + e.source_node, e.id));
+			else if(src_pin->kind != PinKind::Output)
+				res.Add(ValidationMessage(ValidationMessage::ERROR, "Edge " + e.id + " source pin " + e.source_pin + " in node " + e.source_node + " is not an output pin", e.id));
 		}
 
 		int ti = node_ids.Find(e.target_node);
 		if(ti < 0)
 			res.Add(ValidationMessage(ValidationMessage::ERROR, "Edge " + e.id + " refers to non-existent target node " + e.target_node, e.id));
 		else if(!e.target_pin.IsEmpty()) {
-			bool found = false;
 			for(const auto& p : doc.nodes[ti].pins)
-				if(p.id == e.target_pin) { found = true; break; }
-			if(!found)
+				if(p.id == e.target_pin) { tgt_pin = &p; break; }
+			if(!tgt_pin)
 				res.Add(ValidationMessage(ValidationMessage::ERROR, "Edge " + e.id + " refers to non-existent target pin " + e.target_pin + " in node " + e.target_node, e.id));
+			else if(tgt_pin->kind != PinKind::Input)
+				res.Add(ValidationMessage(ValidationMessage::ERROR, "Edge " + e.id + " target pin " + e.target_pin + " in node " + e.target_node + " is not an input pin", e.id));
+		}
+
+		// Typed-pin validation: if both sides carry a concrete type name, they must match.
+		if(src_pin && tgt_pin && !src_pin->type_name.IsEmpty() && !tgt_pin->type_name.IsEmpty()) {
+			if(src_pin->type_name != tgt_pin->type_name) {
+				res.Add(ValidationMessage(
+					ValidationMessage::ERROR,
+					"Edge " + e.id + " type mismatch: " + e.source_node + "." + e.source_pin +
+					" (" + src_pin->type_name + ") -> " +
+					e.target_node + "." + e.target_pin + " (" + tgt_pin->type_name + ")",
+					e.id));
+			}
 		}
 	}
 

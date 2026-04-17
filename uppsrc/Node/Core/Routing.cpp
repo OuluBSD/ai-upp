@@ -329,8 +329,10 @@ struct PcbGrid {
 		double y1 = ceil((bounds.bottom + PAD) / cell) * cell;
 		gw = max(1, (int)((x1 - ox) / cell) + 1);
 		gh = max(1, (int)((y1 - oy) / cell) + 1);
-		gw = min(gw, 400);
-		gh = min(gh, 400);
+		// Cap at 800×800 to keep memory and BFS time reasonable.
+		// (400 was too small once coord_scale compresses node areas.)
+		gw = min(gw, 800);
+		gh = min(gh, 800);
 		int N = gw * gh;
 		for (int L = 0; L < 2; L++)
 			layer[L].SetCount(N, CELL_FREE);
@@ -773,8 +775,24 @@ void BezierRoutingPolicy::BeginBatch(const Rectf& scene_bounds,
 	               style == EdgeStyle::PCBDiag);
 	if (!is_pcb) { pcb_grid.Clear(); return; }
 
+	// Compute cell size from the node boxes so the grid resolution matches the
+	// actual scene scale.  Target: ~10 cells across the smallest node dimension,
+	// clamped to [2, 40] world units so the grid stays manageable.
+	double cell_size = 10.0;
+	if (!node_boxes.IsEmpty()) {
+		double min_dim = 1e18;
+		for (const Rectf& r : node_boxes) {
+			double w = r.Width(), h = r.Height();
+			if (w > 1) min_dim = min(min_dim, w);
+			if (h > 1) min_dim = min(min_dim, h);
+		}
+		if (min_dim < 1e17)
+			cell_size = clamp(min_dim / 10.0, 2.0, 40.0);
+	}
+
 	pcb_grid = MakeOne<PcbGrid>();
-	pcb_grid->Init(scene_bounds, 10.0, node_boxes);
+	pcb_grid->Init(scene_bounds, cell_size, node_boxes);
+	RLOG("PCB grid: cell=" << cell_size << " size=" << pcb_grid->gw << "x" << pcb_grid->gh);
 }
 
 } // namespace Node

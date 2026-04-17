@@ -36,7 +36,7 @@ public:
 class SmartPacker {
 public:
 	// Layout orientation
-	enum LayoutOrientation { LAYOUT_TALL, LAYOUT_WIDE };
+	enum LayoutOrientation { LAYOUT_TALL, LAYOUT_WIDE, LAYOUT_WINDOW };
 
 private:
 	// Configuration

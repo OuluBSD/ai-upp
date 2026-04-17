@@ -336,7 +336,7 @@ struct PcbGrid {
 			layer[L].SetCount(N, CELL_FREE);
 		cell_net.SetCount(N, -1);
 		net_ids.Clear();
-		const double NODE_PAD = cell * 0.5;
+		const double NODE_PAD = cell * 1.5; // 1.5 cells — keeps routes off the node edge
 		for (const Rectf& r : node_boxes) {
 			int x0c = max(0, (int)floor((r.left  - NODE_PAD - ox) / cell));
 			int y0c = max(0, (int)floor((r.top   - NODE_PAD - oy) / cell));

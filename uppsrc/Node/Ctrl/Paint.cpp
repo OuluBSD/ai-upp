@@ -207,8 +207,9 @@ static void PaintItem(Draw& w, const SceneItem& item, const Viewport& vp,
 	bool hovered = es && (es->hovered_entity == item.entity_id ||
 	               (es->hovered_type == SceneItem::NODE && item.entity_id.StartsWith(
 	                    item.entity_id.Left(item.entity_id.Find(':') < 0 ? item.entity_id.GetCount() : item.entity_id.Find(':')))));
-	// Simpler hovered check:
-	hovered = es && es->hovered_entity == item.entity_id;
+	// Hovered: direct hover OR peer highlight (shared-port edge/pin)
+	hovered = es && (es->hovered_entity == item.entity_id ||
+	                 es->highlight_peers.Find(item.entity_id) >= 0);
 
 	Color fill  = item.fill_clr;
 	Color line  = item.line_clr;

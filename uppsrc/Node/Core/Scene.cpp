@@ -182,33 +182,36 @@ static void AddNodeItems(Scene& scene, const NodeDoc& n, const Graph& graph, Bez
 		lbl.badge = false;
 	}
 
-	// Floating overlay badges above the node box (drawn in pass 4, on top of everything)
-	{
+	// Category text — right-aligned in title bar, smaller font, truncated
+	if(!n.category.IsEmpty()) {
+		const double MAX_CAT_W = node_w * 0.50; // at most half the title width
+		String cat = n.category;
+		// Hard-limit: truncate at 12 chars
+		if(cat.GetCount() > 12) cat = cat.Left(11) + "…";
+		Rectf title_rect(node_rect.left, node_rect.top, node_rect.right, node_rect.top + TITLE_H);
+		SceneItem& b = scene.Add();
+		b.type = SceneItem::LABEL; b.entity_id = n.id;
+		b.text = cat;
+		b.rect = Rectf(node_rect.right - MAX_CAT_W, title_rect.top,
+		               node_rect.right - 4,          title_rect.bottom);
+		b.font_height = 9; b.fill_clr = Null;
+		b.line_clr = Null;
+		b.text_clr = Color(130, 180, 130); // muted green tint, readable on dark title
+		b.badge = false; b.font_italic = true; // right-aligned via font_italic flag
+		b.overlay = false;
+	}
+	// Time badge — top-left, same style as category but default color
+	if(!n.time_str.IsEmpty()) {
 		const double BH = 14.0;
-		// Category badge — top-right, dark green
-		if(!n.category.IsEmpty()) {
-			double bw = min(90.0, node_w * 0.55);
-			Rectf r(node_rect.right - bw - 2, node_rect.top - BH - 2,
-			        node_rect.right - 2,       node_rect.top - 2);
-			SceneItem& b = scene.Add();
-			b.type = SceneItem::LABEL; b.entity_id = n.id;
-			b.text = n.category; b.rect = r;
-			b.font_height = 9; b.fill_clr = Color(30, 100, 50);
-			b.line_clr = Null; b.text_clr = Color(180, 255, 180);
-			b.badge = true; b.overlay = true; b.shape = 3;
-		}
-		// Time badge — top-left, same style as category but default color
-		if(!n.time_str.IsEmpty()) {
-			double bw = min(70.0, node_w * 0.4);
-			Rectf r(node_rect.left + 2, node_rect.top - BH - 2,
-			        node_rect.left + bw + 2, node_rect.top - 2);
-			SceneItem& b = scene.Add();
-			b.type = SceneItem::LABEL; b.entity_id = n.id;
-			b.text = n.time_str; b.rect = r;
-			b.font_height = 9; b.fill_clr = Color(45, 45, 55);
-			b.line_clr = Color(70, 70, 80); b.text_clr = Color(200, 200, 200);
-			b.badge = true; b.overlay = true; b.shape = 3;
-		}
+		double bw = min(70.0, node_w * 0.4);
+		Rectf r(node_rect.left + 2, node_rect.top - BH - 2,
+		        node_rect.left + bw + 2, node_rect.top - 2);
+		SceneItem& b = scene.Add();
+		b.type = SceneItem::LABEL; b.entity_id = n.id;
+		b.text = n.time_str; b.rect = r;
+		b.font_height = 9; b.fill_clr = Color(45, 45, 55);
+		b.line_clr = Color(70, 70, 80); b.text_clr = Color(200, 200, 200);
+		b.badge = true; b.overlay = true; b.shape = 3;
 	}
 
 	// Pin rows — pair inputs on left, outputs on right
@@ -586,8 +589,7 @@ void BaselineSceneBuilder::Build(Scene& scene, const Graph& graph)
 		// if only some edges are re-routed into a partial grid).
 		bool is_pcb = (edge_style == EdgeStyle::PCBHVFast ||
 		               edge_style == EdgeStyle::PCBHVLee  ||
-		               edge_style == EdgeStyle::PCB45Fast  ||
-		               edge_style == EdgeStyle::PCB45Lee);
+		               edge_style == EdgeStyle::PCB45);
 		if(is_pcb) {
 			// Re-run full build: clear and redo everything
 			scene.Clear();

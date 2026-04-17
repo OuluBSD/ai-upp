@@ -488,19 +488,48 @@ static void MarkPath(PcbGrid& grid, int L, const Vector<Point>& path)
 }
 
 // Route one net via Lee BFS.  Returns (cell path, layer used).
+// Temporarily unblocks src/dst cells so BFS can start/end exactly at pin positions.
 static Vector<Point> RoutePCBNet(PcbGrid& grid, Point src, Point dst,
                                  bool allow_diagonal, int& layer_used)
 {
+	// Pins sit on node edges — their cells are inside the blocked node margin.
+	// Temporarily clear them on both layers so BFS can enter/exit.
+	auto TempUnblock = [&](Point p, Vector<int8_t> saved[2]) {
+		for (int L = 0; L < 2; L++) {
+			if (grid.InBounds(p.x, p.y)) {
+				saved[L].SetCount(1);
+				saved[L][0] = grid.Get(L, p.x, p.y);
+				grid.Set(L, p.x, p.y, CELL_FREE);
+			}
+		}
+	};
+	auto Restore = [&](Point p, Vector<int8_t> saved[2]) {
+		for (int L = 0; L < 2; L++) {
+			if (grid.InBounds(p.x, p.y) && !saved[L].IsEmpty())
+				grid.Set(L, p.x, p.y, saved[L][0]);
+		}
+	};
+
+	Vector<int8_t> src_saved[2], dst_saved[2];
+	TempUnblock(src, src_saved);
+	TempUnblock(dst, dst_saved);
+
+	Vector<Point> result;
 	// Try layer 0 first
 	for (int L = 0; L < 2; L++) {
 		Vector<Point> path = LeeBFS(grid, L, src, dst, allow_diagonal);
 		if (!path.IsEmpty()) {
 			layer_used = L;
 			Vector<Point> compressed = CompressCellPath(path);
+			Restore(src, src_saved);
+			Restore(dst, dst_saved);
 			MarkPath(grid, L, path); // mark using full path (not compressed)
 			return compressed;
 		}
 	}
+
+	Restore(src, src_saved);
+	Restore(dst, dst_saved);
 	layer_used = 0;
 	Vector<Point> fallback;
 	fallback.Add(src); fallback.Add(dst);
@@ -604,61 +633,8 @@ static RouteResponse RoutePCBHVLee(const RouteRequest& req, PcbGrid& grid)
 	return CellPathToResponse(path, layer_used, grid, false);
 }
 
-// 45-Fast: greedy with diagonal moves allowed.
-static RouteResponse RoutePCB45Fast(const RouteRequest& req, PcbGrid& grid)
-{
-	Pointf src = req.source_pos, dst = req.target_pos;
-	Point csrc = grid.WorldToCell(src);
-	Point cdst = grid.WorldToCell(dst);
-
-	// Try direct H/V/45° decomposition on layer 0, then 1
-	// Δcell = (dcx, dcy). Use 45° for min(|dcx|,|dcy|), then straight.
-	int dcx = cdst.x - csrc.x, dcy = cdst.y - csrc.y;
-	int diag = min(abs(dcx), abs(dcy));
-	int sx = (dcx >= 0 ? 1 : -1), sy = (dcy >= 0 ? 1 : -1);
-
-	auto MakeDirect = [&]() -> Vector<Point> {
-		Vector<Point> pts;
-		pts.Add(csrc);
-		// diagonal portion
-		Point after_diag(csrc.x + sx * diag, csrc.y + sy * diag);
-		if (diag > 0) pts.Add(after_diag);
-		if (after_diag != cdst) pts.Add(cdst);
-		return pts;
-	};
-
-	auto PathFreeOnLayer = [&](const Vector<Point>& pts, int L) -> bool {
-		for (int i = 0; i + 1 < pts.GetCount(); i++) {
-			int x0 = pts[i].x, y0 = pts[i].y, x1 = pts[i+1].x, y1 = pts[i+1].y;
-			int steps = max(abs(x1-x0), abs(y1-y0));
-			for (int s = 0; s <= steps; s++) {
-				int cx = x0 + (steps > 0 ? (x1-x0)*s/steps : 0);
-				int cy = y0 + (steps > 0 ? (y1-y0)*s/steps : 0);
-				if (!grid.InBounds(cx, cy)) continue;
-				int8_t c = grid.Get(L, cx, cy);
-				if (c == CELL_BLOCKED || c == CELL_TRACE0 || c == CELL_TRACE1)
-					return false;
-			}
-		}
-		return true;
-	};
-
-	for (int L = 0; L < 2; L++) {
-		Vector<Point> direct = MakeDirect();
-		if (PathFreeOnLayer(direct, L)) {
-			MarkPath(grid, L, direct);
-			return CellPathToResponse(direct, L, grid, true);
-		}
-	}
-
-	// BFS with diagonals
-	int layer_used = 0;
-	Vector<Point> path = RoutePCBNet(grid, csrc, cdst, true, layer_used);
-	return CellPathToResponse(path, layer_used, grid, true);
-}
-
-// 45-Lee: full Lee BFS with diagonal moves (8-connected).
-static RouteResponse RoutePCB45Lee(const RouteRequest& req, PcbGrid& grid)
+// PCB45: Lee/BFS with H/V/45° moves (8-connected).
+static RouteResponse RoutePCB45(const RouteRequest& req, PcbGrid& grid)
 {
 	Point csrc = grid.WorldToCell(req.source_pos);
 	Point cdst = grid.WorldToCell(req.target_pos);
@@ -679,8 +655,7 @@ RouteResponse BezierRoutingPolicy::Route(const RouteRequest& req)
 	case EdgeStyle::RealisticLoose: return RouteRealistic(req, 0.50);
 	case EdgeStyle::PCBHVFast:      return RoutePCBHVFast(req, *pcb_grid);
 	case EdgeStyle::PCBHVLee:       return RoutePCBHVLee(req, *pcb_grid);
-	case EdgeStyle::PCB45Fast:      return RoutePCB45Fast(req, *pcb_grid);
-	case EdgeStyle::PCB45Lee:       return RoutePCB45Lee(req, *pcb_grid);
+	case EdgeStyle::PCB45:          return RoutePCB45(req, *pcb_grid);
 	default:                        return RouteSimple(req);
 	}
 }
@@ -690,7 +665,7 @@ void BezierRoutingPolicy::BeginBatch(const Rectf& scene_bounds,
                                      EdgeStyle style)
 {
 	bool is_pcb = (style == EdgeStyle::PCBHVFast || style == EdgeStyle::PCBHVLee ||
-	               style == EdgeStyle::PCB45Fast  || style == EdgeStyle::PCB45Lee);
+	               style == EdgeStyle::PCB45);
 	if (!is_pcb) { pcb_grid.Clear(); return; }
 
 	pcb_grid = MakeOne<PcbGrid>();

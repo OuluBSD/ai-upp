@@ -22,6 +22,9 @@ struct EditorState : public Moveable<EditorState> {
 	Index<EntityId> selection;
 	EntityId        hovered_entity;
 	SceneItem::Type hovered_type;
+	// Peer highlights: edges that share a port with the hovered edge, plus their pin eids.
+	// Updated by the viewport when hovered_entity changes.
+	Index<EntityId> highlight_peers;
 	
 	EntityId        focused_widget; // EntityId of the slot that has focus
 	

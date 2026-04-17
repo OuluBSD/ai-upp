@@ -223,8 +223,13 @@ static void AddNodeItems(Scene& scene, const NodeDoc& n, const Graph& graph, Bez
 	double pin_area_top = node_rect.top + TITLE_H + 4.0;
 	int max_rows = max(inputs.GetCount(), outputs.GetCount());
 
+	// Grid cell size (must match PcbGrid::cell = 10.0)
+	const double GRID = 10.0;
+
 	for (int row = 0; row < max_rows; row++) {
-		double row_cy = pin_area_top + row * PIN_ROW_H + PIN_ROW_H / 2.0;
+		// Snap pin Y to nearest grid line so PCB routes connect cleanly
+		double row_cy_raw = pin_area_top + row * PIN_ROW_H + PIN_ROW_H / 2.0;
+		double row_cy = round(row_cy_raw / GRID) * GRID;
 
 		// Input pin (left edge)
 		// Entity ID format: "nodeId:in:pinId" — the "in:"/"out:" infix makes
@@ -462,9 +467,11 @@ static void AddEdgeItem(Scene& scene, const EdgeDoc& e, const Graph& graph,
 		SceneItem& item = scene.Add();
 		item.type = SceneItem::EDGE;
 		item.entity_id = e.id;
-		item.path       = pick(resp.path);
-		item.seg_layer  = pick(resp.seg_layer);
+		item.path        = pick(resp.path);
+		item.seg_layer   = pick(resp.seg_layer);
 		item.via_indices = pick(resp.via_indices);
+		item.src_pin_eid = e.source_node + ":out:" + e.source_pin;
+		item.tgt_pin_eid = e.target_node + ":in:"  + e.target_pin;
 		// Use source pin color if edge has no explicit stroke, otherwise edge doc color
 		item.line_clr = !IsNull(pin_clr) ? pin_clr : e.stroke_clr;
 		item.line_width = e.line_width;

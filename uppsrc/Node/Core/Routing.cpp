@@ -303,8 +303,8 @@ static RouteResponse RouteRealistic(const RouteRequest& req, double slack_factor
 enum : int8_t {
 	CELL_FREE    = 0,
 	CELL_BLOCKED = 1,   // node box
-	CELL_TRACE0  = 2,   // front-copper trace
-	CELL_TRACE1  = 3,   // back-copper trace
+	CELL_TRACE0  = 2,   // trace (single layer — second value kept for compat)
+	CELL_TRACE1  = 3,   // unused (was back-copper; kept so old MarkPath values still decode)
 };
 
 // A 2-layer grid.  Layer index 0 = front, 1 = back.
@@ -392,6 +392,15 @@ struct PcbGrid {
 // allow_diagonal: if true, 8-connected; if false, 4-connected (pure H/V).
 // net_id: current route's net — same-net trace cells are not penalized.
 // diag_only: if true, heavily penalize H/V moves to force diagonal routing.
+//
+// Overlap penalty model: the cost of entering a trace cell is not flat —
+// it grows with how many trace cells the path has already accumulated.
+// This makes short forced crossings cheap (crossing one trace = small cost)
+// while long overlapping runs become increasingly expensive so the router
+// actively detours instead of riding an existing trace for 20+ cells.
+//   base_penalty     = COST_TRACE_BASE (per cell, always added)
+//   cumulative_bonus = overlap_run * COST_TRACE_GROWTH (per extra cell in run)
+// The "overlap_run" counter is stored in a separate array (same indexing as dist).
 static Vector<Point> LeeBFS(PcbGrid& grid, int L,
                              Point src, Point dst,
                              bool allow_diagonal,
@@ -421,29 +430,39 @@ static Vector<Point> LeeBFS(PcbGrid& grid, int L,
 
 	// Weighted pathfinding using Dial's bucket queue.
 	// Costs (integer, scaled ×10 for sub-unit accuracy):
-	//   H/V move:        10 normal  / 40 diag_only  (1.0 cells)
-	//   Diagonal move:   14 normal  / 10 diag_only  (√2 ≈ 1.414 cells)
-	//   Turn penalty:     3  (slight deterrent against zigzag)
-	//   Trace cell:     +300 (strong deterrent against overlapping existing routes)
-	const int COST_HV    = diag_only ? 40 : 10;
-	const int COST_DIAG  = diag_only ? 10 : 14;
-	const int COST_TURN  =  3;
-	const int COST_TRACE = 300;
-	const int MAX_STEP   = max(COST_HV, COST_DIAG) + COST_TURN + COST_TRACE;
+	//   H/V move:              10 normal  / 40 diag_only
+	//   Diagonal move:         14 normal  / 10 diag_only
+	//   Turn penalty:           3  (slight deterrent against zigzag)
+	//   Trace base penalty:   +30  (per overlapping cell, always)
+	//   Trace growth penalty: +20  per cell already overlapping on this path
+	//      → 1st overlap cell: +30,  2nd: +50,  3rd: +70,  10th: +210 …
+	//      → long runs become very expensive; single forced crossings stay cheap
+	const int COST_HV           = diag_only ? 40 : 10;
+	const int COST_DIAG         = diag_only ? 10 : 14;
+	const int COST_TURN         =  3;
+	const int COST_TRACE_BASE   = 30;   // entering 1st overlap cell costs this
+	const int COST_TRACE_GROWTH = 20;   // each additional overlap cell costs this more
+	// Worst-case single step: move + turn + base + growth capped at e.g. 10 cells deep
+	const int MAX_OVERLAP_DEPTH = 60;   // cap growth at this run length for bucket sizing
+	const int MAX_STEP = max(COST_HV, COST_DIAG) + COST_TURN +
+	                     COST_TRACE_BASE + MAX_OVERLAP_DEPTH * COST_TRACE_GROWTH;
 	const int MAX_BUCKET = MAX_STEP + 1;
 
 	int N = grid.gw * grid.gh;
-	// prev[]: parent cell index for path reconstruction (-1 = unvisited)
-	// dir[]:  direction index used to reach that cell (for turn-penalty)
-	Vector<int>   prev(N, -1);
+	// prev[]:    parent cell index for path reconstruction (-1 = unvisited)
+	// dir_arr[]: direction index used to reach that cell (for turn-penalty)
+	// ovl_arr[]: number of trace cells accumulated on best path to this cell
+	Vector<int>    prev(N, -1);
 	Vector<int8_t> dir_arr(N, -1);
-	Vector<int>   dist_arr(N, INT_MAX);
+	Vector<int>    dist_arr(N, INT_MAX);
+	Vector<int16_t> ovl_arr(N, 0);  // overlap-cell run count at best path
 
 	int src_idx = src.y * grid.gw + src.x;
 	int dst_idx = dst.y * grid.gw + dst.x;
 	prev[src_idx]    = src_idx;
 	dist_arr[src_idx] = 0;
 	dir_arr[src_idx]  = -1;
+	ovl_arr[src_idx]  = 0;
 
 	// Directions: 0-3 = H/V, 4-7 = diagonals
 	static const int DX4[] = { 1,-1, 0, 0 };
@@ -474,7 +493,9 @@ static Vector<Point> LeeBFS(PcbGrid& grid, int L,
 		if (cur == dst_idx) break;
 
 		int cx = cur % grid.gw, cy = cur / grid.gw;
-		int cur_dir = dir_arr[cur];
+		int cur_dir  = dir_arr[cur];
+		int cur_ovl  = ovl_arr[cur];
+
 		for (int d = 0; d < NDIRS; d++) {
 			int nx = cx + DX[d], ny = cy + DY[d];
 			if (!grid.InBounds(nx, ny)) continue;
@@ -484,15 +505,24 @@ static Vector<Point> LeeBFS(PcbGrid& grid, int L,
 
 			int step = (d < 4) ? COST_HV : COST_DIAG;           // move cost
 			if (cur_dir >= 0 && d != cur_dir) step += COST_TURN; // turn penalty
-			// Trace overlap penalty — waived for same-net traces (shared ports)
-			if (cell != CELL_FREE && !grid.IsSameNet(nidx, net_id))
-				step += COST_TRACE;
+
+			// Distance-proportional overlap penalty:
+			// entering a trace cell costs base + growth * (how many we've already passed).
+			// Same-net cells (shared ports) are free.
+			int16_t new_ovl = cur_ovl;
+			if (cell != CELL_FREE && !grid.IsSameNet(nidx, net_id)) {
+				int ovl_capped = (int)cur_ovl < MAX_OVERLAP_DEPTH ? (int)cur_ovl : MAX_OVERLAP_DEPTH;
+				step += COST_TRACE_BASE + ovl_capped * COST_TRACE_GROWTH;
+				int next_ovl = (int)cur_ovl + 1;
+				new_ovl = (int16_t)(next_ovl < MAX_OVERLAP_DEPTH ? next_ovl : MAX_OVERLAP_DEPTH);
+			}
 
 			int new_dist = cur_cost + step;
 			if (new_dist < dist_arr[nidx]) {
 				dist_arr[nidx] = new_dist;
 				prev[nidx]     = cur;
 				dir_arr[nidx]  = (int8_t)d;
+				ovl_arr[nidx]  = new_ovl;
 				buckets[new_dist % MAX_BUCKET].Add(nidx);
 				remaining++;
 			}
@@ -591,23 +621,30 @@ static Vector<Point> RoutePCBNet(PcbGrid& grid, Point src, Point dst,
 	Unblock(src);
 	Unblock(dst);
 
-	// Try layer 0 first, then layer 1
-	for (int L = 0; L < 2; L++) {
-		Vector<Point> path = LeeBFS(grid, L, src, dst, allow_diagonal, net_id, diag_only);
-		if (!path.IsEmpty()) {
-			layer_used = L;
-			Vector<Point> compressed = CompressCellPath(path);
-			Restore();
-			MarkPath(grid, L, path, net_id);
-			return compressed;
-		}
+	// Always route on layer 0 (single-layer PCB).
+	// The weighted BFS prefers free cells and detours around existing traces.
+	// Only fall back to layer 1 if layer 0 has no geometric path at all
+	// (i.e. the destination is physically unreachable through unblocked cells).
+	Vector<Point> path = LeeBFS(grid, 0, src, dst, allow_diagonal, net_id, diag_only);
+	if (path.IsEmpty()) {
+		// Layer 0 is geometrically blocked — try layer 1 as last resort
+		path = LeeBFS(grid, 1, src, dst, allow_diagonal, net_id, diag_only);
+		layer_used = path.IsEmpty() ? 0 : 1;
+	} else {
+		layer_used = 0;
 	}
 
+	if (path.IsEmpty()) {
+		Restore();
+		Vector<Point> fallback;
+		fallback.Add(src); fallback.Add(dst);
+		return fallback;
+	}
+
+	Vector<Point> compressed = CompressCellPath(path);
 	Restore();
-	layer_used = 0;
-	Vector<Point> fallback;
-	fallback.Add(src); fallback.Add(dst);
-	return fallback;
+	MarkPath(grid, layer_used, path, net_id);
+	return compressed;
 }
 
 // Convert cell path to world-space RouteResponse.

@@ -103,7 +103,7 @@ public:
 class BaselineSceneBuilder : public SceneBuilder {
 	mutable uint64 last_graph_serial = 0;
 public:
-	EdgeStyle edge_style = EdgeStyle::Curved;
+	EdgeStyle edge_style = EdgeStyle::PCB45;
 
 	virtual bool IsDirty(const Graph& graph) const override;
 	virtual void Build(Scene& scene, const Graph& graph) override;

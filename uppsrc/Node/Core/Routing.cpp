@@ -488,48 +488,51 @@ static void MarkPath(PcbGrid& grid, int L, const Vector<Point>& path)
 }
 
 // Route one net via Lee BFS.  Returns (cell path, layer used).
-// Temporarily unblocks src/dst cells so BFS can start/end exactly at pin positions.
+// Temporarily unblocks a 1-cell radius around src/dst endpoints so BFS can
+// enter/exit through the node-boundary margin that Init() marks as blocked.
 static Vector<Point> RoutePCBNet(PcbGrid& grid, Point src, Point dst,
                                  bool allow_diagonal, int& layer_used)
 {
-	// Pins sit on node edges — their cells are inside the blocked node margin.
-	// Temporarily clear them on both layers so BFS can enter/exit.
-	auto TempUnblock = [&](Point p, Vector<int8_t> saved[2]) {
-		for (int L = 0; L < 2; L++) {
-			if (grid.InBounds(p.x, p.y)) {
-				saved[L].SetCount(1);
-				saved[L][0] = grid.Get(L, p.x, p.y);
-				grid.Set(L, p.x, p.y, CELL_FREE);
+	// Save and unblock BLOCKED cells in a 1-cell radius around each endpoint
+	struct SavedCell : Moveable<SavedCell> { Point p; int L; int8_t val; };
+	Vector<SavedCell> saved;
+	const int R = 1;
+	auto Unblock = [&](Point center) {
+		for (int dy = -R; dy <= R; dy++)
+			for (int dx = -R; dx <= R; dx++) {
+				Point q(center.x + dx, center.y + dy);
+				if (!grid.InBounds(q.x, q.y)) continue;
+				for (int L = 0; L < 2; L++) {
+					int8_t v = grid.Get(L, q.x, q.y);
+					if (v == CELL_BLOCKED) {
+						SavedCell sc; sc.p = q; sc.L = L; sc.val = v;
+						saved.Add(pick(sc));
+						grid.Set(L, q.x, q.y, CELL_FREE);
+					}
+				}
 			}
-		}
 	};
-	auto Restore = [&](Point p, Vector<int8_t> saved[2]) {
-		for (int L = 0; L < 2; L++) {
-			if (grid.InBounds(p.x, p.y) && !saved[L].IsEmpty())
-				grid.Set(L, p.x, p.y, saved[L][0]);
-		}
+	auto Restore = [&]() {
+		for (const SavedCell& sc : saved)
+			grid.Set(sc.L, sc.p.x, sc.p.y, sc.val);
 	};
 
-	Vector<int8_t> src_saved[2], dst_saved[2];
-	TempUnblock(src, src_saved);
-	TempUnblock(dst, dst_saved);
+	Unblock(src);
+	Unblock(dst);
 
-	Vector<Point> result;
-	// Try layer 0 first
+	// Try layer 0 first, then layer 1
 	for (int L = 0; L < 2; L++) {
 		Vector<Point> path = LeeBFS(grid, L, src, dst, allow_diagonal);
 		if (!path.IsEmpty()) {
 			layer_used = L;
 			Vector<Point> compressed = CompressCellPath(path);
-			Restore(src, src_saved);
-			Restore(dst, dst_saved);
-			MarkPath(grid, L, path); // mark using full path (not compressed)
+			Restore();
+			MarkPath(grid, L, path);
 			return compressed;
 		}
 	}
 
-	Restore(src, src_saved);
-	Restore(dst, dst_saved);
+	Restore();
 	layer_used = 0;
 	Vector<Point> fallback;
 	fallback.Add(src); fallback.Add(dst);
@@ -566,7 +569,8 @@ static RouteResponse RoutePCBHVFast(const RouteRequest& req, PcbGrid& grid)
 	Point csrc = grid.WorldToCell(src);
 	Point cdst = grid.WorldToCell(dst);
 
-	// Check if H/V 3-segment route is free on layer 0
+	// Check if H/V 3-segment route is free on layer 0.
+	// Endpoint cells (csrc/cdst) are inside node margin — skip them in blocked check.
 	auto TryCellRoute = [&](int mx, int L) -> Vector<Point> {
 		// src → (mx, csrc.y) → (mx, cdst.y) → dst  (all H/V)
 		Vector<Point> pts;
@@ -576,19 +580,20 @@ static RouteResponse RoutePCBHVFast(const RouteRequest& req, PcbGrid& grid)
 			pts.Add(Point(mx, cdst.y));
 		}
 		pts.Add(cdst);
-		// Check no BLOCKED cell along each segment
+		// Check no BLOCKED cell along each segment, skipping endpoints
 		for (int i = 0; i + 1 < pts.GetCount(); i++) {
 			int x0 = pts[i].x, y0 = pts[i].y;
 			int x1 = pts[i+1].x, y1 = pts[i+1].y;
 			int steps = max(abs(x1-x0), abs(y1-y0));
-			for (int s = 0; s <= steps; s++) {
+			int s_start = (i == 0) ? 1 : 0;                        // skip csrc
+			int s_end   = (i == pts.GetCount()-2) ? steps-1 : steps; // skip cdst
+			for (int s = s_start; s <= s_end; s++) {
 				int cx = (steps > 0) ? x0 + (x1-x0)*s/steps : x0;
 				int cy = (steps > 0) ? y0 + (y1-y0)*s/steps : y0;
-				if (grid.InBounds(cx, cy) && grid.Get(L, cx, cy) == CELL_BLOCKED)
-					return Vector<Point>(); // blocked
-				// Also check if occupied by a trace (avoid overlap)
+				if (!grid.InBounds(cx, cy)) continue;
 				int8_t c = grid.Get(L, cx, cy);
-				if (c == CELL_TRACE0 || c == CELL_TRACE1) return Vector<Point>();
+				if (c == CELL_BLOCKED || c == CELL_TRACE0 || c == CELL_TRACE1)
+					return Vector<Point>();
 			}
 		}
 		return pts;

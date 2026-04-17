@@ -545,6 +545,86 @@ Rectf SmartPacker::ComputeGroupBounds(Graph& graph, const GroupDoc& g)
 // ScriptedLayout implementation
 // ---------------------------------------------------------------------------
 
+// Compute the bounding box of a grid layout with a given column count,
+// without applying positions. Returns Sizef(total_w, total_h).
+static Sizef ComputeGridSize(const Vector<NodeDoc*>& nodes, const Vector<int>& order,
+                              int cols, double node_padding)
+{
+	int N = nodes.GetCount();
+	if(N == 0 || cols <= 0) return Sizef(0, 0);
+	int rows = (N + cols - 1) / cols;
+
+	// Per-column max-width, per-row max-height
+	Vector<double> col_w(cols, 0.0);
+	Vector<double> row_h(rows, 0.0);
+
+	for(int oi = 0; oi < N; oi++) {
+		int i   = order[oi];
+		int col = oi % cols;
+		int row = oi / cols;
+		double w = nodes[i]->sz.cx > 0 ? nodes[i]->sz.cx : 200.0;
+		double h = nodes[i]->sz.cy > 0 ? nodes[i]->sz.cy : 150.0;
+		col_w[col] = max(col_w[col], w);
+		row_h[row] = max(row_h[row], h);
+	}
+
+	double total_w = 0, total_h = 0;
+	for(double cw : col_w) total_w += cw + node_padding;
+	for(double rh : row_h) total_h += rh + node_padding;
+	// Remove trailing padding
+	if(total_w > node_padding) total_w -= node_padding;
+	if(total_h > node_padding) total_h -= node_padding;
+
+	return Sizef(total_w, total_h);
+}
+
+// Apply a grid layout with a given column count and return tight bounding box.
+static Rectf ApplyGridLayout(Graph& graph, const Vector<NodeDoc*>& nodes,
+                              const Vector<int>& order, int cols, double node_padding)
+{
+	int N = nodes.GetCount();
+	if(N == 0 || cols <= 0) return Rectf(0, 0, 0, 0);
+	int rows = (N + cols - 1) / cols;
+
+	Vector<double> col_w(cols, 0.0);
+	Vector<double> row_h(rows, 0.0);
+
+	for(int oi = 0; oi < N; oi++) {
+		int i   = order[oi];
+		int col = oi % cols;
+		int row = oi / cols;
+		double w = nodes[i]->sz.cx > 0 ? nodes[i]->sz.cx : 200.0;
+		double h = nodes[i]->sz.cy > 0 ? nodes[i]->sz.cy : 150.0;
+		col_w[col] = max(col_w[col], w);
+		row_h[row] = max(row_h[row], h);
+	}
+
+	// Column/row offsets
+	Vector<double> col_x(cols, 0.0), row_y(rows, 0.0);
+	for(int c = 1; c < cols; c++) col_x[c] = col_x[c-1] + col_w[c-1] + node_padding;
+	for(int r = 1; r < rows; r++) row_y[r] = row_y[r-1] + row_h[r-1] + node_padding;
+
+	Rectf tight(0, 0, 0, 0);
+	bool first = true;
+	for(int oi = 0; oi < N; oi++) {
+		int i   = order[oi];
+		int col = oi % cols;
+		int row = oi / cols;
+		double x = col_x[col];
+		double y = row_y[row];
+		double w = nodes[i]->sz.cx > 0 ? nodes[i]->sz.cx : 200.0;
+		double h = nodes[i]->sz.cy > 0 ? nodes[i]->sz.cy : 150.0;
+
+		nodes[i]->pos = Pointf(x, y);
+		graph.Invalidate(nodes[i]->id);
+
+		Rectf nr(x, y, x + w, y + h);
+		if(first) { tight = nr; first = false; }
+		else       { tight.Union(nr); }
+	}
+	return tight;
+}
+
 Rectf ScriptedLayout::PackGroupNodes(Graph& graph, const GroupDoc& grp)
 {
 	// Collect member nodes
@@ -553,100 +633,76 @@ Rectf ScriptedLayout::PackGroupNodes(Graph& graph, const GroupDoc& grp)
 		NodeDoc* n = graph.FindNode(nid);
 		if(n) nodes.Add(n);
 	}
-	if(nodes.IsEmpty())
-		return Rectf(0, 0, 0, 0);
+	int N = nodes.GetCount();
+	if(N == 0) return Rectf(0, 0, 0, 0);
 
-	// Estimate each node's rendered size.
-	// Scene.cpp sets sz after a build; before that it may be zero.
-	// Use the stored sz if non-zero, otherwise fall back to an estimate.
-	auto NodeW = [&](const NodeDoc* n) -> double {
-		return n->sz.cx > 0 ? n->sz.cx : 200.0;
-	};
-	auto NodeH = [&](const NodeDoc* n) -> double {
-		return n->sz.cy > 0 ? n->sz.cy : 150.0;
-	};
-
-	// Simple linear chain: if the group nodes are connected in a sequence
-	// (each has one output → next), lay them out left-to-right.
-	// Otherwise fall back to a grid.
-	// Determine order by following the chain from the source node.
-	// A node is a "source" within this group if no other group node's
-	// output pin feeds into it.
-
-	// Build a quick adjacency among group nodes
+	// Build topological order so nodes read left-to-right / top-to-bottom
+	// in the direction of data flow.
 	const GraphDoc& doc = graph.GetDoc();
-	// node_id -> index in nodes[]
 	VectorMap<String, int> idx_map;
-	for(int i = 0; i < nodes.GetCount(); i++)
+	for(int i = 0; i < N; i++)
 		idx_map.Add(nodes[i]->id, i);
 
-	Vector<int> in_degree(nodes.GetCount(), 0);
-	struct Arc { int from, to; };
-	Vector<Arc> arcs;
+	struct Arc : Moveable<Arc> {
+		int from, to;
+		Arc(int f, int t) : from(f), to(t) {}
+	};
+	Vector<int>  in_degree(N, 0);
+	Vector<Arc>  arcs;
 	for(const EdgeDoc& e : doc.edges) {
 		int fi = idx_map.Find(e.source_node);
 		int ti = idx_map.Find(e.target_node);
 		if(fi >= 0 && ti >= 0 && fi != ti) {
-			arcs.Add({fi, ti});
+			arcs.Add(Arc(fi, ti));
 			in_degree[ti]++;
 		}
 	}
-
-	// Topological sort (Kahn's algorithm)
 	Vector<int> order;
-	Vector<int> queue;
-	for(int i = 0; i < nodes.GetCount(); i++)
-		if(in_degree[i] == 0)
-			queue.Add(i);
-	Vector<int> deg = clone(in_degree);
-	while(!queue.IsEmpty()) {
-		int cur = queue[0]; queue.Remove(0);
-		order.Add(cur);
-		for(const Arc& a : arcs) {
-			if(a.from == cur) {
-				deg[a.to]--;
-				if(deg[a.to] == 0)
-					queue.Add(a.to);
-			}
-		}
-	}
-	// If cycle or disconnected nodes, append remaining
 	{
-		Vector<bool> visited(nodes.GetCount(), false);
-		for(int i : order) visited[i] = true;
-		for(int i = 0; i < nodes.GetCount(); i++)
-			if(!visited[i]) order.Add(i);
+		Vector<int> queue;
+		for(int i = 0; i < N; i++)
+			if(in_degree[i] == 0) queue.Add(i);
+		Vector<int> deg = clone(in_degree);
+		while(!queue.IsEmpty()) {
+			int cur = queue[0]; queue.Remove(0);
+			order.Add(cur);
+			for(const Arc& a : arcs)
+				if(a.from == cur && --deg[a.to] == 0)
+					queue.Add(a.to);
+		}
+		Vector<bool> vis(N, false);
+		for(int i : order) vis[i] = true;
+		for(int i = 0; i < N; i++) if(!vis[i]) order.Add(i);
 	}
 
-	// Decide layout direction: horizontal if chain fits in roughly 2:1 ratio
-	// (more nodes → go vertical)
-	bool horizontal = nodes.GetCount() <= 4;
+	// Look up the prescribed area for this group so we can score candidates.
+	// If not available, use a square-ish target aspect ratio.
+	double target_ar = 1.0;  // width / height
+	int ri = group_rects.Find(grp.vfs_path);
+	if(ri >= 0) {
+		double pw = group_rects[ri].Width()  - 2 * inner_padding_;
+		double ph = group_rects[ri].Height() - 2 * inner_padding_;
+		if(ph > 0) target_ar = pw / ph;
+	}
 
-	double x = 0, y = 0;
-	double max_row_h = 0;
-	Rectf tight(0, 0, 0, 0);
-	bool first_node = true;
-
-	for(int oi = 0; oi < order.GetCount(); oi++) {
-		int i    = order[oi];
-		double w = NodeW(nodes[i]);
-		double h = NodeH(nodes[i]);
-
-		nodes[i]->pos = Pointf(x, y);
-		graph.Invalidate(nodes[i]->id);
-
-		Rectf nr(x, y, x + w, y + h);
-		if(first_node) { tight = nr; first_node = false; }
-		else           { tight.Union(nr); }
-
-		if(horizontal) {
-			x += w + node_padding_;
-		} else {
-			y += h + node_padding_;
+	// Try every column count from 1 to N and score by how well the aspect
+	// ratio matches the target.  Prefer layouts that are slightly wider than
+	// tall (to match left-to-right reading of a data-flow graph).
+	// Score = |log(actual_ar / target_ar)| — lower is better.
+	int best_cols = 1;
+	double best_score = 1e300;
+	for(int cols = 1; cols <= N; cols++) {
+		Sizef sz = ComputeGridSize(nodes, order, cols, node_padding_);
+		if(sz.cy <= 0) continue;
+		double ar = sz.cx / sz.cy;
+		double score = fabs(log(ar / target_ar));
+		if(score < best_score) {
+			best_score = score;
+			best_cols  = cols;
 		}
 	}
 
-	return tight;
+	return ApplyGridLayout(graph, nodes, order, best_cols, node_padding_);
 }
 
 void ScriptedLayout::Run(Graph& graph)

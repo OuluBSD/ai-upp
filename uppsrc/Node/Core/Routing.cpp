@@ -699,6 +699,55 @@ static RouteResponse RoutePCBDiag(const RouteRequest& req, PcbGrid& grid)
 	return CellPathToResponse(path, layer_used, grid, true);
 }
 
+// ─── 2nd-pass helpers ───────────────────────────────────────────────────────
+
+int BezierRoutingPolicy::CountOverlapCells(const RouteResponse& resp,
+                                            const String& net_id) const
+{
+	if(!pcb_grid || resp.path.GetCount() < 2) return 0;
+	const PcbGrid& grid = *pcb_grid;
+	int count = 0;
+	// Walk every cell of the path (Bresenham between bend points)
+	for(int i = 0; i + 1 < resp.path.GetCount(); i++) {
+		Point p0 = grid.WorldToCell(resp.path[i]);
+		Point p1 = grid.WorldToCell(resp.path[i+1]);
+		int x0 = p0.x, y0 = p0.y, x1 = p1.x, y1 = p1.y;
+		int dx = abs(x1-x0), dy = abs(y1-y0);
+		int sx = x0 < x1 ? 1 : -1, sy = y0 < y1 ? 1 : -1;
+		int err = dx - dy;
+		while(true) {
+			if(grid.InBounds(x0, y0)) {
+				int idx = y0 * grid.gw + x0;
+				int8_t cell = grid.layer[0][idx];
+				if(cell != CELL_FREE && cell != CELL_BLOCKED &&
+				   !grid.IsSameNet(idx, net_id))
+					count++;
+			}
+			if(x0 == x1 && y0 == y1) break;
+			int e2 = 2 * err;
+			if(e2 > -dy) { err -= dy; x0 += sx; }
+			if(e2 <  dx) { err += dx; y0 += sy; }
+		}
+	}
+	return count;
+}
+
+void BezierRoutingPolicy::UnmarkNet(const String& net_id)
+{
+	if(!pcb_grid || net_id.IsEmpty()) return;
+	PcbGrid& grid = *pcb_grid;
+	int16_t ni = grid.GetOrAddNet(net_id); // get index (already exists)
+	int N = grid.gw * grid.gh;
+	for(int i = 0; i < N; i++) {
+		if(grid.cell_net[i] == ni) {
+			for(int L = 0; L < 2; L++)
+				if(grid.layer[L][i] != CELL_BLOCKED)
+					grid.layer[L][i] = CELL_FREE;
+			grid.cell_net[i] = -1;
+		}
+	}
+}
+
 // ─── Dispatch ───────────────────────────────────────────────────────────────
 
 RouteResponse BezierRoutingPolicy::Route(const RouteRequest& req)

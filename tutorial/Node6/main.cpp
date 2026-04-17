@@ -43,28 +43,27 @@ static void ApplyGroupLayout(Graph& graph)
 	sl.Run(graph);
 }
 
-// Patch labels and tints for demo visual appeal
+// Apply tint colors based on group membership
 static void PatchNodeMetadata(Graph& graph)
 {
-	// Auto-generate labels based on node IDs if they don't have custom ones
 	for(NodeDoc& n : graph.GetDoc().nodes) {
-		if(n.label.IsEmpty() || n.label == n.id) {
-			// Generate a readable label from the ID
-			String lbl = n.id;
-			lbl.Replace("_", " ");
-			n.label = lbl;
-		}
-
-		// Set tint colors based on group membership
-		const String id = n.id;
-		if(id.StartsWith("enc_"))
-			n.tint_clr = Color(50, 180, 100);    // Greenish (encoder)
-		else if(id.StartsWith("dec_"))
-			n.tint_clr = Color(50, 180, 100);    // Greenish (decoder)
+		const String& id = n.id;
+		if(id.StartsWith("enc_") || id.StartsWith("dec_"))
+			n.tint_clr = Color(50, 180, 100);      // Green — encoder/decoder
 		else if(id.StartsWith("train_"))
-			n.tint_clr = Color(200, 50, 80);     // Reddish (training)
+			n.tint_clr = Color(200, 50, 80);       // Red — training
+		else if(id.StartsWith("test_"))
+			n.tint_clr = Color(200, 80, 50);       // Orange-red — testing
+		else if(id.StartsWith("testdata_"))
+			n.tint_clr = Color(80, 130, 200);      // Blue — test data loading
+		else if(id.StartsWith("data_"))
+			n.tint_clr = Color(60, 110, 200);      // Blue — training data
+		else if(id.StartsWith("comp_"))
+			n.tint_clr = Color(180, 160, 50);      // Yellow — compile
+		else if(id.StartsWith("inf_"))
+			n.tint_clr = Color(140, 60, 200);      // Purple — inference
 		else if(id.StartsWith("prep_"))
-			n.tint_clr = Color(80, 120, 200);    // Blueish (preparation)
+			n.tint_clr = Color(60, 180, 180);      // Teal — prep
 	}
 }
 

@@ -82,15 +82,24 @@ static Vector<GroupDef> ParseGroupAnnotations(const String& eon_text)
 				
 				if (delim > 0) {
 					gd.vfs_path = "/" + TrimBoth(rest.Left(delim));
-					String style_part = TrimBoth(rest.Mid(delim));
-					gd.label = gd.vfs_path.Mid(1); // Use path as label by default
-					// Extract just the style part inside {}
-					int startBrace = style_part.Find('{');
-					int endBrace = style_part.Find('}');
+					String after_id = TrimBoth(rest.Mid(delim));
+					gd.label = gd.vfs_path.Mid(1); // default label = path segment
+					// Optional quoted label: // GROUP: enc "Some Label" {style}
+					if(after_id.GetCount() > 0 && after_id[0] == '"') {
+						int close = after_id.Find('"', 1);
+						if(close > 1) {
+							gd.label = after_id.Mid(1, close - 1);
+							after_id = TrimBoth(after_id.Mid(close + 1));
+						}
+					}
+					// Extract style part inside {}
+					int startBrace = after_id.Find('{');
+					int endBrace   = after_id.Find('}');
+					String style_part;
 					if(startBrace >= 0 && endBrace > startBrace)
-						style_part = style_part.Mid(startBrace + 1, endBrace - startBrace - 1);
+						style_part = after_id.Mid(startBrace + 1, endBrace - startBrace - 1);
 					else if(startBrace >= 0)
-						style_part = style_part.Mid(startBrace + 1);
+						style_part = after_id.Mid(startBrace + 1);
 					gd.style = ParseGroupStyle(style_part);
 				} else if (brace < 0 && space < 0) {
 					gd.vfs_path = "/" + rest;
@@ -452,6 +461,12 @@ static void LoadNetCompound(const AstNode& compound, Graph& g,
 			String key = ExtractParamKey(stmt);
 			if (key.IsEmpty()) continue;
 			String val = ExtractParamValue(stmt);
+
+			// Special built-in instance properties that map to NodeDoc fields
+			if (key == "label") {
+				current_atom->label = val;
+				continue;
+			}
 
 			WidgetSlotDoc& slot = current_atom->slots.Add();
 			slot.id   = key;

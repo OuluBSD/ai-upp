@@ -4,16 +4,17 @@
 
 // ---------------------------------------------------------------------------
 // Group definitions (using comment annotations)
-// Format: // GROUP: vfs_path {saturation: N, hue: name, contrast: N}
+// Format: // GROUP: vfs_path "Label" {saturation: N, hue: name, contrast: N}
 // ---------------------------------------------------------------------------
-// GROUP: enc {saturation: 50, hue: green, contrast: 50}
-// GROUP: dec {saturation: 50, hue: green, contrast: 50}
-// GROUP: comp {saturation: 50, hue: yellow, contrast: 50}
-// GROUP: data {saturation: 50, hue: blue, contrast: 50}
-// GROUP: train {saturation: 50, hue: red, contrast: 50}
-// GROUP: test {saturation: 50, hue: red, contrast: 50}
-// GROUP: inf {saturation: 50, hue: purple, contrast: 50}
-// GROUP: prep {saturation: 50, hue: ltblue, contrast: 50}
+// GROUP: enc "Define NN Layers - Encoder" {saturation: 50, hue: green, contrast: 50}
+// GROUP: dec "Define NN Layers - Decoder" {saturation: 50, hue: green, contrast: 50}
+// GROUP: comp "Compile Model" {saturation: 50, hue: yellow, contrast: 50}
+// GROUP: data "Training Data (Down)loading" {saturation: 50, hue: blue, contrast: 50}
+// GROUP: train "Training" {saturation: 50, hue: red, contrast: 50}
+// GROUP: test "Testing" {saturation: 50, hue: red, contrast: 50}
+// GROUP: testdata "Testing Data Loading" {saturation: 50, hue: blue, contrast: 50}
+// GROUP: inf "Inference" {saturation: 50, hue: purple, contrast: 50}
+// GROUP: prep "Load and Prepare Image" {saturation: 50, hue: ltblue, contrast: 50}
 // ---------------------------------------------------------------------------
 
 // ---------------------------------------------------------------------------
@@ -32,8 +33,21 @@ node nnt_conv_layer:
 	kernel_size : int = 3  (EditIntSpin)
 	stride : int = 1  (EditIntSpin)
 	padding : int = 1  (EditIntSpin)
+	padding_mode : string = "zeros"  (DropList)
+	output_padding : int = 1  (EditIntSpin)
+	dilation : int = 1  (EditIntSpin)
+	groups : int = 1  (EditIntSpin)
+	use_bias : bool = true  (Option)
 	activation_function : string = "ReLU"  (DropList)
 	normalization : string = "BatchNorm2d"  (DropList)
+	norm_eps : float = 0.00001  (EditDoubleSpin)
+	norm_momentum : float = 0.1  (EditDoubleSpin)
+	norm_affine : bool = true  (Option)
+	dropout_rate : float = 0.0  (EditDoubleSpin)
+	weight_init : string = "kaiming_normal"  (DropList)
+	weight_init_gain : float = 1.41  (EditDoubleSpin)
+	weight_init_mode : string = "fan_out"  (DropList)
+	weight_init_nonlinearity : string = "relu"  (DropList)
 	num_copies : int = 1  (EditIntSpin)
 
 node nnt_pooling_layer:
@@ -42,6 +56,14 @@ node nnt_pooling_layer:
 	pooling_type : string = "MaxPool2d"  (DropList)
 	kernel_size : int = 2  (EditIntSpin)
 	stride : int = 2  (EditIntSpin)
+	padding : int = 0  (EditIntSpin)
+	dilation : int = 1  (EditIntSpin)
+	ceil_mode : bool = false  (Option)
+	return_indices : bool = false  (Option)
+	count_include_pad : bool = false  (Option)
+	output_size : int = 1  (EditIntSpin)
+	fractional_factor : float = 1.5  (EditDoubleSpin)
+	norm_type : float = 2.0  (EditDoubleSpin)
 	flatten_output : bool = false  (Option)
 	num_copies : int = 1  (EditIntSpin)
 
@@ -50,7 +72,19 @@ node nnt_dense_layer:
 	out layer_stack : LAYER_STACK
 	num_nodes : int = 128  (EditIntSpin)
 	activation_function : string = "ReLU"  (DropList)
+	use_bias : bool = true  (Option)
+	weight_init : string = "xavier_uniform"  (DropList)
+	weight_init_gain : float = 1.0  (EditDoubleSpin)
+	weight_init_mode : string = "fan_in"  (DropList)
+	weight_init_nonlinearity : string = "relu"  (DropList)
+	bias_init : string = "zeros"  (DropList)
+	bias_init_value : float = 0.0  (EditDoubleSpin)
+	normalization : string = "None"  (DropList)
+	norm_eps : float = 0.00001  (EditDoubleSpin)
+	norm_momentum : float = 0.1  (EditDoubleSpin)
+	norm_affine : bool = true  (Option)
 	dropout_rate : float = 0.5  (EditDoubleSpin)
+	alpha : float = 0.01  (EditDoubleSpin)
 	num_copies : int = 1  (EditIntSpin)
 
 node nnt_reshape_layer:
@@ -66,7 +100,12 @@ node nnt_conv_transpose_layer:
 	kernel_size : int = 3  (EditIntSpin)
 	stride : int = 2  (EditIntSpin)
 	padding : int = 1  (EditIntSpin)
+	output_padding : int = 0  (EditIntSpin)
+	dilation : int = 1  (EditIntSpin)
+	groups : int = 1  (EditIntSpin)
+	use_bias : bool = true  (Option)
 	activation_function : string = "ReLU"  (DropList)
+	normalization : string = "None"  (DropList)
 	num_copies : int = 1  (EditIntSpin)
 
 node nnt_show_layer_stack:
@@ -153,64 +192,174 @@ net fashion_autoencoder:
 
 	// WORKFLOW DESCRIPTION
 	node104: show_text
+		label = "Workflow Description"
 		report_text = "Autoencoder for FashionMNIST: Encoder compresses 28x28 images to latent space, Decoder reconstructs them. Training uses MSE loss + Adam optimizer for 200 epochs."
 
 	// ENCODER GROUP (/enc)
 	enc_node1: nnt_input_layer
+		label = "NNT Input Layer"
 		input_shape_str = "[1,28,28]"
 
 	enc_node80: nnt_conv_layer
+		label = "NNT Define Conv Layer"
 		out_channels = 16
 		kernel_size = 3
+		stride = 1
+		padding = 1
+		padding_mode = "zeros"
+		output_padding = 1
+		dilation = 1
+		groups = 1
 		activation_function = "ReLU"
 		normalization = "BatchNorm2d"
+		norm_eps = 0.00001
+		norm_momentum = 0.1
+		norm_affine = true
+		dropout_rate = 0.0
+		weight_init = "kaiming_normal"
+		weight_init_gain = 1.41
+		weight_init_mode = "fan_out"
+		weight_init_nonlinearity = "relu"
+		num_copies = 1
 
 	enc_node4: nnt_pooling_layer
+		label = "NNT Define Pooling Layer"
 		pooling_type = "MaxPool2d"
 		kernel_size = 2
 		stride = 2
+		padding = 0
+		dilation = 1
+		ceil_mode = false
+		return_indices = false
+		count_include_pad = false
+		output_size = 1
+		fractional_factor = 1.5
+		norm_type = 2.0
 		flatten_output = false
+		num_copies = 1
 
 	enc_node81: nnt_conv_layer
+		label = "NNT Define Conv Layer"
 		out_channels = 8
 		kernel_size = 3
+		stride = 1
 		padding = 1
+		padding_mode = "zeros"
+		output_padding = 1
+		dilation = 1
+		groups = 1
+		use_bias = true
 		activation_function = "ReLU"
 		normalization = "BatchNorm2d"
+		norm_eps = 0.00001
+		norm_momentum = 0.1
+		norm_affine = true
+		dropout_rate = 0.0
+		weight_init = "kaiming_normal"
+		weight_init_gain = 1.41
+		weight_init_mode = "fan_out"
+		weight_init_nonlinearity = "relu"
+		num_copies = 1
 
 	enc_node41: nnt_pooling_layer
+		label = "NNT Define Pooling Layer"
 		pooling_type = "MaxPool2d"
 		kernel_size = 2
 		stride = 2
+		padding = 0
+		dilation = 1
+		ceil_mode = false
+		return_indices = false
+		count_include_pad = false
+		output_size = 1
+		fractional_factor = 1.5
+		norm_type = 2.0
 		flatten_output = true
+		num_copies = 1
 
 	enc_node42: nnt_dense_layer
+		label = "NNT Define Dense Layer"
 		num_nodes = 128
+		activation_function = "ReLU"
+		use_bias = true
+		weight_init = "xavier_uniform"
+		weight_init_gain = 1.0
+		weight_init_mode = "fan_in"
+		weight_init_nonlinearity = "relu"
+		bias_init = "zeros"
+		bias_init_value = 0.0
+		normalization = "None"
+		norm_eps = 0.00001
+		norm_momentum = 0.1
+		norm_affine = true
 		dropout_rate = 0.5
+		alpha = 0.01
+		num_copies = 1
 
 	enc_node17: nnt_dense_layer
+		label = "NNT Define Dense Layer"
 		num_nodes = 32
+		activation_function = "ReLU"
+		weight_init_nonlinearity = "relu"
+		norm_eps = 0.00001
+		norm_momentum = 0.1
+		norm_affine = true
 		dropout_rate = 0.0
+		alpha = 0.01
+		num_copies = 1
 
 	// DECODER GROUP (/dec)
 	dec_node65: nnt_dense_layer
+		label = "NNT Define Dense Layer"
 		num_nodes = 128
+		activation_function = "ReLU"
+		use_bias = true
+		weight_init = "xavier_uniform"
+		weight_init_gain = 1.0
+		weight_init_mode = "fan_in"
+		weight_init_nonlinearity = "relu"
+		bias_init = "zeros"
+		bias_init_value = 0.0
+		normalization = "None"
+		norm_eps = 0.00001
+		norm_momentum = 0.1
+		norm_affine = true
 		dropout_rate = 0.0
+		alpha = 0.01
+		num_copies = 1
 
 	dec_node66: nnt_dense_layer
+		label = "NNT Define Dense Layer"
 		num_nodes = 392
+		activation_function = "ReLU"
+		use_bias = true
+		weight_init = "xavier_uniform"
+		weight_init_gain = 1.0
+		weight_init_mode = "fan_in"
+		weight_init_nonlinearity = "relu"
+		bias_init = "zeros"
+		bias_init_value = 0.0
+		normalization = "None"
+		norm_eps = 0.00001
+		norm_momentum = 0.1
+		norm_affine = true
 		dropout_rate = 0.0
+		alpha = 0.01
+		num_copies = 1
 
 	dec_node77: nnt_reshape_layer
+		label = "NNT Define Reshape Layer"
 		target_shape = "[8, 7, 7]"
 
 	dec_node78: nnt_conv_transpose_layer
+		label = "NNT Define Conv Layer"
 		out_channels = 16
 		kernel_size = 3
 		stride = 2
 		padding = 1
 
 	dec_node79: nnt_conv_transpose_layer
+		label = "NNT Define Conv Layer"
 		out_channels = 1
 		kernel_size = 3
 		stride = 2
@@ -218,41 +367,51 @@ net fashion_autoencoder:
 		activation_function = "Sigmoid"
 
 	dec_node13: nnt_show_layer_stack
+		label = "NNT Show Layer Stack"
 		show_details = "Detailed"
 
 	dec_node11: show_text
+		label = "Decoder Info"
 		report_text = "Decoder reconstructs 28x28 image from 32-dim latent space using dense + conv transpose layers."
 
 	// COMPILE GROUP (/comp)
 	comp_node8: nnt_compile_model
+		label = "NNT Compile Model"
 		mode = "Compile"
 
 	comp_node64: show_text
+		label = "Compile Result"
 		report_text = "Model compiled successfully"
 
 	comp_node15: show_text
-		report_text = "Model Analysis: Total Params=110,544, Memory=0.43MB"
+		label = "Model Analysis"
+		report_text = "Model Analysis for input shape [1, 28, 28]:\nTotal Parameters: 110,544\nTrainable Parameters: 110,544\nMemory Usage: Parameters: 0.43 MB\nTotal: 0.43 MB"
 
-	// DATA GROUP (/data)
+	// DATA GROUP (/data) — Training data loading
 	data_node23: show_text
-		report_text = "Dataset: FashionMNIST\nSplit: train\nSamples: 10000"
+		label = "ShowText"
+		report_text = "Dataset: FashionMNIST\nSplit: train\nSamples: 10000 of 60000"
 
 	data_node94: nnt_torchvision_loader
+		label = "NNT TorchVision Data Loader"
 		dataset_name = "FashionMNIST"
 		split = "train"
 		download = true
 		samples_to_return = 10000
 
 	data_node3843: nnt_tensor_to_image
+		label = "Element To Image"
 		convert_mode = "RGB"
 		height = 28
 		width = 28
 
 	data_node44: preview_image
+		label = "Preview Image"
 
 	// TRAINING GROUP (/train)
 	train_node98: nnt_train_model
-		experiment_name = "autoencoder_fashion"
+		label = "NNT Train Model"
+		experiment_name = "training_experiment"
 		batch_size = 128
 		epochs = 200
 		optimizer = "Adam"
@@ -262,59 +421,94 @@ net fashion_autoencoder:
 		patience = 5
 
 	train_node63: show_text
-		report_text = "Training: Epoch 1/200 Loss=0.487\nEpoch 2/200 Loss=0.236\nEpoch 3/200 Loss=0.184"
+		label = "Training Metrics"
+		report_text = "Epoch 1/200: MSE Loss = 0.4869\nEpoch 2/200: MSE Loss = 0.2359\nEpoch 3/200: MSE Loss = 0.1842"
 
 	train_node22: show_text
-		report_text = "Final Loss: 0.088\nBest Loss: 0.088"
+		label = "Training Metrics"
+		report_text = "Training Metrics Summary\nFinal Loss: 0.0882\nBest Loss: 0.0882\nInitial LR: 0.001000\nFinal LR: 0.001000"
 
-	// TESTING GROUP (/test)
-	test_node95: nnt_torchvision_loader
-		dataset_name = "FashionMNIST"
-		split = "test"
-		samples_to_return = 32
-
-	test_node70: show_text
-		report_text = "Dataset: FashionMNIST\nSplit: test\nSamples: 32"
-
+	// TEST GROUP (/test) — evaluation on test set
 	test_node73: nnt_evaluate
+		label = "NNT Evaluate Predictions"
 		task_type = "regression"
 
+	test_node61: show_text
+		label = "Log"
+		report_text = ""
+
 	test_node74: show_text
-		report_text = "MSE: 0.079\nMAE: 0.176"
+		label = "NNT Visualize Prediction Metrics"
+		report_text = "Metrics Visualization Summary:\nmse: 0.0792\nmae: 0.1756"
+
+	test_node76: show_text
+		label = "Log"
+		report_text = "Metrics Visualization Summary:\npredictions: <class 'list'>\ntrue_values: <class 'list'>\nmse: 0.0792\nmae: 0.1756"
 
 	test_node75: preview_image
+		label = "Preview Image"
+
+	// TESTDATA GROUP (/testdata) — test data loading
+	testdata_node95: nnt_torchvision_loader
+		label = "NNT TorchVision Data Loader"
+		dataset_name = "FashionMNIST"
+		split = "test"
+		download = true
+		samples_to_return = 32
+
+	testdata_node70: show_text
+		label = "ShowText"
+		report_text = "Dataset: FashionMNIST\nSplit: test\nSamples: 32 of 10000\nImage shape: [32, 1, 28, 28]"
+
+	testdata_node69: nnt_tensor_to_image
+		label = "NNT Tensor Element To Image"
+		convert_mode = "RGB"
+		height = 32
+		width = 32
+
+	testdata_node72: preview_image
+		label = "Preview Image"
 
 	// INFERENCE GROUP (/inf)
 	inf_node85: nnt_inference
+		label = "NNT Inference"
 		mode = "single"
 		device = "cuda"
 
 	inf_node86: show_text
-		report_text = "Inference completed\nProcessing time: 0.001s"
+		label = "Inference Info"
+		report_text = "Inference completed on 1 samples\nProcessing time: 0.001s\nOutput shape: [1, 1, 28, 28]"
 
-	inf_node87: show_text
-		report_text = "Confidence: Mean=1.000"
+	inf_node91: show_text
+		label = "Inference Info"
+		report_text = "Confidence Score Statistics:\nMean: 1.000\nMedian: 1.000\nStd Dev: nan"
 
 	inf_node89: preview_image
+		label = "Preview Image"
 
 	inf_node92: show_text
-		report_text = "Inference Metrics:\nSamples: 1\nTime: 0.001s"
+		label = "Inference Info"
+		report_text = "Inference Metrics Summary:\nTotal Samples: 1\nTotal Processing Time: 0.001 seconds\nConfidence Statistics:\nMin: 1.000\nMean: 1.000\nMax: 1.000"
 
 	// PREP GROUP (/prep)
+	prep_node99: load_image
+		label = "Load Image"
+		image = "hoodie.jpg"
+
 	prep_node100: nnt_image_to_tensor
+		label = "NNT Image To Tensor"
 		width = 28
 		height = 28
 		color_mode = "Grayscale"
 
 	prep_node101: nnt_tensor_to_image
+		label = "NNT Tensor Element To Image"
 		convert_mode = "RGB"
 		height = 28
 		width = 28
 
-	prep_node99: load_image
-		image = "hoodie.jpg"
-
 	prep_node102: preview_image
+		label = "Preview Image"
 
 	// ENCODER CONNECTIONS
 	enc_node1.layer_stack -> enc_node80.layer_stack
@@ -348,16 +542,27 @@ net fashion_autoencoder:
 	train_node98.training_log -> train_node63.text
 	train_node98.metrics -> train_node22.text
 
+	// TESTDATA CONNECTIONS
+	testdata_node95.images -> testdata_node69.tensor
+	testdata_node95.images -> testdata_node70.text
+	testdata_node69.image -> testdata_node72.images
+
 	// TESTING CONNECTIONS
-	test_node95.images -> test_node73.input_data
-	test_node95.images -> test_node70.text
-	test_node73.report -> test_node74.text
+	comp_node8.model -> test_node73.model
+	testdata_node95.images -> test_node73.input_data
+	testdata_node95.images -> test_node73.target_data
+	test_node73.report -> test_node61.text
+	test_node73.metrics -> test_node74.text
+	test_node74.text -> test_node76.text
+	test_node73.report -> test_node75.images
 
 	// INFERENCE CONNECTIONS
 	comp_node8.model -> inf_node85.model
 	prep_node100.tensor -> inf_node85.input_tensor
 	inf_node85.inference_info -> inf_node86.text
 	inf_node85.output_tensor -> inf_node89.images
+	inf_node85.inference_info -> inf_node91.text
+	inf_node85.inference_info -> inf_node92.text
 
 	// PREP CONNECTIONS
 	prep_node99.IMAGE -> prep_node100.image

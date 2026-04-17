@@ -391,10 +391,12 @@ struct PcbGrid {
 // Lee BFS on one layer.  Returns cell path src→dst, or empty if unreachable.
 // allow_diagonal: if true, 8-connected; if false, 4-connected (pure H/V).
 // net_id: current route's net — same-net trace cells are not penalized.
+// diag_only: if true, heavily penalize H/V moves to force diagonal routing.
 static Vector<Point> LeeBFS(PcbGrid& grid, int L,
                              Point src, Point dst,
                              bool allow_diagonal,
-                             const String& net_id = String())
+                             const String& net_id = String(),
+                             bool diag_only = false)
 {
 	// Guard: if src or dst is blocked, find nearest free cell
 	auto NearestFree = [&](Point p) -> Point {
@@ -419,16 +421,16 @@ static Vector<Point> LeeBFS(PcbGrid& grid, int L,
 
 	// Weighted pathfinding using Dial's bucket queue.
 	// Costs (integer, scaled ×10 for sub-unit accuracy):
-	//   H/V move:        10  (1.0 cells)
-	//   Diagonal move:   14  (√2 ≈ 1.414 cells — makes H/V competitive)
+	//   H/V move:        10 normal  / 40 diag_only  (1.0 cells)
+	//   Diagonal move:   14 normal  / 10 diag_only  (√2 ≈ 1.414 cells)
 	//   Turn penalty:     3  (slight deterrent against zigzag)
 	//   Trace cell:     +300 (strong deterrent against overlapping existing routes)
-	// Total max step cost = 14 + 3 + 300 = 317 → bucket count = 318
-	const int COST_HV    = 10;
-	const int COST_DIAG  = 14;
+	const int COST_HV    = diag_only ? 40 : 10;
+	const int COST_DIAG  = diag_only ? 10 : 14;
 	const int COST_TURN  =  3;
 	const int COST_TRACE = 300;
-	const int MAX_BUCKET = COST_DIAG + COST_TURN + COST_TRACE + 1; // 318
+	const int MAX_STEP   = max(COST_HV, COST_DIAG) + COST_TURN + COST_TRACE;
+	const int MAX_BUCKET = MAX_STEP + 1;
 
 	int N = grid.gw * grid.gh;
 	// prev[]: parent cell index for path reconstruction (-1 = unvisited)
@@ -557,12 +559,15 @@ static void MarkPath(PcbGrid& grid, int L, const Vector<Point>& path, const Stri
 // enter/exit through the node-boundary margin that Init() marks as blocked.
 static Vector<Point> RoutePCBNet(PcbGrid& grid, Point src, Point dst,
                                  bool allow_diagonal, int& layer_used,
-                                 const String& net_id = String())
+                                 const String& net_id = String(),
+                                 bool diag_only = false)
 {
-	// Save and unblock BLOCKED cells in a 1-cell radius around each endpoint
+	// Save and unblock BLOCKED cells in a 2-cell radius around each endpoint.
+	// Radius 2 gives the BFS room to exit through the node-boundary margin even
+	// when adjacent cells are also inside the margin (helps in tight areas).
 	struct SavedCell : Moveable<SavedCell> { Point p; int L; int8_t val; };
 	Vector<SavedCell> saved;
-	const int R = 1;
+	const int R = 2;
 	auto Unblock = [&](Point center) {
 		for (int dy = -R; dy <= R; dy++)
 			for (int dx = -R; dx <= R; dx++) {
@@ -588,7 +593,7 @@ static Vector<Point> RoutePCBNet(PcbGrid& grid, Point src, Point dst,
 
 	// Try layer 0 first, then layer 1
 	for (int L = 0; L < 2; L++) {
-		Vector<Point> path = LeeBFS(grid, L, src, dst, allow_diagonal, net_id);
+		Vector<Point> path = LeeBFS(grid, L, src, dst, allow_diagonal, net_id, diag_only);
 		if (!path.IsEmpty()) {
 			layer_used = L;
 			Vector<Point> compressed = CompressCellPath(path);
@@ -627,77 +632,8 @@ static RouteResponse CellPathToResponse(const Vector<Point>& cpath, int layer_us
 
 // ─── PCB variants ────────────────────────────────────────────────────────────
 
-// HV-Fast: greedy obstacle-avoidance (visibility graph) then snap to H/V grid segments.
-// Marks grid but uses non-BFS routing (fast, ~O(n) per net).
-static RouteResponse RoutePCBHVFast(const RouteRequest& req, PcbGrid& grid)
-{
-	Pointf src = req.source_pos, dst = req.target_pos;
-	Point csrc = grid.WorldToCell(src);
-	Point cdst = grid.WorldToCell(dst);
-
-	// Check if H/V 3-segment route is free on layer 0.
-	// Endpoint cells (csrc/cdst) are inside node margin — skip them in blocked check.
-	auto TryCellRoute = [&](int mx, int L) -> Vector<Point> {
-		// src → (mx, csrc.y) → (mx, cdst.y) → dst  (all H/V)
-		Vector<Point> pts;
-		pts.Add(csrc);
-		if (csrc.y != cdst.y) {
-			pts.Add(Point(mx, csrc.y));
-			pts.Add(Point(mx, cdst.y));
-		}
-		pts.Add(cdst);
-		// Check no BLOCKED cell along each segment, skipping endpoints
-		for (int i = 0; i + 1 < pts.GetCount(); i++) {
-			int x0 = pts[i].x, y0 = pts[i].y;
-			int x1 = pts[i+1].x, y1 = pts[i+1].y;
-			int steps = max(abs(x1-x0), abs(y1-y0));
-			int s_start = (i == 0) ? 1 : 0;                        // skip csrc
-			int s_end   = (i == pts.GetCount()-2) ? steps-1 : steps; // skip cdst
-			for (int s = s_start; s <= s_end; s++) {
-				int cx = (steps > 0) ? x0 + (x1-x0)*s/steps : x0;
-				int cy = (steps > 0) ? y0 + (y1-y0)*s/steps : y0;
-				if (!grid.InBounds(cx, cy)) continue;
-				int8_t c = grid.Get(L, cx, cy);
-				if (c == CELL_BLOCKED) return Vector<Point>();
-				if ((c == CELL_TRACE0 || c == CELL_TRACE1) &&
-				    !grid.IsSameNet(cy * grid.gw + cx, req.net_id))
-					return Vector<Point>();
-			}
-		}
-		return pts;
-	};
-
-	// Try mid-X candidates on both layers
-	Vector<int> cands_x;
-	cands_x.Add((csrc.x + cdst.x) / 2);
-	for (const Rectf& r : req.obstacles) {
-		cands_x.Add(grid.WorldToCell(Pointf(r.left  - 15, 0)).x);
-		cands_x.Add(grid.WorldToCell(Pointf(r.right + 15, 0)).x);
-	}
-	for (int delta = 0; delta <= 30; delta += 2) {
-		cands_x.Add((csrc.x + cdst.x)/2 + delta);
-		cands_x.Add((csrc.x + cdst.x)/2 - delta);
-	}
-
-	for (int L = 0; L < 2; L++) {
-		for (int mx : cands_x) {
-			mx = max(0, min(grid.gw-1, mx));
-			Vector<Point> pts = TryCellRoute(mx, L);
-			if (!pts.IsEmpty()) {
-				MarkPath(grid, L, pts, req.net_id);
-				return CellPathToResponse(CompressCellPath(pts), L, grid, false);
-			}
-		}
-	}
-
-	// Full BFS fallback
-	int layer_used = 0;
-	Vector<Point> bfs = RoutePCBNet(grid, csrc, cdst, false, layer_used, req.net_id);
-	return CellPathToResponse(bfs, layer_used, grid, false);
-}
-
-// HV-Lee: full Lee BFS, pure H/V (4-connected).
-static RouteResponse RoutePCBHVLee(const RouteRequest& req, PcbGrid& grid)
+// PCBHV: weighted BFS, pure H/V (4-connected).
+static RouteResponse RoutePCBHV(const RouteRequest& req, PcbGrid& grid)
 {
 	Point csrc = grid.WorldToCell(req.source_pos);
 	Point cdst = grid.WorldToCell(req.target_pos);
@@ -706,13 +642,23 @@ static RouteResponse RoutePCBHVLee(const RouteRequest& req, PcbGrid& grid)
 	return CellPathToResponse(path, layer_used, grid, false);
 }
 
-// PCB45: Lee/BFS with H/V/45° moves (8-connected).
+// PCB45: weighted BFS with H/V/45° moves (8-connected).
 static RouteResponse RoutePCB45(const RouteRequest& req, PcbGrid& grid)
 {
 	Point csrc = grid.WorldToCell(req.source_pos);
 	Point cdst = grid.WorldToCell(req.target_pos);
 	int layer_used = 0;
 	Vector<Point> path = RoutePCBNet(grid, csrc, cdst, true, layer_used, req.net_id);
+	return CellPathToResponse(path, layer_used, grid, true);
+}
+
+// PCBDiag: diagonal-only routing — 8-connected BFS with H/V heavily penalized.
+static RouteResponse RoutePCBDiag(const RouteRequest& req, PcbGrid& grid)
+{
+	Point csrc = grid.WorldToCell(req.source_pos);
+	Point cdst = grid.WorldToCell(req.target_pos);
+	int layer_used = 0;
+	Vector<Point> path = RoutePCBNet(grid, csrc, cdst, true, layer_used, req.net_id, true);
 	return CellPathToResponse(path, layer_used, grid, true);
 }
 
@@ -726,9 +672,9 @@ RouteResponse BezierRoutingPolicy::Route(const RouteRequest& req)
 	case EdgeStyle::Schematic:      return RouteSchematic(req);
 	case EdgeStyle::RealisticTight: return RouteRealistic(req, 0.18);
 	case EdgeStyle::RealisticLoose: return RouteRealistic(req, 0.50);
-	case EdgeStyle::PCBHVFast:      return RoutePCBHVFast(req, *pcb_grid);
-	case EdgeStyle::PCBHVLee:       return RoutePCBHVLee(req, *pcb_grid);
+	case EdgeStyle::PCBHV:          return RoutePCBHV(req, *pcb_grid);
 	case EdgeStyle::PCB45:          return RoutePCB45(req, *pcb_grid);
+	case EdgeStyle::PCBDiag:        return RoutePCBDiag(req, *pcb_grid);
 	default:                        return RouteSimple(req);
 	}
 }
@@ -737,8 +683,8 @@ void BezierRoutingPolicy::BeginBatch(const Rectf& scene_bounds,
                                      const Vector<Rectf>& node_boxes,
                                      EdgeStyle style)
 {
-	bool is_pcb = (style == EdgeStyle::PCBHVFast || style == EdgeStyle::PCBHVLee ||
-	               style == EdgeStyle::PCB45);
+	bool is_pcb = (style == EdgeStyle::PCBHV || style == EdgeStyle::PCB45 ||
+	               style == EdgeStyle::PCBDiag);
 	if (!is_pcb) { pcb_grid.Clear(); return; }
 
 	pcb_grid = MakeOne<PcbGrid>();

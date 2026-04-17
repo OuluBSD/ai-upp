@@ -817,9 +817,9 @@ void NodeViewportCtrl::RightDown(Point p, dword key)
 					theme.Add(cur_style != EdgeStyle::RealisticTight, "Realistic Tight", [=] { SetEdgeStyle(EdgeStyle::RealisticTight); });
 					theme.Add(cur_style != EdgeStyle::RealisticLoose, "Realistic Loose", [=] { SetEdgeStyle(EdgeStyle::RealisticLoose); });
 					theme.Separator();
-					theme.Add(cur_style != EdgeStyle::PCBHVFast,      "PCB HV-Fast",     [=] { SetEdgeStyle(EdgeStyle::PCBHVFast);      });
-					theme.Add(cur_style != EdgeStyle::PCBHVLee,       "PCB HV (BFS)",    [=] { SetEdgeStyle(EdgeStyle::PCBHVLee);       });
-					theme.Add(cur_style != EdgeStyle::PCB45,          "PCB 45°",         [=] { SetEdgeStyle(EdgeStyle::PCB45);          });
+					theme.Add(cur_style != EdgeStyle::PCBHV,    "PCB H/V",      [=] { SetEdgeStyle(EdgeStyle::PCBHV);    });
+					theme.Add(cur_style != EdgeStyle::PCB45,    "PCB 45°",      [=] { SetEdgeStyle(EdgeStyle::PCB45);    });
+					theme.Add(cur_style != EdgeStyle::PCBDiag,  "PCB Diagonal", [=] { SetEdgeStyle(EdgeStyle::PCBDiag);  });
 				});
 			}
 

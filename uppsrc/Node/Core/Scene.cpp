@@ -589,9 +589,9 @@ void BaselineSceneBuilder::Build(Scene& scene, const Graph& graph)
 	else {
 		// Incremental: for PCB styles do a full rebuild (grid state would be inconsistent
 		// if only some edges are re-routed into a partial grid).
-		bool is_pcb = (edge_style == EdgeStyle::PCBHVFast ||
-		               edge_style == EdgeStyle::PCBHVLee  ||
-		               edge_style == EdgeStyle::PCB45);
+		bool is_pcb = (edge_style == EdgeStyle::PCBHV ||
+		               edge_style == EdgeStyle::PCB45 ||
+		               edge_style == EdgeStyle::PCBDiag);
 		if(is_pcb) {
 			// Re-run full build: clear and redo everything
 			scene.Clear();

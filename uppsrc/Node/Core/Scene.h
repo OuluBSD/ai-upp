@@ -28,6 +28,8 @@ struct SceneItem : Moveable<SceneItem> {
 	bool     font_italic = false;
 	int      shape = 0;     // NODE: 0=Rect, 1=Ellipse, 2=Diamond, 3=RoundRect
 	bool     directed = false; // EDGE: draw arrowhead at target end
+	EntityId src_pin_eid;    // EDGE: full entity id of source pin "nodeId:out:pinId"
+	EntityId tgt_pin_eid;    // EDGE: full entity id of target pin "nodeId:in:pinId"
 	String   image_path;    // WIDGET image items
 	bool     badge = false;   // overlay label — skip hit testing
 	bool     overlay = false; // paint above all node bodies (z-layer 3)

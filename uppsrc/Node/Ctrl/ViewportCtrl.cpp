@@ -318,6 +318,15 @@ void NodeViewportCtrl::SyncWidgets()
 		Rect r = vp.WorldToView(item.rect);
 		if(w->GetRect() != r)
 			w->SetRect(r);
+
+		// Scale font with zoom — pin labels use 11 world-unit font height
+		int font_px = clamp((int)(11.0 * vp.GetScale()), 6, 18);
+		Font f = StdFont().Height(font_px);
+		if(EditField*     ef = dynamic_cast<EditField*>(w))    ef->SetFont(f);
+		else if(EditInt*  ei = dynamic_cast<EditInt*>(w))      ei->SetFont(f);
+		else if(EditDouble* ed = dynamic_cast<EditDouble*>(w)) ed->SetFont(f);
+		else if(DocEdit*  de = dynamic_cast<DocEdit*>(w))      de->SetFont(f);
+		else if(Option*   op = dynamic_cast<Option*>(w))       op->SetFont(f);
 	}
 
 	if(editor) editor->focused_widget = new_focused;
@@ -589,6 +598,35 @@ void NodeViewportCtrl::MouseMove(Point p, dword key)
 		if(new_hover != editor->hovered_entity) {
 			editor->hovered_entity = new_hover;
 			editor->hovered_type   = hit ? hit.type : SceneItem::NODE;
+			// Build peer highlight set: edges sharing a port with the hovered edge,
+			// plus the pin endpoints of all such edges (including the hovered one).
+			editor->highlight_peers.Clear();
+			if(hit && hit.type == SceneItem::EDGE) {
+				// Find the hovered edge's scene item to get its pin eids
+				String src_pin, tgt_pin;
+				for(const auto& si : scene.items) {
+					if(si.type == SceneItem::EDGE && si.entity_id == new_hover) {
+						src_pin = si.src_pin_eid;
+						tgt_pin = si.tgt_pin_eid;
+						// Add hovered edge's own pins
+						editor->highlight_peers.FindAdd(si.src_pin_eid);
+						editor->highlight_peers.FindAdd(si.tgt_pin_eid);
+						break;
+					}
+				}
+				// Now find all other edges sharing either pin
+				if(!src_pin.IsEmpty() || !tgt_pin.IsEmpty()) {
+					for(const auto& si : scene.items) {
+						if(si.type != SceneItem::EDGE || si.entity_id == new_hover) continue;
+						if(si.src_pin_eid == src_pin || si.tgt_pin_eid == tgt_pin ||
+						   si.src_pin_eid == tgt_pin || si.tgt_pin_eid == src_pin) {
+							editor->highlight_peers.FindAdd(si.entity_id);
+							editor->highlight_peers.FindAdd(si.src_pin_eid);
+							editor->highlight_peers.FindAdd(si.tgt_pin_eid);
+						}
+					}
+				}
+			}
 			Refresh();
 		}
 	}

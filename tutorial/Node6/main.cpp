@@ -1,5 +1,13 @@
 #include <Node/Script/Script.h>
 #include <Node/Core/Layout.h>
+#include <Node/Core/ForceLayout.h>
+
+static bool HasVerboseFlag()
+{
+	for(const Upp::String& a : Upp::CommandLine())
+		if(a == "-v" || a == "--verbose") return true;
+	return false;
+}
 
 #ifdef flagGUI
 #include <Node/Ctrl/Ctrl.h>
@@ -138,7 +146,8 @@ struct App : TopWindow {
 		});
 
 		Vector<ValidationMessage> errors;
-		if(LoadEonFile(graph, AppendFileName(data_dir, "in.eon"), errors)) {
+		bool loaded = LoadEonFile(graph, AppendFileName(data_dir, "in.eon"), errors);
+		if(loaded || graph.GetDoc().nodes.GetCount() > 0) {
 			// Activate the custom layout so it's pre-selected in the menu
 			viewport.SetActiveLayout("Autoencoder (Prescribed)");
 			viewport.ApplyLayout();
@@ -149,7 +158,10 @@ struct App : TopWindow {
 	}
 };
 
-GUI_APP_MAIN { App().Run(); }
+GUI_APP_MAIN {
+	SetForceVerbose(HasVerboseFlag());
+	App().Run();
+}
 
 #endif  // flagGUI
 
@@ -161,7 +173,11 @@ GUI_APP_MAIN { App().Run(); }
 CONSOLE_APP_MAIN {
 	const Vector<String>& args = CommandLine();
 	String path = GetDataFile("in.eon");
-	if(args.GetCount() >= 1) path = args[0];
+	for(int i = 0; i < args.GetCount(); i++) {
+		if(args[i] != "-v" && args[i] != "--verbose")
+			path = args[i];
+	}
+	SetForceVerbose(HasVerboseFlag());
 
 	Graph graph;
 	Vector<ValidationMessage> errors;
@@ -183,7 +199,7 @@ CONSOLE_APP_MAIN {
 	}
 	Cout() << "\n";
 
-	// Also run layout for console to verify group assignments
-	ApplyGroupLayout(graph);
+	ForceRefineGraph(graph, 600);
+
 }
 #endif  // !flagGUI

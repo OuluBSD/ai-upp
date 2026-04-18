@@ -33,19 +33,22 @@ struct ForceGroup : Moveable<ForceGroup> {
 	// Kept as a placeholder so callers can extend later.
 };
 
+// Global verbose flag — set once at startup via SetForceVerbose() or
+// by passing -v / --verbose on the command line.
+// When true, every ForceRefine iteration prints group rects + overlap counts
+// to stdout (works in both GUI and console builds).
+void SetForceVerbose(bool v);
+bool IsForceVerbose();
+
 // Run force-directed refinement in-place on items[].
-// cell_size  : PCB routing cell or equivalent world-unit grid size.
-// iters      : number of simulation steps (default 300).
-// strength   : overall force multiplier — tune down if layout oscillates.
 void ForceRefine(Vector<ForceItem>& items,
                  int                num_groups,
                  double             cell_size,
-                 int                iters    = 300,
-                 double             strength = 1.0);
+                 int                iters = 600);
 
 // Convenience: build ForceItem list from graph nodes, run ForceRefine,
 // write positions back.  cell_size is computed from the smallest node dim.
-void ForceRefineGraph(Graph& graph, int iters = 300);
+void ForceRefineGraph(Graph& graph, int iters = 600);
 
 } // namespace Node
 

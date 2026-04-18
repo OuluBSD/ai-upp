@@ -1090,6 +1090,7 @@ void ScriptedLayout::Run(Graph& graph)
 	}
 
 	if(coord_scale <= 0.0) coord_scale = 1.0;  // fallback if no groups have rects
+	coord_scale *= 0.6;
 	RLOG("ScriptedLayout::Run coord_scale=" << coord_scale);
 
 	// --- Step 1: Pack each group's nodes to fill its (scaled) prescribed area ---

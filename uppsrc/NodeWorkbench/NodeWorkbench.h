@@ -37,6 +37,9 @@ public:
 	virtual void OnDomainInit(NodeWorkbenchWindow& /*host*/) {}
 	// Called before the window closes.
 	virtual void OnDomainClose(NodeWorkbenchWindow& /*host*/) {}
+	// Called when the host run mode changes (see WorkbenchRunMode).
+	virtual void OnRunModeChanged(NodeWorkbenchWindow& /*host*/,
+	                              WorkbenchRunMode     /*mode*/) {}
 
 	// --- File events ---
 	// Called after the host has loaded / is about to save a graph file.
@@ -183,6 +186,10 @@ public:
 	void SaveProjectAs();
 	void SaveSolutionAs();
 
+	// Run mode — controls behaviour of Compile/Run/Validate actions.
+	void             SetRunMode(WorkbenchRunMode mode);
+	WorkbenchRunMode GetRunMode() const { return run_mode; }
+
 	// Trigger domain validate + refresh diagnostics pane.
 	void ValidateGraph();
 
@@ -255,6 +262,9 @@ private:
 	INodeWorkbenchDomain* domain         = nullptr;
 	IScriptRuntime*       script_runtime = nullptr;
 
+	// ---- run mode ----
+	WorkbenchRunMode run_mode = WorkbenchRunMode::Testing;
+
 	// ---- project model (Task 03) ----
 	WorkbenchSolution sln;
 	WorkbenchProject  prj;
@@ -295,11 +305,13 @@ private:
 	void ActionNewGraph();
 	void ActionOpenGraph();
 	void ActionSaveGraph();
+	void ActionOpenFile();           // open any known file via OpenPath
 	void ActionNewProject();
 	void ActionOpenProject();
 	void ActionNewSolution();
 	void ActionOpenSolution();
 	void ActionNewFromTemplate();
+	void ActionRunStartupGraph();    // load prj.startup_graph then RunGraph()
 };
 
 END_UPP_NAMESPACE

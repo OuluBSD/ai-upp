@@ -279,20 +279,26 @@ void NodeWorkbenchWindow::MainMenu(Bar& bar) {
 }
 
 void NodeWorkbenchWindow::MenuFile(Bar& bar) {
-	bar.Add("New Graph",          THISBACK(ActionNewGraph));
-	bar.Add("Open Graph...",      THISBACK(ActionOpenGraph));
-	bar.Add("Save Graph",         THISBACK(ActionSaveGraph));
-	bar.Add("Save Graph As...",   [=] { SaveGraphAs(); });
+	bar.Add("New Graph",           THISBACK(ActionNewGraph));
+	bar.Add("Open Graph...",       THISBACK(ActionOpenGraph));
+	bar.Add("Save Graph",          THISBACK(ActionSaveGraph));
+	bar.Add("Save Graph As...",    [=] { SaveGraphAs(); });
 	bar.Separator();
-	bar.Add("New Project",        THISBACK(ActionNewProject));
-	bar.Add("Open Project...",    THISBACK(ActionOpenProject));
-	bar.Add("Save Project As...", [=] { SaveProjectAs(); });
+	bar.Add("New Project",         THISBACK(ActionNewProject));
+	bar.Add("Open Project...",     THISBACK(ActionOpenProject));
+	bar.Add("Save Project As...",  [=] { SaveProjectAs(); });
 	bar.Separator();
-	bar.Add("New Solution",       THISBACK(ActionNewSolution));
-	bar.Add("Open Solution...",   THISBACK(ActionOpenSolution));
+	bar.Add("New Solution",        THISBACK(ActionNewSolution));
+	bar.Add("Open Solution...",    THISBACK(ActionOpenSolution));
 	bar.Add("Save Solution As...", [=] { SaveSolutionAs(); });
 	bar.Separator();
-	bar.Add("Exit",               [=] { Close(); });
+	if(domain) {
+		Vector<INodeWorkbenchDomain::TemplateDesc> tpl;
+		domain->GetTemplates(tpl);
+		bar.Add(!tpl.IsEmpty(), "New from Template...", THISBACK(ActionNewFromTemplate));
+		bar.Separator();
+	}
+	bar.Add("Exit",                [=] { Close(); });
 }
 
 void NodeWorkbenchWindow::MenuRun(Bar& bar) {
@@ -715,6 +721,62 @@ void NodeWorkbenchWindow::SaveSolutionAs() {
 	if(path.IsEmpty()) return;
 	current_sln_path = path;
 	SaveSolutionFile(path);
+}
+
+// ---------------------------------------------------------------------------
+// Template generation dialog + action
+// ---------------------------------------------------------------------------
+
+void NodeWorkbenchWindow::ActionNewFromTemplate() {
+	if(!domain) return;
+
+	Vector<INodeWorkbenchDomain::TemplateDesc> tpls;
+	domain->GetTemplates(tpls);
+	if(tpls.IsEmpty()) { SetStatus("No templates available."); return; }
+
+	// Build a simple modal dialog with a list of templates.
+	TopWindow dlg;
+	dlg.Title("New from Template");
+	dlg.SetRect(0, 0, 520, 340);
+	dlg.Sizeable();
+
+	ArrayCtrl list;
+	list.AddColumn("Name", 180);
+	list.AddColumn("Category", 140);
+	list.AddColumn("Description");
+	list.MultiSelect(false);
+	for(auto& t : tpls)
+		list.Add(t.name, t.category, t.description);
+	if(list.GetCount()) list.SetCursor(0);
+
+	Button ok_btn, cancel_btn;
+	ok_btn.SetLabel("OK");
+	cancel_btn.SetLabel("Cancel");
+	ok_btn << [&] { dlg.AcceptBreak(1); };
+	cancel_btn << [&] { dlg.RejectBreak(0); };
+
+	dlg.Add(list.HSizePos(8, 8).TopPos(8, 240));
+	dlg.Add(ok_btn.RightPos(8, 80).BottomPos(8, 26));
+	dlg.Add(cancel_btn.RightPos(96, 80).BottomPos(8, 26));
+
+	if(dlg.Run() != 1) return;
+	int sel = list.GetCursor();
+	if(sel < 0) return;
+
+	String dest_dir = SelectDirectory();
+	if(dest_dir.IsEmpty()) return;
+
+	String err;
+	String result_path = domain->GenerateTemplate(sel, dest_dir, err);
+	if(result_path.IsEmpty()) {
+		PromptOK("Template generation failed:\n" + DeQtf(err));
+		return;
+	}
+
+	// Open what was generated
+	OpenPath(result_path);
+	RefreshProjectTree();
+	SetStatus("Template created: " + GetFileName(result_path));
 }
 
 // ---------------------------------------------------------------------------

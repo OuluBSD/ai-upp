@@ -228,6 +228,45 @@ struct NeuralFormat {
 	byte pad[STD_FMT_SIZE - base_size];
 };
 
+struct ElectricFormat {
+	enum Kind : byte {
+		UNKNOWN = 0,
+		WIRE,          // generic conductor / net connection
+		POWER,         // power rail (voltage level in aux as millivolts)
+		SIGNAL,        // digital logic signal
+		CONTROL,       // enable / control line
+		ANALOG,        // analog voltage / current
+		BUS,           // multi-bit parallel bus (width in aux)
+		CLOCK,         // periodic clock signal (frequency in aux as Hz)
+		KIND_COUNT
+	};
+	static constexpr int base_size =
+		sizeof(byte) * 4 +
+		sizeof(int)  * 4;
+
+	byte kind;
+	byte precision;   // bits per sample (0 = unspecified)
+	byte flags;
+	byte reserved;
+	int  aux;         // kind-specific: voltage (mV), frequency (Hz), bus width…
+	int  aux2;        // reserved for future use
+	int  aux3;
+	int  aux4;
+
+	void   SetDefault();
+	void   Set(Kind k, int aux_val = 0);
+	String ToString() const;
+	bool   IsValid() const;
+	bool   IsSame(const ElectricFormat& fmt) const;
+	bool   IsCopyCompatible(const ElectricFormat& fmt) const;
+	int    GetSampleSize() const;
+	int    GetScalar() const;
+	int    GetFrameSize() const;
+	double GetFrameSeconds() const;
+
+	byte pad[STD_FMT_SIZE - base_size];
+};
+
 #define TEST_FORMAT(x) \
 	static_assert(std::is_trivially_constructible<x>::value == true, #x " must be trivial to construct"); \
 	static_assert(sizeof(x) == STD_FMT_SIZE, "Expecting standard format size in " #x);
@@ -237,6 +276,7 @@ TEST_FORMAT(VideoFormat)
 TEST_FORMAT(DataFormat)
 TEST_FORMAT(EventFormat)
 TEST_FORMAT(NeuralFormat)
+TEST_FORMAT(ElectricFormat)
 
 class ValueFormat {
 public:
@@ -253,6 +293,7 @@ public:
 		ProgFormat			prog;
 		GuiFormat			gui;
 		NeuralFormat		neural;
+		ElectricFormat		electric;
 	};
 
 public:
@@ -280,6 +321,7 @@ public:
 	bool IsProg()  const {return vd.val == ValCls::PROG;}
 	bool IsGui()   const {return vd.val == ValCls::GUI;}
 	bool IsNeural() const {return vd.val == ValCls::NEURAL;}
+	bool IsElectric() const {return vd.val == ValCls::ELECTRIC;}
 	bool IsOgl()   const {return vd.dev == DevCls::OGL;}
 	bool IsValid() const;
 	bool IsSame(const ValueFormat& f) const;
@@ -303,6 +345,7 @@ public:
 	void SetProg(DevCls dev);
 	void SetGui(DevCls dev);
 	void SetNeural(DevCls dev, NeuralFormat::Kind kind = NeuralFormat::UNKNOWN, int rank = 0);
+	void SetElectric(DevCls dev, ElectricFormat::Kind kind = ElectricFormat::UNKNOWN, int aux_val = 0);
 
 	operator const AudioFormat&() const {ASSERT(IsAudio()); return aud;}
 	operator       AudioFormat&()       {ASSERT(IsAudio()); return aud;}
@@ -320,6 +363,8 @@ public:
 	operator       ProgFormat&()        {ASSERT(IsProg()); return prog;}
 	operator const NeuralFormat&() const {ASSERT(IsNeural()); return neural;}
 	operator       NeuralFormat&()       {ASSERT(IsNeural()); return neural;}
+	operator const ElectricFormat&() const {ASSERT(IsElectric()); return electric;}
+	operator       ElectricFormat&()       {ASSERT(IsElectric()); return electric;}
 };
 
 GVar::Sample GetGVarSampleFromBinarySample(BinarySample::Type t);

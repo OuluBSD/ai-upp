@@ -127,6 +127,7 @@ NodeWorkbenchWindow::NodeWorkbenchWindow() {
 	diagnostics_panel.Add(diagnostics_list.HSizePos(0).VSizePos(0, 36));
 
 	// ---- viewport ----
+	dispatcher.RegisterStandardCommands();
 	viewport.SetGraph(graph);
 	viewport.SetEditor(editor);
 	viewport.SetHistory(history);

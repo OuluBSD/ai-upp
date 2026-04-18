@@ -183,6 +183,11 @@ public:
 	// Surface diagnostics from external source (e.g. file watcher).
 	void SetDiagnostics(const Vector<WorkbenchDiagnostic>& diags);
 
+	// Script runtime — optional; set by domain in OnDomainInit.
+	// Ownership is NOT transferred; caller keeps the object alive.
+	void              SetScriptRuntime(IScriptRuntime& rt) { script_runtime = &rt; }
+	IScriptRuntime*   GetScriptRuntime()                   { return script_runtime; }
+
 	// Read-only accessors used by domain OnDomainInit / validators.
 	Node::NodeViewportCtrl&  GetViewport()  { return viewport; }
 	Node::Graph&             GetGraph()     { return graph; }
@@ -234,7 +239,8 @@ private:
 	StatusBar status;
 
 	// ---- domain ----
-	INodeWorkbenchDomain* domain = nullptr;
+	INodeWorkbenchDomain* domain         = nullptr;
+	IScriptRuntime*       script_runtime = nullptr;
 
 	// ---- project model (Task 03) ----
 	WorkbenchSolution sln;

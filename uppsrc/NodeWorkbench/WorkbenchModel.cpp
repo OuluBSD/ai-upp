@@ -117,6 +117,7 @@ String WorkbenchExtensions::KindFromPath(const String& path) {
 	if(ext == ".sln" || ext == ".slnx" || ext == ".nnsln") return "solution";
 	if(ext == ".grfproj" || ext == ".nnprj")               return "project";
 	if(ext == ".grf"     || ext == ".nngrf")               return "graph";
+	if(ext == ".nnpy")                                      return "script";
 	return "file";
 }
 
@@ -124,7 +125,8 @@ bool WorkbenchExtensions::IsKnownKind(const String& ext) {
 	String e = ToLower(ext);
 	return e == ".sln"  || e == ".slnx"   || e == ".nnsln"  ||
 	       e == ".grfproj" || e == ".nnprj"  ||
-	       e == ".grf"  || e == ".nngrf";
+	       e == ".grf"  || e == ".nngrf"   ||
+	       e == ".nnpy";
 }
 
 END_UPP_NAMESPACE

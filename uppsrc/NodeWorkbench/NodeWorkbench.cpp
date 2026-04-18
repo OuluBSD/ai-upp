@@ -162,12 +162,19 @@ NodeWorkbenchWindow::NodeWorkbenchWindow() {
 	diagnostics_list.AddColumn("Severity", 80);
 	diagnostics_list.AddColumn("Message");
 	diagnostics_list.AddColumn("Entity", 120);
+	diagnostics_list.WhenSel = [=] {
+		btn_diag_fix.Enable(diagnostics_list.IsCursor());
+	};
 	btn_diag_verify.SetLabel("Verify");
 	btn_diag_verify << THISBACK(ValidateGraph);
 	diagnostics_panel.Add(btn_diag_verify.LeftPos(6, 60).BottomPos(6, 24));
 	btn_diag_clear.SetLabel("Clear");
 	btn_diag_clear << [=] { last_diags.Clear(); RefreshDiagnosticsPane(); };
 	diagnostics_panel.Add(btn_diag_clear.LeftPos(72, 55).BottomPos(6, 24));
+	btn_diag_fix.SetLabel("Quick Fix...");
+	btn_diag_fix.Disable();
+	btn_diag_fix << THISBACK(ActionDiagQuickFix);
+	diagnostics_panel.Add(btn_diag_fix.LeftPos(133, 90).BottomPos(6, 24));
 	diagnostics_panel.Add(diagnostics_list.HSizePos(0).VSizePos(0, 36));
 
 	// ---- viewport ----
@@ -191,10 +198,70 @@ NodeWorkbenchWindow::NodeWorkbenchWindow() {
 // ---------------------------------------------------------------------------
 
 void NodeWorkbenchWindow::RegisterDomain(INodeWorkbenchDomain& d) {
+	// Track all registered domains (deduplicate by pointer).
+	bool found = false;
+	for(auto* p : registered_domains)
+		if(p == &d) { found = true; break; }
+	if(!found)
+		registered_domains.Add(&d);
+
+	// First registered domain becomes the active one.
+	if(!domain)
+		ActivateDomain(d);
+}
+
+void NodeWorkbenchWindow::ActivateDomain(INodeWorkbenchDomain& d) {
 	domain = &d;
 	String name = d.GetDomainName();
 	if(!name.IsEmpty())
 		Title(name + " — NodeWorkbench");
+	// If already initialized (DockInit was called), rebuild palette.
+	if(dock_palette)
+		RebuildPalette();
+}
+
+bool NodeWorkbenchWindow::PickDomain() {
+	int count = registered_domains.GetCount();
+	if(count == 0) return false;
+	if(count == 1) {
+		ActivateDomain(*registered_domains[0]);
+		return true;
+	}
+
+	TopWindow dlg;
+	dlg.Title("Select Domain");
+	dlg.SetRect(0, 0, 420, 280);
+
+	ArrayCtrl list;
+	list.AddColumn("Domain",      140);
+	list.AddColumn("Description");
+	list.MultiSelect(false);
+	for(auto* p : registered_domains)
+		list.Add(p->GetDomainName(), p->GetDomainDesc());
+	if(list.GetCount()) list.SetCursor(0);
+
+	// Pre-select current domain.
+	if(domain) {
+		for(int i = 0; i < registered_domains.GetCount(); i++)
+			if(registered_domains[i] == domain) { list.SetCursor(i); break; }
+	}
+
+	Button ok_btn, cancel_btn;
+	ok_btn.SetLabel("OK");
+	cancel_btn.SetLabel("Cancel");
+	ok_btn     << [&] { dlg.AcceptBreak(1); };
+	cancel_btn << [&] { dlg.RejectBreak(0); };
+
+	dlg.Add(list.HSizePos(8, 8).TopPos(8, 200));
+	dlg.Add(ok_btn.RightPos(8, 80).BottomPos(8, 26));
+	dlg.Add(cancel_btn.RightPos(96, 80).BottomPos(8, 26));
+
+	if(dlg.Run() != 1) return false;
+	int sel = list.GetCursor();
+	if(sel < 0 || sel >= registered_domains.GetCount()) return false;
+
+	ActivateDomain(*registered_domains[sel]);
+	return true;
 }
 
 // ---------------------------------------------------------------------------
@@ -273,8 +340,22 @@ void NodeWorkbenchWindow::MainMenu(Bar& bar) {
 	bar.Add("File",    THISBACK(MenuFile));
 	bar.Add("Run",     THISBACK(MenuRun));
 	bar.Add("View",    THISBACK(MenuView));
-	if(domain)
+	// When multiple domains are registered, show a "Domain" menu.
+	if(registered_domains.GetCount() > 1) {
+		bar.Sub("Domain", [=](Bar& b) {
+			for(int i = 0; i < registered_domains.GetCount(); i++) {
+				auto* d = registered_domains[i];
+				String label = (d == domain ? "\u2022 " : "  ") + d->GetDomainName();
+				b.Add(label, [=] { ActivateDomain(*registered_domains[i]); });
+			}
+			if(domain) {
+				b.Separator();
+				domain->BuildDomainMenu(b);
+			}
+		});
+	} else if(domain) {
 		bar.Add(domain->GetDomainName(), THISBACK(MenuDomain));
+	}
 	bar.Sub("Windows", [=](Bar& b) { DockWindowMenu(b); });
 }
 
@@ -292,10 +373,14 @@ void NodeWorkbenchWindow::MenuFile(Bar& bar) {
 	bar.Add("Open Solution...",    THISBACK(ActionOpenSolution));
 	bar.Add("Save Solution As...", [=] { SaveSolutionAs(); });
 	bar.Separator();
-	if(domain) {
-		Vector<INodeWorkbenchDomain::TemplateDesc> tpl;
-		domain->GetTemplates(tpl);
-		bar.Add(!tpl.IsEmpty(), "New from Template...", THISBACK(ActionNewFromTemplate));
+	{
+		bool has_tpls = false;
+		for(auto* d : registered_domains) {
+			Vector<INodeWorkbenchDomain::TemplateDesc> tpl;
+			d->GetTemplates(tpl);
+			if(!tpl.IsEmpty()) { has_tpls = true; break; }
+		}
+		bar.Add(has_tpls, "New from Template...", THISBACK(ActionNewFromTemplate));
 		bar.Separator();
 	}
 	bar.Add("Exit",                [=] { Close(); });
@@ -558,6 +643,57 @@ void NodeWorkbenchWindow::SetDiagnostics(const Vector<WorkbenchDiagnostic>& diag
 	RefreshDiagnosticsPane();
 }
 
+void NodeWorkbenchWindow::ActionDiagQuickFix() {
+	if(!domain) return;
+	int row = diagnostics_list.GetCursor();
+	if(row < 0 || row >= last_diags.GetCount()) return;
+
+	const WorkbenchDiagnostic& diag = last_diags[row];
+	Vector<String> fixes = domain->GetQuickFixes(diag);
+	if(fixes.IsEmpty()) {
+		SetStatus("No quick fixes available for this diagnostic.");
+		return;
+	}
+
+	if(fixes.GetCount() == 1) {
+		// Apply single fix directly.
+		domain->ApplyQuickFix(*this, diag, 0);
+		SetStatus("Applied: " + fixes[0]);
+		ValidateGraph();
+		return;
+	}
+
+	// Let user pick among available fixes.
+	TopWindow dlg;
+	dlg.Title("Quick Fix");
+	dlg.SetRect(0, 0, 400, 240);
+
+	ArrayCtrl list;
+	list.AddColumn("Fix");
+	list.MultiSelect(false);
+	for(const String& f : fixes)
+		list.Add(f);
+	list.SetCursor(0);
+
+	Button ok_btn, cancel_btn;
+	ok_btn.SetLabel("Apply");
+	cancel_btn.SetLabel("Cancel");
+	ok_btn     << [&] { dlg.AcceptBreak(1); };
+	cancel_btn << [&] { dlg.RejectBreak(0); };
+
+	dlg.Add(list.HSizePos(8, 8).TopPos(8, 160));
+	dlg.Add(ok_btn.RightPos(8, 80).BottomPos(8, 26));
+	dlg.Add(cancel_btn.RightPos(96, 80).BottomPos(8, 26));
+
+	if(dlg.Run() != 1) return;
+	int sel = list.GetCursor();
+	if(sel < 0) return;
+
+	domain->ApplyQuickFix(*this, diag, sel);
+	SetStatus("Applied: " + fixes[sel]);
+	ValidateGraph();
+}
+
 void NodeWorkbenchWindow::ValidateGraph() {
 	if(!domain) { SetStatus("No domain — nothing to validate."); return; }
 	last_diags.Clear();
@@ -610,11 +746,12 @@ bool NodeWorkbenchWindow::OpenPath(const String& path) {
 		return true;
 	}
 
-	// let domain handle extra extensions
-	if(domain) {
-		String extras = domain->GetExtraExtensions();
-		String ext = ToLower(GetFileExt(path));
-		if(extras.Find(ext) >= 0) {
+	// Let any registered domain handle extra extensions.
+	String ext = ToLower(GetFileExt(path));
+	for(auto* d : registered_domains) {
+		if(d->GetExtraExtensions().Find(ext) >= 0) {
+			// Activate this domain if not already active.
+			if(d != domain) ActivateDomain(*d);
 			domain->OnGraphLoaded(*this, path);
 			return true;
 		}
@@ -734,25 +871,44 @@ void NodeWorkbenchWindow::SaveSolutionAs() {
 // ---------------------------------------------------------------------------
 
 void NodeWorkbenchWindow::ActionNewFromTemplate() {
-	if(!domain) return;
+	if(registered_domains.IsEmpty()) return;
 
-	Vector<INodeWorkbenchDomain::TemplateDesc> tpls;
-	domain->GetTemplates(tpls);
-	if(tpls.IsEmpty()) { SetStatus("No templates available."); return; }
+	// Collect templates from all registered domains; tag each with domain index.
+	struct TaggedTpl : public Moveable<TaggedTpl> {
+		INodeWorkbenchDomain::TemplateDesc desc;
+		int domain_idx;
+		int tpl_idx;
+	};
+	Vector<TaggedTpl> all;
+	for(int di = 0; di < registered_domains.GetCount(); di++) {
+		Vector<INodeWorkbenchDomain::TemplateDesc> tpls;
+		registered_domains[di]->GetTemplates(tpls);
+		for(int ti = 0; ti < tpls.GetCount(); ti++) {
+			TaggedTpl t;
+			t.desc       = tpls[ti];
+			t.domain_idx = di;
+			t.tpl_idx    = ti;
+			all.Add(pick(t));
+		}
+	}
+	if(all.IsEmpty()) { SetStatus("No templates available."); return; }
 
-	// Build a simple modal dialog with a list of templates.
 	TopWindow dlg;
 	dlg.Title("New from Template");
-	dlg.SetRect(0, 0, 520, 340);
+	dlg.SetRect(0, 0, 580, 360);
 	dlg.Sizeable();
 
 	ArrayCtrl list;
-	list.AddColumn("Name", 180);
-	list.AddColumn("Category", 140);
+	list.AddColumn("Name",     180);
+	list.AddColumn("Domain",   110);
+	list.AddColumn("Category", 120);
 	list.AddColumn("Description");
 	list.MultiSelect(false);
-	for(auto& t : tpls)
-		list.Add(t.name, t.category, t.description);
+	for(auto& t : all)
+		list.Add(t.desc.name,
+		         registered_domains[t.domain_idx]->GetDomainName(),
+		         t.desc.category,
+		         t.desc.description);
 	if(list.GetCount()) list.SetCursor(0);
 
 	Button ok_btn, cancel_btn;
@@ -761,25 +917,30 @@ void NodeWorkbenchWindow::ActionNewFromTemplate() {
 	ok_btn << [&] { dlg.AcceptBreak(1); };
 	cancel_btn << [&] { dlg.RejectBreak(0); };
 
-	dlg.Add(list.HSizePos(8, 8).TopPos(8, 240));
+	dlg.Add(list.HSizePos(8, 8).TopPos(8, 260));
 	dlg.Add(ok_btn.RightPos(8, 80).BottomPos(8, 26));
 	dlg.Add(cancel_btn.RightPos(96, 80).BottomPos(8, 26));
 
 	if(dlg.Run() != 1) return;
 	int sel = list.GetCursor();
-	if(sel < 0) return;
+	if(sel < 0 || sel >= all.GetCount()) return;
 
 	String dest_dir = SelectDirectory();
 	if(dest_dir.IsEmpty()) return;
 
+	const TaggedTpl& chosen = all[sel];
+	INodeWorkbenchDomain* tpl_domain = registered_domains[chosen.domain_idx];
+
 	String err;
-	String result_path = domain->GenerateTemplate(sel, dest_dir, err);
+	String result_path = tpl_domain->GenerateTemplate(chosen.tpl_idx, dest_dir, err);
 	if(result_path.IsEmpty()) {
 		PromptOK("Template generation failed:\n" + DeQtf(err));
 		return;
 	}
 
-	// Open what was generated
+	// Activate the domain that owns this template.
+	ActivateDomain(*tpl_domain);
+
 	OpenPath(result_path);
 	RefreshProjectTree();
 	SetStatus("Template created: " + GetFileName(result_path));
@@ -790,10 +951,14 @@ void NodeWorkbenchWindow::ActionNewFromTemplate() {
 // ---------------------------------------------------------------------------
 
 void NodeWorkbenchWindow::ActionNewGraph() {
+	// If multiple domains are available, let user pick which one to use.
+	if(registered_domains.GetCount() > 1) {
+		if(!PickDomain()) return;
+	}
 	graph.Clear();
 	viewport.SetGraph(graph);
 	current_graph_path = String();
-	SetStatus("New graph.");
+	SetStatus(String("New graph") + (domain ? " [" + domain->GetDomainName() + "]" : "") + ".");
 }
 
 void NodeWorkbenchWindow::ActionOpenGraph() {

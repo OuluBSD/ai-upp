@@ -170,6 +170,8 @@ public:
 
 	// Read-only accessors used by domain OnDomainInit / validators.
 	Node::NodeViewportCtrl&  GetViewport()  { return viewport; }
+	Node::Graph&             GetGraph()     { return graph; }
+	const Node::Graph&       GetGraph() const { return graph; }
 	const WorkbenchSolution& GetSolution()  const { return sln; }
 	const WorkbenchProject&  GetProject()   const { return prj; }
 	String                   GetSolutionPath() const { return current_sln_path; }

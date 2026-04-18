@@ -152,9 +152,19 @@ public:
 	virtual void DockInit() override;
 	virtual void Close() override;
 
-	// Register a domain provider.  Must be called before the window is opened.
+	// Register a domain provider.  May be called multiple times to register
+	// multiple domains.  The first registered domain is the default active one.
 	// Ownership is NOT transferred; caller must keep the object alive.
 	void RegisterDomain(INodeWorkbenchDomain& domain);
+
+	// Show a domain-picker dialog and activate the chosen domain.
+	// Returns true if the user picked a domain; false if cancelled.
+	// Called automatically by ActionNewGraph when multiple domains are present.
+	bool PickDomain();
+
+	// Switch to the given domain (must already be registered).
+	// Rebuilds palette, resets graph, updates title.
+	void ActivateDomain(INodeWorkbenchDomain& domain);
 
 	// Open any known file by path — auto-dispatches by extension.
 	// Returns false if the extension is not recognised or load fails.
@@ -222,6 +232,7 @@ private:
 	ArrayCtrl   diagnostics_list;
 	Button      btn_diag_clear;
 	Button      btn_diag_verify;
+	Button      btn_diag_fix;      // quick-fix for selected diagnostic
 
 	Node::Graph              graph;
 	Node::EditorState        editor;
@@ -239,6 +250,8 @@ private:
 	StatusBar status;
 
 	// ---- domain ----
+	// All registered domains (no ownership).  Active domain is `domain`.
+	Vector<INodeWorkbenchDomain*> registered_domains;
 	INodeWorkbenchDomain* domain         = nullptr;
 	IScriptRuntime*       script_runtime = nullptr;
 
@@ -276,6 +289,7 @@ private:
 
 	// ---- diagnostics pane ----
 	void RefreshDiagnosticsPane();
+	void ActionDiagQuickFix();
 
 	// ---- file I/O internals ----
 	void ActionNewGraph();

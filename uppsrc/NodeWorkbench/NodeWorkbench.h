@@ -87,6 +87,21 @@ public:
 	                           const WorkbenchDiagnostic& /*diag*/,
 	                           int /*fix_index*/) {}
 
+	// --- Template generation ---
+	// Called by host "New from Template..." dialog.  Fill out with template
+	// descriptors.  GenerateTemplate() is then called with the chosen index
+	// and a user-chosen destination directory; it should create graph/project/
+	// solution files there and return the primary solution path (or graph path
+	// if no solution is created).  Return empty string on failure.
+	struct TemplateDesc : public Moveable<TemplateDesc> {
+		String name;         // display name, e.g. "Classify 2D"
+		String category;     // e.g. "neural.classification"
+		String description;  // one-line description shown in picker
+	};
+	virtual void GetTemplates(Vector<TemplateDesc>& /*out*/) {}
+	virtual String GenerateTemplate(int /*index*/, const String& /*dest_dir*/,
+	                                String& /*error_out*/) { return String(); }
+
 	// --- Menus ---
 	// Extra entries appended to the domain sub-menu in the menu bar.
 	virtual void BuildDomainMenu(Bar& /*bar*/) {}
@@ -264,6 +279,7 @@ private:
 	void ActionOpenProject();
 	void ActionNewSolution();
 	void ActionOpenSolution();
+	void ActionNewFromTemplate();
 };
 
 END_UPP_NAMESPACE

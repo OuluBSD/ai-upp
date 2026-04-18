@@ -391,9 +391,147 @@ void NodeWorkbenchWindow::OpenSelectedProjectTreeItem() {
 }
 
 void NodeWorkbenchWindow::OnProjectTreeMenu(Bar& bar) {
-	bar.Add("Open",      THISBACK(OpenSelectedProjectTreeItem));
+	bool has_cursor = solution_tree.IsCursor();
+	String kind, path;
+	if(has_cursor) {
+		Value v = solution_tree.Get(solution_tree.GetCursor());
+		ParseTreeKey(v, kind, path);
+	}
+
+	bar.Add(has_cursor, "Open", THISBACK(OpenSelectedProjectTreeItem));
 	bar.Separator();
-	bar.Add("New Graph", THISBACK(ActionNewGraph));
+	bar.Add("New Graph...", THISBACK(ActionNewGraph));
+	bar.Add(!current_prj_path.IsEmpty(), "Add Graph to Project...", THISBACK(ActionAddGraphToProject));
+	bar.Add(!current_sln_path.IsEmpty(), "Add Project to Solution...", THISBACK(ActionAddProjectToSolution));
+	bar.Separator();
+	bar.Add(has_cursor && kind == "graph" && !current_prj_path.IsEmpty(),
+	        "Set as Startup Graph", THISBACK(ActionSetStartupGraph));
+	bar.Separator();
+	bar.Add(has_cursor && kind != "folder", "Rename...", THISBACK(ActionRenameTreeItem));
+	bar.Add(has_cursor && kind != "folder", "Remove from Project/Solution", THISBACK(ActionRemoveTreeItem));
+}
+
+void NodeWorkbenchWindow::ActionAddProjectToSolution() {
+	if(current_sln_path.IsEmpty()) return;
+	String filter = domain ? domain->GetProjectFileFilter()
+	                       : "Project files (*.grfproj *.nnprj)\t*.grfproj *.nnprj";
+	String path = SelectFileOpen(filter);
+	if(path.IsEmpty()) return;
+	String rel = NativePath(path);
+	if(FindIndex(sln.projects, rel) < 0) {
+		sln.projects.Add(rel);
+		sln.Save(current_sln_path);
+		RefreshProjectTree();
+		SetStatus("Added project: " + GetFileName(rel));
+	}
+}
+
+void NodeWorkbenchWindow::ActionAddGraphToProject() {
+	if(current_prj_path.IsEmpty()) return;
+	String filter = domain ? domain->GetGraphFileFilter()
+	                       : "Graph files (*.grf *.nngrf)\t*.grf *.nngrf";
+	String path = SelectFileOpen(filter);
+	if(path.IsEmpty()) return;
+	String rel = NativePath(path);
+	if(FindIndex(prj.graphs, rel) < 0) {
+		prj.graphs.Add(rel);
+		prj.Save(current_prj_path);
+		RefreshProjectTree();
+		SetStatus("Added graph: " + GetFileName(rel));
+	}
+}
+
+void NodeWorkbenchWindow::ActionSetStartupGraph() {
+	if(!solution_tree.IsCursor() || current_prj_path.IsEmpty()) return;
+	Value v = solution_tree.Get(solution_tree.GetCursor());
+	String kind, path;
+	if(!ParseTreeKey(v, kind, path) || kind != "graph") return;
+	prj.startup_graph = NativePath(path);
+	prj.Save(current_prj_path);
+	RefreshProjectTree();
+	SetStatus("Startup graph: " + GetFileName(path));
+}
+
+void NodeWorkbenchWindow::ActionRemoveTreeItem() {
+	if(!solution_tree.IsCursor()) return;
+	Value v = solution_tree.Get(solution_tree.GetCursor());
+	String kind, path;
+	if(!ParseTreeKey(v, kind, path)) return;
+
+	if(kind == "graph" && !current_prj_path.IsEmpty()) {
+		String rel = NativePath(path);
+		int i = FindIndex(prj.graphs, rel);
+		if(i >= 0) {
+			prj.graphs.Remove(i);
+			if(prj.startup_graph == rel)
+				prj.startup_graph = String();
+			prj.Save(current_prj_path);
+			RefreshProjectTree();
+			SetStatus("Removed from project: " + GetFileName(path));
+		}
+	}
+	else if(kind == "project" && !current_sln_path.IsEmpty()) {
+		String rel = NativePath(path);
+		int i = FindIndex(sln.projects, rel);
+		if(i >= 0) {
+			sln.projects.Remove(i);
+			if(sln.active_project == rel)
+				sln.active_project = String();
+			sln.Save(current_sln_path);
+			RefreshProjectTree();
+			SetStatus("Removed from solution: " + GetFileName(path));
+		}
+	}
+}
+
+void NodeWorkbenchWindow::ActionRenameTreeItem() {
+	if(!solution_tree.IsCursor()) return;
+	Value v = solution_tree.Get(solution_tree.GetCursor());
+	String kind, path;
+	if(!ParseTreeKey(v, kind, path)) return;
+
+	String cur_name = GetFileName(path);
+	String ext = GetFileExt(cur_name);
+	String base = cur_name.Left(cur_name.GetCount() - ext.GetCount());
+
+	String new_base = base;
+	if(!EditText(new_base, "Rename", "New name (without extension):"))
+		return;
+	new_base = TrimBoth(new_base);
+	if(new_base.IsEmpty() || new_base == base) return;
+
+	String new_path = AppendFileName(GetFileDirectory(path), new_base + ext);
+	if(FileExists(new_path)) {
+		PromptOK("A file with that name already exists.");
+		return;
+	}
+	if(!FileMove(path, new_path)) {
+		SetStatus("Rename failed: " + cur_name);
+		return;
+	}
+
+	// Update references in project/solution
+	String old_rel = NativePath(path);
+	String new_rel = NativePath(new_path);
+	if(kind == "graph" && !current_prj_path.IsEmpty()) {
+		int i = FindIndex(prj.graphs, old_rel);
+		if(i >= 0) prj.graphs[i] = new_rel;
+		if(prj.startup_graph == old_rel) prj.startup_graph = new_rel;
+		prj.Save(current_prj_path);
+	}
+	else if(kind == "project" && !current_sln_path.IsEmpty()) {
+		int i = FindIndex(sln.projects, old_rel);
+		if(i >= 0) sln.projects[i] = new_rel;
+		if(sln.active_project == old_rel) sln.active_project = new_rel;
+		sln.Save(current_sln_path);
+	}
+
+	if(path == current_graph_path) current_graph_path = new_path;
+	if(path == current_prj_path)   current_prj_path   = new_path;
+	if(path == current_sln_path)   current_sln_path   = new_path;
+
+	RefreshProjectTree();
+	SetStatus("Renamed: " + new_base + ext);
 }
 
 // ---------------------------------------------------------------------------

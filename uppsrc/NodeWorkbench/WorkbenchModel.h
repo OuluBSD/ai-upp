@@ -10,6 +10,24 @@
 NAMESPACE_UPP
 
 // ---------------------------------------------------------------------------
+// Run mode — host-level execution context indicator
+// ---------------------------------------------------------------------------
+enum class WorkbenchRunMode {
+	Testing,    // exploratory / unit-test mode
+	Verifying,  // validation / CI mode
+	Running,    // production / full-run mode
+};
+
+inline const char* RunModeLabel(WorkbenchRunMode m) {
+	switch(m) {
+	case WorkbenchRunMode::Testing:   return "Testing";
+	case WorkbenchRunMode::Verifying: return "Verifying";
+	case WorkbenchRunMode::Running:   return "Running";
+	}
+	return "Testing";
+}
+
+// ---------------------------------------------------------------------------
 // Diagnostic item — produced by domain validators, shown in the host pane
 // ---------------------------------------------------------------------------
 enum class DiagSeverity { Info, Warning, Error };

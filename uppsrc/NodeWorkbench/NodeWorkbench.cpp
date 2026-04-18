@@ -333,6 +333,18 @@ void NodeWorkbenchWindow::SetStatus(const String& s) {
 }
 
 // ---------------------------------------------------------------------------
+// Run mode
+// ---------------------------------------------------------------------------
+
+void NodeWorkbenchWindow::SetRunMode(WorkbenchRunMode mode) {
+	if(run_mode == mode) return;
+	run_mode = mode;
+	SetStatus(String("Run mode: ") + RunModeLabel(mode));
+	if(domain)
+		domain->OnRunModeChanged(*this, mode);
+}
+
+// ---------------------------------------------------------------------------
 // Menu builders
 // ---------------------------------------------------------------------------
 
@@ -360,9 +372,11 @@ void NodeWorkbenchWindow::MainMenu(Bar& bar) {
 }
 
 void NodeWorkbenchWindow::MenuFile(Bar& bar) {
+	bar.Add("Open File...",        THISBACK(ActionOpenFile)).Key(K_CTRL|K_O);
+	bar.Separator();
 	bar.Add("New Graph",           THISBACK(ActionNewGraph));
 	bar.Add("Open Graph...",       THISBACK(ActionOpenGraph));
-	bar.Add("Save Graph",          THISBACK(ActionSaveGraph));
+	bar.Add("Save Graph",          THISBACK(ActionSaveGraph)).Key(K_CTRL|K_S);
 	bar.Add("Save Graph As...",    [=] { SaveGraphAs(); });
 	bar.Separator();
 	bar.Add("New Project",         THISBACK(ActionNewProject));
@@ -390,6 +404,15 @@ void NodeWorkbenchWindow::MenuRun(Bar& bar) {
 	bar.Add("Verify",  THISBACK(ValidateGraph));
 	bar.Add("Compile", THISBACK(CompileGraph));
 	bar.Add("Run",     THISBACK(RunGraph));
+	bool has_startup = !prj.startup_graph.IsEmpty();
+	bar.Add(has_startup, "Run Startup Graph", THISBACK(ActionRunStartupGraph));
+	bar.Separator();
+	// Run mode sub-menu with checkmarks
+	bar.Sub("Run Mode", [=](Bar& b) {
+		b.Add(run_mode == WorkbenchRunMode::Testing,   "Testing",   [=] { SetRunMode(WorkbenchRunMode::Testing);   });
+		b.Add(run_mode == WorkbenchRunMode::Verifying, "Verifying", [=] { SetRunMode(WorkbenchRunMode::Verifying); });
+		b.Add(run_mode == WorkbenchRunMode::Running,   "Running",   [=] { SetRunMode(WorkbenchRunMode::Running);   });
+	});
 }
 
 void NodeWorkbenchWindow::MenuView(Bar& bar) {
@@ -704,14 +727,15 @@ void NodeWorkbenchWindow::ValidateGraph() {
 		if(d.severity == DiagSeverity::Error)   errs++;
 		if(d.severity == DiagSeverity::Warning) warns++;
 	}
-	SetStatus(Format("Validation: %d error(s), %d warning(s).", errs, warns));
+	SetStatus(Format("[%s] Validation: %d error(s), %d warning(s).",
+	                 RunModeLabel(run_mode), errs, warns));
 }
 
 void NodeWorkbenchWindow::CompileGraph() {
 	if(!domain) { SetStatus("No domain — nothing to compile."); return; }
 	String log;
 	bool ok = domain->CompileGraph(*this, log);
-	SetStatus(ok ? "Compile OK." : "Compile FAILED.");
+	SetStatus(String("[") + RunModeLabel(run_mode) + (ok ? "] Compile OK." : "] Compile FAILED."));
 	if(!log.IsEmpty()) {
 		last_diags.Clear();
 		WorkbenchDiagnostic d;
@@ -727,7 +751,7 @@ void NodeWorkbenchWindow::RunGraph() {
 	if(!domain) { SetStatus("No domain — nothing to run."); return; }
 	String log;
 	bool ok = domain->RunGraph(*this, log);
-	SetStatus(ok ? "Run OK." : "Run FAILED.");
+	SetStatus(String("[") + RunModeLabel(run_mode) + (ok ? "] Run OK." : "] Run FAILED."));
 }
 
 // ---------------------------------------------------------------------------
@@ -1004,6 +1028,58 @@ void NodeWorkbenchWindow::ActionOpenSolution() {
 	String path = SelectFileOpen(filter);
 	if(path.IsEmpty()) return;
 	OpenSolutionFile(path);
+}
+
+void NodeWorkbenchWindow::ActionOpenFile() {
+	// Build a combined filter from all registered domains.
+	String all_exts;
+	String filter_parts;
+	for(auto* d : registered_domains) {
+		auto collect = [&](const String& f) {
+			// f is "Label\text1 ext2"; extract the extension part
+			int tab = f.Find('\t');
+			if(tab >= 0) {
+				String exts = f.Mid(tab + 1);
+				if(!all_exts.IsEmpty()) all_exts << " ";
+				all_exts << exts;
+				filter_parts << f << "\n";
+			}
+		};
+		collect(d->GetSolutionFileFilter());
+		collect(d->GetProjectFileFilter());
+		collect(d->GetGraphFileFilter());
+	}
+	// Also add the known built-in extensions if no domains are registered.
+	if(all_exts.IsEmpty())
+		all_exts = "*.slnx *.sln *.nnsln *.grfproj *.nnprj *.grf *.nngrf *.nnpy";
+
+	String combined = "All known files (" + all_exts + ")\t" + all_exts;
+	if(!filter_parts.IsEmpty())
+		combined << "\n" << filter_parts;
+
+	String path = SelectFileOpen(combined);
+	if(path.IsEmpty()) return;
+	if(!OpenPath(path))
+		PromptOK("Could not open file:\n" + DeQtf(path));
+}
+
+void NodeWorkbenchWindow::ActionRunStartupGraph() {
+	if(prj.startup_graph.IsEmpty()) {
+		SetStatus("No startup graph set in the active project.");
+		return;
+	}
+	String path = prj.startup_graph;
+	// Resolve relative paths against the project directory.
+	if(!IsFullPath(path) && !current_prj_path.IsEmpty())
+		path = NormalizePath(AppendFileName(GetFileDirectory(current_prj_path), path));
+
+	if(!FileExists(path)) {
+		SetStatus("Startup graph not found: " + GetFileName(path));
+		PromptOK("Startup graph not found:\n" + DeQtf(path));
+		return;
+	}
+	if(!OpenGraphFile(path)) return;
+	RunGraph();
 }
 
 END_UPP_NAMESPACE

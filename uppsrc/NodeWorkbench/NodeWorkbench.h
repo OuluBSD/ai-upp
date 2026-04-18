@@ -247,6 +247,11 @@ private:
 	void RefreshProjectTree();
 	void OpenSelectedProjectTreeItem();
 	void OnProjectTreeMenu(Bar& bar);
+	void ActionAddProjectToSolution();
+	void ActionAddGraphToProject();
+	void ActionSetStartupGraph();
+	void ActionRemoveTreeItem();
+	void ActionRenameTreeItem();
 
 	// ---- diagnostics pane ----
 	void RefreshDiagnosticsPane();

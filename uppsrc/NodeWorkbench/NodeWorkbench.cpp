@@ -3,7 +3,45 @@
 NAMESPACE_UPP
 
 // ---------------------------------------------------------------------------
-// helpers (file-local)
+// DomainRegistry
+// ---------------------------------------------------------------------------
+
+namespace {
+	struct RegEntry : public Moveable<RegEntry> {
+		DomainRegistry::Factory factory;
+	};
+	Vector<RegEntry>& GetRegistry() {
+		static Vector<RegEntry> r;
+		return r;
+	}
+}
+
+DomainRegistry::Entry::Entry(Factory f) {
+	RegEntry e;
+	e.factory = f;
+	GetRegistry().Add(pick(e));
+}
+
+int DomainRegistry::GetCount() {
+	return GetRegistry().GetCount();
+}
+
+INodeWorkbenchDomain* DomainRegistry::Create(int i) {
+	if(i < 0 || i >= GetRegistry().GetCount()) return nullptr;
+	return GetRegistry()[i].factory();
+}
+
+INodeWorkbenchDomain* DomainRegistry::CreateById(const String& id) {
+	for(auto& e : GetRegistry()) {
+		One<INodeWorkbenchDomain> tmp(e.factory());
+		if(tmp->GetDomainId() == id)
+			return tmp.Detach();
+	}
+	return nullptr;
+}
+
+// ---------------------------------------------------------------------------
+// file-local helpers
 // ---------------------------------------------------------------------------
 namespace {
 
@@ -12,28 +50,13 @@ String MakeTreeKey(const String& kind, const String& path) {
 }
 
 bool ParseTreeKey(const Value& value, String& kind, String& path) {
-	if(IsNull(value))
-		return false;
+	if(IsNull(value)) return false;
 	String key = value;
 	int split = key.Find('|');
-	if(split < 0)
-		return false;
+	if(split < 0) return false;
 	kind = key.Left(split);
 	path = key.Mid(split + 1);
 	return true;
-}
-
-String FileKindFromPath(const String& path) {
-	String ext = ToLower(GetFileExt(path));
-	// new formats
-	if(ext == ".sln" || ext == ".slnx") return "solution";
-	if(ext == ".grfproj")               return "project";
-	if(ext == ".grf")                   return "graph";
-	// legacy compatibility
-	if(ext == ".nnsln")  return "solution";
-	if(ext == ".nnprj")  return "project";
-	if(ext == ".nngrf")  return "graph";
-	return "file";
 }
 
 bool SkipTreeDirectory(const String& name) {
@@ -45,8 +68,7 @@ bool SkipTreeDirectory(const String& name) {
 
 void AddDirectoryTree(TreeArrayCtrl& tree, int parent_id,
                       const String& dir, int depth, int& budget) {
-	if(depth > 12 || budget <= 0)
-		return;
+	if(depth > 12 || budget <= 0) return;
 
 	Vector<String> dirs, files;
 	FindFile ff(AppendFileName(dir, "*"));
@@ -55,10 +77,11 @@ void AddDirectoryTree(TreeArrayCtrl& tree, int parent_id,
 		String path = NormalizePath(ff.GetPath());
 		if(name.GetCount() && name[0] == '.') { ff.Next(); continue; }
 		if(ff.IsFolder()) {
-			if(!SkipTreeDirectory(name))
-				dirs.Add(path);
+			if(!SkipTreeDirectory(name)) dirs.Add(path);
 		} else if(ff.IsFile()) {
-			files.Add(path);
+			String ext = ToLower(GetFileExt(path));
+			if(WorkbenchExtensions::IsKnownKind(ext))
+				files.Add(path);
 		}
 		ff.Next();
 	}
@@ -73,16 +96,32 @@ void AddDirectoryTree(TreeArrayCtrl& tree, int parent_id,
 	}
 	for(const String& f : files) {
 		if(budget-- <= 0) return;
-		String kind = FileKindFromPath(f);
+		String kind = WorkbenchExtensions::KindFromPath(f);
 		tree.Add(parent_id, CtrlImg::File(),
 		         MakeTreeKey(kind, f), GetFileName(f), false);
+	}
+}
+
+Color DiagColor(DiagSeverity s) {
+	switch(s) {
+	case DiagSeverity::Error:   return Color(220, 60, 60);
+	case DiagSeverity::Warning: return Color(200, 150, 0);
+	default:                    return Color(80, 80, 80);
+	}
+}
+
+String DiagLabel(DiagSeverity s) {
+	switch(s) {
+	case DiagSeverity::Error:   return "Error";
+	case DiagSeverity::Warning: return "Warning";
+	default:                    return "Info";
 	}
 }
 
 } // namespace
 
 // ---------------------------------------------------------------------------
-// NodeWorkbenchWindow
+// NodeWorkbenchWindow — constructor
 // ---------------------------------------------------------------------------
 
 NodeWorkbenchWindow::NodeWorkbenchWindow() {
@@ -121,9 +160,13 @@ NodeWorkbenchWindow::NodeWorkbenchWindow() {
 	// ---- diagnostics panel ----
 	diagnostics_list.AddColumn("Severity", 80);
 	diagnostics_list.AddColumn("Message");
+	diagnostics_list.AddColumn("Entity", 120);
+	btn_diag_verify.SetLabel("Verify");
+	btn_diag_verify << THISBACK(ValidateGraph);
+	diagnostics_panel.Add(btn_diag_verify.LeftPos(6, 60).BottomPos(6, 24));
 	btn_diag_clear.SetLabel("Clear");
-	btn_diag_clear << [=] { diagnostics_list.Clear(); };
-	diagnostics_panel.Add(btn_diag_clear.LeftPos(6, 60).BottomPos(6, 24));
+	btn_diag_clear << [=] { last_diags.Clear(); RefreshDiagnosticsPane(); };
+	diagnostics_panel.Add(btn_diag_clear.LeftPos(72, 55).BottomPos(6, 24));
 	diagnostics_panel.Add(diagnostics_list.HSizePos(0).VSizePos(0, 36));
 
 	// ---- viewport ----
@@ -142,30 +185,38 @@ NodeWorkbenchWindow::NodeWorkbenchWindow() {
 	SetStatus("Ready.");
 }
 
+// ---------------------------------------------------------------------------
+// RegisterDomain
+// ---------------------------------------------------------------------------
+
 void NodeWorkbenchWindow::RegisterDomain(INodeWorkbenchDomain& d) {
 	domain = &d;
-	String title = d.GetDomainName();
-	if(!title.IsEmpty())
-		Title(title + " — NodeWorkbench");
+	String name = d.GetDomainName();
+	if(!name.IsEmpty())
+		Title(name + " — NodeWorkbench");
 }
+
+// ---------------------------------------------------------------------------
+// Layout persistence
+// ---------------------------------------------------------------------------
 
 String NodeWorkbenchWindow::GetLayoutFileName() const {
 	if(domain) {
-		String name = domain->GetDomainName();
-		// sanitise: keep only alphanumeric and underscore
+		String id = domain->GetDomainId();
 		String safe;
-		for(int i = 0; i < name.GetCount(); i++) {
-			char c = name[i];
-			if(IsAlNum(c) || c == '_')
-				safe.Cat(c);
-			else
-				safe.Cat('_');
+		for(int i = 0; i < id.GetCount(); i++) {
+			char c = id[i];
+			safe.Cat((IsAlNum(c) || c == '_') ? c : '_');
 		}
 		if(!safe.IsEmpty())
-			return "nodeworkbench_" + ToLower(safe) + "_layout.dat";
+			return "nodeworkbench_" + safe + "_layout.dat";
 	}
 	return "nodeworkbench_layout.dat";
 }
+
+// ---------------------------------------------------------------------------
+// DockInit / Close
+// ---------------------------------------------------------------------------
 
 void NodeWorkbenchWindow::DockInit() {
 	if(!dock_project) {
@@ -182,14 +233,14 @@ void NodeWorkbenchWindow::DockInit() {
 		DockBottom(*dock_diagnostics);
 	}
 
-	// restore persisted layout
 	FileIn in(GetDataFile(GetLayoutFileName()));
 	if(in.IsOpen() && !in.IsError())
 		SerializeWindow(in);
 
-	// let the domain add its own registrations
-	if(domain)
+	if(domain) {
 		domain->OnDomainInit(*this);
+		RebuildPalette();
+	}
 
 	RefreshProjectTree();
 }
@@ -218,27 +269,39 @@ void NodeWorkbenchWindow::SetStatus(const String& s) {
 // ---------------------------------------------------------------------------
 
 void NodeWorkbenchWindow::MainMenu(Bar& bar) {
-	bar.Add("File",   THISBACK(MenuFile));
-	bar.Add("View",   THISBACK(MenuView));
+	bar.Add("File",    THISBACK(MenuFile));
+	bar.Add("Run",     THISBACK(MenuRun));
+	bar.Add("View",    THISBACK(MenuView));
 	if(domain)
 		bar.Add(domain->GetDomainName(), THISBACK(MenuDomain));
 	bar.Sub("Windows", [=](Bar& b) { DockWindowMenu(b); });
 }
 
 void NodeWorkbenchWindow::MenuFile(Bar& bar) {
-	bar.Add("New Graph",       THISBACK(ActionNewGraph));
-	bar.Add("Open Graph...",   THISBACK(ActionOpenGraph));
-	bar.Add("Save Graph",      THISBACK(ActionSaveGraph));
+	bar.Add("New Graph",          THISBACK(ActionNewGraph));
+	bar.Add("Open Graph...",      THISBACK(ActionOpenGraph));
+	bar.Add("Save Graph",         THISBACK(ActionSaveGraph));
+	bar.Add("Save Graph As...",   [=] { SaveGraphAs(); });
 	bar.Separator();
-	bar.Add("Open Project...", THISBACK(ActionOpenProject));
+	bar.Add("New Project",        THISBACK(ActionNewProject));
+	bar.Add("Open Project...",    THISBACK(ActionOpenProject));
+	bar.Add("Save Project As...", [=] { SaveProjectAs(); });
 	bar.Separator();
-	bar.Add("Open Solution...",THISBACK(ActionOpenSolution));
+	bar.Add("New Solution",       THISBACK(ActionNewSolution));
+	bar.Add("Open Solution...",   THISBACK(ActionOpenSolution));
+	bar.Add("Save Solution As...", [=] { SaveSolutionAs(); });
 	bar.Separator();
-	bar.Add("Exit",            [=] { Close(); });
+	bar.Add("Exit",               [=] { Close(); });
+}
+
+void NodeWorkbenchWindow::MenuRun(Bar& bar) {
+	bar.Add("Verify",  THISBACK(ValidateGraph));
+	bar.Add("Compile", THISBACK(CompileGraph));
+	bar.Add("Run",     THISBACK(RunGraph));
 }
 
 void NodeWorkbenchWindow::MenuView(Bar& bar) {
-	bar.Add("Zoom to Fit", [=] { viewport.ZoomToFit(); });
+	bar.Add("Zoom to Fit",  [=] { viewport.ZoomToFit(); });
 	bar.Add("Apply Layout", [=] { viewport.ApplyLayout(); });
 }
 
@@ -248,21 +311,65 @@ void NodeWorkbenchWindow::MenuDomain(Bar& bar) {
 }
 
 // ---------------------------------------------------------------------------
+// Palette
+// ---------------------------------------------------------------------------
+
+void NodeWorkbenchWindow::RebuildPalette() {
+	category_list.Clear();
+	node_list.Clear();
+	if(!domain) return;
+
+	Vector<INodeWorkbenchDomain::PaletteItem> items;
+	domain->BuildPalette(items);
+
+	// collect unique ordered categories
+	Index<String> cats;
+	for(auto& it : items)
+		cats.FindAdd(it.category);
+	for(int i = 0; i < cats.GetCount(); i++)
+		category_list.Add(cats[i]);
+
+	// store items for RefreshNodeList to filter
+	// attach them as row data on category_list using SetCtrl-free trick:
+	// we repopulate node_list on category selection
+	// stash items vector for use in RefreshNodeList via a member
+	// (we use last_diags-style storage via a dedicated member — added below)
+}
+
+void NodeWorkbenchWindow::RefreshCategoryList() {
+	// Called externally; just delegate to RebuildPalette
+	RebuildPalette();
+}
+
+void NodeWorkbenchWindow::RefreshNodeList() {
+	node_list.Clear();
+	if(!domain) return;
+
+	int row = category_list.GetCursor();
+	if(row < 0) return;
+	String cat = category_list.Get(row, 0).ToString();
+
+	Vector<INodeWorkbenchDomain::PaletteItem> items;
+	domain->BuildPalette(items);
+	for(auto& it : items)
+		if(it.category == cat)
+			node_list.Add(it.label);
+}
+
+// ---------------------------------------------------------------------------
 // Project tree
 // ---------------------------------------------------------------------------
 
 void NodeWorkbenchWindow::RefreshProjectTree() {
 	solution_tree.Clear();
 
-	// If a solution root directory is known, populate from it.
 	String root_dir;
 	if(!current_sln_path.IsEmpty())
 		root_dir = GetFileDirectory(current_sln_path);
 	else if(!current_prj_path.IsEmpty())
 		root_dir = GetFileDirectory(current_prj_path);
 
-	if(root_dir.IsEmpty())
-		return;
+	if(root_dir.IsEmpty()) return;
 
 	int budget = 2000;
 	AddDirectoryTree(solution_tree, 0, root_dir, 0, budget);
@@ -277,32 +384,92 @@ void NodeWorkbenchWindow::OpenSelectedProjectTreeItem() {
 	String kind, path;
 	if(!ParseTreeKey(v, kind, path)) return;
 
-	if(kind == "graph")
-		OpenGraphFile(path);
-	else if(kind == "project")
-		OpenProjectFile(path);
-	else if(kind == "solution")
-		OpenSolutionFile(path);
+	if(kind == "graph")    OpenGraphFile(path);
+	else if(kind == "project")  OpenProjectFile(path);
+	else if(kind == "solution") OpenSolutionFile(path);
 }
 
 void NodeWorkbenchWindow::OnProjectTreeMenu(Bar& bar) {
-	bar.Add("Open", THISBACK(OpenSelectedProjectTreeItem));
+	bar.Add("Open",      THISBACK(OpenSelectedProjectTreeItem));
 	bar.Separator();
 	bar.Add("New Graph", THISBACK(ActionNewGraph));
 }
 
 // ---------------------------------------------------------------------------
-// Palette
+// Diagnostics pane
 // ---------------------------------------------------------------------------
 
-void NodeWorkbenchWindow::RefreshCategoryList() {
-	// Populated by domain in OnDomainInit via viewport.RegisterNodeType().
-	// For now leave the list empty — it is a stub hook point.
-	category_list.Clear();
+void NodeWorkbenchWindow::RefreshDiagnosticsPane() {
+	diagnostics_list.Clear();
+	for(auto& d : last_diags) {
+		diagnostics_list.Add(DiagLabel(d.severity), d.message, d.entity_id);
+		diagnostics_list.SetLineColor(
+			diagnostics_list.GetCount() - 1, DiagColor(d.severity));
+	}
 }
 
-void NodeWorkbenchWindow::RefreshNodeList() {
-	node_list.Clear();
+void NodeWorkbenchWindow::SetDiagnostics(const Vector<WorkbenchDiagnostic>& diags) {
+	last_diags <<= diags;
+	RefreshDiagnosticsPane();
+}
+
+void NodeWorkbenchWindow::ValidateGraph() {
+	if(!domain) { SetStatus("No domain — nothing to validate."); return; }
+	last_diags.Clear();
+	domain->ValidateGraph(*this, last_diags);
+	RefreshDiagnosticsPane();
+	int errs = 0, warns = 0;
+	for(auto& d : last_diags) {
+		if(d.severity == DiagSeverity::Error)   errs++;
+		if(d.severity == DiagSeverity::Warning) warns++;
+	}
+	SetStatus(Format("Validation: %d error(s), %d warning(s).", errs, warns));
+}
+
+void NodeWorkbenchWindow::CompileGraph() {
+	if(!domain) { SetStatus("No domain — nothing to compile."); return; }
+	String log;
+	bool ok = domain->CompileGraph(*this, log);
+	SetStatus(ok ? "Compile OK." : "Compile FAILED.");
+	if(!log.IsEmpty()) {
+		last_diags.Clear();
+		WorkbenchDiagnostic d;
+		d.severity = ok ? DiagSeverity::Info : DiagSeverity::Error;
+		d.message  = log;
+		d.source   = "compiler";
+		last_diags.Add(d);
+		RefreshDiagnosticsPane();
+	}
+}
+
+void NodeWorkbenchWindow::RunGraph() {
+	if(!domain) { SetStatus("No domain — nothing to run."); return; }
+	String log;
+	bool ok = domain->RunGraph(*this, log);
+	SetStatus(ok ? "Run OK." : "Run FAILED.");
+}
+
+// ---------------------------------------------------------------------------
+// OpenPath — auto-dispatch by extension  (Task 03)
+// ---------------------------------------------------------------------------
+
+bool NodeWorkbenchWindow::OpenPath(const String& path) {
+	String kind = WorkbenchExtensions::KindFromPath(path);
+	if(kind == "solution") return OpenSolutionFile(path);
+	if(kind == "project")  return OpenProjectFile(path);
+	if(kind == "graph")    return OpenGraphFile(path);
+
+	// let domain handle extra extensions
+	if(domain) {
+		String extras = domain->GetExtraExtensions();
+		String ext = ToLower(GetFileExt(path));
+		if(extras.Find(ext) >= 0) {
+			domain->OnGraphLoaded(*this, path);
+			return true;
+		}
+	}
+	SetStatus("Unknown file type: " + GetFileName(path));
+	return false;
 }
 
 // ---------------------------------------------------------------------------
@@ -310,53 +477,90 @@ void NodeWorkbenchWindow::RefreshNodeList() {
 // ---------------------------------------------------------------------------
 
 bool NodeWorkbenchWindow::OpenGraphFile(const String& path) {
-	String text = LoadFile(path);
-	if(text.IsEmpty() && !FileExists(path)) {
-		SetStatus("Failed to open: " + path);
-		return false;
-	}
-	// TODO: deserialise graph from text (domain-specific or generic .grf JSON)
+	if(!FileExists(path)) { SetStatus("File not found: " + path); return false; }
+	// TODO: deserialise Node::Graph from .grf JSON (wired up in Task 03+)
 	current_graph_path = path;
-	SetStatus("Opened: " + GetFileName(path));
-	if(domain)
-		domain->OnGraphLoaded(*this, path);
+	SetStatus("Graph: " + GetFileName(path));
+	if(domain) domain->OnGraphLoaded(*this, path);
 	return true;
 }
 
 bool NodeWorkbenchWindow::SaveGraphFile(const String& path) {
 	if(path.IsEmpty()) return false;
-	if(domain)
-		domain->OnGraphSaving(*this, path);
-	// TODO: serialise graph to file
+	if(domain) domain->OnGraphSaving(*this, path);
+	// TODO: serialise Node::Graph to .grf JSON
 	SetStatus("Saved: " + GetFileName(path));
 	return true;
 }
 
 bool NodeWorkbenchWindow::OpenProjectFile(const String& path) {
+	WorkbenchProject tmp;
+	if(!tmp.Load(path)) {
+		SetStatus("Failed to load project: " + GetFileName(path));
+		return false;
+	}
+	prj = pick(tmp);
 	current_prj_path = path;
 	RefreshProjectTree();
-	SetStatus("Project: " + GetFileName(path));
+	SetStatus("Project: " + prj.name);
+	if(domain) domain->OnProjectOpened(*this, prj, path);
 	return true;
 }
 
 bool NodeWorkbenchWindow::SaveProjectFile(const String& path) {
-	(void)path;
-	return true;
+	if(path.IsEmpty()) return false;
+	return prj.Save(path);
 }
 
 bool NodeWorkbenchWindow::OpenSolutionFile(const String& path) {
+	WorkbenchSolution tmp;
+	if(!tmp.Load(path)) {
+		SetStatus("Failed to load solution: " + GetFileName(path));
+		return false;
+	}
+	sln = pick(tmp);
 	current_sln_path = path;
 	RefreshProjectTree();
-	SetStatus("Solution: " + GetFileName(path));
+	SetStatus("Solution: " + sln.name);
+	if(domain) domain->OnSolutionOpened(*this, sln, path);
 	return true;
 }
 
 bool NodeWorkbenchWindow::SaveSolutionFile(const String& path) {
-	(void)path;
-	return true;
+	if(path.IsEmpty()) return false;
+	return sln.Save(path);
 }
 
-// ---- action wrappers ----
+void NodeWorkbenchWindow::SaveGraphAs() {
+	String filter = domain ? domain->GetGraphFileFilter()
+	                       : "Graph files (*.grf)\t*.grf";
+	String path = SelectFileSaveAs(filter);
+	if(path.IsEmpty()) return;
+	current_graph_path = path;
+	SaveGraphFile(path);
+}
+
+void NodeWorkbenchWindow::SaveProjectAs() {
+	String filter = domain ? domain->GetProjectFileFilter()
+	                       : "Project files (*.grfproj)\t*.grfproj";
+	String path = SelectFileSaveAs(filter);
+	if(path.IsEmpty()) return;
+	current_prj_path = path;
+	SaveProjectFile(path);
+}
+
+void NodeWorkbenchWindow::SaveSolutionAs() {
+	String filter = domain ? domain->GetSolutionFileFilter()
+	                       : "Solution files (*.slnx *.sln)\t*.slnx *.sln";
+	String path = SelectFileSaveAs(filter);
+	if(path.IsEmpty()) return;
+	current_sln_path = path;
+	SaveSolutionFile(path);
+}
+
+// ---------------------------------------------------------------------------
+// Action wrappers
+// ---------------------------------------------------------------------------
 
 void NodeWorkbenchWindow::ActionNewGraph() {
 	graph.Clear();
@@ -374,14 +578,15 @@ void NodeWorkbenchWindow::ActionOpenGraph() {
 }
 
 void NodeWorkbenchWindow::ActionSaveGraph() {
-	if(current_graph_path.IsEmpty()) {
-		String filter = domain ? domain->GetGraphFileFilter()
-		                       : "Graph files (*.grf)\t*.grf";
-		String path = SelectFileSaveAs(filter);
-		if(path.IsEmpty()) return;
-		current_graph_path = path;
-	}
-	SaveGraphFile(current_graph_path);
+	if(current_graph_path.IsEmpty()) SaveGraphAs();
+	else SaveGraphFile(current_graph_path);
+}
+
+void NodeWorkbenchWindow::ActionNewProject() {
+	prj = WorkbenchProject();
+	current_prj_path = String();
+	RefreshProjectTree();
+	SetStatus("New project.");
 }
 
 void NodeWorkbenchWindow::ActionOpenProject() {
@@ -390,6 +595,15 @@ void NodeWorkbenchWindow::ActionOpenProject() {
 	String path = SelectFileOpen(filter);
 	if(path.IsEmpty()) return;
 	OpenProjectFile(path);
+}
+
+void NodeWorkbenchWindow::ActionNewSolution() {
+	sln = WorkbenchSolution();
+	prj = WorkbenchProject();
+	current_sln_path = String();
+	current_prj_path = String();
+	RefreshProjectTree();
+	SetStatus("New solution.");
 }
 
 void NodeWorkbenchWindow::ActionOpenSolution() {

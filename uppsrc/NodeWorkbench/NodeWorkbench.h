@@ -5,50 +5,129 @@
 #include <Docking/Docking.h>
 #include <Node/Ctrl/Ctrl.h>
 
+#include "WorkbenchModel.h"
+
 NAMESPACE_UPP
 
+// forward
+class NodeWorkbenchWindow;
+
 // ---------------------------------------------------------------------------
-// Domain registration interface
-// Implement and pass to NodeWorkbenchWindow::RegisterDomain() to plug in
-// domain-specific node types, file extensions and toolbar actions.
-// All methods have default no-op implementations so stubs compile as-is.
+// INodeWorkbenchDomain  (Task 02)
+//
+// Implement this interface and pass to NodeWorkbenchWindow::RegisterDomain()
+// to plug in domain-specific behaviour.  All methods have default no-op
+// implementations so a minimal domain compiles with no overrides.
 // ---------------------------------------------------------------------------
 class INodeWorkbenchDomain {
 public:
 	virtual ~INodeWorkbenchDomain() {}
 
-	// Human-readable name shown in the title bar and menus.
-	virtual String  GetDomainName() const { return "Generic"; }
+	// --- Identity ---
+	// Stable machine-readable identifier, e.g. "neural", "electric", "generic".
+	virtual String GetDomainId()   const { return "generic"; }
+	// Human-readable display name (used in title bar, menus).
+	virtual String GetDomainName() const { return "Generic"; }
+	// One-line description shown in future domain-picker UI.
+	virtual String GetDomainDesc() const { return ""; }
 
-	// Called once after the window is fully constructed.
-	// Use it to register node types on the viewport, add menu items, etc.
-	virtual void    OnDomainInit(class NodeWorkbenchWindow& /*host*/) {}
+	// --- Lifecycle ---
+	// Called once after DockInit() completes.  Register node types on the
+	// viewport here; read domain-specific config; prime the palette.
+	virtual void OnDomainInit(NodeWorkbenchWindow& /*host*/) {}
+	// Called before the window closes.
+	virtual void OnDomainClose(NodeWorkbenchWindow& /*host*/) {}
 
-	// Called when the window is about to close (save domain state here).
-	virtual void    OnDomainClose(class NodeWorkbenchWindow& /*host*/) {}
+	// --- File events ---
+	// Called after the host has loaded / is about to save a graph file.
+	virtual void OnGraphLoaded(NodeWorkbenchWindow& /*host*/,
+	                           const String& /*path*/) {}
+	virtual void OnGraphSaving(NodeWorkbenchWindow& /*host*/,
+	                           const String& /*path*/) {}
+	// Called after a project/solution is opened so the domain can
+	// e.g. prime a compilation cache.
+	virtual void OnProjectOpened(NodeWorkbenchWindow& /*host*/,
+	                             const WorkbenchProject& /*prj*/,
+	                             const String& /*path*/) {}
+	virtual void OnSolutionOpened(NodeWorkbenchWindow& /*host*/,
+	                              const WorkbenchSolution& /*sln*/,
+	                              const String& /*path*/) {}
 
-	// Called after a graph file is loaded.
-	virtual void    OnGraphLoaded(class NodeWorkbenchWindow& /*host*/,
-	                               const String& /*path*/) {}
+	// --- Palette seeding ---
+	// Called by host during DockInit (after OnDomainInit).  Fill palette_out
+	// with category → node-label pairs; the host populates the palette lists.
+	struct PaletteItem : public Moveable<PaletteItem> {
+		String category;
+		String label;
+		String type_id;    // passed back to viewport.RegisterNodeType
+	};
+	virtual void BuildPalette(Vector<PaletteItem>& /*palette_out*/) {}
 
-	// Called before a graph file is saved.
-	virtual void    OnGraphSaving(class NodeWorkbenchWindow& /*host*/,
-	                               const String& /*path*/) {}
+	// --- Validation / diagnostics ---
+	// Called when the user triggers "Verify" or the host auto-validates.
+	// Append diagnostic items to diag_out.
+	virtual void ValidateGraph(NodeWorkbenchWindow& /*host*/,
+	                           Vector<WorkbenchDiagnostic>& /*diag_out*/) {}
 
-	// Return additional menu entries to add to the domain sub-menu.
-	// Bar& is the Bar passed by NodeWorkbenchWindow::MenuDomain().
-	virtual void    BuildDomainMenu(Bar& /*bar*/) {}
+	// --- Compile / run ---
+	// Called by the host "Run" / "Compile" menu items.  Return false on error;
+	// write human-readable output to log_out.
+	virtual bool CompileGraph(NodeWorkbenchWindow& /*host*/,
+	                          String& /*log_out*/) { return true; }
+	virtual bool RunGraph(NodeWorkbenchWindow& /*host*/,
+	                      String& /*log_out*/) { return true; }
 
-	// Return file-type filter string used in open/save dialogs, e.g.
-	//   "Graph files (*.grf)\t*.grf\nAll files\t*.*"
-	// Empty string disables the domain file dialogs.
-	virtual String  GetGraphFileFilter() const { return "Graph files (*.grf)\t*.grf"; }
-	virtual String  GetProjectFileFilter() const { return "Project files (*.grfproj)\t*.grfproj"; }
-	virtual String  GetSolutionFileFilter() const { return "Solution files (*.slnx *.sln)\t*.slnx *.sln"; }
+	// --- Quick-fix provider ---
+	// Return a list of short fix labels applicable to the selected diagnostic.
+	// The host calls ApplyQuickFix(index) when the user clicks one.
+	virtual Vector<String> GetQuickFixes(const WorkbenchDiagnostic& /*diag*/) {
+		return {};
+	}
+	virtual void ApplyQuickFix(NodeWorkbenchWindow& /*host*/,
+	                           const WorkbenchDiagnostic& /*diag*/,
+	                           int /*fix_index*/) {}
+
+	// --- Menus ---
+	// Extra entries appended to the domain sub-menu in the menu bar.
+	virtual void BuildDomainMenu(Bar& /*bar*/) {}
+
+	// --- File-type metadata ---
+	// File-open/save filter strings (Tab-separated label\textension).
+	virtual String GetGraphFileFilter()    const { return "Graph files (*.grf)\t*.grf"; }
+	virtual String GetProjectFileFilter()  const { return "Project files (*.grfproj)\t*.grfproj"; }
+	virtual String GetSolutionFileFilter() const { return "Solution files (*.slnx *.sln)\t*.slnx *.sln"; }
+
+	// Extra extensions this domain owns (used by OpenPath auto-dispatch).
+	// Return pipe-separated list, e.g. ".myext|.myext2".
+	virtual String GetExtraExtensions() const { return ""; }
 };
 
 // ---------------------------------------------------------------------------
-// NodeWorkbenchWindow — generic DockWindow host
+// DomainRegistry  (compile-time plugin registration)
+//
+// Domains self-register via a static DomainRegistry::Entry at file scope.
+// The host can enumerate registered domains to build pickers or auto-dispatch.
+//
+// Usage:
+//   static DomainRegistry::Entry s_reg([] { return new MyDomain; });
+// ---------------------------------------------------------------------------
+class DomainRegistry {
+public:
+	typedef Function<INodeWorkbenchDomain*()> Factory;
+
+	struct Entry {
+		Entry(Factory f);
+	};
+
+	static int                    GetCount();
+	static INodeWorkbenchDomain*  Create(int i);   // caller owns the pointer
+	static INodeWorkbenchDomain*  CreateById(const String& id); // nullptr if not found
+};
+
+// ---------------------------------------------------------------------------
+// NodeWorkbenchWindow  (Tasks 02 + 03)
+//
+// Generic DockWindow host for graph-based domains.
 // ---------------------------------------------------------------------------
 class NodeWorkbenchWindow : public DockWindow {
 public:
@@ -58,14 +137,15 @@ public:
 	virtual void DockInit() override;
 	virtual void Close() override;
 
-	// Register a domain provider. Must be called before the window is opened.
-	// Ownership is NOT transferred; the caller must keep the object alive.
+	// Register a domain provider.  Must be called before the window is opened.
+	// Ownership is NOT transferred; caller must keep the object alive.
 	void RegisterDomain(INodeWorkbenchDomain& domain);
 
-	// Access the graph viewport (used by domain providers in OnDomainInit).
-	Node::NodeViewportCtrl& GetViewport() { return viewport; }
+	// Open any known file by path — auto-dispatches by extension.
+	// Returns false if the extension is not recognised or load fails.
+	bool OpenPath(const String& path);
 
-	// File operations — delegates to domain filter strings.
+	// Fine-grained file ops (used by menus and OpenPath).
 	bool OpenGraphFile(const String& path);
 	bool SaveGraphFile(const String& path);
 	bool OpenProjectFile(const String& path);
@@ -73,7 +153,30 @@ public:
 	bool OpenSolutionFile(const String& path);
 	bool SaveSolutionFile(const String& path);
 
-	// Layout file name — override to store a different file per domain.
+	// Save-as variants (ask user for path).
+	void SaveGraphAs();
+	void SaveProjectAs();
+	void SaveSolutionAs();
+
+	// Trigger domain validate + refresh diagnostics pane.
+	void ValidateGraph();
+
+	// Trigger domain compile/run; result shown in diagnostics.
+	void CompileGraph();
+	void RunGraph();
+
+	// Surface diagnostics from external source (e.g. file watcher).
+	void SetDiagnostics(const Vector<WorkbenchDiagnostic>& diags);
+
+	// Read-only accessors used by domain OnDomainInit / validators.
+	Node::NodeViewportCtrl&  GetViewport()  { return viewport; }
+	const WorkbenchSolution& GetSolution()  const { return sln; }
+	const WorkbenchProject&  GetProject()   const { return prj; }
+	String                   GetSolutionPath() const { return current_sln_path; }
+	String                   GetProjectPath()  const { return current_prj_path; }
+	String                   GetGraphPath()    const { return current_graph_path; }
+
+	// Per-domain layout persistence file name.
 	virtual String GetLayoutFileName() const;
 
 	// Status bar helper.
@@ -81,26 +184,23 @@ public:
 
 private:
 	// ---- panes ----
-	// Solution / project tree
 	ParentCtrl    project_panel;
 	TreeArrayCtrl solution_tree;
 	Button        btn_open_item;
 	Button        btn_new_graph;
 	Button        btn_new_folder;
 
-	// Node palette
 	ParentCtrl  palette_panel;
 	Splitter    palette_split;
 	ArrayCtrl   category_list;
 	ArrayCtrl   node_list;
 	Button      btn_add_node;
 
-	// Diagnostics
 	ParentCtrl  diagnostics_panel;
 	ArrayCtrl   diagnostics_list;
 	Button      btn_diag_clear;
+	Button      btn_diag_verify;
 
-	// Graph viewport (central widget, also dockable for multi-graph)
 	Node::Graph              graph;
 	Node::EditorState        editor;
 	Node::HistoryStack       history;
@@ -111,7 +211,6 @@ private:
 	DockableCtrl* dock_project     = nullptr;
 	DockableCtrl* dock_palette     = nullptr;
 	DockableCtrl* dock_diagnostics = nullptr;
-	DockableCtrl* dock_viewport    = nullptr;
 
 	// ---- menu/status ----
 	MenuBar   menu;
@@ -120,31 +219,43 @@ private:
 	// ---- domain ----
 	INodeWorkbenchDomain* domain = nullptr;
 
-	// ---- state ----
+	// ---- project model (Task 03) ----
+	WorkbenchSolution sln;
+	WorkbenchProject  prj;
 	String current_sln_path;
 	String current_prj_path;
 	String current_graph_path;
 
+	// last diagnostics shown
+	Vector<WorkbenchDiagnostic> last_diags;
+
 	// ---- menu builders ----
 	void MainMenu(Bar& bar);
 	void MenuFile(Bar& bar);
+	void MenuRun(Bar& bar);
 	void MenuView(Bar& bar);
 	void MenuDomain(Bar& bar);
 
-	// ---- project tree helpers ----
+	// ---- palette ----
+	void RebuildPalette();
+	void RefreshCategoryList();
+	void RefreshNodeList();
+
+	// ---- project tree ----
 	void RefreshProjectTree();
 	void OpenSelectedProjectTreeItem();
 	void OnProjectTreeMenu(Bar& bar);
 
-	// ---- palette helpers ----
-	void RefreshCategoryList();
-	void RefreshNodeList();
+	// ---- diagnostics pane ----
+	void RefreshDiagnosticsPane();
 
 	// ---- file I/O internals ----
 	void ActionNewGraph();
 	void ActionOpenGraph();
 	void ActionSaveGraph();
+	void ActionNewProject();
 	void ActionOpenProject();
+	void ActionNewSolution();
 	void ActionOpenSolution();
 };
 

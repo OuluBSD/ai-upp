@@ -74,6 +74,47 @@ struct WorkbenchSolution : public Moveable<WorkbenchSolution> {
 };
 
 // ---------------------------------------------------------------------------
+// IScriptRuntime — backend-agnostic scripting interface (Task 3.01)
+//
+// Domains instantiate a concrete backend (e.g. ByteVMScriptRuntime) and
+// register it with NodeWorkbenchWindow::SetScriptRuntime().  The host
+// passes it back through INodeWorkbenchDomain::OnDomainInit so the domain
+// can configure it.  NodeWorkbench itself never includes ByteVM headers.
+// ---------------------------------------------------------------------------
+struct ScriptRunResult : public Moveable<ScriptRunResult> {
+	bool   ok      = false;
+	String output;           // stdout / print lines
+	String error;            // compile or runtime error message
+	String result;           // last expression result as string, may be empty
+};
+
+class IScriptRuntime {
+public:
+	virtual ~IScriptRuntime() {}
+
+	// Identity
+	virtual String GetBackendId()   const = 0;  // e.g. "bytevm", "cpython"
+	virtual String GetBackendDesc() const = 0;
+
+	// Lifecycle
+	virtual bool   Init(String& error_out) = 0;
+	virtual void   Reset() = 0;         // clear interpreter state
+
+	// Execution
+	// Run source code string; optional filename for error messages.
+	virtual ScriptRunResult RunSource(const String& src,
+	                                  const String& filename = "inline") = 0;
+	// Call a named function (must already be defined by a previous RunSource).
+	// args is a JSON-serialisable Value (array or map).
+	virtual ScriptRunResult CallFunction(const String& fn_name,
+	                                     const Value& args) = 0;
+
+	// Streaming output — set before calling Run/Call.
+	// Each print() line fires this event.
+	Event<const String&> WhenOutput;
+};
+
+// ---------------------------------------------------------------------------
 // Extension registry — maps file extensions to kind strings
 // ---------------------------------------------------------------------------
 struct WorkbenchExtensions {

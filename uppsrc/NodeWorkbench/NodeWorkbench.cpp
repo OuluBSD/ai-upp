@@ -603,6 +603,12 @@ bool NodeWorkbenchWindow::OpenPath(const String& path) {
 	if(kind == "solution") return OpenSolutionFile(path);
 	if(kind == "project")  return OpenProjectFile(path);
 	if(kind == "graph")    return OpenGraphFile(path);
+	if(kind == "script") {
+		// Script files (.nnpy) — notify domain, open in external editor or log
+		if(domain) domain->OnGraphLoaded(*this, path);
+		SetStatus("Script: " + GetFileName(path));
+		return true;
+	}
 
 	// let domain handle extra extensions
 	if(domain) {

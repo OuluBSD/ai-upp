@@ -1,4 +1,5 @@
 #include "NodeWorkbench.h"
+#include <Node/Script/Script.h>
 
 NAMESPACE_UPP
 
@@ -478,9 +479,24 @@ bool NodeWorkbenchWindow::OpenPath(const String& path) {
 
 bool NodeWorkbenchWindow::OpenGraphFile(const String& path) {
 	if(!FileExists(path)) { SetStatus("File not found: " + path); return false; }
-	// TODO: deserialise Node::Graph from .grf JSON (wired up in Task 03+)
-	current_graph_path = path;
-	SetStatus("Graph: " + GetFileName(path));
+	graph.Clear();
+	Vector<Node::ValidationMessage> vm;
+	if(!Node::LoadEonFile(graph, path, vm)) {
+		String msg;
+		for(const Node::ValidationMessage& m : vm)
+			msg << m.message << "\n";
+		if(msg.IsEmpty())
+			msg = "Failed to load graph: " + path;
+		SetStatus("Graph load failed: " + GetFileName(path));
+		PromptOK(DeQtf(msg));
+		return false;
+	}
+	graph.RebuildIndexPublic();
+	graph.Invalidate();
+	viewport.SetGraph(graph);
+	viewport.ZoomToFit();
+	current_graph_path = NormalizePath(path);
+	SetStatus("Graph: " + GetFileName(current_graph_path));
 	if(domain) domain->OnGraphLoaded(*this, path);
 	return true;
 }
@@ -488,8 +504,13 @@ bool NodeWorkbenchWindow::OpenGraphFile(const String& path) {
 bool NodeWorkbenchWindow::SaveGraphFile(const String& path) {
 	if(path.IsEmpty()) return false;
 	if(domain) domain->OnGraphSaving(*this, path);
-	// TODO: serialise Node::Graph to .grf JSON
-	SetStatus("Saved: " + GetFileName(path));
+	String out = Node::SaveEon(graph);
+	if(!SaveFile(path, out)) {
+		SetStatus("Failed to save graph: " + GetFileName(path));
+		return false;
+	}
+	current_graph_path = NormalizePath(path);
+	SetStatus("Saved: " + GetFileName(current_graph_path));
 	return true;
 }
 

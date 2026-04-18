@@ -4,6 +4,7 @@ uses
 	Core,
 	CtrlLib,
 	Docking,
+	Node/Script,
 	Node/Ctrl;
 
 file

@@ -373,8 +373,8 @@ void NodeViewportCtrl::ApplyLayout()
 		for(auto& e : custom_layouts) {
 			if(e.name == active_custom_layout) {
 				e.fn(*graph);
-				if(force_refine)
-					ForceRefineGraph(*graph);
+				// Note: ForceRefine is handled inside the callback (e.g. ScriptedLayout::Run).
+				// Do not call ForceRefineGraph here to avoid a double pass.
 				builder.Build(scene, *graph);
 				vp.ZoomToFit(scene.index.bounds, sz);
 				auto_layout_active = true;

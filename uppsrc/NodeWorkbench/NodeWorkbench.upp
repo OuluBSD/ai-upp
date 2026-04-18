@@ -1,0 +1,15 @@
+description "Generic NodeWorkbench DockWindow host for graph-based domains\377";
+
+uses
+	Core,
+	CtrlLib,
+	Docking,
+	Node/Ctrl;
+
+file
+	NodeWorkbench.h,
+	NodeWorkbench.cpp;
+
+mainconfig
+	"" = "GUI",
+	"X11" = "GUI X11";

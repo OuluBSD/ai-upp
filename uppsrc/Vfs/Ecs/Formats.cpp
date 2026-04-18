@@ -258,6 +258,72 @@ String NeuralKindToString(NeuralFormat::Kind kind) {
 
 }
 
+static const char* ElectricKindToString(ElectricFormat::Kind k) {
+	switch (k) {
+		case ElectricFormat::WIRE:    return "wire";
+		case ElectricFormat::POWER:   return "power";
+		case ElectricFormat::SIGNAL:  return "signal";
+		case ElectricFormat::CONTROL: return "control";
+		case ElectricFormat::ANALOG:  return "analog";
+		case ElectricFormat::BUS:     return "bus";
+		case ElectricFormat::CLOCK:   return "clock";
+		case ElectricFormat::UNKNOWN:
+		default:                      return "unknown";
+	}
+}
+
+void ElectricFormat::SetDefault() {
+	kind = UNKNOWN;
+	precision = 0;
+	flags = 0;
+	reserved = 0;
+	aux = 0;
+	aux2 = 0;
+	aux3 = 0;
+	aux4 = 0;
+}
+
+void ElectricFormat::Set(Kind k, int aux_val) {
+	SetDefault();
+	kind = k;
+	aux  = aux_val;
+}
+
+String ElectricFormat::ToString() const {
+	String s;
+	s << "kind:" << ElectricKindToString((Kind)kind);
+	if (aux) s << ", aux:" << aux;
+	return s;
+}
+
+bool ElectricFormat::IsValid() const {
+	return (int)kind >= (int)UNKNOWN && (int)kind < (int)KIND_COUNT;
+}
+
+bool ElectricFormat::IsSame(const ElectricFormat& fmt) const {
+	return kind == fmt.kind && precision == fmt.precision && flags == fmt.flags && aux == fmt.aux;
+}
+
+bool ElectricFormat::IsCopyCompatible(const ElectricFormat& fmt) const {
+	return kind == fmt.kind;
+}
+
+int ElectricFormat::GetSampleSize() const {
+	return 1;
+}
+
+int ElectricFormat::GetScalar() const {
+	return 1;
+}
+
+int ElectricFormat::GetFrameSize() const {
+	return 1;
+}
+
+double ElectricFormat::GetFrameSeconds() const {
+	return 0;
+}
+
 void NeuralFormat::SetDefault() {
 	kind = UNKNOWN;
 	precision = 0;
@@ -348,6 +414,7 @@ double NeuralFormat::GetFrameSeconds() const {
 	if (IsProg())  return prog.x(); \
 	if (IsGui())   return gui.x(); \
 	if (IsNeural()) return neural.x(); \
+	if (IsElectric()) return electric.x(); \
 	Panic("Invalid type");
 
 #define PROXY_(x,y) \
@@ -360,6 +427,7 @@ double NeuralFormat::GetFrameSeconds() const {
 	if (IsProg())  return prog.x((const ProgFormat&)y); \
 	if (IsGui())   return gui.x((const GuiFormat&)y); \
 	if (IsNeural()) return neural.x((const NeuralFormat&)y); \
+	if (IsElectric()) return electric.x((const ElectricFormat&)y); \
 	Panic("Invalid type");
 
 #define PROXY_CHK(x) ASSERT(IsValid()); PROXY(x)
@@ -376,6 +444,7 @@ String ValueFormat::ToString() const {
 	if (IsProg())   return "ProgFormat(" + vd.ToString() + ", " + prog.ToString() + ")";
 	if (IsGui())   return "GuiFormat(" + vd.ToString() + ", " + gui.ToString() + ")";
 	if (IsNeural()) return "NeuralFormat(" + vd.ToString() + ", " + neural.ToString() + ")";
+	if (IsElectric()) return "ElectricFormat(" + vd.ToString() + ", " + electric.ToString() + ")";
 	if (vd.val == ValCls::ORDER) return "OrderFormat";
 	if (vd.val == ValCls::RECEIPT) return "ReceiptFormat";
 	return "Invalid ValueFormat";
@@ -526,6 +595,13 @@ void ValueFormat::SetNeural(DevCls dev, NeuralFormat::Kind kind, int rank) {
 	neural.Set(kind, rank);
 }
 
+void ValueFormat::SetElectric(DevCls dev, ElectricFormat::Kind kind, int aux_val) {
+	vd.dev = dev;
+	vd.val = ValCls::ELECTRIC;
+	memset(data, 0, sizeof(data));
+	electric.Set(kind, aux_val);
+}
+
 void ValueFormat::operator=(const ValueFormat& f) {
 	vd = f.vd;
 	memcpy(data, f.data, sizeof(data));
@@ -591,6 +667,9 @@ ValueFormat GetDefaultFormat(ValDevCls type) {
 	}
 	else if (type.val == ValCls::NEURAL) {
 		fmt.SetNeural(type.dev, NeuralFormat::UNKNOWN, 0);
+	}
+	else if (type.val == ValCls::ELECTRIC) {
+		fmt.SetElectric(type.dev, ElectricFormat::UNKNOWN, 0);
 	}
 	else {
 		TODO

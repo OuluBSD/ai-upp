@@ -102,6 +102,15 @@ public:
 	// Activate a previously registered layout by name (clears built-in orientation selection).
 	void             SetActiveLayout(const String& name) { active_custom_layout = name; layout_orientation = SmartPacker::LAYOUT_TALL; }
 
+	// Edit actions (for menu/toolbar use)
+	bool CanUndo() const { return history && history->CanUndo(); }
+	bool CanRedo() const { return history && history->CanRedo(); }
+	bool HasSelection() const { return editor && editor->selection.GetCount() > 0; }
+	void DoUndo() { if(history && graph && editor) { history->Undo(CommandContext(*graph, *editor)); Refresh(); } }
+	void DoRedo() { if(history && graph && editor) { history->Redo(CommandContext(*graph, *editor)); Refresh(); } }
+	void DoDeleteSelection();
+	void DoSelectAll();
+
 	void             ApplyLayout();  // Re-run layout with current orientation
 	virtual void Layout() override; // handles auto-refit on size change
 	virtual void Paint(Draw& w) override;

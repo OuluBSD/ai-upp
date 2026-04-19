@@ -278,6 +278,7 @@ private:
 	// ---- menu builders ----
 	void MainMenu(Bar& bar);
 	void MenuFile(Bar& bar);
+	void MenuEdit(Bar& bar);
 	void MenuRun(Bar& bar);
 	void MenuView(Bar& bar);
 	void MenuDomain(Bar& bar);

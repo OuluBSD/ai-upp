@@ -362,6 +362,34 @@ void NodeViewportCtrl::RegisterLayout(const String& name, Function<void(Graph&)>
 	custom_layouts.Add(pick(e));
 }
 
+void NodeViewportCtrl::DoDeleteSelection()
+{
+	if(!graph || !editor || !history || !dispatcher) return;
+	if(editor->selection.IsEmpty()) return;
+	history->Begin();
+	for(const auto& id : editor->selection) {
+		ValueMap arg;
+		arg.Add("id", id);
+		history->Execute(CommandContext(*graph, *editor), dispatcher->Create("RemoveNode", arg));
+	}
+	history->Commit();
+	Refresh();
+}
+
+void NodeViewportCtrl::DoSelectAll()
+{
+	if(!graph || !editor || !history || !dispatcher) return;
+	history->Begin();
+	for(const NodeDoc& nd : graph->GetDoc().nodes) {
+		ValueMap arg;
+		arg.Add("id", nd.id);
+		arg.Add("exclusive", false);
+		history->Execute(CommandContext(*graph, *editor), dispatcher->Create("Select", arg));
+	}
+	history->Commit();
+	Refresh();
+}
+
 void NodeViewportCtrl::ApplyLayout()
 {
 	if(!graph) return;

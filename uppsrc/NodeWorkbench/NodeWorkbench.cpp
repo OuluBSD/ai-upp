@@ -348,8 +348,17 @@ void NodeWorkbenchWindow::SetRunMode(WorkbenchRunMode mode) {
 // Menu builders
 // ---------------------------------------------------------------------------
 
+void NodeWorkbenchWindow::MenuEdit(Bar& bar) {
+	bar.Add(viewport.CanUndo(), "Undo", [=] { viewport.DoUndo(); }).Key(K_CTRL|K_Z);
+	bar.Add(viewport.CanRedo(), "Redo", [=] { viewport.DoRedo(); }).Key(K_CTRL|K_Y);
+	bar.Separator();
+	bar.Add(viewport.HasSelection(), "Delete Selection", [=] { viewport.DoDeleteSelection(); }).Key(K_DELETE);
+	bar.Add("Select All", [=] { viewport.DoSelectAll(); }).Key(K_CTRL|K_A);
+}
+
 void NodeWorkbenchWindow::MainMenu(Bar& bar) {
 	bar.Add("File",    THISBACK(MenuFile));
+	bar.Add("Edit",    THISBACK(MenuEdit));
 	bar.Add("Run",     THISBACK(MenuRun));
 	bar.Add("View",    THISBACK(MenuView));
 	// When multiple domains are registered, show a "Domain" menu.

@@ -152,11 +152,16 @@ Vector<ValidationMessage> Graph::Validate() const
 			res.Add(ValidationMessage(ValidationMessage::ERROR, "Duplicate node ID: " + n.id, n.id));
 		node_ids.Add(n.id);
 
-		Index<EntityId> pin_ids;
+		// Pin IDs must be unique per direction (input/output separately),
+		// but the same name is allowed for an input and an output pin (pass-through style).
+		Index<EntityId> in_pin_ids, out_pin_ids;
 		for(const auto& p : n.pins) {
-			if(pin_ids.Find(p.id) >= 0)
-				res.Add(ValidationMessage(ValidationMessage::ERROR, "Duplicate pin ID: " + p.id + " in node " + n.id, n.id));
-			pin_ids.Add(p.id);
+			Index<EntityId>& dir_ids = (p.kind == PinKind::Output) ? out_pin_ids : in_pin_ids;
+			if(dir_ids.Find(p.id) >= 0)
+				res.Add(ValidationMessage(ValidationMessage::ERROR,
+				        "Duplicate " + String(p.kind == PinKind::Output ? "output" : "input") +
+				        " pin ID: " + p.id + " in node " + n.id, n.id));
+			dir_ids.Add(p.id);
 		}
 	}
 
@@ -168,24 +173,22 @@ Vector<ValidationMessage> Graph::Validate() const
 		if(si < 0)
 			res.Add(ValidationMessage(ValidationMessage::ERROR, "Edge " + e.id + " refers to non-existent source node " + e.source_node, e.id));
 		else if(!e.source_pin.IsEmpty()) {
+			// Search specifically for an Output pin with this id (nodes may have same-named in+out pins)
 			for(const auto& p : doc.nodes[si].pins)
-				if(p.id == e.source_pin) { src_pin = &p; break; }
+				if(p.id == e.source_pin && p.kind == PinKind::Output) { src_pin = &p; break; }
 			if(!src_pin)
-				res.Add(ValidationMessage(ValidationMessage::ERROR, "Edge " + e.id + " refers to non-existent source pin " + e.source_pin + " in node " + e.source_node, e.id));
-			else if(src_pin->kind != PinKind::Output)
-				res.Add(ValidationMessage(ValidationMessage::ERROR, "Edge " + e.id + " source pin " + e.source_pin + " in node " + e.source_node + " is not an output pin", e.id));
+				res.Add(ValidationMessage(ValidationMessage::ERROR, "Edge " + e.id + " refers to non-existent output pin " + e.source_pin + " in node " + e.source_node, e.id));
 		}
 
 		int ti = node_ids.Find(e.target_node);
 		if(ti < 0)
 			res.Add(ValidationMessage(ValidationMessage::ERROR, "Edge " + e.id + " refers to non-existent target node " + e.target_node, e.id));
 		else if(!e.target_pin.IsEmpty()) {
+			// Search specifically for an Input pin with this id (nodes may have same-named in+out pins)
 			for(const auto& p : doc.nodes[ti].pins)
-				if(p.id == e.target_pin) { tgt_pin = &p; break; }
+				if(p.id == e.target_pin && p.kind == PinKind::Input) { tgt_pin = &p; break; }
 			if(!tgt_pin)
-				res.Add(ValidationMessage(ValidationMessage::ERROR, "Edge " + e.id + " refers to non-existent target pin " + e.target_pin + " in node " + e.target_node, e.id));
-			else if(tgt_pin->kind != PinKind::Input)
-				res.Add(ValidationMessage(ValidationMessage::ERROR, "Edge " + e.id + " target pin " + e.target_pin + " in node " + e.target_node + " is not an input pin", e.id));
+				res.Add(ValidationMessage(ValidationMessage::ERROR, "Edge " + e.id + " refers to non-existent input pin " + e.target_pin + " in node " + e.target_node, e.id));
 		}
 
 		// Typed-pin validation: if both sides carry a concrete type name, they must match.

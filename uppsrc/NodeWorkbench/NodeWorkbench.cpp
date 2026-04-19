@@ -805,7 +805,7 @@ bool NodeWorkbenchWindow::OpenGraphFile(const String& path) {
 	graph.RebuildIndexPublic();
 	graph.Invalidate();
 	viewport.SetGraph(graph);
-	viewport.ZoomToFit();
+	PostCallback([this] { viewport.ApplyLayout(); });
 	current_graph_path = NormalizePath(path);
 	SetStatus("Graph: " + GetFileName(current_graph_path));
 	if(domain) domain->OnGraphLoaded(*this, path);

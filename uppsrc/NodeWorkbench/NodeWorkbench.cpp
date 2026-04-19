@@ -183,6 +183,7 @@ NodeWorkbenchWindow::NodeWorkbenchWindow() {
 	viewport.SetEditor(editor);
 	viewport.SetHistory(history);
 	viewport.SetDispatcher(dispatcher);
+	viewport.WhenGraphModified = [this] { SetGraphDirty(true); };
 	Add(viewport.HSizePos(0).VSizePos(0, 0));
 
 	// ---- menu / status ----
@@ -210,11 +211,28 @@ void NodeWorkbenchWindow::RegisterDomain(INodeWorkbenchDomain& d) {
 		ActivateDomain(d);
 }
 
+void NodeWorkbenchWindow::UpdateTitle()
+{
+	String base;
+	if(domain) base = domain->GetDomainName() + " — ";
+	base << "NodeWorkbench";
+	if(!current_graph_path.IsEmpty())
+		base << " — " << GetFileName(current_graph_path);
+	if(graph_dirty)
+		base << " *";
+	Title(base);
+}
+
+void NodeWorkbenchWindow::SetGraphDirty(bool dirty)
+{
+	if(graph_dirty == dirty) return;
+	graph_dirty = dirty;
+	UpdateTitle();
+}
+
 void NodeWorkbenchWindow::ActivateDomain(INodeWorkbenchDomain& d) {
 	domain = &d;
-	String name = d.GetDomainName();
-	if(!name.IsEmpty())
-		Title(name + " — NodeWorkbench");
+	UpdateTitle();
 	// If already initialized (DockInit was called), rebuild palette.
 	if(dock_palette)
 		RebuildPalette();
@@ -315,6 +333,13 @@ void NodeWorkbenchWindow::DockInit() {
 
 void NodeWorkbenchWindow::Close() {
 	if(IsOpen()) {
+		if(graph_dirty && !current_graph_path.IsEmpty()) {
+			switch(PromptYesNoCancel("Save changes to " + GetFileName(current_graph_path) + "?")) {
+			case 1:  SaveGraphFile(current_graph_path); break;
+			case -1: return; // Cancel — abort close
+			default: break;  // No — discard
+			}
+		}
 		FileOut out(GetDataFile(GetLayoutFileName()));
 		if(out.IsOpen())
 			SerializeWindow(out);
@@ -858,6 +883,8 @@ bool NodeWorkbenchWindow::OpenGraphFile(const String& path) {
 	else
 		PostCallback([this] { viewport.ApplyLayout(); });
 	current_graph_path = norm;
+	graph_dirty = false;
+	UpdateTitle();
 	SetStatus("Graph: " + GetFileName(current_graph_path));
 	if(domain) domain->OnGraphLoaded(*this, path);
 	return true;
@@ -872,6 +899,8 @@ bool NodeWorkbenchWindow::SaveGraphFile(const String& path) {
 		return false;
 	}
 	current_graph_path = NormalizePath(path);
+	graph_dirty = false;
+	UpdateTitle();
 	SaveGraphViewState(current_graph_path, viewport.GetPanOffset(), viewport.GetZoomScale());
 	SetStatus("Saved: " + GetFileName(current_graph_path));
 	return true;
@@ -1034,6 +1063,8 @@ void NodeWorkbenchWindow::ActionNewGraph() {
 	graph.Clear();
 	viewport.SetGraph(graph);
 	current_graph_path = String();
+	graph_dirty = false;
+	UpdateTitle();
 	SetStatus(String("New graph") + (domain ? " [" + domain->GetDomainName() + "]" : "") + ".");
 }
 

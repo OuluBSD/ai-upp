@@ -597,12 +597,12 @@ String SaveEon(const Graph& g)
 	const GraphDoc& doc = g.GetDoc();
 	String s;
 
-	// Emit node type declarations for nodes that have pins
+	// Emit one node type declaration per unique node_type_id that has pins or slots.
+	// Use node_type_id as the canonical type identifier (fall back to label if empty).
 	Index<String> emitted_types;
 	for (const NodeDoc& nd : doc.nodes) {
 		if (nd.pins.IsEmpty() && nd.slots.IsEmpty()) continue;
-		// Use label as type id if it looks like a dotted path, else skip type decl
-		String type_id = nd.label;
+		String type_id = nd.node_type_id.IsEmpty() ? nd.label : nd.node_type_id;
 		if (type_id.IsEmpty() || emitted_types.Find(type_id) >= 0) continue;
 		emitted_types.Add(type_id);
 
@@ -610,14 +610,15 @@ String SaveEon(const Graph& g)
 		for (const PinDoc& pin : nd.pins) {
 			s << "\t" << (pin.kind == PinKind::Output ? "out" : "in")
 			  << " " << pin.id;
-			if(!pin.type_name.IsEmpty())
+			if (!pin.type_name.IsEmpty())
 				s << " : " << pin.type_name;
 			s << "\n";
 		}
+		// Emit param declarations from the first node of this type that has slots.
 		for (WidgetSlotDoc& slot : const_cast<NodeDoc&>(nd).slots) {
 			s << "\t" << slot.id;
 			if (!slot.type.IsEmpty() && slot.type != "param")
-				; // type hint not stored separately yet
+				s << " : " << slot.type;
 			Value v = slot.properties.Get("value", Value());
 			if (!v.IsVoid())
 				s << " = " << v.ToString();
@@ -626,23 +627,25 @@ String SaveEon(const Graph& g)
 		s << "\n";
 	}
 
-	// Emit net block
+	// Emit net block — each node as:
+	//   instance_id: type_id
+	//       slot_key = value
+	//       ...
+	// followed by connections.
 	s << "net graph:\n";
 
 	for (const NodeDoc& nd : doc.nodes) {
-		s << "\t" << nd.id;
-		if (!nd.label.IsEmpty() && nd.label != nd.id)
-			s << ": " << nd.label;
-		bool has_slots = !nd.slots.IsEmpty();
-		if (has_slots) {
-			s << "\n";
-			for (WidgetSlotDoc& slot : const_cast<NodeDoc&>(nd).slots) {
-				Value v = slot.properties.Get("value", Value());
-				s << "\t\t" << slot.id << " = ";
-				if (!v.IsVoid()) s << v.ToString();
-				s << "\n";
-			}
-		} else {
+		String type_id = nd.node_type_id.IsEmpty() ? nd.label : nd.node_type_id;
+		s << "\t" << nd.id << ": " << type_id << "\n";
+		for (WidgetSlotDoc& slot : const_cast<NodeDoc&>(nd).slots) {
+			Value v = slot.properties.Get("value", Value());
+			s << "\t\t" << slot.id << " = ";
+			if (IsString(v))
+				s << "\"" << v.ToString() << "\"";
+			else if (!v.IsVoid())
+				s << v.ToString();
+			else
+				s << "\"\"";
 			s << "\n";
 		}
 	}

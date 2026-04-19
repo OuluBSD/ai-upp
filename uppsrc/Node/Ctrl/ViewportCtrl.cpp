@@ -34,12 +34,18 @@ static bool ParsePinEntityId(const EntityId& eid,
 
 // ─── Corner resize helpers ──────────────────────────────────────────────────
 
-static const double CORNER_HIT_R = 8.0; // world-space radius for corner grab
+static const double CORNER_HIT_R = 8.0;  // world-space radius for corner grab
+static const double EDGE_HIT_W   = 5.0;  // world-space half-width for edge grab
 
-// Returns corner index 0=TL, 1=TR, 2=BL, 3=BR, or -1 if not near a corner.
+// Resize handle indices:
+//   Corners: 0=TL, 1=TR, 2=BL, 3=BR
+//   Edges:   4=Top, 5=Bottom, 6=Left, 7=Right
+// Returns handle index or -1.
 static int HitCorner(const NodeDoc& n, Pointf wp)
 {
 	Rectf r(n.pos.x, n.pos.y, n.pos.x + n.sz.cx, n.pos.y + n.sz.cy);
+
+	// Corners take priority
 	Pointf corners[4] = {
 		Pointf(r.left,  r.top),
 		Pointf(r.right, r.top),
@@ -49,17 +55,30 @@ static int HitCorner(const NodeDoc& n, Pointf wp)
 	for(int i = 0; i < 4; i++)
 		if(Distance(wp, corners[i]) <= CORNER_HIT_R)
 			return i;
+
+	// Edge bands (only within the node's extent on the perpendicular axis)
+	bool in_x = wp.x >= r.left  && wp.x <= r.right;
+	bool in_y = wp.y >= r.top   && wp.y <= r.bottom;
+	if(in_x && fabs(wp.y - r.top)    <= EDGE_HIT_W) return 4; // top
+	if(in_x && fabs(wp.y - r.bottom) <= EDGE_HIT_W) return 5; // bottom
+	if(in_y && fabs(wp.x - r.left)   <= EDGE_HIT_W) return 6; // left
+	if(in_y && fabs(wp.x - r.right)  <= EDGE_HIT_W) return 7; // right
+
 	return -1;
 }
 
-// Returns appropriate resize cursor image for corner index
+// Returns appropriate resize cursor for handle index.
 static Image CornerCursor(int corner)
 {
 	switch(corner) {
-	case 0: return FBImg::SizeTopLeft();   // TL: ↖↘
-	case 1: return FBImg::SizeTopRight();  // TR: ↗↙
-	case 2: return FBImg::SizeTopRight();  // BL: ↗↙
-	case 3: return FBImg::SizeTopLeft();   // BR: ↖↘
+	case 0: return FBImg::SizeTopLeft();   // TL ↖↘
+	case 1: return FBImg::SizeTopRight();  // TR ↗↙
+	case 2: return FBImg::SizeTopRight();  // BL ↗↙
+	case 3: return FBImg::SizeTopLeft();   // BR ↖↘
+	case 4: return FBImg::SizeVert();      // top  ↕
+	case 5: return FBImg::SizeVert();      // bottom ↕
+	case 6: return FBImg::SizeHorz();      // left  ↔
+	case 7: return FBImg::SizeHorz();      // right ↔
 	}
 	return FBImg::Arrow();
 }
@@ -480,21 +499,30 @@ void NodeViewportCtrl::LeftDown(Point p, dword key)
 		if(builder.IsDirty(*graph))
 			builder.Build(scene, *graph);
 
-		// Corner-resize: check selected nodes first
+		// Resize handle check: selected nodes first, then all nodes
 		Pointf wp = vp.ViewToWorld(p);
-		for(const auto& id : editor->selection) {
+		auto TryResize = [&](const EntityId& id) -> bool {
 			NodeDoc* n = graph->FindNode(id);
-			if(!n) continue;
+			if(!n) return false;
 			int corner = HitCorner(*n, wp);
-			if(corner >= 0) {
-				editor->mode = EditorMode::RESIZING;
-				editor->resize_node_id = id;
-				editor->resize_corner  = corner;
-				history->Begin();
-				last_mouse_pos = p;
-				return;
+			if(corner < 0) return false;
+			// Ensure this node is selected so the resize loop covers it
+			if(!editor->IsSelected(id)) {
+				ValueMap arg; arg.Add("id", id); arg.Add("exclusive", !(key & K_CTRL));
+				history->Execute(CommandContext(*graph, *editor), dispatcher->Create("Select", arg));
 			}
-		}
+			editor->mode = EditorMode::RESIZING;
+			editor->resize_node_id = id;
+			editor->resize_corner  = corner;
+			history->Begin();
+			last_mouse_pos = p;
+			return true;
+		};
+		for(const auto& id : editor->selection)
+			if(TryResize(id)) return;
+		// Also check any node under the cursor (even if not selected)
+		for(const auto& nd : graph->GetDoc().nodes)
+			if(TryResize(nd.id)) return;
 
 		Scene::HitResult hit = scene.HitTest(vp.ViewToWorld(p));
 
@@ -603,30 +631,49 @@ void NodeViewportCtrl::MouseMove(Point p, dword key)
 	if(editor && (key & K_MOUSELEFT)) {
 		if(editor->mode == EditorMode::RESIZING) {
 			Pointf delta = vp.ViewToWorld(p) - vp.ViewToWorld(last_mouse_pos);
-			NodeDoc* n = graph->FindNode(editor->resize_node_id);
-			if(n) {
-				int corner = editor->resize_corner;
-				// TL(0): move pos, adjust sz to compensate  TR(1): widen right
-				// BL(2): move pos-y, adjust sz              BR(3): widen/tall right-bottom
+			int handle = editor->resize_corner;
+			const double MIN_W = 80.0, MIN_H = 40.0;
+			bool any = false;
+
+			// Determine which edges this handle moves
+			bool move_left  = (handle == 0 || handle == 2 || handle == 6);
+			bool move_right = (handle == 1 || handle == 3 || handle == 7);
+			bool move_top   = (handle == 0 || handle == 1 || handle == 4);
+			bool move_bot   = (handle == 2 || handle == 3 || handle == 5);
+
+			// Apply to all selected nodes (or just the hit node if nothing selected)
+			auto& ids = editor->selection;
+			for(const auto& id : ids) {
+				NodeDoc* n = graph->FindNode(id);
+				if(!n) continue;
+
 				double new_left  = n->pos.x;
 				double new_top   = n->pos.y;
 				double new_right = n->pos.x + n->sz.cx;
 				double new_bot   = n->pos.y + n->sz.cy;
 
-				if(corner == 0 || corner == 2) new_left  += delta.x;
-				if(corner == 1 || corner == 3) new_right += delta.x;
-				if(corner == 0 || corner == 1) new_top   += delta.y;
-				if(corner == 2 || corner == 3) new_bot   += delta.y;
+				if(move_left)  new_left  += delta.x;
+				if(move_right) new_right += delta.x;
+				if(move_top)   new_top   += delta.y;
+				if(move_bot)   new_bot   += delta.y;
 
-				const double MIN_W = 80.0, MIN_H = 40.0;
-				if(new_right - new_left >= MIN_W && new_bot - new_top >= MIN_H) {
-					n->pos.x = new_left;
-					n->pos.y = new_top;
-					n->sz.cx = new_right - new_left;
-					n->sz.cy = new_bot   - new_top;
-					graph->Invalidate();
+				// Clamp W and H independently so one axis doesn't block the other
+				if(new_right - new_left < MIN_W) {
+					if(move_left)  new_left  = new_right - MIN_W;
+					else           new_right = new_left  + MIN_W;
 				}
+				if(new_bot - new_top < MIN_H) {
+					if(move_top) new_top = new_bot - MIN_H;
+					else         new_bot = new_top + MIN_H;
+				}
+
+				n->pos.x = new_left;
+				n->pos.y = new_top;
+				n->sz.cx = new_right - new_left;
+				n->sz.cy = new_bot   - new_top;
+				any = true;
 			}
+			if(any) graph->Invalidate();
 			Refresh();
 		}
 		else if(editor->mode == EditorMode::DRAGGING) {
@@ -1078,6 +1125,11 @@ Image NodeViewportCtrl::CursorImage(Point p, dword key)
 		}
 		for(const auto& id : editor->selection) {
 			Image img = CheckNode(id);
+			if(!IsNull(img)) return img;
+		}
+		// Also check all nodes so unselected nodes show resize cursors on hover
+		for(const auto& nd : graph->GetDoc().nodes) {
+			Image img = CheckNode(nd.id);
 			if(!IsNull(img)) return img;
 		}
 	}

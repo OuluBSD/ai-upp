@@ -271,9 +271,13 @@ private:
 	String current_sln_path;
 	String current_prj_path;
 	String current_graph_path;
+	bool   graph_dirty = false;
 
 	// last diagnostics shown
 	Vector<WorkbenchDiagnostic> last_diags;
+
+	void   SetGraphDirty(bool dirty = true);
+	void   UpdateTitle();
 
 	// ---- menu builders ----
 	void MainMenu(Bar& bar);

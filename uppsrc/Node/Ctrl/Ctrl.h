@@ -69,8 +69,9 @@ public:
 	NodeViewportCtrl();
 	
 	// Callbacks — fired after the default handler, before Refresh()
-	Event<EntityId> WhenNodeClick;  // left-click on a node (entity id)
-	Event<EntityId> WhenEdgeClick;  // left-click on an edge
+	Event<EntityId> WhenNodeClick;     // left-click on a node (entity id)
+	Event<EntityId> WhenEdgeClick;     // left-click on an edge
+	Event<>         WhenGraphModified; // fired after any graph-mutating action (move, add, delete, undo, redo)
 
 	void SetGraph(Graph& g) { graph = &g; fit_on_first_paint = true; vp_pristine = true; Refresh(); }
 	void SetEditor(EditorState& e) { editor = &e; Refresh(); }
@@ -106,8 +107,8 @@ public:
 	bool CanUndo() const { return history && history->CanUndo(); }
 	bool CanRedo() const { return history && history->CanRedo(); }
 	bool HasSelection() const { return editor && editor->selection.GetCount() > 0; }
-	void DoUndo() { if(history && graph && editor) { history->Undo(CommandContext(*graph, *editor)); Refresh(); } }
-	void DoRedo() { if(history && graph && editor) { history->Redo(CommandContext(*graph, *editor)); Refresh(); } }
+	void DoUndo() { if(history && graph && editor) { history->Undo(CommandContext(*graph, *editor)); WhenGraphModified(); Refresh(); } }
+	void DoRedo() { if(history && graph && editor) { history->Redo(CommandContext(*graph, *editor)); WhenGraphModified(); Refresh(); } }
 	void DoDeleteSelection();
 	void DoSelectAll();
 

@@ -39,6 +39,52 @@ struct GroupDef : Moveable<GroupDef> {
 // Forward declarations
 static GroupStyle ParseGroupStyle(const String& style_str);
 
+// ---------------------------------------------------------------------------
+// Internal: node position annotations collected from // POS: comments
+// ---------------------------------------------------------------------------
+
+struct PosAnnotation : Moveable<PosAnnotation> {
+	String node_id;
+	double x = 0, y = 0;
+};
+
+static Vector<PosAnnotation> ParsePosAnnotations(const String& eon_text)
+{
+	Vector<PosAnnotation> result;
+	const char* p   = eon_text.Begin();
+	const char* end = eon_text.End();
+	while (p < end) {
+		if (*p == '/' && p + 1 < end && *(p+1) == '/') {
+			p += 2;
+			String line;
+			while (p < end && *p != '\n' && *p != '\r')
+				line << *p++;
+			int idx = line.Find("POS:");
+			if (idx >= 0 && TrimBoth(line.Left(idx)).IsEmpty()) {
+				String rest = TrimBoth(line.Mid(idx + 4));
+				// rest = "node_id x y"
+				int sp1 = rest.Find(' ');
+				if (sp1 > 0) {
+					PosAnnotation a;
+					a.node_id = rest.Left(sp1);
+					String coords = TrimBoth(rest.Mid(sp1 + 1));
+					int sp2 = coords.Find(' ');
+					if (sp2 > 0) {
+						a.x = ScanDouble(coords.Left(sp2));
+						a.y = ScanDouble(coords.Mid(sp2 + 1));
+						result.Add(pick(a));
+					}
+				}
+			}
+		}
+		else {
+			while (p < end && *p != '\n') p++;
+		}
+		if (p < end) p++; // skip newline
+	}
+	return result;
+}
+
 // Parse group annotations from EON file comments
 // Format: // GROUP: group_id {saturation:N, hue:name, contrast:N}
 static Vector<GroupDef> ParseGroupAnnotations(const String& eon_text)
@@ -509,8 +555,9 @@ static void LoadNet(const AstNode& net_node, Graph& g,
 bool LoadEon(Graph& g, const String& eon_text,
              Vector<ValidationMessage>& out)
 {
-	// First, extract group annotations from comments
-	Vector<GroupDef> group_defs = ParseGroupAnnotations(eon_text);
+	// Extract comment-based annotations before AST parsing
+	Vector<GroupDef>    group_defs = ParseGroupAnnotations(eon_text);
+	Vector<PosAnnotation> pos_defs = ParsePosAnnotations(eon_text);
 
 #ifdef flagDEBUG
 	LOG("Parsed " << group_defs.GetCount() << " groups from comments");
@@ -558,6 +605,12 @@ bool LoadEon(Graph& g, const String& eon_text,
 #ifdef flagDEBUG
 		LOG("Group " << grp_id << " has " << grp.nodes.GetCount() << " nodes");
 #endif
+	}
+
+	// Apply saved node positions
+	for (const PosAnnotation& pa : pos_defs) {
+		NodeDoc* nd = g.FindNode(pa.node_id);
+		if (nd) { nd->pos.x = pa.x; nd->pos.y = pa.y; }
 	}
 
 	if (!found_net)
@@ -658,6 +711,16 @@ String SaveEon(const Graph& g)
 		s << " -> " << ed.target_node;
 		if (!ed.target_pin.IsEmpty()) s << "." << ed.target_pin;
 		s << "\n";
+	}
+
+	// Emit node position annotations (only if any node has a non-zero position)
+	bool has_positions = false;
+	for (const NodeDoc& nd : doc.nodes)
+		if (nd.pos.x != 0.0 || nd.pos.y != 0.0) { has_positions = true; break; }
+	if (has_positions) {
+		s << "\n";
+		for (const NodeDoc& nd : doc.nodes)
+			s << "// POS: " << nd.id << " " << nd.pos.x << " " << nd.pos.y << "\n";
 	}
 
 	return s;

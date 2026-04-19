@@ -788,6 +788,37 @@ bool NodeWorkbenchWindow::OpenPath(const String& path) {
 // File I/O
 // ---------------------------------------------------------------------------
 
+static String GraphViewConfigKey(const String& norm_path)
+{
+	// Build a safe filename from the graph path for use with ConfigFile()
+	String key;
+	for(int i = 0; i < norm_path.GetCount(); i++) {
+		char c = norm_path[i];
+		key.Cat(c == '/' || c == '\\' || c == ':' || c == ' ' ? '_' : c);
+	}
+	return key + ".view";
+}
+
+static void SaveGraphViewState(const String& norm_path, Pointf pan, double zoom)
+{
+	String cfg = ConfigFile(GraphViewConfigKey(norm_path));
+	FileOut f(cfg);
+	if(f) f << pan.x << " " << pan.y << " " << zoom << "\n";
+}
+
+static bool LoadGraphViewState(const String& norm_path, Pointf& pan, double& zoom)
+{
+	String cfg = ConfigFile(GraphViewConfigKey(norm_path));
+	String s = LoadFile(cfg);
+	if(s.IsEmpty()) return false;
+	CParser p(s);
+	if(!p.IsDouble()) return false;
+	pan.x = p.ReadDouble();
+	pan.y = p.ReadDouble();
+	zoom  = p.ReadDouble();
+	return zoom > 1e-6;
+}
+
 bool NodeWorkbenchWindow::OpenGraphFile(const String& path) {
 	if(!FileExists(path)) { SetStatus("File not found: " + path); return false; }
 	graph.Clear();
@@ -805,8 +836,19 @@ bool NodeWorkbenchWindow::OpenGraphFile(const String& path) {
 	graph.RebuildIndexPublic();
 	graph.Invalidate();
 	viewport.SetGraph(graph);
-	PostCallback([this] { viewport.ApplyLayout(); });
-	current_graph_path = NormalizePath(path);
+	String norm = NormalizePath(path);
+	// Check if positions were saved in the file (any non-zero pos)
+	bool has_saved_pos = false;
+	for(const Node::NodeDoc& nd : graph.GetDoc().nodes)
+		if(nd.pos.x != 0.0 || nd.pos.y != 0.0) { has_saved_pos = true; break; }
+	Pointf pan; double zoom;
+	if(LoadGraphViewState(norm, pan, zoom))
+		PostCallback([this, pan, zoom] { viewport.SetPanZoom(pan, zoom); });
+	else if(has_saved_pos)
+		PostCallback([this] { viewport.ZoomToFit(); });
+	else
+		PostCallback([this] { viewport.ApplyLayout(); });
+	current_graph_path = norm;
 	SetStatus("Graph: " + GetFileName(current_graph_path));
 	if(domain) domain->OnGraphLoaded(*this, path);
 	return true;
@@ -821,6 +863,7 @@ bool NodeWorkbenchWindow::SaveGraphFile(const String& path) {
 		return false;
 	}
 	current_graph_path = NormalizePath(path);
+	SaveGraphViewState(current_graph_path, viewport.GetPanOffset(), viewport.GetZoomScale());
 	SetStatus("Saved: " + GetFileName(current_graph_path));
 	return true;
 }

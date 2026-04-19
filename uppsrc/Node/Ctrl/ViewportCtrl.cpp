@@ -373,6 +373,7 @@ void NodeViewportCtrl::DoDeleteSelection()
 		history->Execute(CommandContext(*graph, *editor), dispatcher->Create("RemoveNode", arg));
 	}
 	history->Commit();
+	WhenGraphModified();
 	Refresh();
 }
 
@@ -721,9 +722,11 @@ void NodeViewportCtrl::LeftUp(Point p, dword key)
 		if(editor->mode == EditorMode::RESIZING) {
 			history->Commit();
 			editor->resize_node_id = "";
+			WhenGraphModified();
 		}
 		else if(editor->mode == EditorMode::DRAGGING) {
 			history->Commit();
+			WhenGraphModified();
 		}
 		else if(editor->mode == EditorMode::MARQUEE) {
 			Vector<EntityId> ids = scene.MarqueeSelect(editor->marquee_rect);
@@ -747,6 +750,7 @@ void NodeViewportCtrl::LeftUp(Point p, dword key)
 						arg.Add("target_node", target_node);
 						arg.Add("target_pin", target_pin);
 						history->Execute(CommandContext(*graph, *editor), dispatcher->Create("AddEdge", arg));
+						WhenGraphModified();
 					}
 				}
 			}
@@ -815,6 +819,7 @@ void NodeViewportCtrl::RightDown(Point p, dword key)
 			menu.Add("Remove Node", [=] {
 				ValueMap arg; arg.Add("id", effective_id);
 				history->Execute(CommandContext(*graph, *editor), dispatcher->Create("RemoveNode", arg));
+				WhenGraphModified();
 				Refresh();
 			});
 			if(editor->IsSelected(effective_id) && editor->selection.GetCount() > 1) {
@@ -825,6 +830,7 @@ void NodeViewportCtrl::RightDown(Point p, dword key)
 						history->Execute(CommandContext(*graph, *editor), dispatcher->Create("RemoveNode", arg));
 					}
 					history->Commit();
+					WhenGraphModified();
 					Refresh();
 				});
 			}
@@ -842,12 +848,14 @@ void NodeViewportCtrl::RightDown(Point p, dword key)
 		else if(hit && effective_type == SceneItem::EDGE) {
 			menu.Add("Remove Edge", [=] {
 				graph->RemoveEdge(effective_id);
+				WhenGraphModified();
 				Refresh();
 			});
 		}
 		else if(hit && effective_type == SceneItem::GROUP) {
 			menu.Add("Remove Group", [=] {
 				graph->RemoveGroup(effective_id);
+				WhenGraphModified();
 				Refresh();
 			});
 		}
@@ -862,6 +870,7 @@ void NodeViewportCtrl::RightDown(Point p, dword key)
 					arg.Add("x", wp.x);
 					arg.Add("y", wp.y);
 					history->Execute(CommandContext(*graph, *editor), dispatcher->Create("AddNode", arg));
+					WhenGraphModified();
 					Refresh();
 				});
 			}
@@ -887,6 +896,7 @@ void NodeViewportCtrl::RightDown(Point p, dword key)
 									graph->GetDoc().nodes.Add(tmpl);
 									graph->RebuildIndexPublic();
 									graph->Invalidate();
+									WhenGraphModified();
 									Refresh();
 								});
 							}
@@ -1031,6 +1041,7 @@ bool NodeViewportCtrl::Key(dword key, int count)
 				history->Execute(CommandContext(*graph, *editor), dispatcher->Create("RemoveNode", arg));
 			}
 			history->Commit();
+			WhenGraphModified();
 			Refresh();
 			return true;
 		}

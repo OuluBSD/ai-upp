@@ -509,10 +509,16 @@ void NodeViewportCtrl::LeftDown(Point p, dword key)
 					}
 				}
 
-				ValueMap arg;
-				arg.Add("id", hit.entity_id);
-				arg.Add("exclusive", !(key & K_CTRL));
-				history->Execute(CommandContext(*graph, *editor), dispatcher->Create("Select", arg));
+				// If clicking a node that's already part of a multi-selection, preserve
+				// the selection so the whole group can be dragged together.
+				bool already_selected = editor->IsSelected(hit.entity_id);
+				bool multi_selected   = editor->selection.GetCount() > 1;
+				if(!(already_selected && multi_selected)) {
+					ValueMap arg;
+					arg.Add("id", hit.entity_id);
+					arg.Add("exclusive", !(key & K_CTRL));
+					history->Execute(CommandContext(*graph, *editor), dispatcher->Create("Select", arg));
+				}
 
 				if(effective_type == SceneItem::NODE) {
 					editor->mode = EditorMode::DRAGGING;

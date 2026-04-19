@@ -85,6 +85,11 @@ public:
 	void             RegisterNodeType(const String& type_id, const String& label,
 	                                  Function<NodeDoc()> factory);
 	
+	// Pan/zoom accessors
+	Pointf  GetPanOffset() const   { return vp.GetOffset(); }
+	double  GetZoomScale() const   { return vp.GetScale(); }
+	void    SetPanZoom(Pointf offset, double scale) { vp.SetOffset(offset); vp.SetScale(scale); vp_pristine = false; Refresh(); }
+
 	// Layout orientation
 	SmartPacker::LayoutOrientation GetLayoutOrientation() const { return layout_orientation; }
 	void             SetLayoutOrientation(SmartPacker::LayoutOrientation o) { layout_orientation = o; active_custom_layout = String(); }

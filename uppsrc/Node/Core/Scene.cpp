@@ -132,10 +132,11 @@ static void AddNodeItems(Scene& scene, const NodeDoc& n, const Graph& graph, Bez
 	double node_h = TITLE_H + pin_rows * PIN_ROW_H + slot_area_h + 8.0;
 	double node_w = max(n.sz.cx, min_w); // widen if needed for DocEdit
 
-	// Write computed height back so bounding boxes and hit-tests are accurate
-	const_cast<NodeDoc&>(n).sz.cy = node_h;
+	// Respect manual height override: only grow to fit content, never shrink below user-set value.
+	double effective_h = max(node_h, n.sz.cy);
+	const_cast<NodeDoc&>(n).sz.cy = effective_h;
 
-	Rectf node_rect(n.pos.x, n.pos.y, n.pos.x + node_w, n.pos.y + node_h);
+	Rectf node_rect(n.pos.x, n.pos.y, n.pos.x + node_w, n.pos.y + effective_h);
 
 	// Body color — blend tint if set
 	Color body_clr = n.fill_clr;

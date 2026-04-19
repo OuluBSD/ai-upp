@@ -45,7 +45,7 @@ static GroupStyle ParseGroupStyle(const String& style_str);
 
 struct PosAnnotation : Moveable<PosAnnotation> {
 	String node_id;
-	double x = 0, y = 0;
+	double x = 0, y = 0, w = 0, h = 0;
 };
 
 static Vector<PosAnnotation> ParsePosAnnotations(const String& eon_text)
@@ -62,18 +62,18 @@ static Vector<PosAnnotation> ParsePosAnnotations(const String& eon_text)
 			int idx = line.Find("POS:");
 			if (idx >= 0 && TrimBoth(line.Left(idx)).IsEmpty()) {
 				String rest = TrimBoth(line.Mid(idx + 4));
-				// rest = "node_id x y"
-				int sp1 = rest.Find(' ');
-				if (sp1 > 0) {
+				// rest = "node_id x y [w h]"
+				Vector<String> parts = Split(rest, ' ');
+				if (parts.GetCount() >= 3) {
 					PosAnnotation a;
-					a.node_id = rest.Left(sp1);
-					String coords = TrimBoth(rest.Mid(sp1 + 1));
-					int sp2 = coords.Find(' ');
-					if (sp2 > 0) {
-						a.x = ScanDouble(coords.Left(sp2));
-						a.y = ScanDouble(coords.Mid(sp2 + 1));
-						result.Add(pick(a));
+					a.node_id = parts[0];
+					a.x = ScanDouble(parts[1]);
+					a.y = ScanDouble(parts[2]);
+					if (parts.GetCount() >= 5) {
+						a.w = ScanDouble(parts[3]);
+						a.h = ScanDouble(parts[4]);
 					}
+					result.Add(pick(a));
 				}
 			}
 		}
@@ -607,10 +607,14 @@ bool LoadEon(Graph& g, const String& eon_text,
 #endif
 	}
 
-	// Apply saved node positions
+	// Apply saved node positions and sizes
 	for (const PosAnnotation& pa : pos_defs) {
 		NodeDoc* nd = g.FindNode(pa.node_id);
-		if (nd) { nd->pos.x = pa.x; nd->pos.y = pa.y; }
+		if (!nd) continue;
+		nd->pos.x = pa.x;
+		nd->pos.y = pa.y;
+		if (pa.w > 0) nd->sz.cx = pa.w;
+		if (pa.h > 0) nd->sz.cy = pa.h;
 	}
 
 	if (!found_net)
@@ -720,7 +724,8 @@ String SaveEon(const Graph& g)
 	if (has_positions) {
 		s << "\n";
 		for (const NodeDoc& nd : doc.nodes)
-			s << "// POS: " << nd.id << " " << nd.pos.x << " " << nd.pos.y << "\n";
+			s << "// POS: " << nd.id << " " << nd.pos.x << " " << nd.pos.y
+			  << " " << nd.sz.cx << " " << nd.sz.cy << "\n";
 	}
 
 	return s;

@@ -1096,6 +1096,10 @@ bool NodeViewportCtrl::Key(dword key, int count)
 			ZoomToFit();
 			return true;
 		}
+		if(key == K_CTRL_A) {
+			DoSelectAll();
+			return true;
+		}
 	}
 	return false;
 }

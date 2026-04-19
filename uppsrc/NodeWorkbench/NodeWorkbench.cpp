@@ -450,7 +450,7 @@ void NodeWorkbenchWindow::MenuRun(Bar& bar) {
 }
 
 void NodeWorkbenchWindow::MenuView(Bar& bar) {
-	bar.Add("Zoom to Fit",  [=] { viewport.ZoomToFit(); });
+	bar.Add("Zoom to Fit",  [=] { viewport.ZoomToFit(); }).Key(K_F);
 	bar.Add("Apply Layout", [=] { viewport.ApplyLayout(); });
 }
 

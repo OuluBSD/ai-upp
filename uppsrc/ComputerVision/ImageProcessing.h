@@ -4,6 +4,18 @@
 
 void Grayscale(const ByteMat& src, ByteMat& dst);
 
+enum TemplateMatchMethod {
+	TM_SQDIFF = 0,
+	TM_SQDIFF_NORMED = 1,
+	TM_CCORR = 2,
+	TM_CCORR_NORMED = 3,
+	TM_CCOEFF = 4,
+	TM_CCOEFF_NORMED = 5,
+};
+
+void MatchTemplate(const ByteMat& image, const ByteMat& templ, FloatMat& result, TemplateMatchMethod method = TM_CCOEFF_NORMED);
+void MinMaxLoc(const FloatMat& src, double* min_val, double* max_val, Point* min_loc = 0, Point* max_loc = 0);
+
 
 void ResampleByte(const pyra8::Mat& src, pyra8::Mat& dst, int nw, int nh);
 void ResampleFloat(const pyraf::Mat& src, pyraf::Mat& dst, int nw, int nh);

@@ -1,0 +1,13 @@
+description "Template matching GUI demo\377";
+
+uses
+	CtrlLib,
+	ComputerVision,
+	plugin/jpg;
+
+file
+	AGENTS.md,
+	main.cpp;
+
+mainconfig
+	"" = "GUI";

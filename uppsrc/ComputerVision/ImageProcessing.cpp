@@ -3,6 +3,137 @@
 
 NAMESPACE_UPP
 
+void MatchTemplate(const ByteMat& image, const ByteMat& templ, FloatMat& result, TemplateMatchMethod method) {
+	ASSERT(!image.IsEmpty());
+	ASSERT(!templ.IsEmpty());
+	ASSERT(image.channels == templ.channels);
+	ASSERT(image.cols >= templ.cols);
+	ASSERT(image.rows >= templ.rows);
+	
+	if (image.IsEmpty() || templ.IsEmpty())
+		return;
+	if (image.channels != templ.channels || image.cols < templ.cols || image.rows < templ.rows) {
+		result = FloatMat();
+		return;
+	}
+	
+	const int iw = image.cols;
+	const int ih = image.rows;
+	const int tw = templ.cols;
+	const int th = templ.rows;
+	const int ch = image.channels;
+	const int rw = iw - tw + 1;
+	const int rh = ih - th + 1;
+	const int n = tw * th * ch;
+	const double inv_n = 1.0 / (double)n;
+	const double eps = 1e-12;
+	
+	const auto& id = image.data;
+	const auto& td = templ.data;
+	result.SetSize(rw, rh, 1);
+	auto& rd = result.data;
+	
+	double sum_t = 0.0;
+	double sum_tt = 0.0;
+	for (int i = 0; i < td.GetCount(); i++) {
+		const double t = (double)td[i];
+		sum_t += t;
+		sum_tt += t * t;
+	}
+	
+	const double var_t = max(sum_tt - (sum_t * sum_t) * inv_n, 0.0);
+	
+	for (int y = 0; y < rh; y++) {
+		for (int x = 0; x < rw; x++) {
+			double sum_i = 0.0;
+			double sum_ii = 0.0;
+			double sum_it = 0.0;
+			
+			for (int ty = 0; ty < th; ty++) {
+				const int image_row = ((y + ty) * iw + x) * ch;
+				const int templ_row = (ty * tw) * ch;
+				for (int txc = 0; txc < tw * ch; txc++) {
+					const double i = (double)id[image_row + txc];
+					const double t = (double)td[templ_row + txc];
+					sum_i += i;
+					sum_ii += i * i;
+					sum_it += i * t;
+				}
+			}
+			
+			double v = 0.0;
+			switch (method) {
+			case TM_SQDIFF:
+				v = sum_ii - 2.0 * sum_it + sum_tt;
+				break;
+			case TM_SQDIFF_NORMED: {
+				const double denom = sqrt(max(sum_ii * sum_tt, 0.0));
+				if (denom > eps)
+					v = (sum_ii - 2.0 * sum_it + sum_tt) / denom;
+				break;
+			}
+			case TM_CCORR:
+				v = sum_it;
+				break;
+			case TM_CCORR_NORMED: {
+				const double denom = sqrt(max(sum_ii * sum_tt, 0.0));
+				if (denom > eps)
+					v = sum_it / denom;
+				break;
+			}
+			case TM_CCOEFF: {
+				v = sum_it - (sum_i * sum_t) * inv_n;
+				break;
+			}
+			case TM_CCOEFF_NORMED: {
+				const double num = sum_it - (sum_i * sum_t) * inv_n;
+				const double var_i = max(sum_ii - (sum_i * sum_i) * inv_n, 0.0);
+				const double denom = sqrt(var_i * var_t);
+				if (denom > eps)
+					v = num / denom;
+				break;
+			}
+			default:
+				v = sum_it;
+				break;
+			}
+			
+			rd[y * rw + x] = (float)v;
+		}
+	}
+}
+
+void MinMaxLoc(const FloatMat& src, double* min_val, double* max_val, Point* min_loc, Point* max_loc) {
+	ASSERT(src.channels == 1);
+	ASSERT(!src.IsEmpty());
+	
+	if (src.IsEmpty() || src.channels != 1)
+		return;
+	
+	const auto& d = src.data;
+	const int count = d.GetCount();
+	int min_i = 0;
+	int max_i = 0;
+	float min_v = d[0];
+	float max_v = d[0];
+	for (int i = 1; i < count; i++) {
+		const float v = d[i];
+		if (v < min_v) {
+			min_v = v;
+			min_i = i;
+		}
+		if (v > max_v) {
+			max_v = v;
+			max_i = i;
+		}
+	}
+	
+	if (min_val) *min_val = min_v;
+	if (max_val) *max_val = max_v;
+	if (min_loc) *min_loc = Point(min_i % src.cols, min_i / src.cols);
+	if (max_loc) *max_loc = Point(max_i % src.cols, max_i / src.cols);
+}
+
 
 void ResampleByte(const pyra8::Mat& src, pyra8::Mat& dst, int nw, int nh) {
 	int xofs_count = 0;

@@ -1,0 +1,9 @@
+uses
+	ComputerVision;
+
+file
+	AGENTS.md,
+	main.cpp;
+
+mainconfig
+	"" = "";

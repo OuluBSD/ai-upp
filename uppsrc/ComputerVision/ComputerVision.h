@@ -27,7 +27,6 @@ NAMESPACE_UPP
 #include "KeypointMotionEstimator.h"
 #include "OnepassStabilizer.h"
 #include "OrbSystem.h"
-#include "TemplateMatchCtrl.h"
 
 extern const char* fast_score_map_shader;
 extern const char* fast_nms_shader;

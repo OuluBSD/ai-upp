@@ -4,6 +4,13 @@
 
 void Grayscale(const ByteMat& src, ByteMat& dst);
 
+// Convert an RGBA Image to a single-channel ByteMat (average of R,G,B).
+void ImageToGrayByteMat(const Image& img, ByteMat& out);
+
+// Normalize a single-channel FloatMat to a grayscale Image (min→black, max→white).
+// If invert is true, min→white, max→black (for SQDIFF methods).
+Image FloatMatToGrayImage(const FloatMat& m, bool invert = false);
+
 enum TemplateMatchMethod {
 	TM_SQDIFF = 0,
 	TM_SQDIFF_NORMED = 1,

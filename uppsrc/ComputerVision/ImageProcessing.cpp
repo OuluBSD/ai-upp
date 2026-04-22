@@ -3,6 +3,37 @@
 
 NAMESPACE_UPP
 
+void ImageToGrayByteMat(const Image& img, ByteMat& out) {
+	Size sz = img.GetSize();
+	out.SetSize(sz.cx, sz.cy, 1);
+	for(int y = 0; y < sz.cy; y++) {
+		const RGBA* s = img[y];
+		for(int x = 0; x < sz.cx; x++)
+			out.data[y * sz.cx + x] = (byte)(((int)s[x].r + (int)s[x].g + (int)s[x].b) / 3);
+	}
+}
+
+Image FloatMatToGrayImage(const FloatMat& m, bool invert) {
+	if(m.IsEmpty() || m.channels != 1)
+		return Image();
+	double min_v = 0, max_v = 0;
+	MinMaxLoc(m, &min_v, &max_v, nullptr, nullptr);
+	double span = max_v - min_v;
+	if(span < 1e-20) span = 1.0;
+	ImageBuffer ib(m.cols, m.rows);
+	for(int y = 0; y < m.rows; y++) {
+		RGBA* d = ib[y];
+		for(int x = 0; x < m.cols; x++) {
+			double v = m.data[y * m.cols + x];
+			double t = (v - min_v) / span;
+			if(invert) t = 1.0 - t;
+			int g = (int)clamp(t * 255.0, 0.0, 255.0);
+			d[x] = {(byte)g, (byte)g, (byte)g, 255};
+		}
+	}
+	return ib;
+}
+
 void MatchTemplate(const ByteMat& image, const ByteMat& templ, FloatMat& result, TemplateMatchMethod method) {
 	ASSERT(!image.IsEmpty());
 	ASSERT(!templ.IsEmpty());

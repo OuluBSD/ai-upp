@@ -1,6 +1,9 @@
 #ifndef _ComputerVision_TemplateMatchCtrl_h_
 #define _ComputerVision_TemplateMatchCtrl_h_
 
+#include <CtrlLib/CtrlLib.h>
+#include <ComputerVision/ComputerVision.h>
+
 NAMESPACE_UPP
 
 // TemplateMatchCtrl — interactive template-matching visualizer.

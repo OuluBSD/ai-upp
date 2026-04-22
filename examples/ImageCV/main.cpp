@@ -1,5 +1,6 @@
 #include <CtrlLib/CtrlLib.h>
 #include <ComputerVision/ComputerVision.h>
+#include <ComputerVision/TemplateMatchCtrl.h>
 
 using namespace Upp;
 

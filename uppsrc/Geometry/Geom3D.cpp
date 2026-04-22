@@ -199,7 +199,7 @@ bool PointOnLine(const vec3& point, const line3& line) {
 
 vec3 ClosestPoint(const line3& line, const vec3& point) {
 	vec3 lVec = line.end - line.start; // Line Vector
-	// Project "point" onto the "Line Vector", computing:
+	// ProjectVec "point" onto the "Line Vector", computing:
 	// closest(t) = start + t * (end - start)
 	// T is how far along the line the projected point is
 	float t = Dot(point - line.start, lVec) / Dot(lVec, lVec);
@@ -223,7 +223,7 @@ bool PointOnRay(const vec3& point, const Ray& ray) {
 }
 
 vec3 ClosestPoint(const Ray& ray, const vec3& point) {
-	// Project point onto ray, 
+	// ProjectVec point onto ray, 
 	float t = Dot(point - ray.origin, ray.direction);
 	// Not needed if direction is normalized!
 	// t /= Dot(ray.direction, ray.direction);
@@ -477,7 +477,7 @@ Interval GetInterval(const AABB& aabb, const vec3& axis) {
 }
 
 bool AABBPlane(const AABB& aabb, const Plane& plane) {
-	// Project the half extents of the AABB onto the plane normal
+	// ProjectVec the half extents of the AABB onto the plane normal
 	float pLen =aabb.size[0] * fabsf(plane.normal[0]) +
 				aabb.size[1] * fabsf(plane.normal[1]) +
 				aabb.size[2] * fabsf(plane.normal[2]);
@@ -525,7 +525,7 @@ bool OBBPlane(const OBB& obb, const Plane& plane) {
 	};
 	vec3 normal = plane.normal;
 
-	// Project the half extents of the AABB onto the plane normal
+	// ProjectVec the half extents of the AABB onto the plane normal
 	float pLen =obb.size[0] * fabsf(Dot(normal, rot[0])) +
 				obb.size[1] * fabsf(Dot(normal, rot[1])) +
 				obb.size[2] * fabsf(Dot(normal, rot[2]));
@@ -949,13 +949,13 @@ vec3 Barycentric(const vec3& p, const tri3& t) {
 	vec3 cb = t.b - t.c;
 	vec3 ca = t.a - t.c;
 
-	vec3 v = ab - Project(ab, cb);
+	vec3 v = ab - ProjectVec(ab, cb);
 	float a = 1.0f - (Dot(v, ap) / Dot(v, ab));
 
-	v = bc - Project(bc, ac);
+	v = bc - ProjectVec(bc, ac);
 	float b = 1.0f - (Dot(v, bp) / Dot(v, bc));
 
-	v = ca - Project(ca, ab);
+	v = ca - ProjectVec(ca, ab);
 	float c = 1.0f - (Dot(v, cp) / Dot(v, ca));
 
 	return vec3(a, b, c);

@@ -71,8 +71,10 @@ public:
 };
 
 // Basic PlotSymbols
+// Use :: qualification to resolve ambiguity when Geometry (Upp::Cross/Circle/Square) is also included.
 
-struct Cross:public WithPlotSymbol<Cross>{
+struct Cross;
+struct Cross:public WithPlotSymbol< ::Cross>{
 	virtual void PaintOp(Painter& sw)const{
 		sw.Move(0,0.5*s.cy).Line(s.cx,0,true).Stroke(t,c);
 		sw.Move(0.5*s.cx,0).Line(0,s.cy,true).Stroke(t,c);
@@ -85,13 +87,17 @@ struct XCross:public WithPlotSymbol<XCross>{
 		sw.Move(0,s.cy).Line(s.cx,-s.cy,true).Stroke(t,c);
 	}
 };
-struct Circle:public WithPlotSymbol<Circle>{
+
+struct Circle;
+struct Circle:public WithPlotSymbol< ::Circle>{
 	virtual void PaintOp(Painter& sw)const{
 		sw.Ellipse(0.5*s.cx,0.5*s.cy,0.5*(s.cx-t),0.5*(s.cy-t));
 		sw.Fill(c).Stroke(t,f);
 	}
 };
-struct Square:public WithPlotSymbol<Square>{
+
+struct Square;
+struct Square:public WithPlotSymbol< ::Square>{
 	virtual void PaintOp(Painter& sw)const{
 		sw.Rectangle(t*0.5,t*0.5,s.cx-t,s.cy-t);
 		sw.Fill(c).Stroke(t,f);

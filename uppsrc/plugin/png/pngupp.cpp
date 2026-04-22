@@ -111,6 +111,12 @@ PNGRaster::~PNGRaster()
 
 bool PNGRaster::Init()
 {
+	Stream& s = GetStream();
+	byte sig[8];
+	if(s.Get(sig, 8) != 8 || png_sig_cmp(sig, 0, 8))
+		return false;
+	s.Seek(s.GetPos() - 8);
+
 	if(!(data->png_ptr = png_create_read_struct(PNG_LIBPNG_VER_STRING,
 	     NULL, png_user_error_fn, png_user_warning_fn)))
 		return false;
@@ -118,8 +124,8 @@ bool PNGRaster::Init()
 		return false;
 	if(!(data->info_ptr = png_create_info_struct(data->png_ptr)))
 		return false;
-	png_set_read_fn(data->png_ptr, &GetStream(), png_read_stream);
-	
+	png_set_read_fn(data->png_ptr, &s, png_read_stream);
+
 	png_read_info(data->png_ptr, data->info_ptr);
 	
 	return true;

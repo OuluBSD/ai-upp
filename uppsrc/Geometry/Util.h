@@ -331,7 +331,7 @@ quat TurnUp(float angle);
 quat TurnDown(float angle);
 
 quat SwapHandedness(const quat& input);
-String Plot(const vec3& a, const vec3& b);
+String PlotVec3(const vec3& a, const vec3& b);
 
 
 

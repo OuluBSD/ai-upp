@@ -1533,7 +1533,7 @@ quat SwapHandedness(const quat& input) {
     );
 }
 
-String Plot(const vec3& a, const vec3& b) {
+String PlotVec3(const vec3& a, const vec3& b) {
 	float dot = Dot(a, b) / b.GetLength();
 	dot = max(-1.0f, min(+1.0f, dot));
 	int chars = 20;

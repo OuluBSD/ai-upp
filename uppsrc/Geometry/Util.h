@@ -39,8 +39,8 @@ vec3 VectorTransform(const vec3& v, const quat& m);
 vec3 Lerp(const vec3& pos, const vec3& tgt_pos, float easing_factor);
 quat Slerp(const quat& orient, const quat& tgt_orient, float easing_factor);
 
-vec2 Project(const vec2& length, const vec2& direction);
-vec3 Project(const vec3& length, const vec3& direction);
+vec2 ProjectVec(const vec2& length, const vec2& direction);
+vec3 ProjectVec(const vec3& length, const vec3& direction);
 vec2 Normalized(const vec2& v);
 vec3 Normalized(const vec3& v);
 mat4 Translation(const vec3& pos);

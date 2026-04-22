@@ -661,13 +661,13 @@ void CameraObject(
 
 
 
-vec2 Project(const vec2& length, const vec2& direction) {
+vec2 ProjectVec(const vec2& length, const vec2& direction) {
 	float dot = Dot(length, direction);
 	float magSq = MagnitudeSq(direction);
 	return direction * (dot / magSq);
 }
 
-vec3 Project(const vec3& length, const vec3& direction) {
+vec3 ProjectVec(const vec3& length, const vec3& direction) {
 	float dot = Dot(length, direction);
 	float magSq = MagnitudeSq(direction);
 	return direction * (dot / magSq);

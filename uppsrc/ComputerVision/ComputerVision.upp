@@ -2,7 +2,8 @@ description "\377B0,152,255";
 
 uses
 	Geometry,
-	AMP;
+	AMP,
+	CtrlLib;
 
 file
 	AGENTS.md,
@@ -49,5 +50,7 @@ file
 	KeypointMotionEstimator.h,
 	KeypointMotionEsimator.cpp,
 	OnepassStabilizer.h,
-	OnepassStabilizer.cpp;
+	OnepassStabilizer.cpp,
+	TemplateMatchCtrl.h,
+	TemplateMatchCtrl.cpp;
 

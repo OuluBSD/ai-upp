@@ -1360,6 +1360,7 @@ bool CommandLineArguments::Parse(const Vector<String>& args) {
 						}
 						return fail_type("expected floating point number");
 					
+                                        case STRING_V: positional = arg; break;
 					case BOOL_V:
 						if (positional.Is<bool>())
 							break;

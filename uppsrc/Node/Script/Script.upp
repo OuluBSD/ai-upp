@@ -1,0 +1,10 @@
+description "Node Graph Eon I/O (requires Vfs parser)\377";
+
+uses
+	Node/Core,
+	Vfs;
+
+file
+	Script.h,
+	EonIO.h,
+	EonIO.cpp;

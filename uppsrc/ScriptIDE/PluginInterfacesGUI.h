@@ -39,7 +39,9 @@ public:
 	virtual bool   IsPaused() const { return false; }
 	virtual RunMode GetRunMode() const { return RUNMODE_NONE; }
 	virtual void   Run() {}
+	virtual void   RunSeparateWindow() { Run(); }
 	virtual void   Debug() { Run(); }
+	virtual void   DebugSeparateWindow() { Debug(); }
 	virtual void   Profile() { Run(); }
 	virtual void   Pause() {}
 	virtual void   Stop() {}

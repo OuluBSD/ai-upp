@@ -13,6 +13,8 @@ public:
     void AddPage(const String& id, const String& title, Image icon, IPluginPreferencesPage* page);
     void AddPage(const String& category, const String& id, const String& title, Image icon, IPluginPreferencesPage* page);
 
+    void SelectPage(const String& id);
+
 private:
     static String ConfigPath();
     void OnNavSelection();

@@ -21,14 +21,31 @@ GUI_APP_MAIN
 	bool stdout_log = true;
 	bool maximize_window = false;
 	bool autostart = false;
+	bool headless = false;
 	Size window_size = Size(0, 0);
 	int timeout_ms = 0;
 	int stop_after_ms = -1;
 	int run_after_ms = -1;
 	int debug_after_ms = -1;
+	int run_separate_after_ms = -1;
+	int debug_separate_after_ms = -1;
+	int close_separate_after_ms = -1;
+	int expect_separate_open_after_ms = -1;
+	int expect_separate_closed_after_ms = -1;
+	int expect_external_launch_after_ms = -1;
+	int force_close_after_ms = -1;
 	int click_after_ms = 800;
 	int press_after_ms = 1400;
 	int click_first_hand_cards = 0;
+	String separate_run_target_override;
+	String separate_debug_target_override;
+	String external_process_binary_override;
+	String external_process_extra_args_override;
+	String export_standalone_path;
+	bool external_process_show_terminal_override = false;
+	bool external_process_show_terminal_override_set = false;
+	bool external_process_wait_for_exit_override = false;
+	bool external_process_wait_for_exit_override_set = false;
 	Vector<String> click_cards;
 	Vector<String> press_buttons;
 	Vector<String> press_form_buttons;
@@ -49,6 +66,7 @@ GUI_APP_MAIN
 		if(arg == "--no-stdout-log") { stdout_log = false; continue; }
 		if(arg == "--maximize") { maximize_window = true; continue; }
 		if(arg == "--autostart") { autostart = true; continue; }
+		if(arg == "--headless") { headless = true; continue; }
 		if(arg.StartsWith("--size=")) {
 			Vector<String> sz = Split(arg.Mid(7), "x");
 			if(sz.GetCount() == 2) window_size = Size(StrInt(sz[0]), StrInt(sz[1]));
@@ -58,6 +76,22 @@ GUI_APP_MAIN
 		if(arg.StartsWith("--stop-after-ms=")) { stop_after_ms = max(0, ScanInt(arg.Mid(16))); continue; }
 		if(arg.StartsWith("--run-after-ms=")) { run_after_ms = max(0, ScanInt(arg.Mid(15))); continue; }
 		if(arg.StartsWith("--debug-after-ms=")) { debug_after_ms = max(0, ScanInt(arg.Mid(17))); continue; }
+		if(arg.StartsWith("--run-separate-after-ms=")) { run_separate_after_ms = max(0, ScanInt(arg.Mid(24))); continue; }
+		if(arg.StartsWith("--debug-separate-after-ms=")) { debug_separate_after_ms = max(0, ScanInt(arg.Mid(26))); continue; }
+		if(arg.StartsWith("--close-separate-after-ms=")) { close_separate_after_ms = max(0, ScanInt(arg.Mid(26))); continue; }
+		if(arg.StartsWith("--expect-separate-open-after-ms=")) { expect_separate_open_after_ms = max(0, ScanInt(arg.Mid(32))); continue; }
+		if(arg.StartsWith("--expect-separate-closed-after-ms=")) { expect_separate_closed_after_ms = max(0, ScanInt(arg.Mid(34))); continue; }
+		if(arg.StartsWith("--expect-external-launch-after-ms=")) { expect_external_launch_after_ms = max(0, ScanInt(arg.Mid(34))); continue; }
+		if(arg.StartsWith("--force-close-after-ms=")) { force_close_after_ms = max(0, ScanInt(arg.Mid(23))); continue; }
+		if(arg.StartsWith("--separate-run-target=")) { separate_run_target_override = arg.Mid(22); continue; }
+		if(arg.StartsWith("--separate-debug-target=")) { separate_debug_target_override = arg.Mid(24); continue; }
+		if(arg.StartsWith("--external-process-binary=")) { external_process_binary_override = arg.Mid(26); continue; }
+		if(arg.StartsWith("--external-process-extra-args=")) { external_process_extra_args_override = arg.Mid(30); continue; }
+		if(arg.StartsWith("--export-standalone=")) { export_standalone_path = arg.Mid(20); continue; }
+		if(arg == "--external-process-show-terminal") { external_process_show_terminal_override = true; external_process_show_terminal_override_set = true; continue; }
+		if(arg == "--external-process-hide-terminal") { external_process_show_terminal_override = false; external_process_show_terminal_override_set = true; continue; }
+		if(arg == "--external-process-wait-for-exit") { external_process_wait_for_exit_override = true; external_process_wait_for_exit_override_set = true; continue; }
+		if(arg == "--external-process-no-wait-for-exit") { external_process_wait_for_exit_override = false; external_process_wait_for_exit_override_set = true; continue; }
 		if(arg.StartsWith("--click-after-ms=")) { click_after_ms = max(0, ScanInt(arg.Mid(17))); continue; }
 		if(arg.StartsWith("--press-after-ms=")) { press_after_ms = max(0, ScanInt(arg.Mid(17))); continue; }
 		if(arg.StartsWith("--click-card=")) { click_cards.Add(arg.Mid(13)); continue; }
@@ -97,14 +131,42 @@ GUI_APP_MAIN
 		SetCurrentDirectory(GetFileDirectory(path));
 	}
 
+	// --headless: run a .gamestate without opening any window.
+	// Uses CardGameDocumentHost offscreen rendering with SImageDraw via fixed_area.
+	if(headless && !path.IsEmpty() && ToLower(GetFileExt(path)) == ".gamestate") {
+		CardGameDocumentHost::log_to_stdout = stdout_log;
+		CardGameDocumentHost::exit_on_assert = exit_on_assert;
+		CardGameDocumentHost host;
+		if(window_size.cx > 0 && window_size.cy > 0)
+			host.SetFixedArea(window_size);
+		host.Load(path);
+		host.ExecuteSync();
+		SetExitCode(0);
+		return;
+	}
+
 	PythonIDE ide;
 	ide.plugin_manager->SyncBindings(ide.vm);
 	CardGameDocumentHost::log_to_stdout = stdout_log;
 	CardGameDocumentHost::exit_on_assert = exit_on_assert;
 	ide.console_pane->MirrorStdout(dump_console);
+	if(!separate_run_target_override.IsEmpty())
+		ide.settings.run.separate_window_run_target_id = separate_run_target_override;
+	if(!separate_debug_target_override.IsEmpty())
+		ide.settings.run.separate_window_debug_target_id = separate_debug_target_override;
+	if(!external_process_binary_override.IsEmpty())
+		ide.settings.run.external_process.binary_path = external_process_binary_override;
+	if(!external_process_extra_args_override.IsEmpty())
+		ide.settings.run.external_process.extra_args = external_process_extra_args_override;
+	if(external_process_show_terminal_override_set)
+		ide.settings.run.external_process.show_terminal = external_process_show_terminal_override;
+	if(external_process_wait_for_exit_override_set)
+		ide.settings.run.external_process.wait_for_exit = external_process_wait_for_exit_override;
+	ide.RefreshRunTargetsFromSettings();
 	
 	if(maximize_window) ide.Maximize();
 
+	CardGameDocumentHost* loaded_gamestate_host = nullptr;
 	if(!path.IsEmpty() && FileExists(path)) {
 		ide.LoadFile(path);
 		if(ToLower(GetFileExt(path)) == ".gamestate") {
@@ -148,6 +210,7 @@ GUI_APP_MAIN
 				}
 				host->Load(path);
 			}
+			loaded_gamestate_host = host;
 			ide.editor_tabs->SetCursor(ide.active_file);
 			ide.OnTabChanged();
 			// --size sets the game-content fixed area, not the window size.
@@ -156,6 +219,26 @@ GUI_APP_MAIN
 		}
 	}
 
+	if(!export_standalone_path.IsEmpty()) {
+		if(!loaded_gamestate_host) {
+			LOG("AUTOTEST FAIL: --export-standalone requires a loaded .gamestate document.");
+			SetExitCode(1);
+			return;
+		}
+		String final_output;
+		String export_error;
+		if(!loaded_gamestate_host->DebugExportStandalone(export_standalone_path, final_output, export_error)) {
+			LOG("AUTOTEST FAIL: standalone export failed: " << export_error);
+			SetExitCode(1);
+			return;
+		}
+		LOG("AUTOTEST PASS: standalone export output=" << final_output);
+		SetExitCode(0);
+		return;
+	}
+
+	ResetExternalProcessLaunchCount();
+
 	if(autostart || run_after_ms >= 0) {
 		int delay = autostart ? 500 : run_after_ms;
 		SetTimeCallback(delay, [&] { ide.OnRun(); }, (void*)0xC0A0);
@@ -163,6 +246,73 @@ GUI_APP_MAIN
 
 	if(stop_after_ms >= 0) SetTimeCallback(stop_after_ms, [&] { ide.OnStop(); }, (void*)0xC0E0);
 	if(debug_after_ms >= 0) SetTimeCallback(debug_after_ms, [&] { ide.OnDebug(); }, (void*)0xC0E2);
+	if(run_separate_after_ms >= 0) SetTimeCallback(run_separate_after_ms, [&] { ide.OnRunSeparateWindow(); }, (void*)0xC0E5);
+	if(debug_separate_after_ms >= 0) SetTimeCallback(debug_separate_after_ms, [&] { ide.OnDebugSeparateWindow(); }, (void*)0xC0E6);
+	if(close_separate_after_ms >= 0) SetTimeCallback(close_separate_after_ms, [&] { CloseAllStandaloneGameWindows(); }, (void*)0xC0E7);
+
+	bool separate_expect_enabled = expect_separate_open_after_ms >= 0 || expect_separate_closed_after_ms >= 0;
+	bool separate_expect_open_ok = expect_separate_open_after_ms < 0;
+	bool separate_expect_closed_ok = expect_separate_closed_after_ms < 0;
+	bool external_expect_enabled = expect_external_launch_after_ms >= 0;
+	bool external_expect_ok = expect_external_launch_after_ms < 0;
+
+	auto fail_test = [&](const String& msg) {
+		LOG("AUTOTEST FAIL: " << msg);
+		SetExitCode(1);
+		CloseAllStandaloneGameWindows();
+		ide.OnStop();
+		ide.ForceCloseNow();
+	};
+
+	if(expect_separate_open_after_ms >= 0) {
+		SetTimeCallback(expect_separate_open_after_ms, [&] {
+			int open = GetOpenStandaloneGameWindowCount();
+			if(open <= 0) {
+				fail_test("Expected standalone game window to be open.");
+				return;
+			}
+			LOG("AUTOTEST PASS: standalone game window opened (count=" << open << ").");
+			separate_expect_open_ok = true;
+		}, (void*)0xC0E8);
+	}
+
+	if(expect_separate_closed_after_ms >= 0) {
+		SetTimeCallback(expect_separate_closed_after_ms, [&] {
+			int open = GetOpenStandaloneGameWindowCount();
+			int running = GetRunningStandaloneGameWindowCount();
+			if(open != 0 || running != 0) {
+				fail_test(Format("Expected standalone game windows to be fully closed (open=%d running=%d).", open, running));
+				return;
+			}
+			LOG("AUTOTEST PASS: standalone game windows closed cleanly.");
+			separate_expect_closed_ok = true;
+			SetExitCode(0);
+			ide.ForceCloseNow();
+		}, (void*)0xC0E9);
+	}
+
+	if(expect_external_launch_after_ms >= 0) {
+		SetTimeCallback(expect_external_launch_after_ms, [&] {
+			int launched = GetExternalProcessLaunchCount();
+			if(launched <= 0) {
+				fail_test("Expected external process launch.");
+				return;
+			}
+			LOG("AUTOTEST PASS: external process launched (count=" << launched << ").");
+			external_expect_ok = true;
+		}, (void*)0xC0EB);
+	}
+
+	if(force_close_after_ms >= 0) {
+		SetTimeCallback(force_close_after_ms, [&] {
+			if(separate_expect_enabled && !(separate_expect_open_ok && separate_expect_closed_ok))
+				SetExitCode(1);
+			if(external_expect_enabled && !external_expect_ok)
+				SetExitCode(1);
+			CloseAllStandaloneGameWindows();
+			ide.ForceCloseNow();
+		}, (void*)0xC0EA);
+	}
 
 	if(click_cards.GetCount() || press_buttons.GetCount() || press_form_buttons.GetCount() || call_form_button_actions.GetCount() || click_first_hand_cards > 0) {
 		SetTimeCallback(click_after_ms, [&] {

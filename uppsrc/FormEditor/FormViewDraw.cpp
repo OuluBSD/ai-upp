@@ -20,10 +20,14 @@ void FormView::Paint(Draw& w)
 	Rect r = Zoom(GetPageRect());
 	w.DrawRect(GetSize(), face);
 
+	if (!IsNull(_BackgroundImage))
+		w.DrawImage(r, _BackgroundImage, Rect(Point(0, 0), _BackgroundImage.GetSize()));
+
 	DrawGrid(w);
 	DrawRect(w, r, 1, LtBlue());
 
-	w.DrawRect(r, paper);
+	if (IsNull(_BackgroundImage))
+		w.DrawRect(r, paper);
 
 //	if (_showInfo)
 //	{

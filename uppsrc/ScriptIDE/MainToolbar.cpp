@@ -19,6 +19,28 @@ void PythonIDE::MainToolbarGroup(Bar& bar, int group)
 	bool pause_enabled = doc_can_pause && doc_running;
 
 	if(group == 0) { // Standard group
+		String separate_run_target_name = "Terminal (PythonCLI fallback)";
+		RunTargetContext run_target_ctx;
+		run_target_ctx.mode = RunMode::Run;
+		if(active_file >= 0 && active_file < open_files.GetCount()) {
+			run_target_ctx.file_path = open_files[active_file].path;
+			run_target_ctx.working_dir = run_target_ctx.file_path.IsEmpty()
+				? GetCurrentDirectory()
+				: GetFileDirectory(run_target_ctx.file_path);
+		}
+		else
+			run_target_ctx.working_dir = GetCurrentDirectory();
+		{
+			IRunTarget* target = RunTargetRegistry::Get().Resolve(run_target_ctx, settings.run.separate_window_run_target_id);
+			if(!target && settings.run.separate_window_run_target_id.GetCount())
+				target = RunTargetRegistry::Get().Find(settings.run.separate_window_run_target_id);
+			if(!target)
+				target = RunTargetRegistry::Get().Find("local.terminal");
+			if(target)
+				separate_run_target_name = target->GetName();
+		}
+		String separate_run_tip = String("Run in separate window (Ctrl+F5), target: ") + separate_run_target_name;
+
 		bar.Add(Icons::NewFile(), [this] { OnNewFile(); }).Tip("New File (Ctrl+N)").Help("Create a new Python file");
 		bar.Add(Icons::OpenFile(), [this] { OnOpenFile(); }).Tip("Open File (Ctrl+O)").Help("Open an existing Python file");
 		bar.Add(Icons::Save(), [this] { OnSaveFile(); }).Tip("Save File (Ctrl+S)").Help("Save current file");
@@ -29,6 +51,7 @@ void PythonIDE::MainToolbarGroup(Bar& bar, int group)
 		bar.Separator();
 		
 		bar.Add(Icons::Run(), [this] { OnRun(); }).Tip("Run (Ctrl+F5)").Help("Run current file without stopping at breakpoints").Enable(run_enabled);
+		bar.Add(Icons::Run(), [this] { OnRunSeparateWindow(); }).Tip(separate_run_tip).Help("Run current file in a separate window").Enable(run_enabled);
 		bar.Add(Icons::RunCell(), [this] { OnRunCell(); }).Tip("Run Cell (Ctrl+Return)").Help("Run current code cell").Enable(run_enabled);
 		bar.Add(Icons::RunCellAdvance(), [this] { OnRunCellAndAdvance(); }).Tip("Run Cell and Advance (Shift+Return)").Help("Run current cell and move to next").Enable(run_enabled);
 		bar.Add(Icons::RunSelection(), [this] { OnRunSelection(); }).Tip("Run Selection (F9)").Help("Run current selection or line").Enable(run_enabled);
@@ -74,6 +97,13 @@ void PythonIDE::MainToolbar(Bar& bar)
 		bar.ToolGroup(true, !tstate.hide_handles && !first);
 		MainToolbarGroup(bar, id);
 		first = false;
+	}
+
+	if(active_file >= 0 && active_file < open_files.GetCount()) {
+		if(IDocumentHost* h = open_files[active_file].editor) {
+			bar.Separator();
+			h->Toolbar(bar);
+		}
 	}
 }
 

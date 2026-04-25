@@ -2609,11 +2609,13 @@ Image CardGameDocumentHost::CaptureRecordFrame(Size target_size) const
 	if(base.cx <= 0 || base.cy <= 0)
 		base = GetSize();
 	if(base.cx <= 0 || base.cy <= 0)
+		base = fixed_area;
+	if(base.cx <= 0 || base.cy <= 0)
 		return Image();
 	if(target_size.cx <= 0 || target_size.cy <= 0)
 		target_size = base;
 
-	ImageDraw iw(target_size);
+	SImageDraw iw(target_size);
 	iw.DrawRect(target_size, background_color);
 
 	double sx = base.cx ? (double)target_size.cx / (double)base.cx : 1.0;
@@ -2705,6 +2707,35 @@ Image CardGameDocumentHost::CaptureRecordFrame(Size target_size) const
 
 	PaintOverlayScaled(iw, sx, sy, false);
 	return iw;
+}
+
+void CardGameDocumentHost::ExecuteSync()
+{
+	if(path.IsEmpty()) return;
+	InitRuntime();
+	if(plugin)
+		plugin->Execute(path);
+}
+
+bool CardGameDocumentHost::SaveSnapshot(const String& path)
+{
+	Image img = CaptureRecordFrame();
+	if(img.IsEmpty()) return false;
+	RealizeDirectory(GetFileFolder(path));
+#ifdef flagX11
+	ImageBuffer ib(img);
+	for(int y = 0; y < ib.GetHeight(); y++) {
+		RGBA* row = ib[y];
+		for(int x = 0; x < ib.GetWidth(); x++) {
+			byte t = row[x].r;
+			row[x].r = row[x].b;
+			row[x].b = t;
+		}
+	}
+	img = ib;
+#endif
+	PNGEncoder().SaveFile(path, img);
+	return true;
 }
 
 void CardGameDocumentHost::SyncFormControls()

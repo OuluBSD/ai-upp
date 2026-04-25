@@ -6,6 +6,9 @@ uses
 	PdfDraw,
 	plugin\jpg;
 
+uses(MLUI)
+	VirtualGui;
+
 file
 	UWord.cpp,
 	UWord.iml;
@@ -13,5 +16,5 @@ file
 mainconfig
 	"" = "GUI",
 	"" = "GUI X11",
-	"" = "GUI ST";
-
+	"" = "GUI ST",
+	"Markup Language User Interface" = "GUI MLUI";

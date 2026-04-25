@@ -1,0 +1,13 @@
+description "MLUI viewer/debug app\377";
+
+uses
+	CtrlLib;
+
+file
+	AGENTS.md,
+	MluiViewer.h,
+	main.cpp;
+
+mainconfig
+	"" = "GUI",
+	"" = "GUI X11";

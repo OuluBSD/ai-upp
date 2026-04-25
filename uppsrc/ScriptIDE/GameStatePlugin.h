@@ -12,7 +12,10 @@ public:
 	virtual void   Init(IPluginContext& context) override;
 	virtual void   Shutdown() override;
 
-	// IFileTypeHandler
+	virtual void   ExecuteSeparateWindow(const String& path) override;
+	virtual void   DebugSeparateWindow(const String& path) override;
+
+	// IFileTypeHandler overrides
 	virtual String         GetExtension() const override { return ".gamestate"; }
 	virtual String         GetFileDescription() const override { return "Game State JSON"; }
 	virtual bool           SupportsHostRole(HostRole role) const override { return role == HOSTROLE_VIEWER; }

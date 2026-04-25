@@ -1,45 +1,31 @@
 # Topics And Help
 
-## What this covers
-This file documents Core's packaged help-topic layer: `Topic`, `TopicLink`, `topic://` links, topic registration, and runtime lookup/decompression.
+## What this page is for
+This page is about documentation embedded in the runtime culture.
 
-## Main abstractions
-[`uppsrc/Core/Topic.h`](../../../uppsrc/Core/Topic.h) defines a compact data model:
+Help systems usually get pushed outward into websites, external manuals, or tooling-only formats. Core keeping a topic/help story close to the runtime suggests a more integrated idea of what a framework should carry with it.
 
-- `Topic` with `title`, `text`, `link`, and `label`
-- `TopicLink` with `package`, `group`, `topic`, and optional anchor label
-- helpers for converting links to and from `topic://...` strings
+## Documentation as part of the platform
+This is philosophically interesting because it treats documentation as something the platform itself can host and move, not just something written about the platform from elsewhere.
 
-The link syntax is explicit. `TopicLinkString(...)` renders links like:
+That aligns with a broader U++ instinct: tools, docs, runtime, and framework identity are allowed to reinforce one another rather than staying strictly separate.
 
-- `topic://package/group/topic`
-- `topic://package/group/topic#label`
+## Why this is more than a niche subsystem
+Embedded help becomes strategically valuable when a framework wants coherence across:
 
-## Runtime storage
-[`uppsrc/Core/Topic.cpp`](../../../uppsrc/Core/Topic.cpp) shows that topics are registered into static tables at startup through `RegisterTopic__`.
+- IDE-like tools
+- localized documentation
+- packaged distribution
+- runtime-discoverable guidance
 
-Topic payloads are not stored as plain text in the registry. `GetTopic(...)` pulls compressed data and expands it with `ZDecompress(...)`.
+Even if not every application uses it directly, the existence of this layer says the framework takes its own internal knowledge systems seriously.
 
-That ties this subsystem directly to Core's compression layer.
+## Future direction
+This topic could matter even more if Core leans further into:
 
-## Language handling
-`GetTopicLNG(...)` appends the current language suffix and resolves localized variants when available.
+- portable self-contained tooling
+- richer topic indexing and cross-linking
+- stronger integration with localization
+- service-style help delivery or remote tooling scenarios
 
-So the packaged help system is language-aware, but it is still based on explicit topic names and registries rather than a generic document database.
-
-## Role in the stack
-This is the runtime half of U++'s Topic++ help/documentation mechanism:
-
-- build-time tools package topic content into registries
-- Core resolves those entries at runtime
-- consumers receive `Topic` objects and `topic://` links
-
-The code in Core is the loader and resolver, not the editor.
-
-## Current vs legacy
-This subsystem is current code, but it is not as central as strings, containers, or streams. It is a specialized documentation/help facility that still matters because the wider U++ ecosystem uses Topic++ heavily.
-
-## See also
-- [17-Localization.md](17-Localization.md)
-- [18-Parsers-and-Serialization.md](18-Parsers-and-Serialization.md)
-- [21-Compression.md](21-Compression.md)
+It is a micro-topic, but it preserves a distinct developer mindset and should stay visible.

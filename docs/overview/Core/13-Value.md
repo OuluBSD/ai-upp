@@ -1,75 +1,25 @@
 # Value
 
-## What this covers
-This file documents Core's dynamic value system: `Value`, `ValueType`, `ValueArray`, `ValueMap`, error values, and the small-vs-rich storage split used by the runtime.
+## What this page is for
+This page is about dynamic values as a runtime negotiation layer.
 
-## Design intent
-`Value` is Core's type-erased runtime value container. It exists so generic formatting, serialization, JSON/XML conversion, argument passing, and loosely typed data structures can share one common transport type.
+Core is not only about static, explicit types. It also keeps a place for structured dynamism, and that is strategically important.
 
-The implementation is explicit about type identity:
+## Dynamism inside an explicit runtime
+`Value`-style facilities only make sense in Core if they serve a clear purpose. The likely purpose is not to replace static design. It is to let dissimilar parts of the framework exchange data without forcing every interaction into bespoke compile-time coupling.
 
-- built-in type numbers such as `INT_V`, `STRING_V`, `DATE_V`, `VALUEARRAY_V`, and `VALUEMAP_V` live in [`uppsrc/Core/Value.h`](../../../uppsrc/Core/Value.h)
-- custom types participate through `ValueType<T,...>` and explicit registration
-- `Value::RegisterStd()` wires up built-in rich types in [`uppsrc/Core/Value.cpp`](../../../uppsrc/Core/Value.cpp)
+That makes the value layer a negotiation surface:
 
-## Storage model
-Two major storage modes are visible in code:
+- between tools and runtime
+- between serialization and live objects
+- between generic infrastructure and domain-specific data
 
-- small values use the internal `String` payload directly when `FitsSvoValue<T>()` holds, which is currently `sizeof(T) <= 8`
-- larger or polymorphic values use `Value::Void` with reference counting and virtual operations
+## Why this does not contradict explicitness
+At first glance, a dynamic value system seems to oppose Core's explicit temperament. In practice it can support it, if used carefully.
 
-That is why `Value.h` exposes both:
+The key difference is whether dynamism hides structure or makes cross-boundary structure manageable. In Core, the healthier reading is the second one. The package keeps a dynamic layer because a large framework needs one, not because it wants to become vague everywhere.
 
-- `SvoToValue(...)` for small-value optimization
-- `RichToValue(...)` and raw-value helpers for heap-backed value objects
+## Future direction
+If Core continues to evolve toward more tooling, service, reflection, or schema-like behavior, the value layer will likely matter even more.
 
-The model is explicit, not opaque. A type can be cheap inline data or a refcounted heap object depending on its size and registration path.
-
-## Main abstractions
-### `Value`
-`Value` supports:
-
-- runtime type inspection with `GetType()` and `GetTypeName()`
-- typed extraction with `Is<T>()`, `To<T>()`, and `Get<T>()`
-- comparison and hashing
-- serialization, XML, and JSON conversion
-- array-like and map-like access through `GetCount()`, `operator[](int)`, and keyed operators
-
-### `ValueType<T,...>`
-`ValueType` is the base mixin for user-defined Value-compatible types. It defines the hooks that rich types are expected to support:
-
-- `Serialize`
-- `Xmlize`
-- `Jsonize`
-- `GetHashValue`
-- `ToString`
-- `Compare`
-- `PolyCompare`
-
-### `ValueArray`
-`ValueArray` is a refcounted wrapper around `Vector<Value>`. It is copy-on-write through `Clone()` in [`uppsrc/Core/ValueUtil.cpp`](../../../uppsrc/Core/ValueUtil.cpp).
-
-### `ValueMap`
-`ValueMap` stores:
-
-- `Index<Value> key`
-- `ValueArray value`
-
-So map keys preserve index order while still supporting keyed lookup. `ValueMap` is also copy-on-write.
-
-## Semantics and tradeoffs
-- `Value` is not a variant with only compile-time-known alternatives; it is a registry-backed runtime type system.
-- `ValueArray` and `ValueMap` are first-class value types, not just convenience wrappers.
-- keyed access is forgiving: missing keyed lookups often return `ErrorValue()` rather than crashing immediately.
-- serialization requires real registered type IDs; `Value.cpp` asserts this before storing.
-
-## Current vs legacy
-`Value` is central and current. It is used by formatting, conversion, JSON/XML helpers, and command-line parsing utilities in Core.
-
-The historical aspect is the amount of compatibility machinery around registration and polymorphic comparison. The dynamic value system itself is active, not legacy.
-
-## See also
-- [06-Streams.md](06-Streams.md)
-- [14-Formatting-and-Conversion.md](14-Formatting-and-Conversion.md)
-- [18-Parsers-and-Serialization.md](18-Parsers-and-Serialization.md)
-- [19-Visitor.md](19-Visitor.md)
+The real challenge is keeping it disciplined enough that it remains an interoperability tool rather than a universal escape hatch.

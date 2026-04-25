@@ -1,62 +1,25 @@
 # Localization
 
-## What this covers
-This file documents Core's language and translation support: language IDs, runtime language switching, localized formatting metadata, and the `t_()` translation path.
+## What this page is for
+This page is about language support as a first-class framework responsibility.
 
-## Translation layer
-[`uppsrc/Core/i18n.h`](../../../uppsrc/Core/i18n.h) defines the low-level translation API:
+Localization living in Core says something important: the project does not treat human language as an afterthought best postponed to application code.
 
-- `t_GetLngString`
-- `GetLngString`
-- `SetCurrentLanguage`
-- `GetCurrentLanguage`
-- `LoadLngFile`
-- `SaveLngFile`
-- `GetLngSet`
+## Language belongs in the foundation
+A framework that wants to support real applications eventually has to decide whether localization is ornamental or structural.
 
-The `t_()` helper comes from the included `t_.h` and is intended for string literals. The comments in `i18n.h` are explicit about that cache-oriented assumption.
+Core's placement suggests the structural reading. Translation, language identity, and locale-sensitive behavior affect text, help, UI, storage, and diagnostics. Keeping them near the foundation helps the rest of the stack behave like one system rather than many local patches.
 
-## Language IDs
-[`uppsrc/Core/Lang.h`](../../../uppsrc/Core/Lang.h) defines compact 4-letter language codes through `LNG_(...)` and `LNGC_(...)`, plus helpers such as:
+## More cultural than technical
+Localization is not just a parsing or lookup problem. It is one of the places where a runtime admits that software is used by people in different linguistic contexts.
 
-- `LNGFromText`
-- `LNGAsText`
-- `GetLNGCharset`
-- `SetLNGCharset`
+That is why its presence in Core feels philosophically right. It keeps the framework from adopting an overly narrow, monocultural idea of runtime concerns.
 
-This means localization is not only string-table lookup. Language identity also carries charset information.
+## Future direction
+This area becomes more interesting if Core grows toward:
 
-## Runtime language state
-Core supports changing the active language at runtime:
+- stronger reuse of translation assets
+- closer coupling between embedded help and language systems
+- more portable tooling flows
 
-- `SetLanguage(int)` / `SetLanguage(const char*)`
-- `GetCurrentLanguage()`
-- `GetCurrentLanguageString()`
-- `GetSystemLNG()`
-
-The translation implementation in [`uppsrc/Core/t.cpp`](../../../uppsrc/Core/t.cpp) also refreshes date formatting when the current language changes.
-
-## `LanguageInfo`
-`LanguageInfo` is the richer locale metadata object. It includes:
-
-- English and native names
-- thousand separator and decimal point
-- date and time formats
-- month/day names
-- comparison and indexing-letter callbacks
-
-It also exposes localized formatting helpers such as `FormatInt`, `FormatDouble`, `FormatDate`, and `FormatTime`.
-
-## Semantics and tradeoffs
-- translation is literal-ID based, not message-format-resource based
-- language/charset info is centralized in Core rather than delegated to OS locale APIs alone
-- collation and index-letter logic are pluggable through function pointers in `LanguageInfo`
-
-## Current vs legacy
-The translation and language-info layer is current. Some older naming remains, especially around `Lng` functions and compatibility constants, but the subsystem is active and tied directly into formatting and text comparison.
-
-## See also
-- [04-Strings-and-Text.md](04-Strings-and-Text.md)
-- [12-Time.md](12-Time.md)
-- [14-Formatting-and-Conversion.md](14-Formatting-and-Conversion.md)
-- [18-Parsers-and-Serialization.md](18-Parsers-and-Serialization.md)
+Localization is one of the quiet places where the framework's maturity shows.

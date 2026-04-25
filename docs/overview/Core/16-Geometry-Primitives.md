@@ -1,68 +1,21 @@
 # Geometry Primitives
 
-## What this covers
-This file documents the fundamental geometric value types in `uppsrc/Core/Gtypes.h`: `Point_`, `Size_`, `Rect_`, their standard typedefs, and the helper math that lives alongside them.
+## What this page is for
+This page is about geometric assumptions near the runtime floor.
 
-## Main types
-Core defines templated 2D primitives:
+Simple geometric types in Core show that the framework expects space, placement, and rectangular reasoning to be common enough that they should not depend on a later UI package.
 
-- `Point_<T>`
-- `Size_<T>`
-- `Rect_<T>`
+## Foundational geometry is really about the UI worldview
+These primitives suggest that the framework's center of gravity includes application layout and screen-oriented reasoning, even in the non-GUI foundation.
 
-and then standard aliases:
+That is not a contradiction. It reflects a practical belief that ordinary software spends a lot of time dealing with positions, extents, clipping, and alignment, and that these ideas deserve stable shared language early in the stack.
 
-- integer: `Point`, `Size`, `Rect`
-- floating-point: `Pointf`, `Sizef`, `Rectf`
-- 16-bit and 64-bit integer variants
+## Deliberate scope
+The interesting part is what Core geometry likely does not try to be.
 
-These types are value-semantic, serializable, JSON/XML-capable, and Value-compatible.
+It does not need to become a universal computational-geometry system. Its role is narrower and more useful: give the rest of the framework durable primitives for common spatial reasoning without pretending to solve every geometric domain.
 
-## Semantics
-### `Size_<T>`
-Represents extent, not position. It supports arithmetic, scalar/vector products, `Squared`, and `Length`.
+## Future direction
+If the framework keeps reaching into more rendering, visualization, or unusual-device territory, this layer may need to stay simple while also becoming more portable across different coordinate assumptions.
 
-### `Point_<T>`
-Represents position/vector in 2D. It supports arithmetic with both points and sizes, plus conversion to/from `Size_`.
-
-### `Rect_<T>`
-Represents a 2D box by edges: `left`, `top`, `right`, `bottom`. The semantics are edge-based, not center-based.
-
-Observed behaviors from code:
-
-- `IsEmpty()` is true when `right <= left` or `bottom <= top`
-- helper constructors such as `RectC` interpret `(x, y, cx, cy)` as origin plus size
-- there are many convenience accessors for corners, center points, size, and translated variants
-
-## Math helpers
-`Gtypes.cpp` adds floating-point geometry helpers such as:
-
-- `GetFitSize`
-- `Mid`
-- `Orthogonal`
-- `Normalize`
-- `Polar`
-- `Direction`
-- `Distance`
-
-So this layer is not only passive structs. It is a small, general-purpose 2D geometry toolkit.
-
-## Value and serialization integration
-`ValueUtil.cpp` registers:
-
-- `Point`, `Point64`, `Pointf`
-- `Size`, `Size64`, `Sizef`
-- `Rect`, `Rect64`, `Rectf`
-
-Small types use `SvoRegister` where possible; `Rect` variants are registered as rich values.
-
-## Current vs fork-specific scope
-These 2D primitives are central Core types.
-
-By contrast, a type named `Volume` is not part of base `uppsrc/Core/Gtypes.h` in this repository snapshot. If you encounter `Volume` elsewhere in the tree, treat it as package-specific or fork-specific to that subsystem, not as part of the foundational Core geometry surface documented here.
-
-## See also
-- [13-Value.md](13-Value.md)
-- [15-Color.md](15-Color.md)
-- [18-Parsers-and-Serialization.md](18-Parsers-and-Serialization.md)
-- [README.md](README.md)
+That would be a healthy tension to keep visible.

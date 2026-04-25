@@ -1,69 +1,33 @@
 # Paths And Config
 
-## What this covers
-This file explains path handling, filesystem helpers, executable/home/config discovery, and Core's config-file placement rules on Windows and POSIX.
+## What this page is for
+This page is about Core's attitude toward deployment reality.
 
-## Path abstraction
-[`uppsrc/Core/Core.h`](../../../uppsrc/Core/Core.h) sets `DIR_SEP`, `DIR_SEPS`, and `PLATFORM_PATH_HAS_CASE` per platform. [`uppsrc/Core/Path.h`](../../../uppsrc/Core/Path.h) and [`uppsrc/Core/Path.cpp`](../../../uppsrc/Core/Path.cpp) then build the public helpers on top:
+Paths and config are where a framework stops being an abstract runtime and starts admitting how software is actually shipped, installed, copied, bundled, and misused on real systems.
 
-- path decomposition: `GetFileDirectory`, `GetFileFolder`, `GetFileTitle`, `GetFileExt`, `GetFileName`
-- path construction: `AppendFileName`, `AppendExt`, `ForceExt`, `NativePath`, `UnixPath`, `WinPath`
-- normalization and comparison: `NormalizePath`, `NormalizeUnixPath`, `PathIsEqual`
-- directory/file operations: `FileCopy`, `FileMove`, `FileDelete`, `DirectoryCreate`, `RealizePath`
-- enumeration: `FindFile`, `FindAllPaths`
+## Platform realism lives here
+Core's path and config story matters because it resists fake uniformity.
 
-`PathIsEqual` is platform-aware: case-insensitive on Windows after normalization, case-sensitive on POSIX.
+File placement, executable-relative resources, user-level configuration, and platform conventions do not line up neatly across systems. A serious runtime has to decide whether to hide that mess or describe it with enough honesty that applications can still behave intentionally.
 
-## Home and executable location
-[`uppsrc/Core/App.cpp`](../../../uppsrc/Core/App.cpp) supplies the environment layer:
+Core tends to prefer the second approach.
 
-- `GetHomeDirectory()` reads `HOMEDRIVE` + `HOMEPATH` on Windows and `$HOME` on POSIX
-- `GetExeFilePath()` uses the module filename on Windows and `/proc/.../exe` or platform equivalents on POSIX, with PATH-based fallback if needed
-- `GetExeDirFile()` and `GetExeFolder()` derive sibling locations from the executable
+## Portable application thinking
+There is a recurring portable-application instinct in Core's worldview. The package often feels sympathetic to software that wants to carry more of its own environment with it instead of assuming a perfectly managed host system.
 
-That means "home directory" and "config directory" are separate concepts in Core.
+That instinct is important because it makes the runtime useful in unconventional deployment conditions, not just standard desktop installations.
 
-## Config placement
-The main APIs are:
+## Configuration is architectural
+Config placement is not a mere helper topic. It expresses what the framework believes about application identity.
 
-- `SetConfigDirectory`
-- `SetConfigName`
-- `SetConfigGroup`
-- `UseHomeDirectoryConfig`
-- `ConfigFile(const char*)`
-- `GetConfigFolder()`
+Does the application belong beside its executable, inside user space, inside a managed platform directory, or inside some hybrid compromise? Core's answer is contextual rather than ideological, and that is a strength. It implies the runtime cares more about practical legitimacy than elegant universal rules.
 
-### Windows
-Default behavior is portable-app style:
+## Future pressure
+This area becomes more important if the framework reaches toward:
 
-- `ConfigFile("x")` resolves under the executable directory
+- WebAssembly-style packaged runtimes
+- Android and mobile filesystem rules
+- DOS-like or kiosk-style deployments
+- service processes with stricter host integration
 
-If `UseHomeDirectoryConfig(true)` is enabled, Core switches to a per-app directory under `GetHomeDirectory()`.
-
-### POSIX
-The behavior is more layered:
-
-1. if `SetConfigDirectory` was used, Core uses it directly
-2. otherwise it tries to find a writable `.config` directory while walking upward from the executable folder, unless `UseHomeDirectoryConfig(true)` disabled that search
-3. if that fails, it uses `XDG_CONFIG_HOME`
-4. if that is missing or nonexistent, it falls back to `~/.config`
-5. it then appends the config group, defaulting to `u++`
-6. it appends the config name or app name
-
-This is explicitly visible in `GetUserConfigDir()` and `ConfigFile()` in `App.cpp`.
-
-## Portable-app implications
-On POSIX, the upward search for a writable `.config` near the executable is a real code path. That is a portable/deployed-bundle assumption, not just an abstract concept. On Windows, the default executable-relative config path is even more direct.
-
-## INI layer
-[`uppsrc/Core/Ini.cpp`](../../../uppsrc/Core/Ini.cpp) builds an INI-like configuration reader on top of `ConfigFile("q.ini")`, with support for:
-
-- `@include`
-- optional environment-variable expansion
-- fallback locations such as `GetExeDirFile("q.ini")` on Windows and `GetHomeDirFile("q.ini")` on POSIX
-
-## See also
-- [01-Architecture.md](01-Architecture.md)
-- [06-Streams.md](06-Streams.md)
-- [07-Logging.md](07-Logging.md)
-- [12-Time.md](12-Time.md)
+Those targets will stress not only technical path handling, but also the framework's assumptions about where an application is allowed to live.

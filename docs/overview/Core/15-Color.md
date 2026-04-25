@@ -1,50 +1,19 @@
 # Color
 
-## What this covers
-This file documents the color primitives in Core: `RGBA`, `Color`, special colors, dark-theme-aware colors, and color conversion helpers.
+## What this page is for
+This page is about why color appears in Core at all.
 
-## Main types
-[`uppsrc/Core/Color.h`](../../../uppsrc/Core/Color.h) defines:
+At first glance, color looks like a higher-level UI topic. Its presence in the foundation suggests that the framework considers certain visual primitives basic enough to deserve runtime-level stability.
 
-- `RGBA`: raw 8-bit channel struct
-- `Color`: Value-compatible color abstraction
-- `SColor`: static/global special color wrapper
-- `AColor`: auto-dark-mode-aware color wrapper
+## Visual semantics begin early
+Color in Core implies that the framework's UI stack is not meant to be bolted on as a completely separate worldview. Some visual semantics are considered foundational.
 
-`Color` is a real `ValueType<Color, COLOR_V, ...>`, so it participates in the `Value` system directly.
+That is reasonable. Applications do not experience geometry and color as exotic features. They experience them as ordinary language. Putting basic visual primitives in Core gives the rest of the stack a stable baseline.
 
-## Semantics
-`Color` stores a `dword` with flag bits:
+## Practical, not artistic
+The important reading here is not that Core wants to become a graphics theory package. It is that the runtime acknowledges some visual concepts as everyday engineering material.
 
-- `SPECIAL` for non-ordinary color values
-- `SCOLOR` for function-defined special colors
-- `ACOLOR` for colors that are auto-adjusted in dark mode
+This matches the framework's general habit of keeping frequently reused semantics near the center rather than scattering them into many thin dependencies.
 
-That means `Color` is more than an RGB triple. Some values are symbolic or environment-sensitive.
-
-## Conversions and helpers
-Core includes:
-
-- RGB/HSV and CMYK conversion helpers
-- luminance and contrast helpers
-- blending, lerp, grayscale, dark/light classification
-- HTML/text conversion through `ColorToHtml` and `ColorFromText`
-
-These are utility-level operations, not just UI sugar.
-
-## Platform behavior
-`RGBA` field order changes on macOS:
-
-- macOS stores `a, r, g, b`
-- other platforms store `r, g, b, a`
-
-The public helper functions hide most of that, but the struct layout difference is real and worth remembering for raw-memory code.
-
-## Current vs legacy
-`Color` is current and central to the wider framework, even though this package is nominally non-GUI. The special-color and dark-theme hooks make it broader than a simple numeric type.
-
-## See also
-- [13-Value.md](13-Value.md)
-- [14-Formatting-and-Conversion.md](14-Formatting-and-Conversion.md)
-- [16-Geometry-Primitives.md](16-Geometry-Primitives.md)
-- [17-Localization.md](17-Localization.md)
+## Future direction
+Color will matter more if the framework keeps stretching across desktop UI, rendering experiments, alternative display environments, and constrained targets. The foundational question is whether Core can keep these primitives simple without making them too provincial.

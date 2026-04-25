@@ -1,64 +1,25 @@
 # Hashing
 
-## What this covers
-This file documents the hashing facilities that are visibly implemented in Core: generic `GetHashValue` / `CombineHash`, cryptographic digest helpers, xxHash wrappers, and related hashing-by-serialization utilities.
+## What this page is for
+This page is about identity, equivalence, and trust boundaries.
 
-## Generic hashing API
-The foundational hashing helpers live in [`uppsrc/Core/Topt.h`](../../../uppsrc/Core/Topt.h):
+Hashing in Core matters because the runtime needs ways to talk about structure, lookup, signatures, and compact identity without confusing those roles with each other.
 
-- `GetHashValue(...)` overloads for primitives, pointers, and user types
-- `CombineHash` for multi-field hashing
-- `GetPtrHashValue(...)`
-- `memhash(...)` for raw byte hashing
+## Different kinds of sameness
+One of the healthier lessons here is that not all hashes mean the same thing.
 
-This is the layer used by containers and value types throughout Core.
+Structural hashes, digest-style hashes, and transport-oriented hashes answer different questions. Core is better when it keeps those distinctions visible. That is consistent with its broader refusal to collapse unlike concerns into one comfortable abstraction.
 
-Examples visible in code:
+## Why this belongs in Core
+Hashing is foundational because containers, caches, value systems, serialization, and networking all eventually depend on some notion of stable derived identity.
 
-- geometry and color types define `GetHashValue()` with `CombineHash`
-- `ValueArray` and `ValueMap` fold child hashes in [`uppsrc/Core/ValueUtil.cpp`](../../../uppsrc/Core/ValueUtil.cpp)
-- `HashBySerialize(...)` in [`uppsrc/Core/Util.h`](../../../uppsrc/Core/Util.h) hashes an object's serialized form with `xxHashStream`
+Once those notions fragment, the runtime becomes harder to reason about. Keeping hashing close to the center helps preserve conceptual continuity across many subsystems.
 
-## Digest algorithms in `Hash.h`
-[`uppsrc/Core/Hash.h`](../../../uppsrc/Core/Hash.h) exposes four concrete digest families:
+## Future direction
+The future pressure here includes:
 
-- MD5
-- SHA-1
-- SHA-256
-- xxHash / xxHash64
+- better clarity around trust and security use cases
+- broader architecture validation across endian and CPU variation
+- more deliberate coordination with caching and serialization
 
-For MD5, SHA-1, and SHA-256, Core provides both:
-
-- one-shot functions for memory and `String`
-- stream-style wrappers derived from `OutStream`
-
-The implementations live in:
-
-- [`uppsrc/Core/MD5.cpp`](../../../uppsrc/Core/MD5.cpp)
-- [`uppsrc/Core/SHA1.cpp`](../../../uppsrc/Core/SHA1.cpp)
-- [`uppsrc/Core/SHA256.cpp`](../../../uppsrc/Core/SHA256.cpp)
-
-## xxHash
-[`uppsrc/Core/xxHsh.cpp`](../../../uppsrc/Core/xxHsh.cpp) wraps the bundled xxHash library from [`uppsrc/Core/lib/xxhash.c`](../../../uppsrc/Core/lib/xxhash.c).
-
-Visible features:
-
-- `xxHashStream` with optional 32-bit seed
-- `xxHash64Stream` with optional 32-bit seed
-- one-shot `xxHash(...)` and `xxHash64(...)`
-
-This is the fast non-cryptographic hashing path used by generic helpers such as `HashBySerialize(...)`.
-
-## Semantics and tradeoffs
-- `GetHashValue` / `CombineHash` are the normal structural-hash mechanism in Core
-- xxHash is the fast utility hash
-- MD5, SHA-1, and SHA-256 are explicit digest algorithms, not interchangeable with container hash semantics
-
-The code does not claim one unified "best hash." Core keeps both structural hashing and named digest algorithms because they solve different problems.
-
-## Current vs legacy
-This area is current. The only legacy aspect is algorithm choice at the security level: MD5 and SHA-1 remain available because the package exposes them, not because the code treats them as modern security defaults.
-
-## See also
-- [13-Value.md](13-Value.md)
-- [21-Compression.md](21-Compression.md)
+Hashing may look like a narrow utility topic, but it sits quietly under a great deal of framework behavior.

@@ -1,76 +1,34 @@
 # Containers
 
-## What this covers
-This file summarizes the main Core container families and the ownership semantics that distinguish them.
+## What this page is for
+This page is about why container choice in Core is ideological as well as technical.
 
-## Value vs owning-pointer containers
-This is the most important split in Core containers.
+A container library always carries beliefs about ownership, movement, stability, allocation, and what kinds of convenience are worth the confusion they create.
 
-### `Vector<T>`
-Defined in [`uppsrc/Core/Vcont.h`](../../../uppsrc/Core/Vcont.h), `Vector<T>` stores values directly in contiguous memory. It is the default choice when:
+## Ownership should be visible
+Core's container story strongly suggests that ownership belongs in the type-level conversation.
 
-- you want dense storage
-- relocation of elements is acceptable
-- ownership is value-based
+That is one of the package's most important differences from more generic C++ habits. Instead of treating lifetime as something to infer from convention, Core tends to make storage and ownership part of the public semantic surface.
 
-### `Array<T>`
-Also in `Vcont.h`, `Array<T>` stores owning pointers. It allocates each element separately with `new` and deletes them on removal or destruction.
+This can feel heavier at first, but it pays for itself by making architectural intent easier to read.
 
-Consequences:
+## Containers as worldview
+The container layer is one of the clearest examples of Core acting as a replacement worldview rather than a helper collection.
 
-- objects have independent addresses
-- reordering the array moves pointers, not the objects themselves
-- insertion/removal changes pointer positions in the pointer array, but not the pointed-to object addresses
+The point is not merely to have different data structures. The point is to encourage a particular style of programming:
 
-If object identity and stable addresses matter more than compact value storage, `Array<T>` is the relevant container.
+- values should behave like values
+- owning aggregates should say so
+- structural choices should communicate operational consequences
 
-## Indexed sets and maps
-### `Index<T>`
-[`uppsrc/Core/Index.h`](../../../uppsrc/Core/Index.h) combines an ordered key vector with a hash structure. It supports duplicate keys, `FindNext`/`FindPrev`, and an `Unlink`/`Sweep` lifecycle for logical removal without immediate compaction.
+That is a framework ethic, not just a template API preference.
 
-Use it when you want:
+## Why this matters for the whole tree
+Once higher packages adopt Core containers, they also adopt Core's assumptions about mutability, ownership, and interchange. That shapes code review, bug patterns, and future extension work.
 
-- indexed iteration order
-- fast key lookup
-- optional duplicate keys
+This is why container discussions inside Core are rarely local. They quietly influence the character of the entire codebase.
 
-### `VectorMap<K, V>` and `ArrayMap<K, V>`
-[`uppsrc/Core/Map.h`](../../../uppsrc/Core/Map.h) defines `AMap` as a shared base:
+## Future direction
+The real question for the future is not whether Core should imitate other ecosystems more closely. It is whether it can preserve ownership-visible semantics while still improving interoperability and reducing accidental friction.
 
-- `VectorMap` uses `Vector<V>` for values
-- `ArrayMap` uses `Array<V>` for values
-
-The same ownership rule carries through from the underlying value container. The key side is handled by an `Index<K>`.
-
-## Fixed and sorted forms
-### `FixedVectorMap` and `FixedArrayMap`
-[`uppsrc/Core/FixedMap.h`](../../../uppsrc/Core/FixedMap.h) builds immutable-after-`Finish()` sorted maps over parallel key/value storage. Lookup is binary-search-based rather than hash-based.
-
-These are useful when the map is built once, then queried many times.
-
-### `InVector`, `InArray`, and sorted map variants
-[`uppsrc/Core/InVector.h`](../../../uppsrc/Core/InVector.h) provides alternative data structures and sorted map wrappers that trade implementation complexity for different insertion and lookup behavior.
-
-## Other container helpers
-Core also includes:
-
-- `One<T>` for nullable single-object ownership
-- `Buffer<T>` for raw temporary buffers
-- `BiVector` and `BiArray` for double-ended storage
-- `Tuple`, `Range`, `Shared`, `LinkedList`, and `CritBitIndex`
-
-## Tradeoffs
-Core container choice is meant to communicate semantics:
-
-- `Vector` vs `Array` is mostly a question of value relocation vs owned object identity
-- `Index`/`Map` types preserve insertion order while also supporting keyed lookup
-- fixed sorted containers trade mutability for compact lookup structure
-
-## Current vs legacy
-These container families are central to Core. Some deprecated STL-compatibility helpers remain in headers, but the ownership model itself is current and fundamental.
-
-## See also
-- [00-Core-Philosophy.md](00-Core-Philosophy.md)
-- [01-Architecture.md](01-Architecture.md)
-- [02-Memory-and-Performance.md](02-Memory-and-Performance.md)
-- [10-Recycling.md](10-Recycling.md)
+That is a delicate problem, but a worthwhile one.

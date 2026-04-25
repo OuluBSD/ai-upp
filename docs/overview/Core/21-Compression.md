@@ -1,58 +1,33 @@
 # Compression
 
-## What this covers
-This file documents Core's built-in compression helpers: zlib/deflate, gzip wrappers, stream adapters, CRC32, and the separate LZ4-based fast-compression path.
+## What this page is for
+This page is about compression as a sign of runtime self-sufficiency.
 
-## `Zlib`
-[`uppsrc/Core/z.h`](../../../uppsrc/Core/z.h) exposes `Zlib` as the low-level incremental compressor/decompressor.
+Compression inside Core says that the framework expects data packaging, storage efficiency, and transport pragmatism to be normal parts of runtime life, not always external concerns.
 
-Visible features include:
+## Interchange and self-containment
+Compression matters architecturally because it sits between local representation and exchange.
 
-- compression and decompression mode
-- optional gzip framing with `GZip(bool)`
-- header and CRC control
-- configurable chunk size and compression level
-- incremental `Put`, `End`, and `Get` flow
+A framework runtime benefits from having native answers for:
 
-On decompression, the implementation can also report gzip metadata such as original filename and comment.
+- compact storage
+- packaged assets or help
+- network payloads
+- cache and serialization flows
 
-## Stream wrappers
-Core adds stream adapters on top of that low-level engine:
+Keeping this capacity in Core makes the rest of the stack less dependent on ad hoc side arrangements.
 
-- `ZCompressStream`
-- `ZDecompressStream`
+## Fast path versus standard path
+At the worldview level, compression in Core also reflects a healthy pragmatism: not every compressed form serves the same purpose.
 
-These are built on `OutFilterStream` and `InFilterStream`, so compression fits naturally into the package's general stream model.
+There is room for interoperable formats and room for fast internal formats. The package does not need to pretend those goals are identical. This is another example of Core preferring explicit role distinctions over one vague universal mechanism.
 
-## Convenience functions
-The same header provides one-shot helpers:
+## Future direction
+Compression becomes more strategically important if Core keeps reaching toward:
 
-- `ZCompress` / `ZDecompress`
-- `GZCompress` / `GZDecompress`
-- `GZCompressFile` / `GZDecompressFile`
-- `CRC32`
+- embedded documentation systems
+- service or daemon flows
+- portable packaged runtimes
+- constrained platforms where storage or transfer cost matters sharply
 
-This is the simplest path when the caller does not need incremental streaming.
-
-## Fast path: `FastCompress`
-[`uppsrc/Core/z.cpp`](../../../uppsrc/Core/z.cpp) also contains a separate fast-compression path:
-
-- `FastCompress`
-- `FastDecompress`
-
-This path uses LZ4, not zlib. It prepends the original uncompressed size as a 4-byte integer and then stores the LZ4 payload.
-
-That means it is a Core-specific transport format, not interchangeable with `.gz` or raw deflate data.
-
-## Tradeoffs
-- zlib/gzip path is interoperable and stream-friendly
-- gzip mode adds common file-format behavior and metadata support
-- `FastCompress` favors speed and simplicity over standard interchange
-- CRC helpers are available directly, which is useful outside full gzip workflows
-
-## Current vs legacy
-This area is current. Compression is used both directly and indirectly, including by the topic/help subsystem for packaged documentation payloads.
-
-## See also
-- [06-Streams.md](06-Streams.md)
-- [22-Topics-Help.md](22-Topics-Help.md)
+This is a small topic that points toward larger architectural ambitions.

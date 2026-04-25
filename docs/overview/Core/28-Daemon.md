@@ -1,52 +1,32 @@
 # Daemon
 
-## What this covers
-This file documents the daemon/service layer that exists in [`uppsrc/Core/Daemon.h`](../../../uppsrc/Core/Daemon.h) and [`uppsrc/Core/Daemon.cpp`](../../../uppsrc/Core/Daemon.cpp).
+## What this page is for
+This page is about Core's service-host instincts.
 
-## What the code actually provides
-The implementation is a small service host abstraction, not a full OS-daemon framework.
+Daemon support in Core is interesting because it suggests the runtime is not content to imagine only interactive desktop applications. It is at least partially interested in background processes, managed loops, and service-style behavior.
 
-Main pieces:
+## A sign of broader ambition
+Even a modest daemon layer changes how a foundation package is perceived. It implies that Core may want to support software that:
 
-- `DaemonBase` manages named services and a run loop
-- `DaemonService` is the abstract per-service interface
-- optional `Glib2Daemon` exists behind `flagGLIB2`
-- `SerialServiceBase` and `SerialServiceServer` add a TCP-based request/response service layer
+- runs without a foreground UI
+- coordinates work over time
+- behaves like infrastructure rather than just an application shell
 
-`DaemonBase` registers requested services by name, initializes them, then runs an update loop until stopped or timed out.
+That is architecturally significant, even if the current implementation remains narrow.
 
-## Runtime model
-`DaemonBase::Run()` is simple:
+## Why this page should stay separate
+Daemon concerns are not the same as networking, threading, or process launching. They combine those themes into a different runtime posture: continuity, supervision, and operational presence.
 
-- set the running flag
-- repeatedly call `Update()`
-- sleep for 10 ms between iterations
-- stop on shutdown, timeout, or explicit stop
+That is enough to justify a dedicated overview page even if the subsystem is comparatively small.
 
-This is cooperative service polling, not a supervisor, init-system adapter, or process manager.
+## Future direction
+This topic is one of the clearest extension surfaces in Core.
 
-## Platform behavior
-POSIX and non-POSIX behavior are visibly different:
+Plausible futures include:
 
-- on POSIX, `Init()` installs signal handlers for `SIGINT`, `SIGABRT`, `SIGTERM`, `SIGQUIT`, and `SIGHUP`
-- on non-POSIX, `Init()` logs `"TODO signal handlers"`
+- stronger local-service frameworks
+- cleaner headless deployment stories
+- MCP-style service processes
+- more explicit security and lifecycle models
 
-So the signal/shutdown integration is materially more complete on POSIX than on Windows.
-
-## Serial service layer
-The `SerialServiceServer` portion uses `TcpSocket`, not local IPC primitives or UDP:
-
-- `ListenTcp(uint16 port)`
-- thread-per-client handling
-- fixed, serialized, or stream-based handlers selected by message magic
-
-That makes this subsystem a TCP service helper layered on top of Core sockets.
-
-## Fork-specific status
-This area appears fork-specific or at least non-central relative to the classic upstream Core runtime. It is in the package and functional, but it is not one of the foundational subsystems that most Core code depends on.
-
-That is an inference from repository structure and usage emphasis, not a hard upstream-history claim.
-
-## See also
-- [23-CoWork.md](23-CoWork.md)
-- [27-Networking.md](27-Networking.md)
+The important thing is not to overclaim current maturity. It is to keep the direction visible.

@@ -1,64 +1,42 @@
 # Threading
 
-## What this covers
-This file documents Core's concurrency surface: thread objects, locks, condition variables, atomics, one-time initialization, and the single-thread compatibility path.
+## What this page is for
+This page is about Core's concurrency stance.
 
-## Two backends, one API
-`Core.h` selects:
+Threading in Core is best understood as a practical discipline rather than a grand theory. The package wants concurrency to be available, ordinary, and useful, but not romanticized.
 
-- [`uppsrc/Core/Mt.h`](../../../uppsrc/Core/Mt.h) when multithreading is enabled
-- [`uppsrc/Core/St.h`](../../../uppsrc/Core/St.h) when `flagST` forces single-thread mode
+## Concurrency as realism
+Core treats multithreading as part of normal runtime life, not as an optional modern add-on. At the same time, it does not act as though all environments deserve the same concurrency story.
 
-The public class names stay the same: `Thread`, `Mutex`, `RWMutex`, `Semaphore`, `ConditionVariable`, `StaticMutex`, `SpinLock`, and `OnceFlag`.
+That split matters. The package tries to keep one public vocabulary while admitting that some targets are richer than others, and some build modes are compatibility compromises.
 
-## Multithreaded implementation
-`Mt.h` provides real OS-backed implementations:
+## Single-thread mode matters conceptually
+The existence of a single-thread mode is not just legacy trivia. It says something important about Core's self-image.
 
-- `Thread` wraps `HANDLE` on Windows and `pthread_t` on POSIX
-- `Mutex` is `CRITICAL_SECTION` on Windows and `pthread_mutex_t` on POSIX
-- `RWMutex` uses native reader-writer primitives on both platforms
-- `ConditionVariable` uses the native API where available and an internal semaphore-based fallback on older Windows
-- `Semaphore` wraps Win32 semaphores, POSIX semaphores, or GCD semaphores on macOS
+It says the framework still wants to imagine runtimes where threads are absent, limited, undesirable, or strategically excluded. That matters for portability. It matters for unusual targets. It matters for any future attempt to support a stronger single-thread GUI or event-loop identity.
 
-`Atomic` itself is very small in [`uppsrc/Core/Atomic.h`](../../../uppsrc/Core/Atomic.h): it is just `std::atomic<int>` plus `AtomicInc` and `AtomicDec`.
+The risk is that this mode becomes ceremonial rather than strategic. If it stays, it should remain an intentional constrained-runtime story, not just old scaffolding.
 
-## Single-thread mode
-`St.h` keeps the same class names but strips out real concurrency:
+## Core prefers understandable concurrency
+The package generally leans toward simple synchronization primitives and practical scheduling helpers rather than an abstract, endlessly customizable concurrency universe.
 
-- `Thread::IsOpen()` is always false
-- `Mutex::Enter()` and `Leave()` are empty
-- `SpinLock` is effectively a no-op
-- `ConditionVariable` and `Semaphore` keep the signatures but not OS synchronization behavior
+That fits Core's wider temperament. It usually prefers tools that communicate operational shape clearly over tools that maximize theoretical flexibility.
 
-This is a compatibility mode, not a full concurrency subsystem. It is useful when code wants the same source-level API in non-threaded builds, but it does not preserve multithreaded semantics.
+## Coherence over maximal sophistication
+There is no sign that Core wants to compete with highly elaborate executor frameworks. Its threading mindset is closer to this:
 
-## One-time initialization
-`ONCELOCK` and `ONCELOCK_` are central convenience macros:
+- basic primitives should be stable
+- common patterns should be easy
+- the runtime should not hide that work ultimately lands on real threads with real limits
 
-- in `Mt.h` they use `std::atomic<bool>` plus a `Mutex`
-- in `St.h` they collapse to simple static-state loops
+That is not glamorous, but it is architecturally consistent.
 
-This is used widely in Core for lazy initialization of logs, executable paths, and profiling support.
+## Future pressure
+The most interesting future questions are not about adding more primitives for their own sake. They are about what kind of runtime identities Core wants to support:
 
-## Higher-level scheduling
-[`uppsrc/Core/CoWork.h`](../../../uppsrc/Core/CoWork.h) adds a worker-pool layer:
+- stronger single-thread deployments
+- more explicit worker-pool policies
+- different models for background work in GUI-heavy applications
+- portability to environments where normal desktop threading assumptions are weak
 
-- `CoWork::Do` queues work into a global pool
-- `CoFor` distributes range-style loops across workers
-- `AsyncWork` wraps asynchronous result collection
-
-This is current code, not a deprecated side utility. It depends on the thread primitives underneath.
-
-## Tradeoffs
-- the API is deliberately simple and portable rather than feature-complete
-- `flagST` keeps old or low-overhead build modes possible, but many higher layers are effectively designed for the multithreaded path
-- `Atomic` is intentionally narrow; more complex atomic patterns are built with `Mutex`, `OnceFlag`, or custom logic
-
-## Current vs legacy
-The threading API itself is active. The single-thread branch is still present and maintained enough to compile, but it should be treated as a constrained compatibility configuration.
-
-## See also
-- [01-Architecture.md](01-Architecture.md)
-- [02-Memory-and-Performance.md](02-Memory-and-Performance.md)
-- [08-Profiling.md](08-Profiling.md)
-- [11-Callbacks-and-Events.md](11-Callbacks-and-Events.md)
+Those are worldview questions, not merely API gaps.

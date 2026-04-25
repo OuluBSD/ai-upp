@@ -1,51 +1,34 @@
 # Profiling
 
-## What this covers
-This file documents the profiling and timing facilities that are actually present in Core today.
+## What this page is for
+This page is about how Core thinks about observing cost.
 
-## Main facilities
-Profiling is low-level and macro-driven. The key pieces are:
+Profiling in Core is less about performance theater and more about preserving a culture where runtime expense can be inspected instead of guessed at.
 
-- [`uppsrc/Core/Profile.h`](../../../uppsrc/Core/Profile.h): `TimingInspector`, `HitCountInspector`, `RTIMING`, `RHITCOUNT`
-- [`uppsrc/Core/Util.h`](../../../uppsrc/Core/Util.h): `TimeStop`, `TimeStopper`, `RTIMESTOP`
-- [`uppsrc/Core/Diag.h`](../../../uppsrc/Core/Diag.h): debug-facing aliases `TIMING`, `HITCOUNT`, `TIMESTOP`
-- [`uppsrc/Core/Debug.cpp`](../../../uppsrc/Core/Debug.cpp): implementation and log dumping
+## Measurement as responsibility
+Core's profiling attitude fits its broader hardware-near mindset. If cost matters, then measurement should live close to the runtime rather than only in external tooling.
 
-## How it works
-`RTIMING("name")` creates a static `TimingInspector` plus a scoped `Routine` object. On scope exit it records elapsed time. `HitCountInspector` just counts hits and logs the total at destruction time.
+That does not mean the package needs a vast performance laboratory. It means a serious framework should have native ways to ask where time went and how often work occurred.
 
-`RTIMESTOP("name")` is simpler: it measures one scope with `TimeStop` and logs the elapsed result through `RLOG` when the scope ends.
+## Modest tools, serious meaning
+Even lightweight profiling hooks matter because they normalize a certain kind of engineering behavior.
 
-## Output behavior
-Profiling data is written to the normal log stream:
+They say:
 
-- `TimingInspector::~TimingInspector()` writes `Dump()` output to `StdLog()`
-- `HitCountInspector::~HitCountInspector()` logs through `RLOG`
-- `TimeStopper` logs through `RLOG`
+- cost is not mysterious
+- timing should be discussable
+- performance claims should be testable
 
-There is no evidence in Core itself of a structured profiler database, timeline UI, or IDE-specific visualization protocol.
+This is exactly the kind of modest but important cultural infrastructure that belongs in Core.
 
-## Activation and debug/release behavior
-`TimingInspector` has a runtime `active` flag and `TimingInspector::Activate(bool)`.
+## Future direction
+Profiling is one of the clearest areas where Core could grow without changing its temperament.
 
-Macro exposure differs by build:
+Plausible directions include:
 
-- `TIMING`, `HITCOUNT`, and `TIMESTOP` are debug-only aliases
-- `RTIMING`, `RHITCOUNT`, and `RTIMESTOP` are available regardless and are the lower-level primitives
+- tighter integration with developer tools
+- clearer aggregation and visualization
+- better cross-platform timing trust
+- more useful support for service and background workloads
 
-## Tradeoffs
-This profiler is lightweight and easy to scatter through code, but it is also coarse:
-
-- scope-based only
-- log-oriented output
-- no call tree persistence beyond the aggregated counters
-- millisecond timing in `TimingInspector`, microsecond helper for `TimeStop`
-
-## Current vs future
-Current support is real but low-level. If the surrounding IDE or tools visualize these logs elsewhere, that is outside what Core itself proves. A reasonable future direction would be structured emission instead of plain log lines, but that is not current behavior.
-
-## See also
-- [02-Memory-and-Performance.md](02-Memory-and-Performance.md)
-- [03-Threading.md](03-Threading.md)
-- [07-Logging.md](07-Logging.md)
-- [12-Time.md](12-Time.md)
+If that happens, Core should still resist becoming ornamental. The best future profiling layer would remain pragmatic, low-friction, and close to actual runtime behavior.

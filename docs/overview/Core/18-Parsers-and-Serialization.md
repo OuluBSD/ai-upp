@@ -1,74 +1,26 @@
 # Parsers And Serialization
 
-## What this covers
-This file documents Core's text parsers and data-serialization helpers: `CParser`, XML, JSON, `Xmlize`, `Jsonize`, and the bridge utilities built on top of them.
+## What this page is for
+This page is about interchange as infrastructure.
 
-## `CParser`
-[`uppsrc/Core/Parser.h`](../../../uppsrc/Core/Parser.h) provides the foundational text parser.
+Parsing and serialization sit at the point where data becomes mobile across files, tools, caches, networks, and object boundaries. In a broad framework, that makes them foundational rather than peripheral.
 
-It supports:
+## Core wants one interchange culture
+The presence of these facilities in Core suggests the project prefers a common interchange culture over many local mini-frameworks.
 
-- identifier, integer, float, and string scanning
-- optional space/comment skipping
-- nested comments
-- Unicode escape handling
-- source-position tracking with file, line, and column
+That matters because once every subsystem invents its own parsing and persistence style, the codebase loses architectural coherence. Centralizing these ideas near the runtime foundation is one of the ways Core protects that coherence.
 
-This is the common low-level parser that higher text formats build on.
+## Explicit structure over magical reflection
+The broader Core worldview suggests a preference for interchange systems that remain discussable.
 
-## XML
-Core's XML support spans:
+That does not mean reflection or automation are forbidden. It means the package is more comfortable when serialized structure, parsing rules, and conversion boundaries remain visible enough to reason about.
 
-- `XmlTag` for building tags
-- `XmlParser` for streaming parse
-- `XmlNode` for tree representation
-- `ParseXML(...)` overloads in [`uppsrc/Core/XML.h`](../../../uppsrc/Core/XML.h)
+## Future direction
+This area is a natural pressure point for future growth:
 
-The XML layer supports relaxed parsing, raw mode, whitespace-preservation options, entity registration, and parse filters.
+- richer tool integration
+- more schema-like behavior
+- better alignment with visitor and value systems
+- stronger service or protocol stories
 
-## JSON
-Core's JSON support is centered on [`uppsrc/Core/JSON.h`](../../../uppsrc/Core/JSON.h):
-
-- `ParseJSON(...)` returns `Value`
-- `AsJSON(...)` renders primitives and `Value`
-- `Json` and `JsonArray` are small builders
-- `JsonIO` is the object-style bridge used by `Jsonize(...)`
-
-The JSON layer uses `Value`, `ValueArray`, and `ValueMap` as its common in-memory representation.
-
-## `Xmlize` and `Jsonize`
-Core provides two parallel object-mapping styles:
-
-- `Xmlize(XmlIO&, T&)`
-- `Jsonize(JsonIO&, T&)`
-
-`XmlIO` and `JsonIO` are intentionally similar in shape:
-
-- loading vs storing mode
-- tag/key access
-- array/map helpers
-- user-defined `Xmlize` / `Jsonize` hooks
-
-On top of that, `Xmlize.h` adds convenience wrappers:
-
-- `StoreAsXML`
-- `LoadFromXML`
-- file variants
-- `XmlizeBySerialize`
-- `XmlizeByJsonize`
-
-JSON has equivalent `StoreAsJsonValue`, `LoadFromJsonValue`, and text/file helpers in `JSON.h`.
-
-## Tradeoffs
-- XML and JSON object mapping are explicit, not reflection-based
-- the common transport type is often `Value`, which keeps the layers interoperable
-- XML is richer in structure and attribute handling; JSON is simpler and more directly tied to `ValueMap` / `ValueArray`
-
-## Current vs legacy
-This whole area is current and central. It is one of the main reasons `Value` exists in Core.
-
-## See also
-- [06-Streams.md](06-Streams.md)
-- [13-Value.md](13-Value.md)
-- [17-Localization.md](17-Localization.md)
-- [19-Visitor.md](19-Visitor.md)
+If Core evolves further, this is one of the subsystems most likely to connect many of the others.

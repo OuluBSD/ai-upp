@@ -1,70 +1,36 @@
 # Memory And Performance
 
-## What this covers
-This file explains the allocator and low-level performance mechanisms in Core: heap selection, diagnostics, memory helpers, and architecture-specific fast paths.
+## What this page is for
+This page is about the performance temperament of Core.
 
-## Heap model
-Core exposes a stable memory API in [`uppsrc/Core/Heap.h`](../../../uppsrc/Core/Heap.h):
+The important question is not which allocator function exists or which fast path is implemented. The important question is what kind of engineering culture those choices express.
 
-- `MemoryAlloc`, `MemoryFree`, `MemoryAllocSz`
-- `MemoryAlloc32` and `MemoryFree32`
-- `MemoryTryRealloc`
-- diagnostics such as `MemoryCheck`, `MemoryDumpLeaks`, `MemoryProfile`
+## Core thinks near the machine
+Core tends to assume that memory behavior is not an implementation detail to be politely ignored. Allocation cost, ownership shape, locality, copy behavior, and contention are treated as first-order concerns.
 
-Whether that API uses the custom heap depends on build flags:
+That gives the package a hardware-near temperament. It wants developers to remain conscious of the machine even when using higher-level abstractions.
 
-- if neither `flagUSEMALLOC` nor `flagSO` is set, `Defs.h` enables `UPP_HEAP`
-- otherwise many functions inline directly to `malloc` and `free`
+## Performance is not decorative
+In Core, performance usually appears as a structural concern, not a late optimization pass.
 
-That distinction matters for both behavior and tooling. The custom heap provides size-class allocation, thread-local heap state, remote-free paths, and leak diagnostics. The malloc path preserves the API but loses most of those extras.
+That means the runtime prefers designs where cost has a visible shape. The point is not speed at any price. The point is predictability, especially in the places where a general framework can otherwise become vague about what it is asking the machine to do.
 
-## Custom heap behavior
-The implementation is split across `heap.cpp`, `sheap.cpp`, `lheap.cpp`, `hheap.cpp`, `HeapImp.h`, and `heapdbg.cpp`.
+## Diagnostics matter as much as speed
+One of Core's healthier instincts is that performance work and diagnosis are not opposites.
 
-Observed characteristics from code:
+The runtime often behaves as though fast code that cannot be inspected is incomplete. That is why the package's attitude around heap behavior, timing, logging, and assertions matters philosophically. Core does not only want optimization. It wants evidence.
 
-- small allocations use heap-local fast paths in `sheap.cpp`
-- larger blocks use separate logic in `lheap.cpp` and huge-block handling in `hheap.cpp`
-- `HeapImp.h` shows per-thread heaps plus remote-free queues guarded by `StaticMutex`
-- the allocator has explicit support for diagnostics, corruption checks, leak dumps, and allocation statistics
+## A rejection of false neutrality
+A framework can pretend memory policy does not belong in its worldview, or it can admit that memory policy shapes everything.
 
-This is a performance-first allocator, but the code also spends significant effort on debug-time validation.
+Core clearly chooses the second path. It is comfortable having opinions about allocation and reuse because it understands that those choices affect every higher-level subsystem. This is one reason the package feels less generic than a library collection and more like a runtime with convictions.
 
-## Diagnostics
-When `UPP_HEAP` and debugging are enabled, Core exposes:
+## Where future work could go
+The future pressure here is not just "make it faster." It is:
 
-- `MemoryInitDiagnostics`
-- `MemoryBreakpoint`
-- `MemoryDumpLeaks`
-- `MemoryIgnoreLeaksBegin` / `MemoryIgnoreLeaksEnd`
-- `PeakMemoryProfile`
+- better visibility into cost across platforms
+- clearer stories for constrained environments
+- more explicit treatment of SIMD-family variation
+- deliberate validation on architectures that do not share the dominant desktop assumptions
 
-In malloc mode these mostly collapse to stubs or "not available" behavior. For example, `MemoryProfile` stringification falls back to `"Using malloc - no memory profile available"` in [`uppsrc/Core/Diag.h`](../../../uppsrc/Core/Diag.h).
-
-## Copy, compare, hash, and SIMD helpers
-Low-level helpers are spread across:
-
-- [`uppsrc/Core/Mem.h`](../../../uppsrc/Core/Mem.h) and [`uppsrc/Core/Mem.cpp`](../../../uppsrc/Core/Mem.cpp)
-- [`uppsrc/Core/Hash.h`](../../../uppsrc/Core/Hash.h), `MD5.cpp`, `SHA1.cpp`, `SHA256.cpp`, `xxHsh.cpp`
-- [`uppsrc/Core/SIMD_SSE2.h`](../../../uppsrc/Core/SIMD_SSE2.h), [`uppsrc/Core/SIMD_NEON.h`](../../../uppsrc/Core/SIMD_NEON.h), and `SIMD.cpp`
-
-`Core.h` includes x86 intrinsics on x86 builds and exposes both SSE2 and NEON headers. That tells you the package is willing to use architecture-specific acceleration when it can still preserve one public API.
-
-## Performance style
-The package prefers specialized primitives over generic abstraction layers:
-
-- custom containers instead of allocator-parameterized STL containers
-- custom stream serialization instead of iostream formatting
-- custom heap instead of always delegating to the system allocator
-- explicit packed encodings in `Stream`
-
-That is a hard fact from the code. A broader design inference is that Core values predictable whole-stack behavior more than substitutability.
-
-## Current vs optional
-The memory API is central. The custom heap is central in default non-`USEMALLOC` builds. Some diagnostics are optional or debug-only. SIMD acceleration is platform-dependent and opportunistic rather than guaranteed everywhere.
-
-## See also
-- [01-Architecture.md](01-Architecture.md)
-- [03-Threading.md](03-Threading.md)
-- [07-Logging.md](07-Logging.md)
-- [08-Profiling.md](08-Profiling.md)
+If Core wants to be taken seriously beyond familiar x86-centric conditions, this page's concerns become more important, not less.

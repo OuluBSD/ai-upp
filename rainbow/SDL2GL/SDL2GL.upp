@@ -4,8 +4,7 @@ uses
 	Painter,
 	CtrlLib,
 	GLDraw,
-	PdfDraw,
-	GuboLib;
+	PdfDraw;
 
 library(POSIX) "SDL2 SDL2main GL GLEW GLU OpenGL";
 

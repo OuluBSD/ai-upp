@@ -92,6 +92,8 @@ public:
 	bool Write(Ctrl& c, const String& path, const ::Upp::Value& val, bool do_action = true);
 
 private:
+	int synthetic_id = 0;
+
 	struct CtrlGeometry : Moveable<CtrlGeometry> {
 		Ctrl *ctrl;
 		::Upp::Rect  rect;

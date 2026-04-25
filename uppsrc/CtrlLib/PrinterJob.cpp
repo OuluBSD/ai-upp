@@ -478,8 +478,9 @@ PrinterJob& PrinterJob::CurrentPage(int i)
 
 #endif
 
-// Stub implementations for framebuffer and other backends without printing support
-#if !defined(GUI_WIN) && !defined(PLATFORM_X11) && !defined(PLATFORM_COCOA) || defined(VIRTUALGUI) || defined(GUI_FB)
+// Stub implementations for backends without printing support.
+// VIRTUALGUI provides its own inline PrinterJob in VirtualGui.h, so do not define it here.
+#if !defined(VIRTUALGUI) && (defined(GUI_FB) || (!defined(GUI_WIN) && !defined(PLATFORM_X11) && !defined(PLATFORM_COCOA)))
 
 PrinterJob::PrinterJob(const char *_name)
 {
@@ -495,6 +496,8 @@ PrinterJob::~PrinterJob()
 
 Draw& PrinterJob::GetDraw()
 {
+	if(!draw)
+		draw = new NilDraw;
 	return *draw;
 }
 

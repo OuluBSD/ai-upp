@@ -314,6 +314,8 @@ public:
 	bool  IsEmpty() const override;
 	void  Separator() override;
 	bool  Access(Visitor& v) override;
+	int   GetAutomationItemCount() const;
+	const Ctrl *GetAutomationItemCtrl(int i) const;
 
 protected:
 	Item& AddItem(Event<> cb) override;
@@ -580,6 +582,8 @@ public:
 	void Set(Event<Bar&> bar);
 	void Post(Event<Bar&> bar);
 	bool Access(Visitor& v) override;
+	int  GetAutomationItemCount() const;
+	const Ctrl *GetAutomationItemCtrl(int i) const;
 
 	static const Style& StyleDefault();
 

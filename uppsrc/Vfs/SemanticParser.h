@@ -115,6 +115,9 @@ public:
 	bool ParseExpressionList();
 	
 	bool ParseState();
+	bool ParseNodeTypeDecl();
+	bool ParseNodeTypeDeclStatementList(AstNode& decl);
+	bool ParseNodeTypeDeclStatement(AstNode& decl);
 	bool ParseDeclExpr(bool meta, const PathIdentifier& type_id, AstNode& tn);
 	bool ParseMeta(int& cookie);
 	bool Assign(bool m);

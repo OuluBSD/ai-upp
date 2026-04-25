@@ -146,7 +146,7 @@ Value McpServer::ListEntries(const Value& args) {
 	String prefix = args["prefix"];
 	bool recursive = args["recursive"];
 	ValueArray arr;
-	for(const String& p : current_scan) {
+	for(const String& p : project.current_scan) {
 		if(prefix.IsEmpty() || p.StartsWith(prefix)) {
 			if(!recursive && p.Mid(prefix.GetCount()).Find('/') >= 0) continue;
 			arr.Add(p);
@@ -374,6 +374,8 @@ Value McpServer::MoveEntry(const Value& args) {
 }
 
 Value McpServer::RefreshScan(const Value& args) {
+	String wd = args["working_dir"];
+	if(!wd.IsEmpty()) project.working_dir = wd;
 	DoScan();
 	return "Scan refreshed";
 }
@@ -381,7 +383,7 @@ Value McpServer::RefreshScan(const Value& args) {
 Value McpServer::FindEntriesWithFlag(const Value& args) {
 	uint32 bit = StringToFlag(args["flag"]);
 	ValueArray arr;
-	for(const String& p : current_scan) {
+	for(const String& p : project.current_scan) {
 		FileMetadata effective = project.GetEffectiveMetadata(p);
 		if(effective.flags & bit)
 			arr.Add(p);
@@ -392,7 +394,7 @@ Value McpServer::FindEntriesWithFlag(const Value& args) {
 Value McpServer::FindEntriesMissingNumeric(const Value& args) {
 	String field = args["field"];
 	ValueArray arr;
-	for(const String& p : current_scan) {
+	for(const String& p : project.current_scan) {
 		FileMetadata effective = project.GetEffectiveMetadata(p);
 		bool missing = false;
 		if(field == "quality") missing = (effective.quality == 0);
@@ -408,7 +410,7 @@ Value McpServer::FindEntriesByTag(const Value& args) {
 	String cat = args["category"];
 	String tag = args["tag"];
 	ValueArray arr;
-	for(const String& p : current_scan) {
+	for(const String& p : project.current_scan) {
 		FileMetadata effective = project.GetEffectiveMetadata(p);
 		const Vector<String>* v = nullptr;
 		if(cat == "current") v = &effective.current_tags;
@@ -460,7 +462,7 @@ Value McpServer::GenerateSuggestions(const Value& args) {
 
 	analyze(path);
 	if(recursive) {
-		for(const String& p : current_scan) {
+		for(const String& p : project.current_scan) {
 			if(p.StartsWith(path + "/") || p.StartsWith(path + "\\"))
 				analyze(p);
 		}
@@ -1024,23 +1026,8 @@ Value McpServer::GetFrictionSignals(const Value& args) {
 	return arr;
 }
 
-static void RecursiveScan(const String& dir, const String& base, Vector<String>& res) {
-	for(FindFile ff(AppendFileName(dir, "*")); ff; ff.Next()) {
-		String rel = ff.GetName();
-		if(!base.IsEmpty()) rel = AppendFileName(base, rel);
-		res.Add(rel);
-		if(ff.IsFolder())
-			RecursiveScan(ff.GetPath(), rel, res);
-	}
-}
-
 void McpServer::DoScan() {
-	current_scan.Clear();
-	String root = project.working_dir;
-	if(root.IsEmpty() && !project.path.IsEmpty())
-		root = GetFileDirectory(project.path);
-	if(!root.IsEmpty() && DirectoryExists(root))
-		RecursiveScan(root, "", current_scan);
+	project.DoScan();
 }
 
 bool McpServer::IsPathValid(const String& path) {
@@ -1049,10 +1036,7 @@ bool McpServer::IsPathValid(const String& path) {
 }
 
 String McpServer::GetAbsPath(const String& rel_path) {
-	String root = project.working_dir;
-	if(root.IsEmpty() && !project.path.IsEmpty())
-		root = GetFileDirectory(project.path);
-	return AppendFileName(root, rel_path);
+	return AppendFileName(project.GetRootDir(), rel_path);
 }
 
 uint32 McpServer::StringToFlag(const String& name) {

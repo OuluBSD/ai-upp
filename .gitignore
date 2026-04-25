@@ -73,3 +73,6 @@ plan/
 cookie.txt
 **/cookie.txt
 
+.tmp/
+.venv/
+.gemini/

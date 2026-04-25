@@ -1,0 +1,20 @@
+{
+  "mcpServers": {
+    "aiupp-build": {
+      "type": "stdio",
+      "command": "python3",
+      "args": [
+        "/common/active/sblo/Dev/ai-upp/pysrc/bin/mcp_build.py"
+      ],
+      "env": {}
+    },
+    "aiupp-mlui": {
+      "type": "stdio",
+      "command": "python3",
+      "args": [
+        "/common/active/sblo/Dev/ai-upp/pysrc/bin/mcp_mlui.py"
+      ],
+      "env": {}
+    }
+  }
+}

@@ -6,7 +6,7 @@
 
 NAMESPACE_UPP
 
-namespace MLUI {
+namespace MLUIRef {
 
 struct FocusPageDef : Moveable<FocusPageDef> {
 	String id;
@@ -125,6 +125,7 @@ struct FocusDiffOp : Moveable<FocusDiffOp> {
 };
 
 struct FocusPermissionDef : Moveable<FocusPermissionDef> {
+	String id;
 	String action_id;
 	bool   enabled = true;
 	String disabled_reason;
@@ -139,14 +140,14 @@ struct FocusDevtoolsEntry : Moveable<FocusDevtoolsEntry> {
 
 FocusPageDef&           RegisterFocusPage(const String& id, const String& title, const String& summary);
 FocusPageDef&           GetFocusPage(const String& id);
-FocusRouteDef&          RegisterFocusRoute(const String& id, const String& path, const FocusPageDef& page, const String& summary, bool is_default = false);
+FocusRouteDef&          RegisterFocusRoute(const String& id, const String& path, const String& page_id, const String& summary, bool is_default = false);
 FocusSiteMapDef&        RegisterFocusSiteMap(const String& id, const String& title);
-FocusLinkDef&           RegisterFocusLink(const String& id, const FocusRouteDef& from_route, const FocusRouteDef& to_route, const String& label, const String& condition = String());
-FocusQueryDef&          RegisterFocusQuery(const String& id, const FocusRouteDef& route, const String& param, const String& default_value, const String& summary);
-FocusComponentDef&      RegisterFocusComponent(const String& id, const FocusPageDef& page, const String& title, const String& summary);
-FocusFormDef&           RegisterFocusForm(const String& id, const FocusPageDef& page, const String& action_id);
-FocusActionContractDef& RegisterFocusActionContract(const String& id, const FocusPageDef& page, const String& summary, const String& input_schema, const String& output_schema);
-FocusStateDef&          RegisterFocusState(const String& id, const FocusPageDef& page);
+FocusLinkDef&           RegisterFocusLink(const String& id, const String& from_route_id, const String& to_route_id, const String& label, const String& condition = String());
+FocusQueryDef&          RegisterFocusQuery(const String& id, const String& route_id, const String& param, const String& default_value, const String& summary);
+FocusComponentDef&      RegisterFocusComponent(const String& id, const String& page_id, const String& title, const String& summary);
+FocusFormDef&           RegisterFocusForm(const String& id, const String& page_id, const String& action_id);
+FocusActionContractDef& RegisterFocusActionContract(const String& id, const String& page_id, const String& summary, const String& input_schema, const String& output_schema);
+FocusStateDef&          RegisterFocusState(const String& id, const String& page_id);
 FocusStateDef&          GetFocusState(const String& id);
 
 void                    PushFocusHistory(const String& from_route, const String& to_route, const String& action_id);
@@ -158,17 +159,25 @@ void                    EmitAllFocusArtifacts(AutomationVisitor& av);
 
 }
 
+#ifndef MLUI_USE_VAR
 #define MLUI_USE_VAR(page, var, description) \
 	(page).AddValue(#var, Value(var), (description))
+#endif
 
+#ifndef MLUI_USE_CTRL
 #define MLUI_USE_CTRL(page, ctrl, description) \
 	(page).AddCtrl(#ctrl, (ctrl), (description))
+#endif
 
+#ifndef MLUI_USE_STATE
 #define MLUI_USE_STATE(page, key, value, description) \
 	(page).AddState((key), Value(value), (description))
+#endif
 
+#ifndef MLUI_USE_ACTION
 #define MLUI_USE_ACTION(page, action_id, enabled, description) \
 	(page).AddAction((action_id), (enabled), (description))
+#endif
 
 class MLUIFocusReferenceApp : public TopWindow {
 public:

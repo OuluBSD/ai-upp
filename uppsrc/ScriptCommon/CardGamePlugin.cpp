@@ -609,6 +609,18 @@ static PyValue hv_gui_dump_scene(const Vector<PyValue>& args, void* ud)
 	return PyValue(((IHeartsView*)ud)->DumpScene());
 }
 
+static PyValue hv_gui_save_snapshot(const Vector<PyValue>& args, void* ud)
+{
+	if(args.GetCount() < 1) return PyValue();
+	IHeartsView* view = (IHeartsView*)ud;
+	String path = args[0].ToString();
+	if(view->SaveSnapshot(path))
+		view->Log("Snapshot saved to " + path);
+	else
+		view->Log("ERROR: save_snapshot failed (empty frame) for " + path);
+	return PyValue();
+}
+
 static void* s_eval_ptr = nullptr;
 static void* s_strategy_ptr = nullptr;
 
@@ -713,6 +725,7 @@ void CardGamePlugin::SyncBindings(PyVM& vm)
 			PY_MODULE_FUNC(set_timeout,   hv_gui_set_timeout,   view)
 			PY_MODULE_FUNC(get_config,    hv_gui_get_config,    view)
 			PY_MODULE_FUNC(dump_scene,    hv_gui_dump_scene,    view)
+			PY_MODULE_FUNC(save_snapshot, hv_gui_save_snapshot, view)
 			if(modules.GetType() == PY_DICT) {
 				modules.SetItem(PyValue("cardgame_view"), cardgame_view_obj);
 				modules.SetItem(PyValue("hearts_view"), cardgame_view_obj);

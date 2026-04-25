@@ -34,7 +34,7 @@ struct ThemeObject : Moveable<ThemeObject> {
 struct ThemeFile {
 	Vector<ThemeObject> objects;
 	VectorMap<String, String> settings;
-	void Jsonize(JsonIO& jio) { jio("objects", objects)("settings", settings); }
+	void Jsonize(JsonIO& jio);
 };
 
 Color ThemeParseColor(const String& s, Color def = Color(255, 200, 0));

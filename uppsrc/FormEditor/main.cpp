@@ -1,4 +1,4 @@
-#if defined(flagMAIN) && defined(flagFORMEDITOR)
+#if defined(flagMAIN)
 #include "FormEditor.h"
 
 static void DumpFormPreview(const String& path)

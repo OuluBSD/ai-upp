@@ -16,7 +16,16 @@
 #include <FormEditor/FormEditor.h>
 #include <ScriptCommon/ScriptCommon.h>
 
+#include "TerminalWindow.h"
+#include "TerminalRunTarget.h"
+#include "ExternalProcessTarget.h"
+#include "StandaloneGameWindow.h"
+#include "EmbeddedGameWindowTarget.h"
 #include "Icons.h"
+
+#define IMAGECLASS ScriptIDEImg
+#define IMAGEFILE  <ScriptIDE/ScriptIDE.iml>
+#include <Draw/iml_header.h>
 
 #define LAYOUTFILE <ScriptIDE/ScriptIDE.lay>
 #include <CtrlCore/lay.h>
@@ -34,10 +43,6 @@ NAMESPACE_UPP
 		T* operator->() { return &ctrl; }
 		operator T&() { return ctrl; }
 	};
-
-#define IMAGECLASS ScriptIDEImg
-#define IMAGEFILE  <ScriptIDE/ScriptIDE.iml>
-#include <Draw/iml_header.h>
 
 	// Forward declarations for circular dependencies
 	class CustomFileTabs;

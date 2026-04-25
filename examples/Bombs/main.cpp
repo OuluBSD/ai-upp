@@ -12,6 +12,7 @@ public:
 	virtual void Paint(Draw& w);
 	virtual void LeftDown(Point p, dword flags);
 	virtual void RightDown(Point p, dword flags);
+	virtual bool Access(Visitor& v) override;
 
 private:
 	Size         level;
@@ -164,6 +165,53 @@ void Bombs::RightDown(Point p, dword flags)
 void Bombs::ShowStatus()
 {
 	status = Format("%d bombs, %d cells remaining", bombs, normal_cells);
+}
+
+bool Bombs::Access(Visitor& v)
+{
+	Point board_off = GetView().TopLeft();
+	auto SetLastRect = [](Visitor& vis, const Rect& r) {
+		vis.SetAccessRect(r.left, r.top, r.right, r.bottom);
+	};
+
+	v.AccessMenu("Board", [this, board_off, SetLastRect](Visitor& board) {
+		for(int y = 0; y < cy; y++) {
+			for(int x = 0; x < cx; x++) {
+				byte f = Field(x, y);
+				String cell_id = Format("Cell %d,%d", x, y);
+				Rect cell_rect = RectC(board_off.x + x * UNIT, board_off.y + y * UNIT, UNIT, UNIT);
+				String state = Format("x=%d y=%d hidden=%d marked=%d bomb=%d exploded=%d number=%d",
+				                      x, y,
+				                      (f & HIDDEN) ? 1 : 0,
+				                      (f & MARK) ? 1 : 0,
+				                      (f & BOMB) ? 1 : 0,
+				                      (f & EXPLODED) ? 1 : 0,
+				                      f & 15);
+				board.AccessMenu(cell_id, [this, x, y, state, cell_rect, SetLastRect](Visitor& cell) {
+					SetLastRect(cell, cell_rect); // "Cell x,y" node
+					cell.AccessAction("Open", [this, x, y] {
+						if(!normal_cells)
+							return;
+						Uncover(x, y);
+						Refresh();
+						ShowStatus();
+					}).AccessValue(state);
+					SetLastRect(cell, cell_rect); // "Open" node
+					cell.AccessAction("ToggleMark", [this, x, y] {
+						if(!normal_cells)
+							return;
+						if(Field(x, y) & HIDDEN) {
+							Field(x, y) ^= MARK;
+							Refresh();
+							ShowStatus();
+						}
+					}).AccessValue(state);
+					SetLastRect(cell, cell_rect); // "ToggleMark" node
+				});
+			}
+		}
+	});
+	return true;
 }
 
 Bombs::Bombs()

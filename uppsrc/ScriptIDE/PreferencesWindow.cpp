@@ -67,6 +67,17 @@ void PreferencesWindow::AddPage(const String& category, const String& id, const 
 	page->LoadConfig();
 }
 
+void PreferencesWindow::SelectPage(const String& id)
+{
+	for(int i = 0; i < pages.GetCount(); i++) {
+		if(pages[i].id == id) {
+			nav.SetCursor(i);
+			OnNavSelection();
+			return;
+		}
+	}
+}
+
 void PreferencesWindow::OnNavSelection()
 {
 	int idx = nav.GetCursor();

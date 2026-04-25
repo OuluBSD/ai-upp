@@ -1,0 +1,12 @@
+description "Node Tutorial 4: Weighted Graph + Shortest Path\377";
+
+uses
+	CtrlLib,
+	Node/Ctrl;
+
+file
+	main.cpp;
+
+mainconfig
+	"" = "GUI";
+

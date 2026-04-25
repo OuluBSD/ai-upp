@@ -17,6 +17,8 @@ public:
 	virtual ~ICustomExecuteProvider() {}
 	virtual bool CanExecute(const String& path) = 0;
 	virtual void Execute(const String& path) = 0;
+	virtual void ExecuteSeparateWindow(const String& path) { Execute(path); }
+	virtual void DebugSeparateWindow(const String& path) { ExecuteSeparateWindow(path); }
 };
 
 class IFileTypeHandler {
@@ -129,6 +131,9 @@ public:
 	virtual void DrawRect(int x, int y, int w, int h, int r, int g, int b, bool interlaced = false) {}
 	virtual Value GetCanvasSize() { return Value(); }
 	virtual void SetButtonImage(const String& zone_id, const String& normal_asset, const String& hover_asset, const String& pressed_asset) {}
+	// Save a PNG snapshot of the current rendered frame to the given path.
+	// Returns true on success. Default no-op returns false.
+	virtual bool SaveSnapshot(const String& path) { return false; }
 };
 
 class IPlugin {

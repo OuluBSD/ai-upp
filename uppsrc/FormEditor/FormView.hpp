@@ -8,6 +8,9 @@ class FormView : public Ctrl, public XMLConfig
 public:
 	FormView();
 	void NullCallback() {}
+	void SetBackgroundImage(const Image& img) { _BackgroundImage = img; Refresh(); }
+	void ClearBackgroundImage() { _BackgroundImage.Clear(); Refresh(); }
+	const Image& GetBackgroundImage() const { return _BackgroundImage; }
 
 ///////////////////////////////////////////////////////////////////////////////////////////
 // Draw methods / Прорисовка
@@ -243,6 +246,7 @@ private:
 	Vector<Color> _colors;
 	StaticRect _popup;
 	ToolBar _tools;
+	Image _BackgroundImage;
 };
 
 #endif // .. FORM_VIEW_HPP

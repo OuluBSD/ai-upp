@@ -129,11 +129,15 @@ public:
 	virtual void  DrawRect(int x, int y, int w, int h, int r, int g, int b, bool interlaced = false) override;
 	virtual Value GetCanvasSize() override;
 	virtual void  SetButtonImage(const String& zone_id, const String& normal_asset, const String& hover_asset, const String& pressed_asset) override;
+	virtual bool  SaveSnapshot(const String& path) override;
 	virtual const Form& GetLayout() const { return table_form; }
 
 	virtual void SetLayout(const String& form_path) override;
 	void SetPlugin(CardGamePlugin* p) { registration_plugin = p; if(p) p->SetView(this); }
 	void SetFixedArea(Size sz)        { fixed_area = sz; }
+	// Execute the loaded .gamestate synchronously in the calling thread (no GUI event loop needed).
+	// Call Load() and SetFixedArea() before this.
+	void ExecuteSync();
 	virtual String DumpScene() override;
 	void DebugInvokeButton(const String& button_id) { InvokePythonButton(button_id); }
 	bool DebugPressFormButton(const String& button_id);

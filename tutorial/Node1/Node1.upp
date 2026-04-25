@@ -1,0 +1,12 @@
+description "Node Tutorial 1: Tournament Tree Graph\377";
+
+uses
+	CtrlLib,
+	Node/Ctrl;
+
+file
+	main.cpp;
+
+mainconfig
+	"" = "GUI";
+

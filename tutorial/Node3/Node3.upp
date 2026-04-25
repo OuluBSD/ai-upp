@@ -1,0 +1,12 @@
+description "Node Tutorial 3: Spring Layout + Styling + Directed Edges\377";
+
+uses
+	CtrlLib,
+	Node/Ctrl;
+
+file
+	main.cpp;
+
+mainconfig
+	"" = "GUI";
+

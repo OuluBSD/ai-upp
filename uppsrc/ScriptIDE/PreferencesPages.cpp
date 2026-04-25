@@ -609,11 +609,30 @@ public:
         presets.AddColumn("Name");
         presets.AddColumn("File extension");
         presets.AddColumn("Context");
+        browse_external_binary.WhenAction = [=] {
+            FileSel fs;
+            if(fs.ExecuteOpen("Select External Binary"))
+                external_binary_path.SetData(fs.Get());
+        };
     }
     virtual void Load(const IDESettings& cfg) override {
+        separate_window_run_target.ClearList();
+        separate_window_debug_target.ClearList();
+        auto& registry = RunTargetRegistry::Get();
+        for(auto* target : registry.GetAll()) {
+            separate_window_run_target.Add(target->GetID(), target->GetName());
+            separate_window_debug_target.Add(target->GetID(), target->GetName());
+        }
+
         runner.SetData(cfg.run.selected_runner);
         save_all_before_run.SetData(cfg.run.save_all_before_run);
         copy_to_console.SetData(cfg.run.copy_full_cell_to_console);
+        separate_window_run_target.SetData(cfg.run.separate_window_run_target_id);
+        separate_window_debug_target.SetData(cfg.run.separate_window_debug_target_id);
+        external_binary_path.SetData(cfg.run.external_process.binary_path);
+        external_extra_args.SetData(cfg.run.external_process.extra_args);
+        external_show_terminal.SetData(cfg.run.external_process.show_terminal);
+        external_wait_for_exit.SetData(cfg.run.external_process.wait_for_exit);
         presets.Clear();
         for(const auto& p : cfg.run.presets)
             presets.Add(p.name, p.file_extension, p.context);
@@ -622,6 +641,12 @@ public:
         cfg.run.selected_runner = ~runner;
         cfg.run.save_all_before_run = ~save_all_before_run;
         cfg.run.copy_full_cell_to_console = ~copy_to_console;
+        cfg.run.separate_window_run_target_id = ~separate_window_run_target;
+        cfg.run.separate_window_debug_target_id = ~separate_window_debug_target;
+        cfg.run.external_process.binary_path = ~external_binary_path;
+        cfg.run.external_process.extra_args = ~external_extra_args;
+        cfg.run.external_process.show_terminal = ~external_show_terminal;
+        cfg.run.external_process.wait_for_exit = ~external_wait_for_exit;
     }
     virtual void Apply(IDEContext& ctx, const IDESettings& old_cfg, const IDESettings& new_cfg) override {}
     virtual void SetDefaults() override { Load(IDESettings()); }

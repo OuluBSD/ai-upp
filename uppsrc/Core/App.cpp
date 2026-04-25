@@ -408,6 +408,7 @@ String  ConfigFile() {
 }
 
 String argv0;
+static String sMluiServerAddress;
 
 Vector<WString>& coreCmdLine__()
 {
@@ -468,6 +469,11 @@ int GetCommandLineArgInt(const char *name, int def)
 	return (end && *end == 0) ? n : def;
 }
 
+String GetMluiServerAddress()
+{
+	return sMluiServerAddress;
+}
+
 VectorMap<WString, WString>& EnvMap()
 {
 	static VectorMap<WString, WString> x;
@@ -495,6 +501,8 @@ const VectorMap<String, String>& Environment()
 
 static int exitcode;
 static bool sMainRunning;
+static void (*sMluiRuntimeStarter)() = NULL;
+static bool sMluiRuntimeStarted = false;
 
 void  SetExitCode(int code) { exitcode = code; }
 int   GetExitCode()         { return exitcode; }
@@ -502,6 +510,28 @@ int   GetExitCode()         { return exitcode; }
 bool  IsMainRunning()
 {
 	return sMainRunning;
+}
+
+void SetMluiRuntimeStarter(void (*fn)())
+{
+	sMluiRuntimeStarter = fn;
+}
+
+static void StartMluiRuntimeIfNeeded()
+{
+	if(sMluiRuntimeStarted)
+		return;
+	if(!sMluiRuntimeStarter)
+		return;
+#ifdef flagMLUI
+	sMluiRuntimeStarter();
+	sMluiRuntimeStarted = true;
+#else
+	if(!sMluiServerAddress.IsEmpty()) {
+		sMluiRuntimeStarter();
+		sMluiRuntimeStarted = true;
+	}
+#endif
 }
 
 void LoadLangFiles(const char *dir)
@@ -524,6 +554,8 @@ void CommonInit()
 	Vector<WString>& cmd = coreCmdLine__();
 	static WString exp_cmd = "--export-tr";
 	static WString brk_cmd = "--memory-breakpoint__";
+	static WString mlui_cmd = "--mlui-server__";
+	static WString mlui_cmd_eq = "--mlui-server__=";
 	
 	for(int i = 0; i < cmd.GetCount();) {
 		if(cmd[i] == exp_cmd) {
@@ -562,12 +594,22 @@ void CommonInit()
 					for(int i = 0; i < l.GetCount(); i++)
 						SaveLngFile(out, SetLNGCharset(l[i], charset));
 				}
+				}
+				exit(0);
 			}
-			exit(0);
-		}
-	#if defined(_DEBUG) && defined(UPP_HEAP)
-		if(cmd[i] == brk_cmd && i + 1 < cmd.GetCount()) {
-			MemoryBreakpoint(atoi(cmd[i + 1].ToString()));
+			if(cmd[i] == mlui_cmd && i + 1 < cmd.GetCount()) {
+				sMluiServerAddress = cmd[i + 1].ToString();
+				cmd.Remove(i, 2);
+				continue;
+			}
+			if(cmd[i].StartsWith(mlui_cmd_eq)) {
+				sMluiServerAddress = cmd[i].Mid(mlui_cmd_eq.GetCount()).ToString();
+				cmd.Remove(i);
+				continue;
+			}
+		#if defined(_DEBUG) && defined(UPP_HEAP)
+			if(cmd[i] == brk_cmd && i + 1 < cmd.GetCount()) {
+				MemoryBreakpoint(atoi(cmd[i + 1].ToString()));
 			cmd.Remove(i, 2);
 		}
 		else
@@ -591,6 +633,7 @@ void MemorySetMainEnd__();
 void AppExecute__(void (*app)())
 {
 	try {
+		StartMluiRuntimeIfNeeded();
 		MemorySetMainBegin__();
 		(*app)();
 		MemorySetMainEnd__();

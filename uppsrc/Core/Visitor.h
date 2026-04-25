@@ -45,6 +45,7 @@ struct Visitor {
 	virtual Visitor& AccessMenu(const char *text, Event<Visitor&> proc) { return *this; }
 	virtual Visitor& AccessLabel(const char *text) { return *this; }
 	virtual Visitor& AccessValue(const UPP::Value& v) { return *this; }
+	virtual void SetAccessRect(int left, int top, int right, int bottom) {}
 	
 	template<class T>
 	Visitor& Visit(const char* key, T& o) {

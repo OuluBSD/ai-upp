@@ -40,7 +40,7 @@ static Tuple<const char *, const char *> sEXT_MIME[] = {
 	{ "crl", "application/pkix-crl" },
 	{ "crt", "application/x-x509-ca-cert" },
 	{ "csh", "application/x-csh" },
-	{ "css", "text/css" },
+	{ "css", "text/css" },	
 	{ "dcr", "application/x-director" },
 	{ "der", "application/x-x509-ca-cert" },
 	{ "dir", "application/x-director" },

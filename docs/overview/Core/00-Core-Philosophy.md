@@ -1,54 +1,74 @@
 # Core Philosophy
 
-## What this covers
-This file explains what `uppsrc/Core/` is for, what design habits it pushes onto the rest of the framework, and where its semantics differ from ordinary standard-library-first C++ code.
+## What this page is for
+This page is about the attitude behind `uppsrc/Core/`, not its API inventory.
 
-## Design intent
-`Core` is the universal non-GUI dependency layer for the framework. `Core.upp` groups platform detection, base types, memory, containers, strings, streams, time, threading, diagnostics, serialization, networking helpers, and process utilities into one package that higher layers can assume exists.
+Core matters because it is where the framework decides what kind of program it wants to help people write. It is the layer that teaches the rest of the tree how explicit to be, how suspicious to be of hidden cost, and how comfortable to be with platform-specific reality.
 
-The package does not try to be a thin wrapper over the C++ standard library. `Core.h` pulls in large parts of the C and C++ runtime, then establishes U++ conventions on top: custom basic types in [`uppsrc/Core/Defs.h`](../../../uppsrc/Core/Defs.h), the U++ heap in [`uppsrc/Core/Heap.h`](../../../uppsrc/Core/Heap.h), U++ containers in [`uppsrc/Core/Vcont.h`](../../../uppsrc/Core/Vcont.h), U++ strings in [`uppsrc/Core/String.h`](../../../uppsrc/Core/String.h), and U++ streams in [`uppsrc/Core/Stream.h`](../../../uppsrc/Core/Stream.h).
+## Core is the real foundation
+Core should not be read as a neutral dependency that happens to sit low in the hierarchy. It is more assertive than that.
 
-## Explicit semantics over hidden convenience
-The dominant pattern in Core is to make storage and ownership visible in the type:
+It acts as the foundation in the architectural sense and in the cultural sense:
 
-- `Vector<T>` stores values contiguously.
-- `Array<T>` stores owning pointers and keeps pointed-to objects separately allocated.
-- `String` is byte-oriented and optimized for short text plus shared large storage.
-- `WString` is a separate 32-bit-code-point string type, not just `String` with a different view.
-- `Stream` is an explicit read/write/seek object rather than an iostream-style formatting stack.
+- higher layers assume its runtime vocabulary
+- its tradeoffs leak upward into container choice, serialization style, diagnostics, and scheduling
+- its worldview tends to become the worldview of the application built on top of it
 
-This is not only API style. The implementation usually exposes the intended tradeoff directly in code: inline-vs-heap string tiers, value-vs-owning containers, packed-vs-raw stream serialization, single-thread shims vs multithreaded implementations, and explicit config/log path overrides.
+That is why arguments about Core are rarely small. They are usually arguments about the character of the whole framework.
 
-## Debug should fail early
-`Defs.h` and `Diag.h` make debug builds opinionated:
+## More than a utility library
+A common instinct is to compare Core to STL plus some helpers. That misses the point.
 
-- `ASSERT` and `VERIFY` route to `AssertFailed`.
-- `LOG`, `DUMP`, `TIMING`, and related helpers are enabled in `_DEBUG`.
-- `DLOG`-family macros intentionally turn into invalid tokens in non-debug builds, forcing cleanup before release.
+Core behaves more like a replacement worldview. It does not merely fill gaps. It proposes different defaults:
 
-That "fail early" stance is visible in other places too: heap diagnostics under `UPP_HEAP`, explicit magic checks, log-etalon testing, and profiling helpers that write summaries at teardown.
+- ownership should be visible
+- text encodings should not be hand-waved away
+- debugging should be stricter than release
+- platform differences should be acknowledged instead of cosmetically hidden
+- convenience should be earned by preserving meaning, not by erasing it
 
-## Release builds stay usable
-Release code paths usually keep the API shape but drop expensive checking:
+That makes Core opinionated. It is not trying to disappear behind standard C++.
 
-- `ASSERT` becomes a no-op.
-- `LOG` disappears, but `RLOG` remains available.
-- the single-thread headers in [`uppsrc/Core/St.h`](../../../uppsrc/Core/St.h) keep thread APIs callable even when there is no real OS-thread backing.
-- if `flagUSEMALLOC` or `flagSO` disables `UPP_HEAP`, the memory API still exists, but it falls back to `malloc`/`free`.
+## Explicitness is treated as a moral good
+Core repeatedly chooses named distinctions over generalized ambiguity.
 
-The package hides platform differences at the API boundary, but it does not pretend the implementations are identical. `Path`, `Thread`, `FileStream`, `FindFile`, time conversion, logging destinations, and config lookup all branch by platform.
+That choice is visible in the framework's habits:
 
-## Current vs legacy
-Some Core surfaces are clearly current and central: strings, containers, streams, path helpers, logging, time, and threading. Some are compatibility layers or migration paths:
+- different container families say different things about lifetime and storage
+- different runtime modes exist instead of one fake universal mode
+- debug and release are allowed to express different priorities
+- historical compatibility is often kept visible rather than silently dissolved
 
-- [`uppsrc/Core/Callback.h`](../../../uppsrc/Core/Callback.h) starts with `// Backward compatibility; use Function/Event in the new code`.
-- deprecated compatibility blocks still exist throughout headers.
-- `flagST` keeps a single-thread configuration alive, but much of the ecosystem assumes the multithreaded path.
+This makes the package larger, but it also keeps important decisions legible.
 
-Treat Core as a stable foundation with accumulated history, not as a freshly minimal runtime.
+## Debug is allowed to be judgmental
+Core's debug philosophy is one of its clearest statements of intent.
 
-## See also
-- [01-Architecture.md](01-Architecture.md)
-- [02-Memory-and-Performance.md](02-Memory-and-Performance.md)
-- [09-Containers.md](09-Containers.md)
-- [README.md](README.md)
+The package does not behave as though every build should offer the same emotional experience. Debug is where misuse should surface quickly. Release is where the program should remain viable. That split is not a flaw to hide; it is one of the package's more mature instincts.
+
+The deeper message is that software quality comes partly from designing different enforcement styles for different phases of development.
+
+## Hardware-near thinking
+Core often reads like a runtime written by people who want to remember the machine.
+
+That does not mean everything must be low level. It means abstractions should not destroy the operator's sense of storage, copying, scheduling, synchronization, and platform cost. Core wants the programmer to stay close enough to the hardware to make intentional choices.
+
+## Platform realism over fake purity
+Core is strongest when it refuses to pretend that all targets are the same.
+
+Desktop Windows, POSIX, UWP, single-thread mode, and constrained environments are not interchangeable. Core's better habit is to offer a common language without faking identical behavior. That realism is a strength, especially if the package is asked to stretch toward stranger targets later.
+
+## Core keeps history in the open
+Core is not a minimalist manifesto. It is an evolving foundation with old layers, new layers, experiments, and compatibility baggage.
+
+That is not embarrassing unless the overview tries to deny it. The honest reading is that Core is a place where the framework keeps both its central runtime beliefs and the evidence of how those beliefs changed over time.
+
+## Where this should lead
+The philosophical challenge for Core is not to become smaller at any cost. It is to become clearer about which parts are:
+
+- permanent foundation
+- compatibility bridge
+- strategic experiment
+- future-facing extension point
+
+That clarity matters more than tidiness.

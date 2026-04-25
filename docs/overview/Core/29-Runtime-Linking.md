@@ -1,54 +1,33 @@
 # Runtime Linking
 
-## What this covers
-This file documents Core's runtime dynamic-loading helpers in [`uppsrc/Core/dli.h`](../../../uppsrc/Core/dli.h) and [`uppsrc/Core/Dli.cpp`](../../../uppsrc/Core/Dli.cpp).
+## What this page is for
+This page is about optionality and late binding.
 
-## Design intent
-The `dli.h` macro layer generates small loader structs for optional shared-library dependencies.
+Runtime linking support in Core matters because it expresses a particular architectural attitude: the framework wants room for optional dependencies, modular boundaries, and platform negotiation without forcing every decision to happen at static link time.
 
-The pattern is declarative:
+## Optionality as design freedom
+Late binding is valuable because it lets a runtime remain adaptable.
 
-- name a module
-- list exported functions or optional functions
-- call `Load()` / `Force()`
+It creates room for:
 
-This is a compact runtime binding layer, not a general plugin discovery framework.
+- optional capabilities
+- platform-specific integration
+- licensing or deployment flexibility
+- gradual adoption of external features
 
-## Main behavior
-The generated loader struct keeps:
+This fits Core well. The package tends to value explicit mechanisms for real-world constraints more than clean-but-brittle purity.
 
-- a library name string
-- the native module handle
-- function pointers populated at load time
-- a `checked` flag so loading is attempted once until reset
+## Not the same as a plugin ecosystem
+Runtime linking should not be romanticized into a full modular platform story by itself. It is a lower-level capability than that.
 
-`LoadDll__(...)` in [`uppsrc/Core/Dli.cpp`](../../../uppsrc/Core/Dli.cpp) accepts multiple candidate library names in one string:
+Still, keeping it in Core matters because many richer modular designs depend on exactly this kind of underlying optionality. In that sense, runtime linking is one of the small infrastructural seeds from which larger extension models can grow.
 
-- names are split by `;` on Windows
-- names are split by `;` or `:` on POSIX
+## Future direction
+This area could become more significant if the framework leans further into:
 
-The first candidate whose required exports resolve successfully becomes the chosen library name.
+- optional subsystems
+- dynamic service composition
+- hot-reload or tool-assisted module workflows
+- cleaner separation between baseline runtime and platform extras
 
-## Export resolution
-`dli.h` distinguishes required and optional symbols:
-
-- `FN(...)` entries are required
-- `FN0(...)` entries are optional and are prefixed with `?` internally
-
-Platform-specific resolution differs:
-
-- Windows uses `LoadLibrary` and `GetProcAddress`, with extra PE export-name matching logic for decorated names
-- POSIX uses `dlopen(..., RTLD_LAZY | RTLD_GLOBAL)` and `dlsym`
-
-## Limitations and caveats
-- this is runtime symbol binding, not hot-reload orchestration
-- `Force()` exits the process if loading fails
-- the POSIX implementation logs missing required symbols, but the visible code does not increment its local `missing` counter before the final check, so docs should not overstate the strictness of that branch
-- `flagUWP` disables the Windows `CheckDll__` path by returning `0`
-
-## Current vs legacy
-This is current support code. It is specialized and fairly low-level, but it remains part of the live package surface.
-
-## See also
-- [01-Architecture.md](01-Architecture.md)
-- [30-Windows-Specific.md](30-Windows-Specific.md)
+Even if it stays modest, it preserves an important architectural possibility.

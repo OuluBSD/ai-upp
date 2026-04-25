@@ -1,59 +1,25 @@
 # Pointer Safety
 
-## What this covers
-This file documents Core's non-owning pointer-safety layer: `PteBase`, `Pte<T>`, `PtrBase`, and `Ptr<T>`.
+## What this page is for
+This page is about lifetime awareness without abandoning lightweight programming.
 
-## Design intent
-[`uppsrc/Core/Ptr.h`](../../../uppsrc/Core/Ptr.h) provides a tracked observer pointer, not shared ownership. The goal is simple: let references to selected objects become null automatically when the pointee dies.
+Core's pointer-safety story is interesting because it does not simply choose between raw pointers everywhere and heavyweight ownership everywhere. It keeps a narrower, more deliberate middle space.
 
-This is narrower than `shared_ptr` / `weak_ptr` style ownership. The pointee must opt in.
+## Safety without total ownership ideology
+The package's likely instinct here is that not every lifetime problem should be solved by shared ownership, and not every object graph should be left fully unsafe either.
 
-## Main types
-### `PteBase` and `Pte<T>`
-Objects that want to be tracked must derive from `PteBase` or, more commonly, `Pte<T>`.
+That creates room for pointer-safety tools whose job is observational rather than owning. Philosophically, this matches Core well. The package likes explicit distinctions and tends to distrust solutions that erase too much meaning.
 
-That requirement is real and visible in the API:
+## Why this matters
+Pointer safety in Core is not about chasing fashionable abstraction. It is about keeping certain object relationships legible while preserving a lightweight runtime style.
 
-- `PtrBase` stores a `PteBase*`
-- `Ptr<T>::operator=(T*)` only works when `T*` is convertible to `PteBase*`
-- destruction of the pointee is what notifies observers
+That matters most in long-lived frameworks, UI object graphs, and callback-heavy systems where "is this still alive?" can be the real question.
 
-Without that inheritance, `Ptr<T>` cannot track the object.
+## Future direction
+This area is unlikely to become the center of Core, but it remains a valuable example of the package's general method:
 
-### `Ptr<T>`
-`Ptr<T>` is the typed observer handle. It supports:
+- avoid pretending one model solves every case
+- preserve explicit semantics
+- offer focused tools for recurring failure modes
 
-- nullable pointer semantics
-- copy and assignment
-- automatic nulling when the pointee is destroyed
-- pointer-like access through `operator->`, conversion, and `Get()`
-
-The implementation uses a shared tracking record (`Prec`) with an atomic reference count.
-
-## Lifetime semantics
-[`uppsrc/Core/Ptr.cpp`](../../../uppsrc/Core/Ptr.cpp) shows the core behavior:
-
-- `PteBase::~PteBase()` sets the tracking record's `ptr` to null
-- existing `Ptr<T>` observers keep the tracking record alive long enough to observe that null state
-- no pointee ownership is transferred
-
-So `Ptr<T>` answers "is the object still alive?" for opt-in objects, but it does not manage destruction.
-
-## Debug and panic behavior
-`PtrBase::PanicRelease(bool)` and the `panic` flag in the tracking record allow a stricter failure mode where releasing a still-observed pointee can trigger `Panic`.
-
-That is diagnostic behavior around misuse. It does not change the basic contract that normal pointee destruction nulls observers.
-
-## Tradeoffs
-- safer than a raw pointer when the pointee supports tracking
-- much lighter and more direct than shared ownership
-- limited to classes that inherit from `Pte<T>` / `PteBase`
-- not a general replacement for ownership models or cycle management
-
-## Current vs legacy
-This layer is current code, but it is specialized. It exists for selected object graphs and callback-style patterns, not as the universal pointer model for Core.
-
-## See also
-- [03-Threading.md](03-Threading.md)
-- [09-Containers.md](09-Containers.md)
-- [11-Callbacks-and-Events.md](11-Callbacks-and-Events.md)
+That is a sensible runtime philosophy.

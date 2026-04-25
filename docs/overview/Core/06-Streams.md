@@ -1,66 +1,36 @@
 # Streams
 
-## What this covers
-This file documents Core's stream abstraction, the main derived stream types, and the serialization idioms built on top of them.
+## What this page is for
+This page is about streams as a mental model.
 
-## The base abstraction
-[`uppsrc/Core/Stream.h`](../../../uppsrc/Core/Stream.h) defines `Stream` as the common buffered interface for:
+In Core, streams are not just an I/O feature. They are one of the package's preferred ways of thinking about data movement, persistence, interchange, and object boundaries.
 
-- reading and writing bytes
-- seeking
-- error reporting
-- line and UTF-8 helpers
-- object serialization
+## Streams as the common language of movement
+A framework runtime has to decide how values travel. Core's answer is often stream-shaped.
 
-Core stream state is explicit through flags such as `STRM_READ`, `STRM_WRITE`, `STRM_SEEK`, `STRM_LOADING`, and `STRM_THROW`.
+That choice has consequences:
 
-## Serialization role
-`Stream` is not only for raw I/O. It also serves as the standard serialization transport:
+- serialization feels procedural instead of magical
+- storage and transport share a common conceptual path
+- binary layout remains close enough to the surface to stay discussable
 
-- `SerializeRaw` for fixed-width raw values
-- `%` operators for value serialization
-- `/` operators for packed integer-style serialization
-- `Pack` helpers for compact integers and boolean bit packing
-- `Magic` for stream signatures
+This is less fashionable than ever-more-automatic reflection systems, but it keeps the runtime's dataflow legible.
 
-This is a central Core pattern. Many container, value, and time types use `Serialize(Stream&)`.
+## A bias toward explicit transport
+Core's stream culture reflects the package's suspicion of hidden formatting layers and overly abstract persistence systems.
 
-## Main derived stream types
-From `Stream.h` and companion source files:
+The stream approach says: data should move through a visible channel, under visible mode, with visible structure. That is philosophically consistent with the rest of Core. It reduces surprise at the cost of asking developers to think more concretely.
 
-- `StringStream`: reads from or writes to a `String`
-- `MemStream` and `MemReadStream`: wrap caller-owned memory buffers
-- `BlockStream`: buffered page-based random-access stream base
-- `FileStream`: OS file-handle implementation on top of `BlockStream`
-- `FileIn`, `FileOut`, `FileAppend`: convenience wrappers
-- `SizeStream`: counts serialized output size without storing data
-- `CompareStream`: compares serialized output against another stream
-- `OutStream` and `TeeStream`: sink-style output helpers
-- `InFilterStream` and `OutFilterStream`: attach transform filters
+## Why this still matters
+Streams are one of the reasons Core feels like a full runtime rather than a library bucket. They give the package a default answer to the question "how should things pass through the system?"
 
-`CopyStream`, `LoadStream`, and `SaveStream` provide common stream-to-stream and string-to-stream helpers.
+That answer influences files, in-memory transformation, serialization, caching, compression, and various tooling stories. Even when newer abstractions are added later, they are often healthiest when they still respect this stream-first culture.
 
-## Usage style
-Core prefers explicit binary dataflow:
+## Future direction
+The real future question is not whether streams should be replaced. It is whether Core can extend the stream mindset into richer environments without losing clarity:
 
-- open a concrete stream
-- choose loading vs storing
-- call `Serialize` or use primitive stream operators
-- copy between streams with `CopyStream`
+- asynchronous or service-oriented boundaries
+- browser-hosted or constrained runtimes
+- more dynamic reflective pipelines
 
-This is simpler and more predictable than iostream formatting, but it also means the model is mostly synchronous and byte-oriented.
-
-## Limitations
-The stream layer is low-level:
-
-- no built-in async stream protocol
-- no formatting-rich text stream comparable to C++ iostream manipulators
-- text encoding is handled separately through string and charset helpers
-
-That limitation is intentional. The stream layer stays close to transport and serialization semantics.
-
-## See also
-- [04-Strings-and-Text.md](04-Strings-and-Text.md)
-- [05-Paths-and-Config.md](05-Paths-and-Config.md)
-- [09-Containers.md](09-Containers.md)
-- [12-Time.md](12-Time.md)
+If it can, streams stay foundational. If not, this is one of the places where the next architectural tension will surface.

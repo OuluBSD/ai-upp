@@ -1,66 +1,44 @@
 # Core Architecture
 
-## What this covers
-This file summarizes how `Core.upp` is organized and how the main subsystems inside `uppsrc/Core/` fit together.
+## What this page is for
+This page is about how Core behaves as an architectural center, not a file-by-file package map.
 
-## Package layout from `Core.upp`
-`uppsrc/Core/Core.upp` is the best high-level map of the package. Its file list is grouped with visible separators:
+Core gathers many concerns that would be separate libraries in a more fragmented ecosystem. That concentration is a deliberate architectural choice. The package wants to be the place where runtime assumptions stay coherent.
 
-- base setup: `Core.h`, `config.h`, `Defs.h`, `Ops.h`, `Fn.h`
-- CPU, memory, SIMD, threading: `Cpu.cpp`, `Mem.*`, `SIMD*`, `Atomic.h`, `Mt.*`, `St.*`, `Heap*`
-- text: `String*`, `WString.cpp`, `CharSet*`, `Utf*`, `UnicodeInfo.cpp`, `Bom.cpp`
-- filesystem and app environment: `Path.*`, `App.*`, `Ini.cpp`, `LocalProcess.*`
-- streams and binary utilities: `Stream.*`, `BlockStream.cpp`, `FilterStream.*`, `FileMapping.*`, `StringsStream.cpp`
-- diagnostics: `Profile.h`, `Diag.h`, `Log.cpp`, `Debug.cpp`
-- algorithms and containers: `Algo.h`, `Sort.h`, `Vcont*`, `Index*`, `Map*`, `FixedMap.h`, `InVector*`, `Tuple.h`, `Recycler.h`, `Shared.h`
-- values and formatting: `TimeDate.*`, `Value*`, `Format*`, `Convert*`, `Color*`, `Gtypes*`
-- language and i18n: `i18n.h`, `Lang.*`, `LangInfo.cpp`, translation data
-- parsing and serialization: `Parser.h`, `XML.*`, `Xmlize*`, `JSON.*`, `Visitor.*`, `Topic.*`
-- hashing, caching, and compression: `Hash.h`, `MD5.cpp`, `SHA1.cpp`, `SHA256.cpp`, `xxhash`, `ValueCache.*`, `lz4`, `z`
-- concurrency helper layer: `CoWork.*`
-- web/system helpers: `Inet.*`, `Socket.cpp`, `Http.cpp`, `WebSocket.cpp`, `Daemon.*`, `dli.*`, `Win32Util.*`, `Uwp.h`
+## A center of gravity
+Core is broad because the framework prefers one strong runtime center of gravity over many loosely related support libraries.
 
-## Central domains
-### Platform and build configuration
-[`uppsrc/Core/Core.h`](../../../uppsrc/Core/Core.h) selects multithreaded vs single-threaded mode, heap mode, platform headers, path separator rules, and architecture-specific includes such as x86 intrinsics.
+Memory, text, containers, streams, time, threading, diagnostics, parsing, transport, and platform helpers all meet here because they influence one another. The architecture assumes those relationships are important enough to keep under one roof.
 
-### Base types and macros
-[`uppsrc/Core/Defs.h`](../../../uppsrc/Core/Defs.h) defines basic integer aliases, `wchar` as `uint32`, assertion/panic macros, one-time initialization macros, and the `pick` move convention used pervasively across the package.
+This makes Core feel dense, but it also reduces the chance that higher layers drift into conflicting subcultures.
 
-### Memory
-The heap API lives in [`uppsrc/Core/Heap.h`](../../../uppsrc/Core/Heap.h). When `UPP_HEAP` is enabled it routes through the custom allocator implementation in `heap.cpp`, `sheap.cpp`, `lheap.cpp`, `hheap.cpp`, and `heapdbg.cpp`. When it is disabled, the same functions inline to `malloc`/`free`.
+## Architecture by shared semantics
+The real architecture is not just the source tree. It is the set of shared semantic expectations that higher packages inherit:
 
-### Containers and ownership
-`Vcont.h`, `Index.h`, `Map.h`, `FixedMap.h`, `InVector.h`, and `BiCont.h` define the main container families. The architecture deliberately splits value containers from owning-pointer containers instead of hiding ownership behind allocator policy.
+- how ownership is represented
+- how data is serialized and moved
+- how errors and diagnostics are surfaced
+- how much platform difference should remain visible
+- how debug and release are expected to differ
 
-### Strings and text
-`String`, `WString`, charset conversion, Unicode helpers, split/merge helpers, and BOM handling all live in Core because higher layers are expected to use Core text rules consistently.
+Core is the package that fixes those expectations early.
 
-### Streams and serialization
-`Stream` is both an I/O abstraction and a serialization substrate. The same layer supports file streams, memory streams, filter streams, packed integer encoding, and `Serialize`/`Xmlize`/`Jsonize` utilities.
+## Not a purity architecture
+There is no sign that Core wants a perfectly clean textbook layering. It is more pragmatic than that.
 
-### Time and timing
-`TimeDate.*`, `Profile.h`, and parts of `Util.h` provide wall-clock values, UTC/system conversion helpers, elapsed-time measurement, and low-level profiling/logging hooks.
+Historical pieces stay if they continue to serve the wider tree. Specialized subsystems remain near foundational ones if the project benefits from a common runtime vocabulary. In that sense, Core is architecturally disciplined without being doctrinaire.
 
-### Threading and work scheduling
-`Mt.h` and `St.h` provide the same public concurrency API with different backends. `CoWork` builds a worker-pool abstraction on top.
+## Historical layering should stay legible
+The package contains multiple eras of framework thinking. That is architecturally important, not accidental noise.
 
-### Filesystem, process, and app environment
-`Path.*`, `App.*`, `Ini.cpp`, and `LocalProcess.*` handle executable path discovery, home/config/temp locations, file operations, INI-style configuration, and subprocess launching.
+Some parts feel foundational and timeless. Some feel like compatibility bridges. Some feel like experiments that proved useful enough to stay. The right overview does not flatten those categories into one tone. It keeps the layering visible so future restructuring can happen intentionally rather than by forgetting why something exists.
 
-### Diagnostics and logging
-`Diag.h`, `Log.cpp`, `Debug.cpp`, and heap diagnostics define assertions, logging, timing output, crash support, and optional memory debugging.
+## Extension pressure belongs here
+Core is also where future runtime directions first become plausible.
 
-## Architectural tradeoffs
-- Core centralizes a lot of unrelated-looking primitives because the framework prefers one coherent runtime model over many narrow libraries.
-- platform differences are normalized at the API layer, but implementation differences remain explicit in source files and often in behavior.
-- legacy compatibility is kept inside the package instead of split into a separate compatibility module.
+If the project explores WebAssembly, Android, stronger single-thread runtime identities, richer daemon models, runtime modularity, alternative transport layers, or more radical CPU-portability work, those ambitions will eventually exert pressure on Core first. The package is where those tensions become architectural questions instead of isolated feature requests.
 
-## Current status
-The central runtime pieces are active and heavily integrated. Some areas are clearly older or compatibility-oriented, especially the callback bridge, deprecated helper blocks, and the retained single-thread mode.
+## The real challenge
+The architectural challenge is not reducing Core to a fashionable minimum. It is maintaining a runtime center that stays coherent while still admitting history, specialization, and future direction.
 
-## See also
-- [00-Core-Philosophy.md](00-Core-Philosophy.md)
-- [03-Threading.md](03-Threading.md)
-- [06-Streams.md](06-Streams.md)
-- [09-Containers.md](09-Containers.md)
+That is a harder task, but it is also more honest.

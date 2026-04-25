@@ -1,59 +1,37 @@
 # Logging
 
-## What this covers
-This file explains the actual logging macros and log routing implemented in Core.
+## What this page is for
+This page is about Core's logging culture.
 
-## Logging APIs
-The main logging surface is in [`uppsrc/Core/Diag.h`](../../../uppsrc/Core/Diag.h) and [`uppsrc/Core/Log.cpp`](../../../uppsrc/Core/Log.cpp):
+Logging is not just output. It is the runtime's memory of what happened, what developers expected to happen, and what kinds of failure deserve to remain legible after the fact.
 
-- `StdLogSetup`, `StdLog`, `GetStdLogPath`
-- `UppLog`, `SetUppLog`
-- `VppLog`, `SetVppLog`, `SetVppLogName`
-- `LogOptions` such as `LOG_FILE`, `LOG_COUT`, `LOG_CERR`, `LOG_DBG`, `LOG_SYS`, `LOG_TIMESTAMP`, and `LOG_APPEND`
+## Logging as discipline
+Core's stance on logging fits its wider debug philosophy: the system should leave evidence.
 
-## Macro behavior
-Actual macro behavior from `Diag.h`:
+This makes logging part of engineering discipline rather than an optional convenience. A runtime that values explicitness should also value traces that explain the consequences of that explicitness.
 
-- `LOG(...)` exists only in `_DEBUG`; in release it compiles to nothing
-- `RLOG(...)` always writes to `VppLog()`
-- `DLOG(...)` works only in debug-style builds and intentionally becomes invalid syntax in release
-- `LOGBLOCK`, `RLOGBLOCK`, `DUMP`, `RDUMP`, `TIMING`, and related helpers build on the same stream
+## Debug and release tell different truths
+Core is comfortable with different levels of diagnostic expression in different build modes. That is philosophically consistent.
 
-That means the common "safe in release" macro is `RLOG`, not `LOG`, if you are describing Core itself.
+Debug builds are where the framework is allowed to be noisier, stricter, and more accusatory. Release builds should still preserve the traces that matter operationally, but they do not need to carry the full emotional intensity of development-time checking.
 
-## Default log destination
-`Log.cpp` computes the default file path lazily.
+## Operational memory matters
+A broad framework runtime cannot rely on the debugger alone. Once software is deployed, logging becomes its durable memory.
 
-### POSIX
-`SyncLogPath__()` builds:
+That is especially true in environments where:
 
-- `GetFileFolder(GetUserConfigDir()) + "/.local/state/" + GetConfigGroup() + "/log/" + GetAppName()`
-- then `sLogFile()` appends `".log"`
+- the UI is not the main story
+- services run without direct supervision
+- platform issues appear only on certain machines
+- future daemon or local-service models become more important
 
-In the common home-directory case, that becomes something like:
+Logging is therefore not a side concern. It is part of Core's long-term credibility.
 
-- `~/.local/state/u++/log/<AppName>.log`
+## Future direction
+The interesting future pressure here is integration:
 
-If config was redirected to a writable `.config` near the executable, the log tree becomes a sibling `.local/state/...` near that config root instead.
+- stronger connection between logs and profiling
+- richer developer tooling
+- cleaner stories for service processes and headless runtimes
 
-### Windows
-The default log file path is derived from the config path through the Windows branch in `Log.cpp`. The public API is the same, but the implementation uses Win32 file handles and `OutputDebugStringA` for `LOG_DBG`.
-
-## Output options
-`LogOut::Line()` can send the same line to multiple sinks:
-
-- log file
-- stdout or stderr
-- debug console
-- syslog on POSIX
-
-Timestamps and elapsed-time prefixes are optional flags, not hardwired behavior.
-
-## Scope
-Logging is central and current. The macros also carry historical baggage, especially the split between `LOG`, `RLOG`, and `DLOG`.
-
-## See also
-- [02-Memory-and-Performance.md](02-Memory-and-Performance.md)
-- [08-Profiling.md](08-Profiling.md)
-- [05-Paths-and-Config.md](05-Paths-and-Config.md)
-- [README.md](README.md)
+If Core grows into more operationally complex environments, logging will need to become even more central as a narrative layer for the runtime.

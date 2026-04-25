@@ -1,48 +1,21 @@
 # Recycling
 
-## What this covers
-This file documents the recycler utilities in [`uppsrc/Core/Recycler.h`](../../../uppsrc/Core/Recycler.h): what they actually do with object lifetime and where they fit relative to normal containers.
+## What this page is for
+This page is about reuse as a runtime attitude.
 
-## Main types
-`Recycler.h` defines:
+Recycling and pooling are easy to describe narrowly as performance tricks. In Core, they also reveal something broader: the framework is willing to care about object lifetime patterns over time, not just individual allocations in isolation.
 
-- `RecyclerPool<T, keep_as_constructed>`
-- `Recycler<T, keep_as_constructed>`
-- `RecyclerRefBase<T>`
-- `SharedRecycler<T>`
-- `BiVectorRecycler<T, keep_as_constructed>`
+## Reuse as systems thinking
+A runtime begins to feel mature when it stops asking only how to create objects and starts asking how long-lived systems should reuse them.
 
-## Lifetime semantics
-`RecyclerPool` stores raw pointers in an internal pool backed by `MemoryAlloc`/`MemoryFree`.
+That is the real meaning of recycling in Core. It reflects a bias toward systems that remain active, repetitive, and cost-sensitive over long periods rather than only short transactional scripts.
 
-Behavior depends on `keep_as_constructed`:
+## Not everything should be generalized
+Core's better instinct here is restraint. Recycling is useful where it matches actual workload patterns. It becomes harmful when it turns into a universal doctrine.
 
-- when `false`:
-  - `New(...)` constructs an object with placement new when taken from the pool
-  - `Return(...)` calls the destructor before putting the memory back into the pool
-- when `true`:
-  - returned objects stay constructed while pooled
-  - `Clear()` and destruction explicitly run `~T()` before freeing memory
+The package is healthiest when it treats reuse as an explicit strategy for the right places, not as an excuse to make every lifetime story more obscure.
 
-So the pool always reuses storage, but it does not always preserve constructed object state.
+## Future direction
+If the framework grows further toward services, persistent tools, long-running background processes, or more ambitious scheduling layers, recycling will become more architecturally visible.
 
-## Relation to linked and deque-like structures
-`BiVectorRecycler` combines a `BiVector<T*>` queue with an internal `RecyclerPool<T,...>`. It is useful when you want:
-
-- frequent push/pop at both ends
-- pooled object allocation
-- direct object access through references while keeping pooled backing storage
-
-## Threading
-`RecyclerPool` uses a `Mutex` around its internal free-list vector. It is thread-safe at the pool level, but it is intentionally simple and not lock-free.
-
-## Scope and status
-This facility exists in the current tree and is functional. It does not appear in the historical Core `srcdoc` material and is not one of the canonical upstream U++ concepts usually discussed first. Based on that repository evidence, it is best treated as a fork-specific or at least non-central utility rather than a primary Core abstraction.
-
-That is an inference from the repository layout, not a claim about the full external history of every U++ branch.
-
-## See also
-- [02-Memory-and-Performance.md](02-Memory-and-Performance.md)
-- [03-Threading.md](03-Threading.md)
-- [09-Containers.md](09-Containers.md)
-- [11-Callbacks-and-Events.md](11-Callbacks-and-Events.md)
+That does not require turning Core into a giant pooling framework. It requires keeping the idea available where the runtime genuinely benefits from remembering yesterday's work.

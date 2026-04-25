@@ -1,55 +1,27 @@
 # Callbacks And Events
 
-## What this covers
-This file documents the callable abstractions in Core and how the older callback vocabulary sits on top of the newer function wrapper.
+## What this page is for
+This page is about callable infrastructure as a sign of historical layering.
 
-## Current callable core: `Function`
-[`uppsrc/Core/Function.h`](../../../uppsrc/Core/Function.h) defines:
+Callback systems are rarely glamorous, but they often reveal how a framework transitions between generations of style without breaking itself apart.
 
-- `Function<Signature>`
-- `Event<Args...>` as `Function<void(Args...)>`
-- `Gate<Args...>` as `Function<bool(Args...)>`
-- `MemFn(...)` helper for binding methods
+## A bridge between eras
+Core's callable layers suggest a package that has evolved rather than restarted.
 
-Implementation details visible in code:
+That matters. A runtime that survived multiple idioms usually contains bridges, compatibility stories, and a mixture of old and preferred ways of expressing deferred work. The correct overview should treat that as evidence of continuity, not merely clutter.
 
-- callables are type-erased behind a `WrapperBase`
-- wrappers are reference-counted with `Atomic`
-- chaining with `operator<<` builds a wrapper that calls the previous function and then the appended function
+## Why this belongs in Core
+Callbacks and events sit close to the foundation because the rest of the framework needs a common language for deferred action, signaling, and glue code.
 
-This is the current lambda-friendly callable mechanism.
+If that language fragments, higher packages become harder to reason about together. Keeping callable infrastructure in Core therefore protects architectural coherence even when the details are historically layered.
 
-## Compatibility layer: `Callback` and `Gate`
-[`uppsrc/Core/Callback.h`](../../../uppsrc/Core/Callback.h) starts with:
+## Future direction
+The long-term challenge is not to erase history aggressively. It is to make the preferred direction obvious while preserving enough bridge infrastructure that the wider tree remains usable.
 
-- `// Backward compatibility; use Function/Event in the new code`
+Core should continue to distinguish:
 
-That comment is the clearest status signal in the package.
+- what is modern preference
+- what is compatibility support
+- what might eventually be retired
 
-`CallbackN` and `GateN` are mostly thin wrappers around `Function<void(...)>` and `Function<bool(...)>`. The old macro ecosystem remains:
-
-- `THISBACK`, `THISBACK1`, ...
-- `PTEBACK`, `STDBACK`
-- generated callback adapter templates in `CallbackR.i`, `CallbackN.i`, and `CallbackNP.i`
-
-## Semantics
-- `Function` is reference-counted, nullable, and callable like a modern function object
-- `Event` is a naming alias for void-returning callbacks
-- `Gate` is a naming alias for bool-returning callbacks
-- `Callback` keeps old source compatibility and macro-heavy binding style
-
-The package supports both because much of the codebase still uses the older naming and helper macros.
-
-## Tradeoffs
-- `Function` is easier to use with lambdas and generic code
-- `Callback` preserves source compatibility and older idioms used across U++
-- both are explicit callable objects; Core does not build a separate signal/slot framework at this layer
-
-## Current vs legacy
-`Function`/`Event`/`Gate` are current. `Callback` is a compatibility layer that still matters because the rest of the tree uses it heavily.
-
-## See also
-- [03-Threading.md](03-Threading.md)
-- [06-Streams.md](06-Streams.md)
-- [10-Recycling.md](10-Recycling.md)
-- [README.md](README.md)
+That kind of honesty is more useful than pretending the callable story is perfectly unified.

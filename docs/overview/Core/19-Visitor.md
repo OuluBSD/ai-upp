@@ -1,67 +1,26 @@
 # Visitor
 
-## What this covers
-This file documents `uppsrc/Core/Visitor.h`: what it is for, how it differs from `Serialize` / `Jsonize` / `Xmlize`, and why it should be treated as a non-central or fork-specific Core facility.
+## What this page is for
+This page is about visitor-style traversal as a persistent architectural idea.
 
-## Design intent
-`Visitor` is a mode-driven adapter that can route one `Visit(...)` implementation across several backends:
+Visitor mechanisms in Core are interesting not because they are universally dominant, but because they reveal the framework's continuing interest in structured traversal, transformation, and reflection-like behavior without surrendering everything to one hidden meta-system.
 
-- stream serialization
-- JSON
-- hashing
-- version-control-style persistence
-- runtime/access/constraint-style modes
+## An unfinished but serious direction
+Visitor-style layers often indicate that a codebase wants more reflection than plain static code provides, but does not want to base the entire runtime on a heavy universal reflection engine.
 
-The same object method can therefore feed multiple representations.
+That makes visitor support a revealing middle ground:
 
-## Main structure
-`Visitor` stores backend pointers and mode flags directly:
+- more structured than ad hoc manual glue
+- less totalizing than a single omnipotent metadata model
 
-- `JsonIO* json`
-- `Stream* stream`
-- `VersionControlSystem* vcs`
-- `CombineHash hash`
-- `mode`, `file_ver`, `skip`, and `storing`
+Core keeping this idea alive suggests the framework still sees value in that middle ground.
 
-It then exposes helpers such as:
+## Why it belongs in Core
+Visitor support becomes foundational once multiple higher-level systems want to inspect, transform, serialize, or adapt objects in related ways.
 
-- `Visit`
-- `VisitT`
-- `VisitVector`
-- `VisitMap`
-- `VisitMapKV`
-- `Ver(...)` and version gating
+Placing that idea near the center keeps the door open for broader runtime coordination without forcing every package to invent its own traversal language.
 
-This is more orchestration-heavy than `Serialize(Stream&)`, `Jsonize(JsonIO&)`, or `Xmlize(XmlIO&)`.
+## Future direction
+Visitor-style facilities are one of the clearest "place for ideas" topics in Core.
 
-## Semantics
-The visitor API assumes user types implement `Visit(Visitor&)` and sometimes type-specific variants. It also knows about repository-specific infrastructure:
-
-- `VersionControlSystem`
-- access/menu/value hooks
-- runtime-visit and constraint modes
-
-That makes it broader than a generic serialization helper and more coupled to this fork's surrounding systems.
-
-## Current vs fork-specific
-`Visitor` is present and functional in this repository, but it is not part of the standard Core story in the same way that `Serialize`, `Jsonize`, `Xmlize`, `Value`, or `Stream` are.
-
-Repository evidence for that assessment:
-
-- it depends on `VersionControlSystem`
-- it has UI/access-style hooks in the same type
-- it is absent from the older Core high-level docs
-- its mode set extends well beyond plain serialization
-
-So this should be treated as fork-specific or at least non-central infrastructure inside this tree.
-
-## Limitations and caveats
-- the API is template-heavy and convention-based
-- mode handling is explicit and can become hard to reason about
-- it overlaps conceptually with `Serialize`, `Jsonize`, and `Xmlize` rather than replacing them cleanly
-
-## See also
-- [06-Streams.md](06-Streams.md)
-- [13-Value.md](13-Value.md)
-- [18-Parsers-and-Serialization.md](18-Parsers-and-Serialization.md)
-- [10-Recycling.md](10-Recycling.md)
+They could remain modest. They could grow into stronger reflective infrastructure. They could become more relevant if service, tooling, schema, or editor-driven workflows expand. The important thing is that the overview keeps this area visible as a live architectural direction rather than dismissing it as a side detail.

@@ -4,8 +4,16 @@
 #define IMAGEFILE <PlotCtrl/cursors.iml>
 #include <Draw/iml.h>
 
+static Color ThemeAdjusted(Color c) {
+	return IsDarkTheme() ? AdjustIfDark(c) : c;
+}
+
 PlotCtrl::PlotCtrl() : img(),mpos(Null),cursor(PC_ARROW){
 	img = Image(); // explicitly initialize img to an empty image to ensure it's valid
+	SetBackground(ThemeAdjusted(White()));
+	SetFrameColor(ThemeAdjusted(White()));
+	SetFontColor(ThemeAdjusted(Black()));
+	SetAxisColor(ThemeAdjusted(Black()));
 	BackPaint();
 }
 PlotCtrl& PlotCtrl::Zoom(double rx,double ry,Pointf C){
@@ -106,11 +114,13 @@ void PlotCtrl::MouseMove(Point pt, dword keyflags){
 		return;
 	}
 	String pos=ImgToPlotFormatted(pt);
+	Color overlay_bg = ThemeAdjusted(Black());
+	Color overlay_fg = ThemeAdjusted(White());
 	ImageDraw w(15+StrWidth(pos),15+GetFont().GetHeight());
-	w.DrawRect(0,0,15+StrWidth(pos),15+GetFont().GetHeight(),Black());
+	w.DrawRect(0,0,15+StrWidth(pos),15+GetFont().GetHeight(),overlay_bg);
 	w.Alpha().DrawRect(0,0,15+StrWidth(pos),15+GetFont().GetHeight(),GrayColor(0));
-	w.Alpha().DrawImage(0,0,PlotCursors::cross,GrayColor(255));
-	w.Alpha().DrawText(11,11,pos,GetFont(),GrayColor(255));
+	w.Alpha().DrawImage(0,0,PlotCursors::cross,overlay_fg);
+	w.Alpha().DrawText(11,11,pos,GetFont(),overlay_fg);
 	ImageBuffer b(w);
 	b.SetHotSpot(Point(8,8));
 	cimg=b;
@@ -149,11 +159,13 @@ void PlotCtrl::MouseLeave(){
 void PlotCtrl::TrackerSync(Rect r){
 	String pos=ImgToPlotFormatted(r);
 	Rect t(0,0,15+StrWidth(pos),15+2*GetFont().GetHeight());
+	Color overlay_bg = ThemeAdjusted(Black());
+	Color overlay_fg = ThemeAdjusted(White());
 	ImageDraw w(t.Width(),t.Height());
-	w.DrawRect(t,Black());
+	w.DrawRect(t,overlay_bg);
 	w.Alpha().DrawRect(t,GrayColor(0));
-	w.Alpha().DrawImage(0,0,PlotCursors::cross,GrayColor(255));
-	w.Alpha().DrawText(11,11,pos,GetFont(),GrayColor(255));
+	w.Alpha().DrawImage(0,0,PlotCursors::cross,overlay_fg);
+	w.Alpha().DrawText(11,11,pos,GetFont(),overlay_fg);
 	ImageBuffer b(w);
 	b.SetHotSpot(Point(8,8));
 	if (tr)

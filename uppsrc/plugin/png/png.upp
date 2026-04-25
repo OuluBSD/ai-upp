@@ -54,7 +54,7 @@ options
 	-DPNG_NO_READ_OPT_PLTE,
 	-DPNG_NO_INFO_IMAGE;
 
-pkg_config(POSIX !OSX !STATIC_PNG) libpng;
+pkg_config(!OSX !STATIC_PNG !WIN32) libpng;
 
 file
 	png.h,

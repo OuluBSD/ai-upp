@@ -120,6 +120,10 @@ bool SemanticParser::ParseDeclaration() {
 			if (!ParseWorld())
 				return false;
 		}
+		else if (IsId("node")) {
+			if (!ParseNodeTypeDecl())
+				return false;
+		}
 		else if (IsId("meta")) {
 			if (!ParseMeta(cookie))
 				return false;
@@ -2091,6 +2095,33 @@ bool SemanticParser::ParseNetStatement(int& cookie) {
 				EMIT PushRvalUnresolved(iter->loc, id, Cursor_Null);
 				AstNode* rval = EMIT PopExpr(iter->loc);
 				EMIT PopStatement(iter->loc, rval);
+
+				// Connection metadata sub-block: "src -> dst:\n\tkey = value"
+				// The ':' causes the token structure to create a child block on this statement.
+				// Walk the child block and store key=value pairs in stmt->obj as a ValueMap.
+				if (stmt && cur.val.Sub<TokenNode>().GetCount()) {
+					ValueMap meta;
+					const TokenNode& meta_owner = *path.Top();
+					for (const TokenNode& ms : meta_owner.val.Sub<TokenNode>()) {
+						// Each child line: "key = value"
+						if (!ms.begin) continue;
+						const Token* mt = ms.begin;
+						const Token* mend = ms.end;
+						if (mt >= mend) continue;
+						String mkey = mt->GetTextValue(); mt++;
+						if (mt < mend && mt->IsType('=')) {
+							mt++;
+							String mval;
+							while (mt < mend) {
+								if (!mval.IsEmpty()) mval << " ";
+								mval << mt->GetTextValue();
+								mt++;
+							}
+							meta.Add(mkey, TrimBoth(mval));
+						}
+					}
+					stmt->obj = meta;
+				}
 			}
 			else if (!iter || iter->IsType('[') || cur.val.Sub<TokenNode>().GetCount()) {
 				if (!ParseAtom(id))
@@ -2099,7 +2130,12 @@ bool SemanticParser::ParseNetStatement(int& cookie) {
 			else if (iter->IsType('=')) {
 				CHECK_SPATH_BEGIN
 
-				AstNode* var = EMIT DeclareVariable(iter->loc, *builtin_void, id);
+				// Try to reuse an existing declaration; declare only if not yet known.
+				// This allows multiple atoms in the same net to share param names
+				// (e.g. two nodes both having "device = ...").
+				AstNode* var = FindDeclaration(id);
+				if (!var)
+					var = EMIT DeclareVariable(iter->loc, *builtin_void, id);
 				if (!var) return false;
 
 				EMIT PushStatement(iter->loc, Cursor_ExprStmt);
@@ -2835,6 +2871,168 @@ bool SemanticParser::ParseExpressionList() {
 	EMIT PopStatementList(tk_owner.end->loc);
 	
 	return succ;
+}
+
+
+// ---------------------------------------------------------------------------
+// node <dotted.path>:
+//     in  <port>  : <TYPE>
+//     out <port>  : <TYPE>
+//     <key> [: <type>] = <value>  [(<WidgetHint>)]
+//
+// This is pure metadata — nothing is declared in the symbol table.
+// All data is stored as flat strings in AstNode::str / AstNode::obj so that
+// EonIO can read it back without triggering duplicate-declaration errors.
+// ---------------------------------------------------------------------------
+
+bool SemanticParser::ParseNodeTypeDecl() {
+	Iterator& iter = TopIterator();
+
+	if (!PassId("node"))
+		return false;
+
+	PathIdentifier id;
+	if (!ParsePathIdentifier(id, false, false)) {
+		AddError(iter->loc, "expected node type id after 'node'");
+		return false;
+	}
+
+	// Allocate a child AstNode on the *current scope node* (not GetRoot())
+	// to avoid polluting the global declaration table.
+	FileLocation loc = iter.begin->loc;
+	AstNode& scope_node = GetTopNode();
+	AstNode& decl = scope_node.Add(loc, "node_type_decl");
+	decl.id = id;
+
+	// Parse the body block if present
+	if (path.Top()->val.Sub<TokenNode>().GetCount()) {
+		if (!ParseNodeTypeDeclStatementList(decl))
+			return false;
+	}
+
+	return true;
+}
+
+bool SemanticParser::ParseNodeTypeDeclStatementList(AstNode& decl) {
+	const TokenNode& owner = *path.Top();
+	const TokenNode*& cur = path.Add();
+
+	for (const TokenNode& tns : owner.val.Sub<TokenNode>()) {
+		cur = &tns;
+		AddIterator(tns);
+		if (!ParseNodeTypeDeclStatement(decl))
+			return false;
+		PopIterator();
+	}
+
+	path.Remove(path.GetCount() - 1);
+	return true;
+}
+
+// Helper: parse tokens from [begin, end) for "type = value (widget)" suffix.
+// Used after the key has been read and ':' consumed (the ':' makes a child TokenNode).
+static void ParseNodeParamSuffix(const Token* begin, const Token* end,
+                                  String& type_name, String& default_val, String& widget)
+{
+	const Token* iter = begin;
+
+	// optional type (before '=' or '(')
+	while (iter < end && !iter->IsType('=') && !iter->IsType('(')) {
+		if (!type_name.IsEmpty()) type_name << ".";
+		type_name << iter->GetTextValue();
+		iter++;
+	}
+	type_name = TrimBoth(type_name);
+
+	// optional "= value"
+	if (iter < end && iter->IsType('=')) {
+		iter++;
+		while (iter < end && !iter->IsType('(')) {
+			if (!default_val.IsEmpty()) default_val << " ";
+			default_val << iter->GetTextValue();
+			iter++;
+		}
+		default_val = TrimBoth(default_val);
+	}
+
+	// optional "(WidgetHint)"
+	if (iter < end && iter->IsType('(')) {
+		iter++;
+		while (iter < end && !iter->IsType(')')) {
+			if (!widget.IsEmpty()) widget << " ";
+			widget << iter->GetTextValue();
+			iter++;
+		}
+		widget = TrimBoth(widget);
+	}
+}
+
+bool SemanticParser::ParseNodeTypeDeclStatement(AstNode& decl) {
+	Iterator& iter = TopIterator();
+	if (!iter) return true;
+
+	FileLocation loc = iter->loc;
+
+	// The current TokenNode for this line. Its val.Sub<TokenNode>() holds the child
+	// block (the part after ':'), since ParseStatement splits at ':'.
+	const TokenNode& tns = CurrentNode();
+
+	// Pin declaration: "in <name> : <TYPE>" or "out <name> : <TYPE>"
+	// Tokens before ':': "in portname" or "out portname"
+	// Child TokenNode (if any): "TYPE"
+	if (IsId("in") || IsId("out")) {
+		bool is_out = IsId("out");
+		iter++;
+
+		String port_name;
+		while (iter) {
+			if (!port_name.IsEmpty()) port_name << ".";
+			port_name << iter->GetTextValue();
+			iter++;
+		}
+		port_name = TrimBoth(port_name);
+
+		// Type is in the child block (after ':')
+		String type_name;
+		for (const TokenNode& child : const_cast<TokenNode&>(tns).val.Sub<TokenNode>()) {
+			// child has tokens: "TYPE"
+			for (const Token* t = child.begin; t < child.end; t++) {
+				if (!type_name.IsEmpty()) type_name << ".";
+				type_name << t->GetTextValue();
+			}
+			break; // only first child
+		}
+		type_name = TrimBoth(type_name);
+
+		AstNode& pin = decl.Add(loc, is_out ? "pin_out" : "pin_in");
+		pin.str = port_name + "|" + type_name;  // "portname|TYPE"
+		return true;
+	}
+
+	// Param: "<key> [: <type>] [= <value>] [(<WidgetHint>)]"
+	// Tokens before ':': "<key>"
+	// Child TokenNode (if any): "<type> [= <value>] [(<WidgetHint>)]"
+	String key, type_name, default_val, widget;
+
+	// Key: tokens in current line before iter runs out (ParseStatement stopped at ':')
+	while (iter) {
+		if (!key.IsEmpty()) key << ".";
+		key << iter->GetTextValue();
+		iter++;
+	}
+	key = TrimBoth(key);
+
+	if (key.IsEmpty()) return true;  // blank line
+
+	// Parse suffix from child block (type/default/widget after ':')
+	for (const TokenNode& child : const_cast<TokenNode&>(tns).val.Sub<TokenNode>()) {
+		ParseNodeParamSuffix(child.begin, child.end, type_name, default_val, widget);
+		break; // only first child
+	}
+
+	AstNode& param = decl.Add(loc, "node_param");
+	param.str = key + "|" + type_name + "|" + default_val + "|" + widget;
+	return true;
 }
 
 

@@ -79,6 +79,15 @@ bool Compiler::CompileEon(String content, String path, ProgLang lang, String& ou
 	return true;
 }
 
+AstNode* Compiler::CompileToSemantic(const String& content, const String& path, bool verbose) {
+	TEST(Tokenize(path, content, true))
+	if (verbose) t.Dump();
+	TEST(ParseStructure())
+	TEST(Parse())
+	if (verbose) { LOG(GetSemanticParser().GetRoot().GetTreeString(0)); }
+	return &GetSemanticParser().GetRoot();
+}
+
 #undef TEST
 
 bool Compiler::Tokenize(String filepath, String content, bool pythonic) {

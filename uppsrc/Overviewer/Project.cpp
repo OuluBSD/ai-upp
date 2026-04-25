@@ -26,6 +26,89 @@ ValueMap FocusResult(bool ok, const String& message = String())
 	return out;
 }
 
+bool FocusMatchPattern(const String& text, const String& pattern)
+{
+	String p = ToLower(TrimBoth(pattern));
+	if(p.IsEmpty())
+		return true;
+	String t = ToLower(text);
+	if(p.Find('*') < 0)
+		return t.Find(p) >= 0;
+
+	Vector<String> parts = Split(p, '*');
+	int pos = 0;
+	bool anchored_start = !p.StartsWith("*");
+	bool anchored_end = !p.EndsWith("*");
+	bool first_nonempty = true;
+	String last_nonempty;
+	for(const String& part0 : parts) {
+		String part = TrimBoth(part0);
+		if(part.IsEmpty())
+			continue;
+		int q = t.Find(part, pos);
+		if(q < 0)
+			return false;
+		if(first_nonempty && anchored_start && q != 0)
+			return false;
+		first_nonempty = false;
+		last_nonempty = part;
+		pos = q + part.GetCount();
+	}
+	if(anchored_end && !last_nonempty.IsEmpty() && !t.EndsWith(last_nonempty))
+		return false;
+	return true;
+}
+
+String FocusPatternCore(const String& pattern)
+{
+	String p = TrimBoth(pattern);
+	String out;
+	out.Reserve(p.GetCount());
+	for(int i = 0; i < p.GetCount(); i++) {
+		byte c = p[i];
+		if(c != '*')
+			out.Cat(c);
+	}
+	return ToLower(TrimBoth(out));
+}
+
+int FocusPathSearchScore(const String& rel_path, const String& query)
+{
+	String rel = NormalizePath(rel_path, "/");
+	String lrel = ToLower(rel);
+	String core = FocusPatternCore(query);
+
+	int score = 0;
+	int depth = Split(rel, '/').GetCount();
+	score += min(180, depth * 4);
+	score += min(180, rel.GetCount() / 4);
+
+	if(rel.StartsWith("uppsrc/"))
+		score -= 10;
+	if(rel.StartsWith("uppsrc/Overviewer/"))
+		score -= 20;
+
+	if(!core.IsEmpty()) {
+		if(lrel == core)
+			score -= 220;
+		if(lrel.EndsWith("/" + core))
+			score -= 150;
+		if(lrel.Find(core) >= 0)
+			score -= 50;
+
+		Vector<String> core_parts = Split(core, '/');
+		String tail = core_parts.IsEmpty() ? String() : core_parts.Top();
+		if(!tail.IsEmpty()) {
+			if(lrel.EndsWith("/" + tail))
+				score -= 40;
+			if(lrel.Find("/" + tail + "/") >= 0)
+				score -= 15;
+		}
+	}
+
+	return max(-500, score);
+}
+
 }
 
 INITBLOCK
@@ -1690,6 +1773,8 @@ void OverviewerWindow::RefreshMluiFocusPages()
 {
 	MLUI::FocusPage& file_tree = MLUI::GetFocusPage(FOCUS_FILE_TREE);
 	file_tree.ClearRuntime();
+	file_tree.Workflow(1, "reload -> select -> active_file actions");
+	file_tree.EmptyState("");
 	file_tree.Add(tree).Add(search_ctrl);
 	MLUI_USE_CTRL(file_tree, tree, "Main file tree control");
 	MLUI_USE_CTRL(file_tree, search_ctrl, "Tree text filter input");
@@ -1709,7 +1794,106 @@ void OverviewerWindow::RefreshMluiFocusPages()
 
 	file_tree.AddAction("select", visible_rows > 0, "Select a row by relative path");
 	file_tree.AddAction("reload", can_reload, "Rescan and rebuild visible tree");
+	file_tree.SearchHandler([this](const String& query, int limit, ValueArray& out) {
+		if(limit <= 0)
+			return;
+		String q = TrimBoth(query);
+		if(q.IsEmpty())
+			return;
+		String active_path = NormalizeTreePath(current_selection);
+		String active_dir;
+		if(!active_path.IsEmpty()) {
+			int slash = active_path.ReverseFind('/');
+			active_dir = slash >= 0 ? active_path.Left(slash) : String();
+		}
+		struct Hit : Moveable<Hit> {
+			int score = 0;
+			String rel;
+		};
+		Vector<Hit> hits;
+		for(const String& full : project.current_scan) {
+			String rel = NormalizeTreePath(full);
+			if(rel.IsEmpty())
+				continue;
+			if(!FocusMatchPattern(rel, q))
+				continue;
+			Hit& h = hits.Add();
+			h.score = FocusPathSearchScore(rel, q);
+			if(!active_path.IsEmpty()) {
+				if(rel == active_path)
+					h.score -= 120;
+				else if(!active_dir.IsEmpty() && rel.StartsWith(active_dir + "/"))
+					h.score -= 30;
+			}
+			h.rel = rel;
+		}
+		Sort(hits, [&](const Hit& a, const Hit& b) {
+			if(a.score != b.score)
+				return a.score < b.score;
+			return a.rel < b.rel;
+		});
+		for(const Hit& h : hits) {
+			if(out.GetCount() >= limit)
+				break;
+			ValueMap item;
+			item.Add("kind", "path_match");
+			item.Add("key", "scan:" + h.rel);
+			item.Add("text", h.rel + " Scanned project path");
+			item.Add("path", h.rel);
+			item.Add("score", h.score);
+			item.Add("action", "select");
+			ValueMap args;
+			args.Add("path", h.rel);
+			item.Add("args", args);
+			out.Add(item);
+		}
+	});
 
+	{
+		ValueArray args;
+		ValueMap path_arg;
+		ValueArray aliases;
+		aliases.Add("target");
+		aliases.Add("rel_path");
+		path_arg.Add("name", "path");
+		path_arg.Add("type", "string");
+		path_arg.Add("required", true);
+		path_arg.Add("description", "Relative path in tree (e.g. uppsrc/Overviewer/Main.cpp)");
+		path_arg.Add("aliases", aliases);
+		args.Add(path_arg);
+
+		ValueArray writes;
+		writes.Add("ui.selection");
+		writes.Add("focus.active_file.context");
+		file_tree.ActionArgs("select", args)
+		         .ActionRequires("select", "state.has_project=true && visible_rows>0", "No project/tree rows available")
+		         .ActionEffects("select", "Updates current tree selection and active-file context", writes);
+
+		ValueMap ex;
+		ex.Add("path", "uppsrc/Overviewer/Main.cpp");
+		file_tree.ActionExample("select", ex, "Select specific file by relative path");
+		file_tree.Example("select", ex, "Select a file from tree");
+	}
+	{
+		ValueArray writes;
+		writes.Add("ui.file_tree.rows");
+		writes.Add("state.selected_path");
+		file_tree.ActionRequires("reload", "state.has_project=true", "Open project first")
+		         .ActionEffects("reload", "Rescans filesystem and rebuilds tree rows", writes);
+		ValueMap ex;
+		file_tree.ActionExample("reload", ex, "Refresh file tree from disk");
+		file_tree.Example("reload", ex, "Rebuild tree after filesystem changes");
+	}
+
+	const int max_content_items = 2048;
+	for(int i = 0; i < tree.GetLineCount() && i < max_content_items; i++) {
+		if(!tree.IsValid(i))
+			continue;
+		String rel = NormalizeTreePath((String)tree.Get(i));
+		if(rel.IsEmpty())
+			continue;
+		file_tree.AddContent("path:" + rel, rel, "Visible file-tree path", "path_match");
+	}
 	file_tree.ActionHandler("select", [this](const ValueMap& args) -> Value {
 		String path = NormalizeTreePath(FocusArgString(args, "path", "target", "rel_path"));
 		if(path.IsEmpty() && !current_selection.IsEmpty())
@@ -1747,6 +1931,8 @@ void OverviewerWindow::RefreshMluiFocusPages()
 
 	MLUI::FocusPage& active_file = MLUI::GetFocusPage(FOCUS_ACTIVE_FILE);
 	active_file.ClearRuntime();
+	active_file.Workflow(2, "set_priority / analyze / add_comment for selected file")
+	           .DependsOn(FOCUS_FILE_TREE);
 	active_file.Add(notes_editor).Add(priority).Add(quality).Add(completion);
 	MLUI_USE_CTRL(active_file, notes_editor, "Notes editor for selected entry");
 	MLUI_USE_CTRL(active_file, priority, "Priority selector");
@@ -1766,10 +1952,74 @@ void OverviewerWindow::RefreshMluiFocusPages()
 	MLUI_USE_STATE(active_file, "flags", (int)meta.flags, "Metadata bitmask for active entry");
 	MLUI_USE_STATE(active_file, "quality", meta.quality, "Quality score [0..5]");
 	MLUI_USE_STATE(active_file, "completion", meta.completion, "Completion score [0..5]");
+	active_file.EmptyState(has_selection ? String()
+	                                     : String("No selection. Select a file via file_tree.select first."));
 
 	active_file.AddAction("analyze", has_selection, "Run analysis for selected entry");
 	active_file.AddAction("set_priority", has_selection, "Set selected entry priority");
 	active_file.AddAction("add_comment", has_selection, "Add comment for selected entry");
+
+	{
+		ValueArray writes;
+		writes.Add("metadata.suggestions");
+		writes.Add("ui.analysis_panes");
+		active_file.ActionRequires("analyze", "state.has_selection=true", "Select file first in file_tree")
+		           .ActionEffects("analyze", "Runs analysis and updates derived metadata/suggestions", writes);
+		ValueMap ex;
+		active_file.ActionExample("analyze", ex, "Analyze currently selected file");
+		active_file.Example("analyze", ex, "Analyze active file");
+	}
+	{
+		ValueArray args;
+		ValueMap arg;
+		ValueArray aliases;
+		aliases.Add("priority");
+		arg.Add("name", "value");
+		arg.Add("type", "integer");
+		arg.Add("required", true);
+		arg.Add("range", "0..5");
+		arg.Add("description", "Priority value for selected file");
+		arg.Add("aliases", aliases);
+		args.Add(arg);
+
+		ValueArray writes;
+		writes.Add("metadata.priority");
+		writes.Add("project.json");
+		active_file.ActionArgs("set_priority", args)
+		           .ActionRequires("set_priority", "state.has_selection=true", "Select file first in file_tree")
+		           .ActionEffects("set_priority", "Updates selected file priority and marks project dirty", writes);
+		ValueMap ex;
+		ex.Add("value", 3);
+		active_file.ActionExample("set_priority", ex, "Set priority to 3");
+		active_file.Example("set_priority", ex, "Update selected file priority");
+	}
+	{
+		ValueArray args;
+		ValueMap arg;
+		ValueArray aliases;
+		aliases.Add("comment");
+		aliases.Add("value");
+		arg.Add("name", "text");
+		arg.Add("type", "string");
+		arg.Add("required", true);
+		arg.Add("description", "Comment text to append to selected file timeline");
+		arg.Add("aliases", aliases);
+		args.Add(arg);
+
+		ValueArray writes;
+		writes.Add("metadata.comments");
+		writes.Add("project.json");
+		active_file.ActionArgs("add_comment", args)
+		           .ActionRequires("add_comment", "state.has_selection=true", "Select file first in file_tree")
+		           .ActionEffects("add_comment", "Appends comment and marks project dirty", writes);
+		ValueMap ex;
+		ex.Add("text", "Needs cleanup");
+		active_file.ActionExample("add_comment", ex, "Append user comment");
+		active_file.Example("add_comment", ex, "Add comment for active file");
+	}
+
+	if(has_selection)
+		active_file.AddContent("path:" + active_path, active_path, "Currently selected path", "path_match");
 
 	active_file.ActionHandler("analyze", [this](const ValueMap& args) -> Value {
 		(void)args;

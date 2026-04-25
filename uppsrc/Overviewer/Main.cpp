@@ -84,34 +84,41 @@ static Vector<String> GetAffectedPaths(const OverviewerProject& project, const S
 	return res;
 }
 
-int CliMain(Vector<String>& args) {
+int CliMain(const Vector<String>& args) {
 	if (args.GetCount() == 0 || args[0] == "--help") {
 		PrintHelp();
 		return 0;
 	}
 
 	String actor_id = "cli";
+	Vector<String> filtered_args;
 	for(int i = 0; i < args.GetCount(); i++) {
 		if(args[i] == "--actor" && i + 1 < args.GetCount()) {
 			actor_id = args[i+1];
-			args.Remove(i, 2);
-			break;
+			i++;
+		} else {
+			filtered_args.Add(args[i]);
 		}
 	}
+	
+	const Vector<String>& rargs = filtered_args;
+	if (rargs.GetCount() == 0) return 0;
 
 	auto load_p = [&](OverviewerProject& p, const String& path) {
 		if(!LoadFromJsonFile(p, path)) return false;
 		p.path = path;
 		p.StartSession(actor_id, "cli");
+		p.DoScan();
 		return true;
 	};
 
-	if (args[0] == "--create-project" && args.GetCount() >= 2) {
+	if (rargs[0] == "--create-project" && rargs.GetCount() >= 2) {
 		OverviewerProject p;
-		p.path = args[1];
-		if (args.GetCount() >= 4 && args[2] == "--dir")
-			p.working_dir = args[3];
+		p.path = rargs[1];
+		if (rargs.GetCount() >= 4 && rargs[2] == "--dir")
+			p.working_dir = rargs[3];
 		p.StartSession(actor_id, "cli");
+		p.DoScan();
 		p.RecordUsage("create_project", p.path);
 		String json = StoreAsJson(p);
 		if (SaveFile(p.path, json)) {
@@ -122,10 +129,10 @@ int CliMain(Vector<String>& args) {
 		return 1;
 	}
 
-	if (args[0] == "--set-flag" && args.GetCount() >= 4) {
-		String p_path = args[1];
-		String f_path = args[2];
-		String flag_name = args[3];
+	if (rargs[0] == "--set-flag" && rargs.GetCount() >= 4) {
+		String p_path = rargs[1];
+		String f_path = rargs[2];
+		String flag_name = rargs[3];
 		OverviewerProject p;
 		if(!load_p(p, p_path)) return 1;
 		uint32 bit = 0;
@@ -142,51 +149,51 @@ int CliMain(Vector<String>& args) {
 		return StoreAsJsonFile(p, p_path) ? 0 : 1;
 	}
 
-	if (args[0] == "--set-priority" && args.GetCount() >= 4) {
+	if (rargs[0] == "--set-priority" && rargs.GetCount() >= 4) {
 		OverviewerProject p;
-		if(!load_p(p, args[1])) return 1;
-		p.GetMetadataWrite(args[2]).priority = ScanInt(args[3]);
-		p.LogEvent(args[2], "set_priority", "Priority set to " + args[3]);
-		p.RecordUsage("set_priority_cli", args[2]);
+		if(!load_p(p, rargs[1])) return 1;
+		p.GetMetadataWrite(rargs[2]).priority = ScanInt(rargs[3]);
+		p.LogEvent(rargs[2], "set_priority", "Priority set to " + rargs[3]);
+		p.RecordUsage("set_priority_cli", rargs[2]);
 		return StoreAsJsonFile(p, args[1]) ? 0 : 1;
 	}
 
-	if (args[0] == "--add-tag" && args.GetCount() >= 5) {
+	if (rargs[0] == "--add-tag" && rargs.GetCount() >= 5) {
 		OverviewerProject p;
-		if(!load_p(p, args[1])) return 1;
-		String fpath = args[2], cat = args[3], tag = args[4];
+		if(!load_p(p, rargs[1])) return 1;
+		String fpath = rargs[2], cat = rargs[3], tag = rargs[4];
 		FileMetadata& m = p.GetMetadataWrite(fpath);
 		Vector<String>* v = (cat == "current" ? &m.current_tags : (cat == "reason" ? &m.reason_tags : (cat == "gap" ? &m.gap_tags : nullptr)));
 		if(!v) return 1;
 		if(FindIndex(*v, tag) < 0) v->Add(tag);
 		p.LogEvent(fpath, "add_tag", "Tag added: " + tag);
 		p.RecordUsage("add_tag_cli", fpath);
-		return StoreAsJsonFile(p, args[1]) ? 0 : 1;
+		return StoreAsJsonFile(p, rargs[1]) ? 0 : 1;
 	}
 
-	if (args[0] == "--get-entry" && args.GetCount() >= 3) {
+	if (rargs[0] == "--get-entry" && rargs.GetCount() >= 3) {
 		OverviewerProject p;
-		if(!LoadFromJsonFile(p, args[1])) return 1;
-		FileMetadata effective = p.GetEffectiveMetadata(args[2]);
-		const FileMetadata* m = p.metadata.FindPtr(args[2]);
-		Cout() << "Path: " << args[2] << "\n";
+		if(!LoadFromJsonFile(p, rargs[1])) return 1;
+		FileMetadata effective = p.GetEffectiveMetadata(rargs[2]);
+		const FileMetadata* m = p.metadata.FindPtr(rargs[2]);
+		Cout() << "Path: " << rargs[2] << "\n";
 		Cout() << "Flags: " << (int)(m ? m->flags : 0) << "\n";
 		Cout() << "Priority: " << (m ? m->priority : 0) << " (effective: " << effective.priority << ")\n";
 		Cout() << "Note: " << (m ? m->notes : "") << "\n";
 		return 0;
 	}
 
-	if (args[0] == "--get-dashboard" && args.GetCount() >= 2) {
+	if (rargs[0] == "--get-dashboard" && rargs.GetCount() >= 2) {
 		OverviewerProject p;
-		if(!LoadFromJsonFile(p, args[1])) return 1;
+		if(!LoadFromJsonFile(p, rargs[1])) return 1;
 		ProjectDashboard db = p.GetDashboard();
 		Cout() << "Dashboard: " << db.total_files << " files, " << db.flagged_entries << " flagged, " << db.active_insights << " active insights.\n";
 		return 0;
 	}
 
-	if (args[0] == "--get-history" && args.GetCount() >= 2) {
+	if (rargs[0] == "--get-history" && rargs.GetCount() >= 2) {
 		OverviewerProject p;
-		if(!LoadFromJsonFile(p, args[1])) return 1;
+		if(!LoadFromJsonFile(p, rargs[1])) return 1;
 		for(int i = p.history.GetCount() - 1; i >= 0; i--) {
 			const auto& e = p.history[i];
 			Cout() << Upp::Format(e.time) << " | " << e.actor_id << " | " << e.path << " | " << e.type << " | " << e.description << "\n";
@@ -194,59 +201,59 @@ int CliMain(Vector<String>& args) {
 		return 0;
 	}
 
-	if (args[0] == "--create-scenario" && args.GetCount() >= 3) {
+	if (rargs[0] == "--create-scenario" && rargs.GetCount() >= 3) {
 		OverviewerProject p;
-		if(!load_p(p, args[1])) return 1;
-		String id = p.CreateScenario(args[2]);
+		if(!load_p(p, rargs[1])) return 1;
+		String id = p.CreateScenario(rargs[2]);
 		Cout() << "Scenario created: " << id << "\n";
-		return StoreAsJsonFile(p, args[1]) ? 0 : 1;
+		return StoreAsJsonFile(p, rargs[1]) ? 0 : 1;
 	}
 
-	if (args[0] == "--activate-scenario" && args.GetCount() >= 3) {
+	if (rargs[0] == "--activate-scenario" && rargs.GetCount() >= 3) {
 		OverviewerProject p;
-		if(!load_p(p, args[1])) return 1;
-		p.ActivateScenario(args[2]);
-		return StoreAsJsonFile(p, args[1]) ? 0 : 1;
+		if(!load_p(p, rargs[1])) return 1;
+		p.ActivateScenario(rargs[2]);
+		return StoreAsJsonFile(p, rargs[1]) ? 0 : 1;
 	}
 
-	if (args[0] == "--create-decision" && args.GetCount() >= 3) {
+	if (rargs[0] == "--create-decision" && rargs.GetCount() >= 3) {
 		OverviewerProject p;
-		if(!load_p(p, args[1])) return 1;
-		String id = p.CreateDecision(args[2]);
+		if(!load_p(p, rargs[1])) return 1;
+		String id = p.CreateDecision(rargs[2]);
 		Cout() << "Decision created: " << id << "\n";
-		return StoreAsJsonFile(p, args[1]) ? 0 : 1;
+		return StoreAsJsonFile(p, rargs[1]) ? 0 : 1;
 	}
 
-	if (args[0] == "--set-decision-status" && args.GetCount() >= 4) {
+	if (rargs[0] == "--set-decision-status" && rargs.GetCount() >= 4) {
 		OverviewerProject p;
-		if(!load_p(p, args[1])) return 1;
-		p.UpdateDecision(args[2], "", args[3]);
-		return StoreAsJsonFile(p, args[1]) ? 0 : 1;
+		if(!load_p(p, rargs[1])) return 1;
+		p.UpdateDecision(rargs[2], "", rargs[3]);
+		return StoreAsJsonFile(p, rargs[1]) ? 0 : 1;
 	}
 
-	if (args[0] == "--add-comment" && args.GetCount() >= 3) {
+	if (rargs[0] == "--add-comment" && rargs.GetCount() >= 3) {
 		OverviewerProject p;
-		if(!load_p(p, args[1])) return 1;
-		String text = args[2];
+		if(!load_p(p, rargs[1])) return 1;
+		String text = rargs[2];
 		String path = "", dec = "";
-		for(int i = 3; i < args.GetCount(); i++) {
-			if(args[i] == "--path" && i + 1 < args.GetCount()) path = args[++i];
-			else if(args[i] == "--decision" && i + 1 < args.GetCount()) dec = args[++i];
+		for(int i = 3; i < rargs.GetCount(); i++) {
+			if(rargs[i] == "--path" && i + 1 < rargs.GetCount()) path = rargs[++i];
+			else if(rargs[i] == "--decision" && i + 1 < rargs.GetCount()) dec = rargs[++i];
 		}
 		p.AddComment(text, path, dec);
-		return StoreAsJsonFile(p, args[1]) ? 0 : 1;
+		return StoreAsJsonFile(p, rargs[1]) ? 0 : 1;
 	}
 
-	if (args[0] == "--generate-insights" && args.GetCount() >= 2) {
+	if (rargs[0] == "--generate-insights" && rargs.GetCount() >= 2) {
 		OverviewerProject p;
-		if(!load_p(p, args[1])) return 1;
+		if(!load_p(p, rargs[1])) return 1;
 		p.GenerateInsights();
-		return StoreAsJsonFile(p, args[1]) ? 0 : 1;
+		return StoreAsJsonFile(p, rargs[1]) ? 0 : 1;
 	}
 
-	if (args[0] == "--list-insights" && args.GetCount() >= 2) {
+	if (rargs[0] == "--list-insights" && rargs.GetCount() >= 2) {
 		OverviewerProject p;
-		if(!LoadFromJsonFile(p, args[1])) return 1;
+		if(!LoadFromJsonFile(p, rargs[1])) return 1;
 		for(const auto& ins : p.insights) {
 			if(!ins.dismissed)
 				Cout() << ins.id << " | [" << ins.severity << "] " << ins.type << " | " << ins.title << " | " << ins.description << "\n";
@@ -254,9 +261,9 @@ int CliMain(Vector<String>& args) {
 		return 0;
 	}
 
-	if (args[0] == "--get-usage-summary" && args.GetCount() >= 2) {
+	if (rargs[0] == "--get-usage-summary" && rargs.GetCount() >= 2) {
 		OverviewerProject p;
-		if(!LoadFromJsonFile(p, args[1])) return 1;
+		if(!LoadFromJsonFile(p, rargs[1])) return 1;
 		UsageSummary s = UsageTracker::GetSummary(p);
 		Cout() << "Total Actions: " << s.total_actions << "\n";
 		Cout() << "Total Sessions: " << s.sessions_count << "\n";
@@ -267,9 +274,9 @@ int CliMain(Vector<String>& args) {
 		return 0;
 	}
 
-	if (args[0] == "--get-friction" && args.GetCount() >= 2) {
+	if (rargs[0] == "--get-friction" && rargs.GetCount() >= 2) {
 		OverviewerProject p;
-		if(!LoadFromJsonFile(p, args[1])) return 1;
+		if(!LoadFromJsonFile(p, rargs[1])) return 1;
 		Vector<FrictionSignal> friction = UsageTracker::GetFriction(p);
 		if(friction.IsEmpty()) { Cout() << "No friction detected.\n"; }
 		else {
@@ -279,14 +286,14 @@ int CliMain(Vector<String>& args) {
 		return 0;
 	}
 
-	if (args[0] == "--generate-overview" && args.GetCount() >= 2) {
+	if (rargs[0] == "--generate-overview" && rargs.GetCount() >= 2) {
 		OverviewerProject p;
-		if(!LoadFromJsonFile(p, args[1])) return 1;
+		if(!LoadFromJsonFile(p, rargs[1])) return 1;
 		OverviewOptions opt;
-		opt.markdown_output = args.GetCount() >= 3 && args[2] == "--markdown";
+		opt.markdown_output = rargs.GetCount() >= 3 && rargs[2] == "--markdown";
 		Cout() << OverviewGenerator(p).GenerateProject(opt);
 		p.RecordUsage("generate_overview_cli", "");
-		StoreAsJsonFile(p, args[1]);
+		StoreAsJsonFile(p, rargs[1]);
 		return 0;
 	}
 
@@ -296,20 +303,36 @@ int CliMain(Vector<String>& args) {
 
 GUI_APP_MAIN {
 	const Vector<String>& cmdline = CommandLine();
-	Vector<String> args;
-	for(const String& s : cmdline) args.Add(s);
-
-	if (args.GetCount() > 0 && args[0] == "--mcp") {
+	
+	// Check for MCP first before CommandLineArguments consumes it
+	bool mcp = false;
+	for(const String& s : cmdline) {
+		if(s == "--mcp" || s == "-m") {
+			mcp = true;
+			break;
+		}
+	}
+	
+	if (mcp) {
 		OverviewerProject p;
 		McpServer(p).Run();
 		return;
 	}
-	if (args.GetCount() > 0 && args[0].StartsWith("--")) {
-		SetExitCode(CliMain(args));
-		return;
+
+	String project_file;
+	for(const String& s : cmdline) {
+		if(s.StartsWith("-")) {
+			SetExitCode(CliMain(cmdline));
+			return;
+		}
+		if(project_file.IsEmpty())
+			project_file = s;
 	}
 
 	OverviewerWindow w;
+	if(!project_file.IsEmpty())
+		w.OpenFile(project_file);
+	
 	w.LoadLayout();
 	w.CheckRecovery();
 	w.MarkSession(true);

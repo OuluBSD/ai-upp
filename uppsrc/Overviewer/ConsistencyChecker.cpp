@@ -13,12 +13,15 @@ ProjectDashboard OverviewerProject::GetDashboard() const {
 			last_mod.GetAdd(e.path) = e.time;
 	}
 
+	// Count files/dirs from scan
+	for(const String& p : current_scan) {
+		if(DirectoryExists(AppendFileName(working_dir, p))) db.total_dirs++;
+		else db.total_files++;
+	}
+
 	for(int i = 0; i < metadata.GetCount(); i++) {
 		const String& path = metadata.GetKey(i);
 		const FileMetadata& m = metadata[i];
-
-		if(DirectoryExists(AppendFileName(working_dir, path))) db.total_dirs++;
-		else db.total_files++;
 
 		if(m.flags != 0) db.flagged_entries++;
 		if(m.flags & (FLAG_NEEDS_REVIEW | FLAG_CONTENT_NEEDS_REVIEW)) db.needs_review++;

@@ -14,7 +14,6 @@ public:
 
 private:
 	OverviewerProject& project;
-	Vector<String> current_scan;
 
 	Json ValorizeResponse(bool success, const Value& result, const String& error = "");
 	void ProcessRequest(const String& line);

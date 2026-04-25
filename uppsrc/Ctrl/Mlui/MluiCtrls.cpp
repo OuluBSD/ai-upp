@@ -285,6 +285,7 @@ MluiScriptEditor::MluiScriptEditor() {
 	slot_list.AddColumn("Category", 80);
 	slot_list.AddColumn("Req", 35);
 	slot_list.WhenSel = THISBACK(OnSlotSel);
+	slot_list.WhenBar = THISBACK(OnSlotMenu);
 
 	// ---- bottom buttons ----
 	Add(btn_add         .SetLabel("Add Slot")            .LeftPos(5,   90).BottomPos(8, 25));
@@ -292,7 +293,8 @@ MluiScriptEditor::MluiScriptEditor() {
 	Add(btn_up          .SetLabel("Up")                  .LeftPos(175, 50).BottomPos(8, 25));
 	Add(btn_down        .SetLabel("Down")                .LeftPos(230, 60).BottomPos(8, 25));
 	Add(btn_copy_hints  .SetLabel("Copy hints from image").LeftPos(300, 150).BottomPos(8, 25));
-	Add(btn_apply       .SetLabel("Apply to image")       .LeftPos(460, 120).BottomPos(8, 25));
+	Add(btn_copy_hint   .SetLabel("Copy hint")            .LeftPos(455, 90).BottomPos(8, 25));
+	Add(btn_apply       .SetLabel("Apply to image")       .LeftPos(550, 120).BottomPos(8, 25));
 	Add(btn_close       .SetLabel("Close")                .RightPos(5,  80).BottomPos(8, 25));
 
 	btn_browse      << THISBACK(OnBrowse);
@@ -303,8 +305,10 @@ MluiScriptEditor::MluiScriptEditor() {
 	btn_up          << THISBACK(OnMoveUp);
 	btn_down        << THISBACK(OnMoveDown);
 	btn_copy_hints  << THISBACK(OnCopyHints);
+	btn_copy_hint   << THISBACK(OnCopyHintSingle);
 	btn_apply       << THISBACK(OnApply);
 	btn_close       << [=] { Close(); };
+	btn_copy_hint.Disable();
 
 	btn_add_cat << [=] {
 		String n = edit_new_cat.GetData().ToString().IsEmpty()
@@ -361,10 +365,22 @@ void MluiScriptEditor::SetReferenceAnnotations(const Vector<RefAnnotEntry>& entr
 		script_.reference_image.width  = img_w;
 		script_.reference_image.height = img_h;
 	}
+	btn_copy_hint.Enable(ref_img_w_ > 0 && ref_img_h_ > 0 && CurrentSlotIndex() >= 0);
 }
 
 void MluiScriptEditor::SetCurrentImageSize(int w, int h) {
 	cur_img_w_ = w; cur_img_h_ = h;
+}
+
+
+void MluiScriptEditor::LoadScript(const String& path) {
+	MluiScript s;
+	if(LoadMluiScript(s, path)) {
+		LoadScript(s);
+		edit_file.SetData(path);
+		if(WhenLoadScript) WhenLoadScript(path);
+		SetDirty(false);
+	} else PromptOK("Failed to load: " + path);
 }
 
 void MluiScriptEditor::LoadScript(const MluiScript& s) {
@@ -422,10 +438,15 @@ void MluiScriptEditor::FlushCurrentSlot() {
 
 void MluiScriptEditor::OnSlotSel() {
 	int i = CurrentSlotIndex();
-	if(i < 0 || i >= script_.slots.GetCount()) { slot_panel.Clear(); return; }
+	if(i < 0 || i >= script_.slots.GetCount()) {
+		slot_panel.Clear();
+		btn_copy_hint.Disable();
+		return;
+	}
 	loading_ = true;
 	slot_panel.Load(script_.slots[i]);
 	loading_ = false;
+	btn_copy_hint.Enable(ref_img_w_ > 0 && ref_img_h_ > 0);
 }
 
 void MluiScriptEditor::OnAddSlot() {
@@ -542,5 +563,30 @@ void MluiScriptEditor::OnApply() {
 	WhenApply(GetScript(), cur_img_w_, cur_img_h_);
 }
 
-END_UPP_NAMESPACE
 
+void MluiScriptEditor::OnCopyHintSingle() {
+	int i = CurrentSlotIndex(); if(i < 0 || i >= script_.slots.GetCount()) return;
+	if(ref_img_w_ <= 0 || ref_img_h_ <= 0) { PromptOK("No reference image annotations available."); return; }
+	auto& slot = script_.slots[i];
+	for(const auto& ra : ref_annots_) {
+		if(ra.slot_id == slot.slot_id) {
+			slot.bbox_hint = Rectf(ra.bbox.left/(double)ref_img_w_, ra.bbox.top/(double)ref_img_h_, ra.bbox.right/(double)ref_img_w_, ra.bbox.bottom/(double)ref_img_h_);
+			SetDirty(); OnSlotSel(); return;
+		}
+	}
+	PromptOK("No annotation found matching slot ID: " + slot.slot_id);
+}
+void MluiScriptEditor::OnSlotMenu(Bar& bar) {
+	bool can_copy = ref_img_w_ > 0 && ref_img_h_ > 0 && CurrentSlotIndex() >= 0;
+	bar.Add("Copy hint from image", THISBACK(OnCopyHintSingle)).Enable(can_copy);
+}
+void MluiScriptEditor::Close() {
+	if(IsDirty()) {
+		int r = PromptYesNoCancel("Save changes to script?");
+		if(r == 1) { OnSave(); if(IsDirty()) return; }
+		if(r == -1) return;
+	}
+	TopWindow::Close();
+}
+
+END_UPP_NAMESPACE

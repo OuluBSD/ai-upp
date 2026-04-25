@@ -138,6 +138,9 @@ public:
 
 	// Load an existing script into the editor.
 	void LoadScript(const MluiScript& s);
+	void LoadScript(const String& path);
+	virtual void Close() override;
+	Event<String> WhenLoadScript;
 
 	// Return a copy of the script as currently edited.
 	MluiScript GetScript() const;
@@ -151,6 +154,7 @@ public:
 	// Tell the editor the pixel dimensions of the image currently open
 	// so Apply can report them to WhenApply.
 	void SetCurrentImageSize(int w, int h);
+	void SetProjectDir(const String& d) { project_dir = d; }
 
 private:
 	void OnBrowse();
@@ -163,6 +167,10 @@ private:
 	void OnMoveDown();
 	void OnCopyHints();
 	void OnApply();
+	void OnCopyHintSingle();
+	void OnSlotMenu(Bar& bar);
+	void SetDirty(bool b = true) { if(!loading_) dirty_ = b; }
+	bool IsDirty() const { return dirty_; }
 
 	void RefreshSlotList();
 	void FlushCurrentSlot();   // write SlotMetaPanel back to current slot
@@ -184,7 +192,7 @@ private:
 
 	// ---- bottom buttons ----
 	Button     btn_add, btn_remove, btn_up, btn_down;
-	Button     btn_copy_hints, btn_apply, btn_close;
+	Button     btn_copy_hints, btn_copy_hint, btn_apply, btn_close;
 
 	// ---- category manager ----
 	Label      lbl_cats_hdr;
@@ -205,7 +213,9 @@ private:
 	// current image size for Apply
 	int cur_img_w_ = 0, cur_img_h_ = 0;
 
-	bool loading_ = false; // suppress change callbacks during load
+	bool loading_ = false;
+	bool dirty_ = false;
+	String project_dir; // suppress change callbacks during load
 };
 
 END_UPP_NAMESPACE

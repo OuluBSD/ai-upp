@@ -6,9 +6,11 @@
 
 namespace Upp {
 
+#if 0
 #define IMAGECLASS FBImg
 #define IMAGEFILE <VirtualGui/FB.iml>
 #include <Draw/iml_header.h>
+#endif
 
 class SystemDraw : public DrawProxy {
 public:

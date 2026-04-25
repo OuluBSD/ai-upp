@@ -1,14 +1,18 @@
 #include "ScriptIDE.h"
 
-NAMESPACE_UPP
-
 #define IMAGECLASS ScriptIDEImg
 #define IMAGEFILE <ScriptIDE/ScriptIDE.iml>
 #include <Draw/iml_source.h>
 
+NAMESPACE_UPP
+
 PythonIDE::PythonIDE()
 	: run_manager(vm)
 {
+	RegisterTerminalRunTarget();
+	RegisterEmbeddedGameWindowTarget();
+	RegisterExternalProcessTarget();
+
 	main_window = this;
 	plugin_manager.Create(*this);
 	Title("Python IDE");
@@ -20,12 +24,12 @@ PythonIDE::PythonIDE()
 	InitLayout();
 
 	LoadFromFile(settings, ConfigFile("ide_settings.bin"));
+	bool settings_changed = false;
 	
 	files_pane->SetRoot(GetCurrentDirectory());
 	
 	plugin_manager->LoadPlugins();
 	const auto& plugins = plugin_manager->GetPlugins();
-	bool settings_changed = false;
 	for(int i = 0; i < plugins.GetCount(); i++) {
 		String id = plugins.GetKey(i);
 		int q = -1;
@@ -49,8 +53,9 @@ PythonIDE::PythonIDE()
 	
 	if(settings_changed)
 		StoreToFile(settings, ConfigFile("ide_settings.bin"));
-	
+		
 	ApplySettings();
+	RefreshRunTargetsFromSettings();
 	SetTimeCallback(-200, [this] { UpdateStatusBar(); }); // DONT CHANGE THIS
 }
 
@@ -84,6 +89,13 @@ void PythonIDE::ApplySettings()
 	
 	// Status bar settings
 	// (handled in UpdateStatusBar via settings poll)
+	RefreshRunTargetsFromSettings();
+}
+
+void PythonIDE::RefreshRunTargetsFromSettings()
+{
+	if(ExternalProcessTarget* external = GetExternalProcessTarget())
+		external->SetConfig(settings.run.external_process);
 }
 
 void PythonIDE::InitLayout()
@@ -459,6 +471,34 @@ void PythonIDE::OnRun()
 	run_manager.Run(content, path);
 }
 
+void PythonIDE::OnRunSeparateWindow()
+{
+	if(active_file < 0) return;
+	
+	String path = open_files[active_file].path;
+	if(path.IsEmpty()) {
+		OnSaveFileAs();
+		path = open_files[active_file].path;
+		if(path.IsEmpty()) return;
+	}
+
+	RunTargetContext ctx{ path, GetFileDirectory(path), RunMode::Run };
+	String preferred = settings.run.separate_window_run_target_id;
+	if(preferred.IsEmpty())
+		preferred = ToLower(GetFileExt(path)) == ".gamestate" ? "local.game_window" : "local.terminal";
+	IRunTarget* target = RunTargetRegistry::Get().Resolve(ctx, preferred);
+	if(target) {
+		target->Run(ctx);
+		return;
+	}
+	
+	ICustomExecuteProvider* provider = plugin_manager->FindCustomExecuteProvider(path);
+	if(provider) {
+		provider->ExecuteSeparateWindow(path);
+		return;
+	}
+}
+
 void PythonIDE::OnRunLast()
 {
 	if(last_run_path.IsEmpty()) return;
@@ -558,7 +598,15 @@ void PythonIDE::OnRunFromLine()
 	}
 }
 
-void PythonIDE::OnRunConfig() { Todo("Run Configuration"); }
+void PythonIDE::OnRunConfig()
+{
+	PreferencesWindow dlg(*this, settings);
+	dlg.SelectPage("run");
+	if(dlg.Run() == IDOK) {
+		ApplySettings();
+		StoreToFile(settings, ConfigFile("ide_settings.bin"));
+	}
+}
 
 void PythonIDE::OnDebug()
 {
@@ -571,6 +619,34 @@ void PythonIDE::OnDebug()
 	}
 	run_manager.SetMode(RunManager::RUN_DEBUG);
 	OnRun();
+}
+
+void PythonIDE::OnDebugSeparateWindow()
+{
+	if(active_file < 0) return;
+	
+	String path = open_files[active_file].path;
+	if(path.IsEmpty()) {
+		OnSaveFileAs();
+		path = open_files[active_file].path;
+		if(path.IsEmpty()) return;
+	}
+
+	RunTargetContext ctx{ path, GetFileDirectory(path), RunMode::Debug };
+	String preferred = settings.run.separate_window_debug_target_id;
+	if(preferred.IsEmpty())
+		preferred = ToLower(GetFileExt(path)) == ".gamestate" ? "local.game_window" : "local.terminal";
+	IRunTarget* target = RunTargetRegistry::Get().Resolve(ctx, preferred);
+	if(target) {
+		target->Run(ctx);
+		return;
+	}
+	
+	ICustomExecuteProvider* provider = plugin_manager->FindCustomExecuteProvider(path);
+	if(provider) {
+		provider->DebugSeparateWindow(path);
+		return;
+	}
 }
 
 void PythonIDE::OnProfile()
@@ -1510,6 +1586,26 @@ bool PythonIDE::InvokeActiveSceneButton(const String& button_id)
 		cg->DebugInvokeButton(button_id);
 		return true;
 	}
+	return false;
+}
+
+bool PythonIDE::PressActiveFormButton(const String& button_id)
+{
+	if(active_file < 0 || active_file >= open_files.GetCount())
+		return false;
+	IDocumentHost* h = open_files[active_file].editor;
+	if(CardGameDocumentHost* cg = dynamic_cast<CardGameDocumentHost*>(h))
+		return cg->DebugPressFormButton(button_id);
+	return false;
+}
+
+bool PythonIDE::CallActiveFormButtonAction(const String& button_id)
+{
+	if(active_file < 0 || active_file >= open_files.GetCount())
+		return false;
+	IDocumentHost* h = open_files[active_file].editor;
+	if(CardGameDocumentHost* cg = dynamic_cast<CardGameDocumentHost*>(h))
+		return cg->DebugCallFormButtonAction(button_id);
 	return false;
 }
 

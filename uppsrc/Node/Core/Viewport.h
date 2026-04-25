@@ -41,6 +41,16 @@ public:
 	void Pan(Pointf view_delta) {
 		offset -= view_delta / scale;
 	}
+	
+	void ZoomToFit(const Rectf& world_bounds, Size view_size, double margin = 40.0) {
+		if(world_bounds.IsEmpty() || view_size.cx <= 80 || view_size.cy <= 80) return;
+		double sw = (view_size.cx - 2 * margin) / world_bounds.Width();
+		double sh = (view_size.cy - 2 * margin) / world_bounds.Height();
+		scale = max(1e-6, min(1e6, min(sw, sh)));
+		Pointf world_center = world_bounds.CenterPoint();
+		Pointf view_center = Pointf(view_size.cx / 2.0, view_size.cy / 2.0);
+		offset = world_center - view_center / scale;
+	}
 };
 
 } // namespace Node

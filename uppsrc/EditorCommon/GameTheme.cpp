@@ -4,6 +4,69 @@
 
 namespace Upp {
 
+static Value UnwrapTypedValue(const Value& in)
+{
+	Value v = in;
+	for (;;) {
+		if (!v.Is<ValueMap>())
+			break;
+		ValueMap m = v;
+		int qt = m.Find("type");
+		int qv = m.Find("value");
+		if (qt < 0 || qv < 0)
+			break;
+		String t = ToLower(AsString(m.GetValue(qt)));
+		if (t == "string" || t == "wstring" || t == "int" || t == "int64" ||
+		    t == "double" || t == "bool" || t == "valuemap" || t == "valuearray") {
+			v = m.GetValue(qv);
+			continue;
+		}
+		break;
+	}
+	return v;
+}
+
+static String DecodeTypedScalar(const Value& v)
+{
+	Value s = UnwrapTypedValue(v);
+	if (s.Is<String>())
+		return s;
+	return AsString(s);
+}
+
+static void LoadThemeSettingsFromValue(const Value& src, VectorMap<String, String>& dst)
+{
+	dst.Clear();
+	Value raw = UnwrapTypedValue(src);
+	if (raw.Is<ValueMap>()) {
+		ValueMap m = raw;
+		const Index<Value>& keys = m.GetKeys();
+		ValueArray vals = m.GetValues();
+		for (int i = 0; i < keys.GetCount() && i < vals.GetCount(); i++) {
+			String k = AsString(keys[i]);
+			String v = DecodeTypedScalar(vals[i]);
+			dst.GetAdd(k) = v;
+		}
+		return;
+	}
+	if (raw.Is<ValueArray>()) {
+		ValueArray arr = raw;
+		for (const Value& it : arr) {
+			Value row_value = UnwrapTypedValue(it);
+			if (!row_value.Is<ValueMap>())
+				continue;
+			ValueMap row = row_value;
+			int qk = row.Find("key");
+			int qv = row.Find("value");
+			if (qk < 0 || qv < 0)
+				continue;
+			String k = DecodeTypedScalar(row.GetValue(qk));
+			String v = DecodeTypedScalar(row.GetValue(qv));
+			dst.GetAdd(k) = v;
+		}
+	}
+}
+
 void ThemeObject::Jsonize(JsonIO& jio)
 {
 	bool loading = jio.IsLoading();
@@ -24,6 +87,21 @@ void ThemeObject::Jsonize(JsonIO& jio)
 	   ("visible", visible);
 	if (loading && x != INT_MIN && y != INT_MIN && w != INT_MIN && h != INT_MIN)
 		rect = RectC(x, y, max(1, w), max(1, h));
+}
+
+void ThemeFile::Jsonize(JsonIO& jio)
+{
+	jio("objects", objects);
+	if (jio.IsLoading()) {
+		Value raw = jio.Get("settings");
+		LoadThemeSettingsFromValue(raw, settings);
+	}
+	else {
+		ValueMap out;
+		for (int i = 0; i < settings.GetCount(); i++)
+			out.Add(settings.GetKey(i), settings[i]);
+		jio.Set("settings", out);
+	}
 }
 
 Color ThemeParseColor(const String& s, Color def)

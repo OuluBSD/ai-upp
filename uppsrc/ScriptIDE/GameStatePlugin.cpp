@@ -65,6 +65,16 @@ void GameStatePluginGUI::Shutdown()
 	GameStatePlugin::Shutdown();
 }
 
+void GameStatePluginGUI::ExecuteSeparateWindow(const String& path)
+{
+	Execute(path);
+}
+
+void GameStatePluginGUI::DebugSeparateWindow(const String& path)
+{
+	ExecuteSeparateWindow(path);
+}
+
 IDocumentHost* GameStatePluginGUI::CreateViewerHost()
 {
 	return new GameStateDocumentHost();

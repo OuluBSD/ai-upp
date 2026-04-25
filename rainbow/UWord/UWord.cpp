@@ -286,6 +286,7 @@ struct EventsWnd : TopWindow {
 		if(key < 256)
 			k << '\"' << (char)key << '\"';
 		Do();
+		return false;
 	}
 
 	typedef EventsWnd CLASSNAME;

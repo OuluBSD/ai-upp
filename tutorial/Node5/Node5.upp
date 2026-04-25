@@ -1,0 +1,15 @@
+description "Node Tutorial 5: Extended Eon Format Viewer\377";
+
+uses
+	Node/Script;
+
+uses(GUI) Node/Ctrl;
+
+file
+	main.cpp,
+	in.eon;
+
+mainconfig
+	"" = "GUI",
+	"" = "";
+

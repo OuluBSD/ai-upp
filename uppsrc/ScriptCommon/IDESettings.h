@@ -414,9 +414,23 @@ struct RunPreset : Moveable<RunPreset> {
     void Serialize(Stream& s) { s % name % file_extension % context; }
 };
 
+struct ExternalProcessSettings {
+    String binary_path;
+    String extra_args;
+    bool show_terminal = false;
+    bool wait_for_exit = false;
+
+    void Serialize(Stream& s) {
+        s % binary_path % extra_args % show_terminal % wait_for_exit;
+    }
+};
+
 struct RunSettings {
     Vector<RunPreset> presets;
     String selected_runner = "Internal";
+    String separate_window_run_target_id;
+    String separate_window_debug_target_id;
+    ExternalProcessSettings external_process;
     bool save_all_before_run = true;
     bool copy_full_cell_to_console = false;
 
@@ -425,12 +439,15 @@ struct RunSettings {
     RunSettings& operator=(const RunSettings& b) {
         presets <<= b.presets;
         selected_runner = b.selected_runner;
+        separate_window_run_target_id = b.separate_window_run_target_id;
+        separate_window_debug_target_id = b.separate_window_debug_target_id;
+        external_process = b.external_process;
         save_all_before_run = b.save_all_before_run;
         copy_full_cell_to_console = b.copy_full_cell_to_console;
         return *this;
     }
 
-    void Serialize(Stream& s) { s % presets % selected_runner % save_all_before_run % copy_full_cell_to_console; }
+    void Serialize(Stream& s) { s % presets % selected_runner % separate_window_run_target_id % separate_window_debug_target_id % external_process % save_all_before_run % copy_full_cell_to_console; }
 };
 
 struct StatusBarSettings {

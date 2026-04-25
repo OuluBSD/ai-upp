@@ -58,6 +58,26 @@ Example `.gamestate`:
 
 `ScriptIDE` loads the `.gamestate`, opens `table.form`, and executes the Python entry function.
 
+## Standalone Launcher
+
+You can run the same `.gamestate` without opening the IDE by using `GameLauncher`:
+
+```bash
+script/build.py -mc 1 -j8 uppsrc/GameLauncher
+bin/GameLauncher uppsrc/ScriptIDE/reference/Hearts/game.gamestate
+```
+
+Useful launcher flags:
+- `--debug` to start in debug mode
+- `--profile` to start in profile mode
+- `--force-close-after-ms=<ms>` for automation runs
+
+From ScriptIDE, open a `.gamestate` and use:
+- `Game -> Export standalone executable...`
+
+This generates a standalone binary and also writes generated export sources
+(`*_standalone_src/`) with `.brc` + `Main.cpp` for reproducible rebuilds.
+
 Your Python code talks to the UI through the `cardgame_view` binding.
 For compatibility, the runtime still also exposes `hearts_view` as an alias.
 
@@ -309,6 +329,15 @@ Useful CLI flags when debugging in `ScriptIDE`:
 - `--dump-python-stack`
 - `--exit-on-assert`
 - `--timeout-ms=...`
+- `--run-separate-after-ms=...`
+- `--debug-separate-after-ms=...`
+- `--expect-external-launch-after-ms=...`
+- `--separate-run-target=local.game_window|local.external_process|local.terminal`
+- `--external-process-binary=...`
+- `--external-process-extra-args=...`
+- `--external-process-show-terminal` / `--external-process-hide-terminal`
+- `--external-process-wait-for-exit` / `--external-process-no-wait-for-exit`
+- `--export-standalone=<output_binary_path>` (runs export and exits)
 - timed actions like `--click-first-hand-cards-at=...` and `--press-button-at=...`
 
 Example:

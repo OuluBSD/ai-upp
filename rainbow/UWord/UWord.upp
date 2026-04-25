@@ -4,8 +4,11 @@ uses
 	CtrlLib,
 	RichEdit,
 	PdfDraw,
-	plugin\jpg,
-	SDL20;
+	plugin\jpg;
+
+uses(SDL20GL) SDL20GL;
+
+uses(SDL20) SDL20;
 
 uses(TELPP) Telpp;
 
@@ -32,8 +35,10 @@ mainconfig
 	"" = "GUI WINFB",
 	"" = "GUI LINUXFB",
 	"" = "GUI SDLFB",
+	"" = "GUI SDLFB USEMALLOC",
 	"" = "GUI WINGL",
 	"" = "GUI",
 	"" = "GUI SDL20",
+	"" = "GUI SDL20GL",
 	"" = "TELPP";
 

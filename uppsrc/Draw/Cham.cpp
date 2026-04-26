@@ -303,7 +303,7 @@ struct ChPainterFn__ {
 	Value (*op2)(Ctrl *ctrl, Draw& w, const Rect& r, const Value& v, int op, Color ink) = nullptr;
 };
 
-static Vector<ChPainterFn__>  sChPainterFns;
+static Vector<ChPainterFn__>& sChPainterFns() { static Vector<ChPainterFn__> x; return x; }
 
 static Value sChOp(Ctrl *ctrl, Draw& w, const Rect& r, const Value& v, int op, Color ink = Null)
 {
@@ -311,7 +311,7 @@ static Value sChOp(Ctrl *ctrl, Draw& w, const Rect& r, const Value& v, int op, C
 		return Rect(0, 0, 0, 0);
 	Value q;
 	if(!IsNull(v))
-		for(auto& a : ReverseRange(sChPainterFns)) {
+		for(auto& a : ReverseRange(sChPainterFns())) {
 			q = a.op ? (*a.op)(w, r, v, op, ink) : (*a.op2)(ctrl, w, r, v, op, ink);
 			if(!IsNull(q))
 				break;
@@ -321,14 +321,14 @@ static Value sChOp(Ctrl *ctrl, Draw& w, const Rect& r, const Value& v, int op, C
 
 void ChLookFn(Value (*fn)(Draw& w, const Rect& r, const Value& v, int op, Color ink))
 {
-	if(FindMatch(sChPainterFns, [&](const ChPainterFn__& m) { return m.op == fn; }) < 0)
-		sChPainterFns.Add().op = fn;
+	if(FindMatch(sChPainterFns(), [&](const ChPainterFn__& m) { return m.op == fn; }) < 0)
+		sChPainterFns().Add().op = fn;
 }
 
 void ChLookFn(Value (*fn)(Ctrl *ctrl, Draw& w, const Rect& r, const Value& v, int op, Color ink))
 {
-	if(FindMatch(sChPainterFns, [&](const ChPainterFn__& m) { return m.op2 == fn; }) < 0)
-		sChPainterFns.Add().op2 = fn;
+	if(FindMatch(sChPainterFns(), [&](const ChPainterFn__& m) { return m.op2 == fn; }) < 0)
+		sChPainterFns().Add().op2 = fn;
 }
 
 

@@ -9,5 +9,6 @@ file
 	Chameleon.iml;
 
 mainconfig
-	"" = "GUI";
+	"" = "GUI",
+	"" = "GUI X11 USEMALLOC";
 

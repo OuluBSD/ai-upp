@@ -167,7 +167,8 @@ void System::SetInput(Bus& bus, const CoreParams& params) {
 	if (bi.core == NULL || bi.core->factory != params.factory) {
 		if (bi.core)
 			delete bi.core;
-			
+		
+		ASSERT(params.factory >= 0);
 		bi.core = CoreFactories()[params.factory].b();
 		
 		ASSERT(bi.core);
@@ -186,7 +187,8 @@ void System::SetEffect(Bus& bus, int i, const CoreParams& params) {
 	if (bi.core == NULL || bi.core->factory != params.factory) {
 		if (bi.core)
 			delete bi.core;
-			
+		
+		ASSERT(params.factory >= 0);
 		bi.core = CoreFactories()[params.factory].b();
 		
 		ASSERT(bi.core);

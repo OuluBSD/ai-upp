@@ -40,7 +40,7 @@ public:
     static Event<>             WhenDisconnect;
 
 private:
-    virtual dword       GetOptions()                       { return GUI_SETMOUSECURSOR; }
+    virtual dword       GetOptions()                       { return MOUSECURSOR; }
     virtual Size        GetSize()                          { return desktopsize;  }
     virtual dword       GetMouseButtons()                  { return mousebuttons; }
     virtual dword       GetModKeys()                       { return modifierkeys; }

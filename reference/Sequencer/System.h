@@ -1,6 +1,7 @@
 #ifndef _Sequencer_System_h_
 #define _Sequencer_System_h_
 
+#include <Sound/Sound.h>
 
 NAMESPACE_UPP
 

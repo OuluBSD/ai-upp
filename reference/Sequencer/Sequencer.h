@@ -3,8 +3,9 @@
 
 #include <CtrlLib/CtrlLib.h>
 #include <CodeEditor/CodeEditor.h>
-#include <AudioCore/AudioCore.h>
 using namespace UPP;
+
+template <class T, class U> inline T& CastRef(U& u) { return (T&)u; }
 
 #define IMAGECLASS SequencerImg
 #define IMAGEFILE <Sequencer/Images.iml>
@@ -31,7 +32,6 @@ NAMESPACE_UPP
 
 
 FileSel& SequencerFs();
-FileSel& MidiFs();
 
 
 class Sequencer : public TopWindow {

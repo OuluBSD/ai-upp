@@ -49,10 +49,10 @@ public:
 
 };
 
-class TimelineCtrl : public ExprCtrl {
+class SeqTimelineCtrl : public ExprCtrl {
 	
 public:
-	TimelineCtrl() {}
+	SeqTimelineCtrl() {}
 	
 	virtual void Paint(Draw& w);
 	virtual void LeftDown(Point p, dword keyflags);
@@ -94,7 +94,7 @@ protected:
 	TrackList list;
 	TrackHeaderList header;
 	TimecursorCtrl timectrl;
-	TimelineCtrl timeline;
+	SeqTimelineCtrl timeline;
 	
 public:
 	TrackListExprCtrl();

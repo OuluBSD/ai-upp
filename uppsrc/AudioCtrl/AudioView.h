@@ -2,7 +2,6 @@
 #define _AudioCtrl_AudioView_h_
 
 #include <SoftAudio/SoftAudio.h>
-#include <LocalCtrl/LocalCtrl.h>
 
 NAMESPACE_UPP
 using namespace UPP;

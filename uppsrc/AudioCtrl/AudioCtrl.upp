@@ -5,14 +5,6 @@ uses
 
 file
 	AudioCtrl.h,
-	AudioView.h,
-	AudioView.cpp,
 	Slider.h,
-	Slider.cpp,
-	MidiFileCtrl.h,
-	MidiFileCtrl.cpp,
-	AudioSourceCtrl.h,
-	AudioSourceCtrl.cpp,
-	VideoSourceCtrl.h,
-	VideoSourceCtrl.cpp;
+	Slider.cpp;
 

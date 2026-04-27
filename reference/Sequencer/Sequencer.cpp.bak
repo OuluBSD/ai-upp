@@ -12,12 +12,6 @@ FileSel& SequencerFs()
 	return fs;
 }
 
-FileSel& MidiFs()
-{
-	static FileSel fs;
-	return fs;
-}
-
 
 
 Sequencer::Sequencer()
@@ -49,8 +43,7 @@ Sequencer::Sequencer()
 void Sequencer::SerializeApp(Stream& s) {
 	int version = 1;
 	s / version;
-	s % SequencerFs()
-	  % MidiFs();
+	s % SequencerFs();
 	if (version >= 1)
 		s % lrufile();
 }

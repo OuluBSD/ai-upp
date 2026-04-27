@@ -1,6 +1,9 @@
 #ifndef _Sequencer_Midi_h_
 #define _Sequencer_Midi_h_
 
+#include <plugin/portmidi/porttime.h>
+#include <plugin/portmidi/portmidi.h>
+#include <plugin/portmidi/pmutil.h>
 
 NAMESPACE_UPP
 
@@ -29,6 +32,7 @@ public:
 
 inline Midi& GetMidi() {return Single<Midi>();}
 
+inline FileSel& MidiFs() { static FileSel fs; return fs; }
 
 END_UPP_NAMESPACE
 

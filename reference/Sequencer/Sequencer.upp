@@ -1,7 +1,10 @@
 uses
 	CtrlLib,
 	AudioCtrl,
-	SoftAudio;
+	SoftAudio,
+	plugin/portmidi;
+
+library(LINUX) asound;
 
 file
 	main.cpp,
@@ -31,12 +34,8 @@ file
 	System.cpp,
 	Midi.h,
 	Midi.cpp,
-	Instruments readonly separator,
-	Parts.h,
-	Parts.cpp,
 	Simple.h,
-	Simple.cpp,
-	Instrument.icpp;
+	Simple.cpp;
 
 mainconfig
 	"" = "GUI";

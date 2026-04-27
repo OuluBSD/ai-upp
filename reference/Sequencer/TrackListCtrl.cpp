@@ -121,7 +121,7 @@ void TrackListExprCtrl::TimeChanges() {
 
 
 
-void TimelineCtrl::Paint(Draw& w) {
+void SeqTimelineCtrl::Paint(Draw& w) {
 	TrackListCtrl& tlc = CastRef<TrackListCtrl>(*GetParentCtrl());
 	int scroll = tlc.GetScroll();
 	Size sz(GetSize());
@@ -154,22 +154,22 @@ void TimelineCtrl::Paint(Draw& w) {
 	}
 }
 
-void TimelineCtrl::LeftDown(Point p, dword keyflags) {
+void SeqTimelineCtrl::LeftDown(Point p, dword keyflags) {
 	SetPosition(p);
 	SetCapture();
 }
 
-void TimelineCtrl::LeftUp(Point p, dword keyflags) {
+void SeqTimelineCtrl::LeftUp(Point p, dword keyflags) {
 	SetPosition(p);
 	ReleaseCapture();
 }
 
-void TimelineCtrl::MouseMove(Point p, dword keyflags) {
+void SeqTimelineCtrl::MouseMove(Point p, dword keyflags) {
 	if (IsCaptured())
 		SetPosition(p);
 }
 
-void TimelineCtrl::SetPosition(Point p) {
+void SeqTimelineCtrl::SetPosition(Point p) {
 	TrackListCtrl& tlc = CastRef<TrackListCtrl>(*GetParentCtrl());
 	Session& ses = tlc.GetEditor().GetSession();
 	

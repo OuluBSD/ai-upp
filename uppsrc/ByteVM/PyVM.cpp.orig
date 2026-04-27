@@ -2290,38 +2290,18 @@ bool PyVM::Step()
 				}
 			}
 			
-			                        // If still not found, try to load from disk
-                        if (current.IsNone()) {
-                                Vector<String> search_paths;
-                                search_paths.Add(""); // Current CWD
-                                if (!current_file.IsEmpty()) {
-                                    search_paths.Add(GetFileFolder(current_file));
-                                }
-
-                                for (const String& search_path : search_paths) { 
-                                    String path = AppendFileName(search_path, parts[0] + ".py");
-                                    String pkg_path = AppendFileName(search_path, parts[0]);
-                                    String init_path = AppendFileName(pkg_path, "__init__.py");
-                                    
-                                    if (FileExists(path)) {
-                                        if (LoadModule(parts[0], LoadFile(path), path)) {
-                                            PyValue sys2 = this->globals.GetItem(PyValue("sys"));
-                                            PyValue modules2 = sys2.GetItem(PyValue("modules"));
-                                            current = modules2.GetItem(PyValue(parts[0]));
-                                            break;
-                                        }
-                                    } else if (DirectoryExists(pkg_path) && FileExists(init_path)) {
-                                        if (LoadModule(parts[0], LoadFile(init_path), init_path)) {
-                                            PyValue sys2 = this->globals.GetItem(PyValue("sys"));
-                                            PyValue modules2 = sys2.GetItem(PyValue("modules"));
-                                            current = modules2.GetItem(PyValue(parts[0]));
-                                            // Set __path__ for the package
-                                            current.SetItem(PyValue("__path__"), PyValue(pkg_path));
-                                            break;
-                                        }
-                                    }
-                                }
-                        }
+			// If still not found, try to load from disk
+			if (current.IsNone()) {
+				String path = parts[0] + ".py";
+				if (FileExists(path)) {
+					if (LoadModule(parts[0], LoadFile(path), path)) {
+						// LoadModule adds it to sys.modules
+						PyValue sys2 = this->globals.GetItem(PyValue("sys"));
+						PyValue modules2 = sys2.GetItem(PyValue("modules"));
+						current = modules2.GetItem(PyValue(parts[0]));
+					}
+				}
+			}
 			if (current.IsNone()) {
 				if (DirectoryExists(parts[0])) {
 					// Create dummy module for package directory

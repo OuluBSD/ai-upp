@@ -1,0 +1,17 @@
+--- PyVM.cpp
++++ PyVM.cpp
+@@ -2294,6 +2294,14 @@
+                         // If still not found, try to load from disk
+                         if (current.IsNone()) {
+                                 String path = parts[0] + ".py";
++                                if (!FileExists(path) && !current_file.IsEmpty()) {
++                                    String dir = GetFileFolder(current_file);
++                                    path = AppendFileName(dir, parts[0] + ".py");
++                                }
++                                if (!FileExists(path) && !current_file.IsEmpty()) {
++                                    String dir = GetFileFolder(current_file);
++                                    path = AppendFileName(AppendFileName(dir, parts[0]), "__init__.py");
++                                }
+                                 if (FileExists(path)) {
+                                         if (LoadModule(parts[0], LoadFile(path), path)) {
+                                                 // LoadModule adds it to sys.modules

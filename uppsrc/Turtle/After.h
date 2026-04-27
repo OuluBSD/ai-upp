@@ -1,5 +1,6 @@
-#include <VirtualGui/VirtualGui.h>
+#include <VirtualGui/After.h>
 
+#if 0
 class ViewDraw : public SystemDraw {
 public:
 	ViewDraw(Ctrl *ctrl);
@@ -7,3 +8,4 @@ public:
 };
 
 class DHCtrl : public Ctrl {};
+#endif

@@ -17,7 +17,7 @@ inline bool IsValidEntityId(const EntityId& id)
 		return false;
 	for(int i = 0; i < id.GetCount(); i++) {
 		int c = id[i];
-		if(!IsAlNum(c) && c != '_' && c != '-' && c != '/')
+		if(!IsAlNum(c) && c != '_' && c != '-' && c != '/' && c != '.')
 			return false;
 	}
 	return true;

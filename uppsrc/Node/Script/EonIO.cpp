@@ -205,31 +205,33 @@ static void CollectNodeTypeDefs(const AstNode& root,
                                  VectorMap<String, NodeTypeDef>& types)
 {
 	for (const AstNode& child : const_cast<AstNode&>(root).val.Sub<AstNode>()) {
-		if (child.GetName() != "node_type_decl")
-			continue;
+		if (child.GetName() == "node_type_decl") {
+			NodeTypeDef& def = types.GetAdd(child.id.ToString());
+			def.type_id = child.id.ToString();
 
-		NodeTypeDef& def = types.GetAdd(child.id.ToString());
-		def.type_id = child.id.ToString();
-
-		for (const AstNode& item : const_cast<AstNode&>(child).val.Sub<AstNode>()) {
-			String name = item.GetName();
-			if (name == "pin_in" || name == "pin_out") {
-				// str = "portname|TYPE"
-				Vector<String> parts = SplitPipe(item.str, 2);
-				PinDef& p = def.pins.Add();
-				p.name   = parts[0];
-				p.type   = parts[1];
-				p.is_out = (name == "pin_out");
+			for (const AstNode& item : const_cast<AstNode&>(child).val.Sub<AstNode>()) {
+				String name = item.GetName();
+				if (name == "pin_in" || name == "pin_out") {
+					// str = "portname|TYPE"
+					Vector<String> parts = SplitPipe(item.str, 2);
+					PinDef& p = def.pins.Add();
+					p.name   = parts[0];
+					p.type   = parts[1];
+					p.is_out = (name == "pin_out");
+				}
+				else if (name == "node_param") {
+					// str = "key|type|default|widget"
+					Vector<String> parts = SplitPipe(item.str, 4);
+					ParamDef& p = def.params.Add();
+					p.name        = parts[0];
+					p.type        = parts[1];
+					p.default_val = parts[2];
+					p.widget      = parts[3];
+				}
 			}
-			else if (name == "node_param") {
-				// str = "key|type|default|widget"
-				Vector<String> parts = SplitPipe(item.str, 4);
-				ParamDef& p = def.params.Add();
-				p.name        = parts[0];
-				p.type        = parts[1];
-				p.default_val = parts[2];
-				p.widget      = parts[3];
-			}
+		}
+		else {
+			CollectNodeTypeDefs(child, types);
 		}
 	}
 }
@@ -341,7 +343,6 @@ static Color PinTypeColor(const String& type_name)
 	return Color(160, 160, 160);
 }
 
-// Parse a single "key = value" assignment statement node
 // Apply pin definitions from a NodeTypeDef to a NodeDoc
 static void ApplyPins(NodeDoc& nd, const NodeTypeDef& def)
 {
@@ -372,12 +373,6 @@ static void SplitNodePort(const Graph& g, const String& full,
 }
 
 // Extract the value string from a param ExprStmt's children.
-// The AST for "key = value" is: Rval(key) + assign-op + const(value)
-// We grab the last child's str (constant string) or id (identifier).
-// AST layout for "key = value" in a net ExprStmt:
-//   ExprStmt.rval → assign_op (Cursor_Op_ASSIGN)
-//     assign_op.arg[0] → Rval node; Rval.rval → declared var with val.id = "key"
-//     assign_op.arg[1] → Const node (str=string, i64=int, dbl=double)
 static String ExtractParamValue(const AstNode& expr_stmt)
 {
 	if (!expr_stmt.rval) return String();
@@ -397,7 +392,6 @@ static String ExtractParamValue(const AstNode& expr_stmt)
 }
 
 // Extract the param key name from a param ExprStmt.
-// assign_op.arg[0] is the Rval; Rval.rval points to the declared variable whose val.id is the key.
 static String ExtractParamKey(const AstNode& expr_stmt)
 {
 	if (!expr_stmt.rval) return String();
@@ -408,78 +402,88 @@ static String ExtractParamKey(const AstNode& expr_stmt)
 	return rval->GetName(); // fallback
 }
 
-// Walk the net CompoundStmt — atoms become nodes, ExprStmts become param
-// assignments (associated with the last seen atom) or connections.
-// AST layout (from SemanticParser output):
-//   NetStmt: id
-//     CompoundStmt:
-//       VarDecl: param_name   (net-scope variable — skip)
-//       AtomStmt: instance_id
-//         CompoundStmt:
-//           ExprStmt: Unresolved(type_path)   <- atom type
-//       ExprStmt: Rval(key) assign const(val) <- param for last atom
-//       ...
-//       ExprStmt: str="src -> dst" obj=meta   <- connection
+static String CollectPath(const AstNode& node) {
+	String s = node.GetName();
+	if (s.IsEmpty()) s = node.str;
+	if (node.src == Cursor_NamePart || node.src == Cursor_Unresolved) {
+		for (const AstNode& child : const_cast<AstNode&>(node).val.Sub<AstNode>()) {
+			String cs = CollectPath(child);
+			if (!cs.IsEmpty()) {
+				if (!s.IsEmpty()) s << ".";
+				s << cs;
+			}
+		}
+	}
+	return s;
+}
+
+static void AddNodesRecursive(const AstNode& node, String prefix, Graph& g,
+                              const VectorMap<String, NodeTypeDef>& types)
+{
+	String name = node.GetName();
+	if (name.IsEmpty()) name = node.str;
+	if (name.IsEmpty()) return;
+
+	String full = prefix.IsEmpty() ? name : prefix + "." + name;
+	if (full[0] == '/') full = full.Mid(1);
+
+	bool is_atom = (node.src == Cursor_AtomStmt);
+	bool is_leaf = node.val.Sub<AstNode>().IsEmpty();
+
+	// In EON nets, NameParts are nodes if they are leaves or explicitly declared
+	if (is_atom || (node.src == Cursor_NamePart && is_leaf)) {
+		if (IsValidEntityId(full)) {
+			// Check for explicit type in AtomStmt block
+			String type_id = full;
+			if (is_atom) {
+				for (const AstNode& achild : const_cast<AstNode&>(node).val.Sub<AstNode>()) {
+					if (achild.src != Cursor_CompoundStmt) continue;
+					for (const AstNode& gc : const_cast<AstNode&>(achild).val.Sub<AstNode>()) {
+						if (gc.src != Cursor_ExprStmt) continue;
+						const AstNode* unres = gc.rval;
+						if (unres) {
+							String t = CollectPath(*unres);
+							if (!t.IsEmpty()) { type_id = t; break; }
+						}
+					}
+					if (type_id != full) break;
+				}
+			}
+
+			NodeDoc& nd = g.AddNode(full);
+			nd.label = full;
+			nd.node_type_id = type_id;
+			{
+				int dot = type_id.Find('.');
+				nd.category = (dot >= 0) ? type_id.Left(dot) : type_id;
+			}
+
+			int current_type_idx = types.Find(type_id);
+			if (current_type_idx >= 0)
+				ApplyPins(nd, types[current_type_idx]);
+		}
+	}
+
+	// Recurse to children (except for CompoundStmt which is handled separately for params)
+	for (const AstNode& child : const_cast<AstNode&>(node).val.Sub<AstNode>()) {
+		if (child.src != Cursor_CompoundStmt)
+			AddNodesRecursive(child, full, g, types);
+	}
+}
+
 static void LoadNetCompound(const AstNode& compound, Graph& g,
                             const VectorMap<String, NodeTypeDef>& types,
                             Vector<ValidationMessage>& out)
 {
-	NodeDoc* current_atom = nullptr;
-	int      current_type_idx = -1;
-
 	for (const AstNode& stmt : const_cast<AstNode&>(compound).val.Sub<AstNode>()) {
-
-		// Skip VarDecl (net-scope param name registrations)
 		if (stmt.src == Cursor_VarDecl) continue;
 
-		// AtomStmt: a new node instance
-		if (stmt.src == Cursor_AtomStmt) {
-			String atom_id = stmt.GetName();
-			if (atom_id.IsEmpty()) {
-				current_atom = nullptr;
-				continue;
-			}
-			// Allow hierarchical IDs like /enc/node1, but strip leading slash for entity ID
-			if(atom_id[0] == '/') atom_id = atom_id.Mid(1);
-			if(!IsValidEntityId(atom_id)) {
-				current_atom = nullptr;
-				continue;
-			}
-
-			// Extract type path: atom → CompoundStmt → ExprStmt.rval → Unresolved.str
-			String type_id = atom_id;
-			for (const AstNode& achild : const_cast<AstNode&>(stmt).val.Sub<AstNode>()) {
-				if (achild.src != Cursor_CompoundStmt) continue;
-				for (const AstNode& gc : const_cast<AstNode&>(achild).val.Sub<AstNode>()) {
-					if (gc.src != Cursor_ExprStmt) continue;
-					const AstNode* unres = gc.rval;
-					if (unres && unres->src == Cursor_Unresolved && !unres->str.IsEmpty()) {
-						type_id = unres->str;
-						break;
-					}
-				}
-				if (type_id != atom_id) break;
-			}
-
-			current_atom = &g.AddNode(atom_id);
-			current_atom->label = atom_id; // may be overridden by eon label
-
-			// Store type metadata
-			current_atom->node_type_id = type_id;
-			{
-				int dot = type_id.Find('.');
-				current_atom->category = (dot >= 0) ? type_id.Left(dot) : type_id;
-			}
-
-			current_type_idx = types.Find(type_id);
-			if (current_type_idx >= 0)
-				ApplyPins(*current_atom, types[current_type_idx]);
+		if (stmt.src == Cursor_AtomStmt || stmt.src == Cursor_NamePart) {
+			AddNodesRecursive(stmt, "", g, types);
 			continue;
 		}
 
-		// ExprStmt: either a param assignment or a connection
 		if (stmt.src == Cursor_ExprStmt) {
-			// Connection: str contains " -> "
 			const String& cs = stmt.str;
 			if (cs.Find("->") >= 0) {
 				int arrow = cs.Find("->");
@@ -491,7 +495,24 @@ static void LoadNetCompound(const AstNode& compound, Graph& g,
 				SplitNodePort(g, dst_full, dst_node, dst_pin);
 				if (src_node.IsEmpty() || dst_node.IsEmpty()) continue;
 
-				// Build edge id — sanitize: replace dots with underscores
+				// Auto-create pins if they don't exist and look like EON port indices (numbers)
+				auto EnsurePin = [&](const String& nid, const String& pid, PinKind kind) {
+					NodeDoc* nd = g.FindNode(nid);
+					if (nd && !pid.IsEmpty()) {
+						bool found = false;
+						for (const auto& p : nd->pins) if (p.id == pid && p.kind == kind) { found = true; break; }
+						if (!found) {
+							PinDoc& p = nd->pins.Add();
+							p.id = pid;
+							p.label = pid;
+							p.kind = kind;
+							p.color = PinTypeColor(""); // default color
+						}
+					}
+				};
+				EnsurePin(src_node, src_pin, PinKind::Output);
+				EnsurePin(dst_node, dst_pin, PinKind::Input);
+
 				String eid_raw = "e_" + src_node + "_" + src_pin + "_" + dst_node + "_" + dst_pin;
 				String eid = eid_raw;
 				eid.Replace(".", "_");
@@ -505,43 +526,75 @@ static void LoadNetCompound(const AstNode& compound, Graph& g,
 					Value wv = meta["weight"];
 					if (!wv.IsVoid()) ed.weight = (double)wv;
 				}
-				current_atom = nullptr; // connections don't belong to an atom
 				continue;
 			}
 
-			// Param assignment: belongs to current_atom
-			if (!current_atom) continue;
-			String key = ExtractParamKey(stmt);
-			if (key.IsEmpty()) continue;
-			String val = ExtractParamValue(stmt);
-
-			// Special built-in instance properties that map to NodeDoc fields
-			if (key == "label") {
-				current_atom->label = val;
-				continue;
+			if (stmt.rval && stmt.rval->src == Cursor_Unresolved) {
+				String atom_id = CollectPath(*stmt.rval);
+				if(atom_id.IsEmpty()) atom_id = stmt.rval->id.ToString();
+				if(atom_id[0] == '/') atom_id = atom_id.Mid(1);
+				if(IsValidEntityId(atom_id)) {
+					NodeDoc& nd = g.AddNode(atom_id);
+					nd.label = atom_id;
+					nd.node_type_id = atom_id;
+					{
+						int dot = atom_id.Find('.');
+						nd.category = (dot >= 0) ? atom_id.Left(dot) : atom_id;
+					}
+					int current_type_idx = types.Find(atom_id);
+					if (current_type_idx >= 0)
+						ApplyPins(nd, types[current_type_idx]);
+					continue;
+				}
 			}
+		}
+	}
 
-			WidgetSlotDoc& slot = current_atom->slots.Add();
-			slot.id   = key;
-			slot.type = "param";
-			slot.properties.Add("value", val);
-			if (current_type_idx >= 0) {
-				const NodeTypeDef& ntd = types[current_type_idx];
-				for (const ParamDef& pd : ntd.params) {
-					if (pd.name == key) { slot.type = pd.widget.IsEmpty() ? "param" : pd.widget; break; }
+	NodeDoc* current_atom = nullptr;
+	for (const AstNode& stmt : const_cast<AstNode&>(compound).val.Sub<AstNode>()) {
+		if (stmt.src == Cursor_AtomStmt || stmt.src == Cursor_NamePart) {
+			String atom_id = CollectPath(stmt);
+			if(atom_id.IsEmpty()) atom_id = stmt.id.ToString();
+			if(atom_id[0] == '/') atom_id = atom_id.Mid(1);
+			current_atom = g.FindNode(atom_id);
+			if (current_atom && stmt.src == Cursor_AtomStmt) {
+				for (const AstNode& achild : const_cast<AstNode&>(stmt).val.Sub<AstNode>()) {
+					if (achild.src == Cursor_CompoundStmt) {
+						for (const AstNode& p : const_cast<AstNode&>(achild).val.Sub<AstNode>()) {
+							if (p.src == Cursor_ExprStmt) {
+								String key = ExtractParamKey(p);
+								if (!key.IsEmpty()) {
+									String val = ExtractParamValue(p);
+									WidgetSlotDoc& slot = current_atom->slots.Add();
+									slot.id = key;
+									slot.type = "param";
+									slot.properties.Add("value", val);
+								}
+							}
+						}
+					}
 				}
 			}
 			continue;
 		}
+		if (stmt.src == Cursor_ExprStmt) {
+			if (stmt.str.Find("->") >= 0) { current_atom = nullptr; continue; }
+			if (!current_atom) continue;
+			String key = ExtractParamKey(stmt);
+			if (key.IsEmpty()) continue;
+			String val = ExtractParamValue(stmt);
+			WidgetSlotDoc& slot = current_atom->slots.Add();
+			slot.id = key;
+			slot.type = "param";
+			slot.properties.Add("value", val);
+		}
 	}
 }
 
-// Walk the net body
 static void LoadNet(const AstNode& net_node, Graph& g,
                     const VectorMap<String, NodeTypeDef>& types,
                     Vector<ValidationMessage>& out)
 {
-	// NetStmt has one child: CompoundStmt
 	for (const AstNode& child : const_cast<AstNode&>(net_node).val.Sub<AstNode>()) {
 		if (child.src == Cursor_CompoundStmt)
 			LoadNetCompound(child, g, types, out);
@@ -555,13 +608,8 @@ static void LoadNet(const AstNode& net_node, Graph& g,
 bool LoadEon(Graph& g, const String& eon_text,
              Vector<ValidationMessage>& out)
 {
-	// Extract comment-based annotations before AST parsing
 	Vector<GroupDef>    group_defs = ParseGroupAnnotations(eon_text);
 	Vector<PosAnnotation> pos_defs = ParsePosAnnotations(eon_text);
-
-#ifdef flagDEBUG
-	LOG("Parsed " << group_defs.GetCount() << " groups from comments");
-#endif
 
 	VfsValue root_val;
 	Compiler compiler(root_val);
@@ -572,42 +620,37 @@ bool LoadEon(Graph& g, const String& eon_text,
 		return false;
 	}
 
-	// Collect node type declarations
 	VectorMap<String, NodeTypeDef> types;
 	CollectNodeTypeDefs(*sem_root, types);
 
-	// Find and load net blocks — identified by src == Cursor_NetStmt
 	bool found_net = false;
-	for (const AstNode& top : sem_root->val.Sub<AstNode>()) {
-		if (top.src == Cursor_NetStmt) {
-			LoadNet(top, g, types, out);
+	auto LoadNetsRecursive = [&](const AstNode& node, auto& self) -> void {
+		if (node.src == Cursor_NetStmt) {
+			LoadNet(node, g, types, out);
 			found_net = true;
+			return;
 		}
-	}
+		for (const AstNode& child : const_cast<AstNode&>(node).val.Sub<AstNode>())
+			self(child, self);
+	};
+	LoadNetsRecursive(*sem_root, LoadNetsRecursive);
 
-	// Create groups from annotations and assign nodes based on path prefix
 	for(int i = 0; i < group_defs.GetCount(); i++) {
 		const GroupDef& gd = group_defs[i];
-		String grp_id = gd.vfs_path.Mid(1); // Remove leading '/'
+		String grp_id = gd.vfs_path.Mid(1);
 		if(grp_id.IsEmpty()) grp_id = "group_" + IntStr(i);
 		GroupDoc& grp = g.AddGroup(grp_id);
 		grp.label = gd.label;
 		grp.vfs_path = gd.vfs_path;
 		grp.style = gd.style;
 
-		// Assign nodes whose IDs match this group's prefix
-		// For example, group "/enc" matches nodes: enc_node1, enc_node80, etc.
-		String prefix = gd.vfs_path.Mid(1); // Remove leading '/'
+		String prefix = gd.vfs_path.Mid(1);
 		for(auto& node : g.GetDoc().nodes) {
 			if(node.id.StartsWith(prefix + "_") || node.id == prefix)
 				grp.nodes.Add(node.id);
 		}
-#ifdef flagDEBUG
-		LOG("Group " << grp_id << " has " << grp.nodes.GetCount() << " nodes");
-#endif
 	}
 
-	// Apply saved node positions and sizes
 	for (const PosAnnotation& pa : pos_defs) {
 		NodeDoc* nd = g.FindNode(pa.node_id);
 		if (!nd) continue;
@@ -646,7 +689,7 @@ bool LoadEonFile(Graph& g, const String& path,
 		        "Empty file: " + path));
 		return false;
 	}
-	return LoadEon(g, content, out);  // Pass content directly
+	return LoadEon(g, content, out);
 }
 
 String SaveEon(const Graph& g)
@@ -654,8 +697,6 @@ String SaveEon(const Graph& g)
 	const GraphDoc& doc = g.GetDoc();
 	String s;
 
-	// Emit one node type declaration per unique node_type_id that has pins or slots.
-	// Use node_type_id as the canonical type identifier (fall back to label if empty).
 	Index<String> emitted_types;
 	for (const NodeDoc& nd : doc.nodes) {
 		if (nd.pins.IsEmpty() && nd.slots.IsEmpty()) continue;
@@ -671,7 +712,6 @@ String SaveEon(const Graph& g)
 				s << " : " << pin.type_name;
 			s << "\n";
 		}
-		// Emit param declarations from the first node of this type that has slots.
 		for (WidgetSlotDoc& slot : const_cast<NodeDoc&>(nd).slots) {
 			s << "\t" << slot.id;
 			if (!slot.type.IsEmpty() && slot.type != "param")
@@ -684,11 +724,6 @@ String SaveEon(const Graph& g)
 		s << "\n";
 	}
 
-	// Emit net block — each node as:
-	//   instance_id: type_id
-	//       slot_key = value
-	//       ...
-	// followed by connections.
 	s << "net graph:\n";
 
 	for (const NodeDoc& nd : doc.nodes) {
@@ -708,7 +743,6 @@ String SaveEon(const Graph& g)
 	}
 	s << "\n";
 
-	// Connections
 	for (const EdgeDoc& ed : doc.edges) {
 		s << "\t" << ed.source_node;
 		if (!ed.source_pin.IsEmpty()) s << "." << ed.source_pin;
@@ -717,7 +751,6 @@ String SaveEon(const Graph& g)
 		s << "\n";
 	}
 
-	// Emit node position annotations (only if any node has a non-zero position)
 	bool has_positions = false;
 	for (const NodeDoc& nd : doc.nodes)
 		if (nd.pos.x != 0.0 || nd.pos.y != 0.0) { has_positions = true; break; }

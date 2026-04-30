@@ -116,7 +116,7 @@ String WorkbenchExtensions::KindFromPath(const String& path) {
 	String ext = ToLower(GetFileExt(path));
 	if(ext == ".sln" || ext == ".slnx" || ext == ".nnsln") return "solution";
 	if(ext == ".grfproj" || ext == ".nnprj")               return "project";
-	if(ext == ".grf"     || ext == ".nngrf")               return "graph";
+	if(ext == ".grf"     || ext == ".nngrf" || ext == ".eon")  return "graph";
 	if(ext == ".nnpy")                                      return "script";
 	return "file";
 }

@@ -43,7 +43,7 @@ private:
 	
 	String html, addr;
 	
-	Document doc;
+	One<Document> doc;
 	bool init_ready = false;
 	
 	Document master_doc;
@@ -78,6 +78,7 @@ public:
 	
 	void		OnScroll();
 	void		Process();
+	void		SetDocument(Document* d);
 	void		SetHtml(String html, String addr);
 	Element*	CreateElement(HtmlNode& n);
 	Css&		MasterCss() {return master_css;}

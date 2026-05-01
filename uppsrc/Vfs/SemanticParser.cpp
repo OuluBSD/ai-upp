@@ -2062,6 +2062,13 @@ bool SemanticParser::ParseNetStatement(int& cookie) {
 			if (!ParseMeta(cookie))
 				return false;
 		}
+		else if (IsId("connections")) {
+			PassId("connections");
+			if (cur.val.Sub<TokenNode>().GetCount()) {
+				if (!ParseNetStatementList())
+					return false;
+			}
+		}
 		else if (IsId("state")) {
 			if (!ParseState())
 				return false;

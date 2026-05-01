@@ -1,0 +1,23 @@
+description "Python bytecode VM";
+
+uses
+	Core,
+	Core/TextParsing;
+
+file
+	Python.h,
+	PyValue.h,
+	PyValue.cpp,
+	PyCode.h,
+	PyIR.h,
+	PyCompiler.h,
+	PyCompiler.cpp,
+	PyVM.h,
+	PyVM.cpp,
+	PolicyKit.h,
+	PolicyKit.cpp,
+	PyScheduler.h,
+	PyScheduler.cpp,
+	PyBindings.h,
+	test_lambda_debug.cpp,
+	test_minimal.py;

@@ -1,0 +1,12 @@
+description "HtmlGui Smoke Test Tutorial";
+
+uses
+	HtmlGui,
+	Core/TextParsing,
+	Core;
+
+file
+	main.cpp;
+
+mainconfig
+	"" = "GUI";

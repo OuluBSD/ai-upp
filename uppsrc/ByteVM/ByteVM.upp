@@ -1,24 +1,9 @@
-description "Python bytecode virtual machine implementation\377";
-
-acceptflags
-	DEBUG_RT;
+description "Bytecode VM abstraction layer";
 
 uses
-	Core,
-	Core/TextParsing;
+	ByteVM/Python,
+	ByteVM/EcmaScript;
 
 file
 	ByteVM.h,
-	PyValue.cpp,
-	PyValue.h,
-	PyCode.h,
-	PyIR.h,
-	PyCompiler.h,
-	PyCompiler.cpp,
-	PyVM.h,
-	PyVM.cpp,
-	PolicyKit.h,
-	PolicyKit.cpp,
-	PyScheduler.h,
-	PyScheduler.cpp;
-
+	PyBindings.h;

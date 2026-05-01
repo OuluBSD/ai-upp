@@ -1,6 +1,5 @@
 #include "TextParsing.h"
 
-#ifdef flagSTDEXC
 
 NAMESPACE_UPP
 
@@ -393,4 +392,3 @@ HtmlNode& HtmlNode::TryGetTag(String key) {
 
 END_UPP_NAMESPACE
 
-#endif

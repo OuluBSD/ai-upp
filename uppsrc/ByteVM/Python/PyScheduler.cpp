@@ -1,0 +1,115 @@
+#include <ByteVM/ByteVM.h>
+#include "PyScheduler.h"
+
+NAMESPACE_UPP
+
+static thread_local int s_py_gil_depth = 0;
+
+void PyScheduler::AddVM(PyVM& vm)
+{
+	Mutex::Lock __(mutex);
+	vms.Add(&vm);
+}
+
+void PyScheduler::Lock()
+{
+	if(s_py_gil_depth++ == 0)
+		gil.Enter();
+}
+
+void PyScheduler::Unlock()
+{
+	ASSERT(s_py_gil_depth > 0);
+	if(s_py_gil_depth <= 0)
+		return;
+	if(--s_py_gil_depth == 0)
+		gil.Leave();
+}
+
+bool PyScheduler::HasLock() const
+{
+	return s_py_gil_depth > 0;
+}
+
+static void NativeThreadEntry(PyVM *vm)
+{
+	PyScheduler::Get().NativeThreadStarted();
+	try {
+		vm->Run();
+	} catch (Exc& e) {
+		Cout() << "Thread error: " << e << "\n";
+	}
+	delete vm;
+	PyScheduler::Get().NativeThreadFinished();
+}
+
+PyValue PyScheduler::CreateThread(PyValue func, Vector<PyValue>&& args)
+{
+	if(!func.IsFunction()) return PyValue::None();
+	
+	const PyLambda& l = func.GetLambda();
+	
+	if(mode == PYTHREAD_NATIVE) {
+		PyVM *new_vm = new PyVM();
+		
+		Vector<PyIR> ir;
+		ir.Add(PyIR(PY_LOAD_CONST, func));
+		for(const auto& arg : args) ir.Add(PyIR(PY_LOAD_CONST, arg));
+		ir.Add(PyIR(PY_CALL_FUNCTION, (int)args.GetCount(), 0));
+		ir.Add(PyIR(PY_RETURN_VALUE));
+		
+		new_vm->SetIR(ir);
+		
+		Thread t;
+		t.Run([new_vm] { NativeThreadEntry(new_vm); }, true);
+		t.Detach();
+		
+		return PyValue("Thread started (native)");
+	}
+	else {
+		PyVM& new_vm = vms.Add();
+		
+		Vector<PyIR> ir;
+		ir.Add(PyIR(PY_LOAD_CONST, func));
+		for(const auto& arg : args) ir.Add(PyIR(PY_LOAD_CONST, arg));
+		ir.Add(PyIR(PY_CALL_FUNCTION, (int)args.GetCount(), 0));
+		ir.Add(PyIR(PY_RETURN_VALUE));
+		
+		new_vm.SetIR(ir);
+		
+		return PyValue("Thread added to scheduler");
+	}
+}
+
+void PyScheduler::Run()
+{
+	if(mode == PYTHREAD_NATIVE) {
+		// Wait for all native threads to finish
+		for(;;) {
+			{
+				Mutex::Lock __(mutex);
+				if(active_native_threads == 0) break;
+			}
+			Sleep(10);
+		}
+	}
+	else {
+		while(!vms.IsEmpty()) {
+			for(int i = 0; i < vms.GetCount(); i++) {
+				if(!vms[i].IsRunning()) {
+					vms.Remove(i);
+					i--;
+					continue;
+				}
+				
+				// Step N instructions
+				for(int j = 0; j < 5; j++) {
+					if(!vms[i].Step()) break;
+				}
+			}
+			Sleep(1);
+		}
+	}
+}
+
+END_UPP_NAMESPACE

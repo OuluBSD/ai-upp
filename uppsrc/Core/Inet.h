@@ -1,3 +1,6 @@
+#ifndef _Core_Inet_h_
+#define _Core_Inet_h_
+
 String WwwFormat(Time tm);
 bool   ScanWwwTime(const char *s, Time& tm);
 Time   ScanWwwTime(const char *s);
@@ -628,9 +631,18 @@ bool HttpResponse(TcpSocket& socket, bool scgi, int code, const char *phrase = N
                   const char *content_type = NULL, const String& data = Null,
                   const char *server = NULL, bool gzip = false);
 
-#include <Core/Core.h>
+class IWebSocket {
+public:
+	virtual void   SendText(const String& data) = 0;
+	virtual void   SendBinary(const String& data) = 0;
+	virtual String Receive() = 0;   // "" if nothing pending (non-blocking)
+	virtual bool   IsOpen() const = 0;
+	virtual void   Close(const String& msg = Null) = 0;
+	Event<String>  WhenMessage;     // fires on incoming message
+	virtual ~IWebSocket() {}
+};
 
-class WebSocket {
+class WebSocket : public IWebSocket {
 	String     error;
 
 	TcpSocket  std_socket;
@@ -732,14 +744,14 @@ public:
 	
 	void   Do();
 
-	String Receive();
+	String Receive() override;
 	bool   IsFin() const                                { return current_opcode & FIN; }
 	bool   IsText() const                               { return current_opcode & TEXT; }
 	bool   IsBinary() const                             { return current_opcode & BINARY; }
 
-	void   SendText(const String& data)                 { SendRaw(FIN|TEXT, data); }
+	void   SendText(const String& data) override        { SendRaw(FIN|TEXT, data); }
 	void   SendTextMasked(const String& data)           { SendRaw(FIN|TEXT, data, MASK); }
-	void   SendBinary(const String& data)               { SendRaw(FIN|BINARY, data); }
+	void   SendBinary(const String& data) override      { SendRaw(FIN|BINARY, data); }
 	void   Ping(const String& data)                     { SendRaw(FIN|PING, data); }
 
 	void   BeginText(const String& data)                { SendRaw(TEXT, data); }
@@ -747,8 +759,9 @@ public:
 	void   Continue(const String& data)                 { SendRaw(0, data); }
 	void   Fin(const String& data)                      { SendRaw(FIN, data); }
 
-	void   Close(const String& msg = Null, bool wait_reply = false);
-	bool   IsOpen() const                               { return socket->IsOpen(); }
+	void   Close(const String& msg, bool wait_reply);
+	void   Close(const String& msg) override            { Close(msg, false); }
+	bool   IsOpen() const override                      { return socket->IsOpen(); }
 	bool   IsClosed() const                             { return !IsOpen(); }
 
 	dword  GetWaitEvents() const                        { return WAIT_READ|(!!out_queue.GetCount() * WAIT_WRITE); }
@@ -779,3 +792,5 @@ public:
 };
 
 void ParseProxyUrl(const char *p, String& proxy_host, int& proxy_port);
+
+#endif

@@ -172,6 +172,7 @@ bool Compiler::ExportCpp() {
 
 void Compiler::OnProcMsg(ProcMsg msg) {
 	LOG(msg.ToString());
+	WhenMessage(msg);
 }
 
 

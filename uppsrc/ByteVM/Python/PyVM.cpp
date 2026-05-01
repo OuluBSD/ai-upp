@@ -1,0 +1,3054 @@
+#include <ByteVM/ByteVM.h>
+#include <Core/Core.h>
+
+#ifdef PLATFORM_POSIX
+#include <sys/stat.h>
+#include <unistd.h>
+#include <sched.h>
+#endif
+
+#undef environ
+
+namespace Upp {
+
+#ifdef flagPYVM_TRACE
+#define PYVM_TRACE(x) do { String __s; __s << x; VppLog() << __s; } while(0)
+#else
+#define PYVM_TRACE(x) do {} while(0)
+#endif
+
+static inline void ReleaseLocals(VectorMap<PyValue, PyValue>& locals) {
+	Vector<PyValue> keys = locals.PickKeys();
+	Vector<PyValue> values = locals.PickValues();
+	for(int i = 0; i < keys.GetCount(); i++)
+		keys[i] = PyValue::None();
+	for(int i = 0; i < values.GetCount(); i++)
+		values[i] = PyValue::None();
+	locals.Clear();
+	locals.Shrink();
+}
+
+static inline void ReleaseStack(Vector<PyValue>& stack) {
+	for(int i = 0; i < stack.GetCount(); i++)
+		stack[i] = PyValue::None();
+	stack.Clear();
+	stack.Shrink();
+}
+
+void PyVM::BindCallArgs(Frame& f, const PyLambda& l, const Vector<PyValue>& sorted_args) {
+	for(int i = 0; i < min(l.arg.GetCount(), sorted_args.GetCount()); i++) {
+		PyValue key = i < l.arg_values.GetCount() ? l.arg_values[i] : PyValue(l.arg[i]);
+		int q = f.locals.Find(key);
+		if(q >= 0) f.locals[q] = sorted_args[i];
+		else f.locals.Add(key, sorted_args[i]);
+	}
+	for(int i = sorted_args.GetCount(); i < l.arg.GetCount(); i++) {
+		String arg_name = l.arg[i];
+		int def_i = l.defaults.Find(arg_name);
+		if(def_i >= 0) {
+			PyValue key = i < l.arg_values.GetCount() ? l.arg_values[i] : PyValue(arg_name);
+			int q = f.locals.Find(key);
+			if(q >= 0) f.locals[q] = l.defaults[def_i];
+			else f.locals.Add(key, l.defaults[def_i]);
+		}
+		else {
+			throw Exc("TypeError: " + l.name + "() missing required argument: '" + arg_name + "'");
+		}
+	}
+	if(sorted_args.GetCount() > l.arg.GetCount())
+		throw Exc("TypeError: " + l.name + "() takes " + AsString(l.arg.GetCount()) + " positional argument(s) but " + AsString(sorted_args.GetCount()) + " were given");
+}
+
+static String GetRelPath(String path, String base) {
+	path = NormalizePath(path);
+	base = NormalizePath(base);
+	if(path.StartsWith(base)) {
+		String res = path.Mid(base.GetCount());
+		if(res.StartsWith("/") || res.StartsWith("\\")) res = res.Mid(1);
+		return res;
+	}
+	return path;
+}
+
+struct PyKV : Moveable<PyKV> {
+	PyValue k, v;
+	PyKV() {}
+	PyKV(PyValue k, PyValue v) : k(k), v(v) {}
+};
+
+static PyValue builtin_print(const Vector<PyValue>& args, void* ud) {
+	PyVM *vm = (PyVM*)ud;
+	String out;
+	for(int i = 0; i < args.GetCount(); i++) {
+		if(i) out << " ";
+		out << args[i].ToString();
+	}
+	out << "\n";
+	
+	if(vm && vm->WhenPrint)
+		vm->WhenPrint(out);
+	else
+		Cout() << out;
+		
+	return PyValue::None();
+}
+
+static PyValue builtin_len(const Vector<PyValue>& args, void*) {
+	if(args.GetCount() == 0) return PyValue(0);
+	return PyValue((int64)args[0].GetCount());
+}
+
+static PyValue builtin_range(const Vector<PyValue>& args, void*) {
+	int64 start = 0, stop = 0, step = 1;
+	if(args.GetCount() == 1) stop = args[0].AsInt64();
+	else if(args.GetCount() == 2) { start = args[0].AsInt64(); stop = args[1].AsInt64(); }
+	else if(args.GetCount() == 3) { start = args[0].AsInt64(); stop = args[1].AsInt64(); step = args[2].AsInt64(); }
+	return PyValue::Iterator(new PyRangeIter(start, stop, step));
+}
+
+static PyValue builtin_complex(const Vector<PyValue>& args, void*) {
+	double real = 0, imag = 0;
+	if(args.GetCount() >= 1) real = args[0].AsDouble();
+	if(args.GetCount() >= 2) imag = args[1].AsDouble();
+	return PyValue(std::complex<double>(real, imag));
+}
+
+static PyValue builtin_bool(const Vector<PyValue>& args, void*) {
+	if(args.GetCount() >= 1) return PyValue(args[0].IsTrue());
+	return PyValue(false);
+}
+
+static PyValue builtin_iter(const Vector<PyValue>& args, void*) {
+	if(args.GetCount() == 0) return PyValue::None();
+	PyValue obj = args[0];
+	if(obj.GetType() == PY_LIST || obj.GetType() == PY_TUPLE || obj.GetType() == PY_STR)
+		return PyValue::Iterator(new PyVectorIter(obj));
+	if(obj.IsIterator())
+		return obj;
+	return PyValue::None();
+}
+
+static PyValue builtin_next(const Vector<PyValue>& args, void*) {
+	if(args.GetCount() == 0) return PyValue::None();
+	PyValue iterator = args[0];
+	PyValue default_val = args.GetCount() >= 2 ? args[1] : PyValue::None();
+	if(iterator.IsIterator()) {
+		PyValue v = iterator.GetIter().Next();
+		// Iterator exhausted returns None sentinel — use default if provided
+		if(v.IsNone() && args.GetCount() >= 2)
+			return default_val;
+		return v;
+	}
+	// list/tuple: return first element if non-empty, else default
+	if(iterator.GetType() == PY_LIST || iterator.GetType() == PY_TUPLE) {
+		if(iterator.GetCount() > 0)
+			return iterator.GetItem(0);
+		return default_val;
+	}
+	return default_val;
+}
+
+static PyValue builtin_math_fabs(const Vector<PyValue>& args, void*) {
+	if(args.GetCount() == 0) return PyValue(0.0);
+	return PyValue(std::abs(args[0].AsDouble()));
+}
+
+static PyValue builtin_abs(const Vector<PyValue>& args, void*) {
+	if(args.GetCount() == 0) return PyValue(0);
+	PyValue v = args[0];
+	if(v.IsInt()) return PyValue(std::abs(v.AsInt64()));
+	if(v.IsFloat()) return PyValue(std::abs(v.AsDouble()));
+	if(v.GetType() == PY_COMPLEX) return PyValue(std::abs(v.GetComplex()));
+	return v;
+}
+
+static PyValue builtin_chr(const Vector<PyValue>& args, void*) {
+	if(args.GetCount() == 0) return PyValue("");
+	return PyValue(::Upp::String(args[0].AsInt(), 1));
+}
+
+static PyValue builtin_ord(const Vector<PyValue>& args, void*) {
+	if(args.GetCount() == 0) return PyValue(0);
+	::Upp::String s = args[0].ToString();
+	if(s.GetCount() > 0) return PyValue((int)(byte)s[0]);
+	return PyValue(0);
+}
+
+static PyValue builtin_any(const Vector<PyValue>& args, void*) {
+	if(args.GetCount() == 0) return PyValue(false);
+	const PyValue& iterable = args[0];
+	if(iterable.GetType() == PY_LIST || iterable.GetType() == PY_TUPLE)
+		for(int i = 0; i < iterable.GetCount(); i++)
+			if(iterable.GetItem(i).IsTrue()) return PyValue(true);
+	return PyValue(false);
+}
+
+static PyValue builtin_all(const Vector<PyValue>& args, void*) {
+	if(args.GetCount() == 0) return PyValue(true);
+	const PyValue& iterable = args[0];
+	if(iterable.GetType() == PY_LIST || iterable.GetType() == PY_TUPLE)
+		for(int i = 0; i < iterable.GetCount(); i++)
+			if(!iterable.GetItem(i).IsTrue()) return PyValue(false);
+	return PyValue(true);
+}
+
+static PyValue builtin_int(const Vector<PyValue>& args, void*) {
+	if(args.GetCount() == 0) return PyValue((int64)0);
+	return PyValue(args[0].AsInt64());
+}
+
+static PyValue builtin_float(const Vector<PyValue>& args, void*) {
+	if(args.GetCount() == 0) return PyValue(0.0);
+	return PyValue(args[0].AsDouble());
+}
+
+static PyValue builtin_list(const Vector<PyValue>& args, void*) {
+	if(args.GetCount() == 0) return PyValue::List();
+	const PyValue& src = args[0];
+	PyValue result = PyValue::List();
+	if(src.GetType() == PY_LIST || src.GetType() == PY_TUPLE)
+		for(int i = 0; i < src.GetCount(); i++)
+			result.Add(src.GetItem(i));
+	return result;
+}
+
+static PyValue builtin_isinstance(const Vector<PyValue>& args, void*) {
+	if(args.GetCount() < 2) return PyValue(false);
+	// Simplified: just return true for now (used for type checking in logic)
+	return PyValue(true);
+}
+
+static PyValue builtin_random_shuffle(const Vector<PyValue>& args, void*) {
+	if(args.GetCount() >= 1 && args[0].GetType() == PY_LIST) {
+		Vector<PyValue>& l = const_cast<Vector<PyValue>&>(args[0].GetArray());
+		int n = l.GetCount();
+		for(int i = n - 1; i > 0; i--) {
+			int j = Random(i + 1);
+			Swap(l[i], l[j]);
+		}
+	}
+	return PyValue::None();
+}
+
+class PyFile : public PyUserData {
+	One<Stream> stream;
+	bool is_out;
+public:
+	PyFile(const String& path, const String& mode) {
+		is_out = mode.Find('w') >= 0 || mode.Find('a') >= 0;
+		if(mode.Find('a') >= 0) {
+			FileAppend *fa = new FileAppend();
+			fa->Open(path);
+			stream = fa;
+		} else if(mode.Find('w') >= 0) {
+			FileOut *fo = new FileOut();
+			fo->Open(path);
+			stream = fo;
+		} else {
+			FileIn *fi = new FileIn();
+			fi->Open(path);
+			stream = fi;
+		}
+	}
+	
+	virtual String GetTypeName() const override { return "file"; }
+	
+	virtual PyValue GetAttr(const String& name) override {
+		if(name == "write") return PyValue::BoundMethod(PyValue::Function("write", [](const Vector<PyValue>& args, void* ud){
+			PyFile *pf = (PyFile*)ud;
+			if(args.GetCount() > 0 && pf->is_out && pf->stream) pf->stream->Put(args[0].ToString());
+			return PyValue::None();
+		}, this), this);
+		if(name == "read") return PyValue::BoundMethod(PyValue::Function("read", [](const Vector<PyValue>& args, void* ud){
+			PyFile *pf = (PyFile*)ud;
+			if(!pf->is_out && pf->stream) return PyValue(LoadStream(*pf->stream));
+			return PyValue("");
+		}, this), this);
+		if(name == "close") return PyValue::BoundMethod(PyValue::Function("close", [](const Vector<PyValue>& args, void* ud){
+			PyFile *pf = (PyFile*)ud;
+			if(pf->stream) pf->stream->Close();
+			return PyValue::None();
+		}, this), this);
+		return PyValue::None();
+	}
+};
+
+static PyValue builtin_open(const Vector<PyValue>& args, void*) {
+	if(args.GetCount() < 1) return PyValue::None();
+	String path = args[0].ToString();
+	String mode = args.GetCount() >= 2 ? args[1].ToString() : "r";
+	return PyValue::UserData(new PyFile(path, mode));
+}
+
+static PyValue builtin_str(const Vector<PyValue>& args, void*) {
+	if(args.GetCount() == 0) return PyValue("");
+	return PyValue(args[0].ToString());
+}
+
+static PyValue builtin_dir(const Vector<PyValue>& args, void*) {
+	PyValue list = PyValue::List();
+	if(args.GetCount() == 0) return list; // TODO: return local scope
+	PyValue obj = args[0];
+	if(obj.GetType() == PY_DICT) {
+		const VectorMap<PyValue, PyValue>& dict = obj.GetDict();
+		for(int i = 0; i < dict.GetCount(); i++) {
+			PyValue k = dict.GetKey(i);
+			if (k.GetType() == PY_STR) list.Add(k);
+			else list.Add(PyValue(k.ToString()));
+		}
+	}
+	// TODO: support other types
+	return list;
+}
+
+static PyValue builtin_min(const Vector<PyValue>& args, void*) {
+	if(args.GetCount() == 0) return PyValue::None();
+	PyValue m;
+	const Vector<PyValue> *items = &args;
+	if(args.GetCount() == 1 && (args[0].GetType() == PY_LIST || args[0].GetType() == PY_TUPLE))
+		items = &args[0].GetArray();
+	
+	if(items->IsEmpty()) return PyValue::None();
+	m = (*items)[0];
+	for(int i = 1; i < items->GetCount(); i++)
+		if((*items)[i] < m) m = (*items)[i];
+	return m;
+}
+
+static PyValue builtin_max(const Vector<PyValue>& args, void*) {
+	if(args.GetCount() == 0) return PyValue::None();
+	PyValue m;
+	const Vector<PyValue> *items = &args;
+	if(args.GetCount() == 1 && (args[0].GetType() == PY_LIST || args[0].GetType() == PY_TUPLE))
+		items = &args[0].GetArray();
+	
+	if(items->IsEmpty()) return PyValue::None();
+	m = (*items)[0];
+	for(int i = 1; i < items->GetCount(); i++)
+		if(m < (*items)[i]) m = (*items)[i];
+	return m;
+}
+
+static PyValue builtin_sum(const Vector<PyValue>& args, void*) {
+	if(args.GetCount() == 0) return PyValue(0);
+	const Vector<PyValue> *items = &args;
+	if(args.GetCount() >= 1 && (args[0].GetType() == PY_LIST || args[0].GetType() == PY_TUPLE))
+		items = &args[0].GetArray();
+	
+	PyValue s(0);
+	if (items->GetCount() > 0 && (*items)[0].GetType() == PY_STR) s = PyValue("");
+	
+	for(const auto& v : *items) {
+		if(s.GetType() == PY_STR) s = PyValue(s.GetStr() + v.GetStr());
+		else if(s.GetType() == PY_COMPLEX || v.GetType() == PY_COMPLEX) s = PyValue(s.GetComplex() + v.GetComplex());
+		else if(s.IsFloat() || v.IsFloat()) s = PyValue(s.AsDouble() + v.AsDouble());
+		else s = PyValue(s.AsInt64() + v.AsInt64());
+	}
+	return s;
+}
+
+static PyValue builtin_shutil_copy(const Vector<PyValue>& args, void*) {
+	if(!PolicyKit::Get().Check(PYPERM_FILE_READ)) throw Exc("PermissionError: file read access denied");
+	if(!PolicyKit::Get().Check(PYPERM_FILE_WRITE)) throw Exc("PermissionError: file write access denied");
+	if(args.GetCount() < 2) return PyValue::None();
+	String src = args[0].ToString();
+	String dst = args[1].ToString();
+	String data = LoadFile(src);
+	if(data.IsVoid()) return PyValue(false);
+	return PyValue(SaveFile(dst, data));
+}
+
+static PyValue builtin_glob_glob(const Vector<PyValue>& args, void*) {
+	if(!PolicyKit::Get().Check(PYPERM_FILE_READ)) throw Exc("PermissionError: file read access denied");
+	if(args.GetCount() < 1) return PyValue::List();
+	String pattern = args[0].ToString();
+	PyValue res = PyValue::List();
+	FindFile ff;
+	if(ff.Search(pattern)) {
+		do {
+			if(ff.GetName() != "." && ff.GetName() != "..")
+				res.Add(PyValue(ff.GetPath()));
+		} while(ff.Next());
+	}
+	return res;
+}
+
+static PyValue builtin_os_getcwd(const Vector<PyValue>& args, void*) {
+	if(!PolicyKit::Get().Check(PYPERM_FILE_READ)) throw Exc("PermissionError: file read access denied");
+	return PyValue(GetCurrentDirectory());
+}
+
+static PyValue builtin_os_mkdir(const Vector<PyValue>& args, void*) {
+	if(!PolicyKit::Get().Check(PYPERM_FILE_WRITE)) throw Exc("PermissionError: file write access denied");
+	if(args.GetCount() < 1) return PyValue::None();
+	RealizeDirectory(args[0].ToString());
+	return PyValue::None();
+}
+
+static PyValue builtin_os_rmdir(const Vector<PyValue>& args, void*) {
+	if(!PolicyKit::Get().Check(PYPERM_FILE_WRITE)) throw Exc("PermissionError: file write access denied");
+	if(args.GetCount() < 1) return PyValue::None();
+	DeleteFolderDeep(args[0].ToString());
+	return PyValue::None();
+}
+
+static PyValue builtin_os_rename(const Vector<PyValue>& args, void*) {
+	if(!PolicyKit::Get().Check(PYPERM_FILE_WRITE)) throw Exc("PermissionError: file write access denied");
+	if(args.GetCount() < 2) return PyValue::None();
+	return PyValue(FileMove(args[0].ToString(), args[1].ToString()));
+}
+
+static PyValue builtin_os_getenv(const Vector<PyValue>& args, void*) {
+	if(!PolicyKit::Get().Check(PYPERM_ENVIRONMENT)) throw Exc("PermissionError: environment access denied");
+	if(args.GetCount() < 1) return PyValue::None();
+	String val = GetEnv(args[0].ToString());
+	if(::Upp::IsNull(val)) {
+		if(args.GetCount() >= 2) return args[1];
+		return PyValue::None();
+	}
+	return PyValue(val);
+}
+
+static PyValue builtin_os_putenv(const Vector<PyValue>& args, void*) {
+	if(!PolicyKit::Get().Check(PYPERM_ENVIRONMENT)) throw Exc("PermissionError: environment access denied");
+	if(args.GetCount() < 2) return PyValue::None();
+	SetEnv(args[0].ToString(), args[1].ToString());
+	return PyValue::None();
+}
+
+static PyValue builtin_os_getpid(const Vector<PyValue>& args, void*) {
+	if(!PolicyKit::Get().Check(PYPERM_PROCESS_EXEC)) throw Exc("PermissionError: process info access denied");
+#ifdef flagWIN32
+	return PyValue((int64)GetCurrentProcessId());
+#else
+	return PyValue((int64)getpid());
+#endif
+}
+
+static PyValue builtin_os_getuid(const Vector<PyValue>& args, void*) {
+	if(!PolicyKit::Get().Check(PYPERM_PROCESS_EXEC)) throw Exc("PermissionError: process info access denied");
+#ifdef flagWIN32
+	return PyValue((int64)0);
+#else
+	return PyValue((int64)getuid());
+#endif
+}
+
+static PyValue builtin_os_getgid(const Vector<PyValue>& args, void*) {
+	if(!PolicyKit::Get().Check(PYPERM_PROCESS_EXEC)) throw Exc("PermissionError: process info access denied");
+#ifdef flagWIN32
+	return PyValue((int64)0);
+#else
+	return PyValue((int64)getgid());
+#endif
+}
+
+static PyValue builtin_os_listdir(const Vector<PyValue>& args, void*) {
+	if(!PolicyKit::Get().Check(PYPERM_FILE_READ)) throw Exc("PermissionError: file read access denied");
+	String path = ".";
+	if(args.GetCount() >= 1) path = args[0].ToString();
+	PyValue list = PyValue::List();
+	FindFile ff(AppendFileName(path, "*"));
+	while(ff) {
+		if(ff.GetName() != "." && ff.GetName() != "..")
+			list.Add(PyValue(ff.GetName()));
+		ff.Next();
+	}
+	return list;
+}
+
+static PyValue builtin_os_remove(const Vector<PyValue>& args, void*) {
+	if(!PolicyKit::Get().Check(PYPERM_FILE_WRITE)) throw Exc("PermissionError: file write access denied");
+	if(args.GetCount() < 1) return PyValue::None();
+	FileDelete(args[0].ToString());
+	return PyValue::None();
+}
+
+static PyValue builtin_os_chdir(const Vector<PyValue>& args, void*) {
+	if(!PolicyKit::Get().Check(PYPERM_FILE_READ)) throw Exc("PermissionError: file read access denied");
+	if(args.GetCount() < 1) return PyValue::None();
+	SetCurrentDirectory(args[0].ToString());
+	return PyValue::None();
+}
+
+static PyValue builtin_os_path_exists(const Vector<PyValue>& args, void*) {
+	if(!PolicyKit::Get().Check(PYPERM_FILE_READ)) throw Exc("PermissionError: file read access denied");
+	if(args.GetCount() < 1) return PyValue(false);
+	String path = args[0].ToString();
+	return PyValue(FileExists(path) || DirectoryExists(path));
+}
+
+static PyValue builtin_os_path_isdir(const Vector<PyValue>& args, void*) {
+	if(!PolicyKit::Get().Check(PYPERM_FILE_READ)) throw Exc("PermissionError: file read access denied");
+	if(args.GetCount() < 1) return PyValue(false);
+	return PyValue(DirectoryExists(args[0].ToString()));
+}
+
+static PyValue builtin_os_path_isfile(const Vector<PyValue>& args, void*) {
+	if(!PolicyKit::Get().Check(PYPERM_FILE_READ)) throw Exc("PermissionError: file read access denied");
+	if(args.GetCount() < 1) return PyValue(false);
+	return PyValue(FileExists(args[0].ToString()));
+}
+
+static PyValue builtin_os_path_getsize(const Vector<PyValue>& args, void*) {
+	if(!PolicyKit::Get().Check(PYPERM_FILE_READ)) throw Exc("PermissionError: file read access denied");
+	if(args.GetCount() < 1) return PyValue(0);
+	return PyValue((int64)GetFileLength(args[0].ToString()));
+}
+
+static PyValue builtin_os_path_islink(const Vector<PyValue>& args, void*) {
+	if(!PolicyKit::Get().Check(PYPERM_FILE_READ)) throw Exc("PermissionError: file read access denied");
+	if(args.GetCount() < 1) return PyValue(false);
+#ifdef flagWIN32
+	return PyValue(false);
+#else
+	struct stat st;
+	if(lstat(args[0].ToString(), &st) == 0)
+		return PyValue(S_ISLNK(st.st_mode));
+	return PyValue(false);
+#endif
+}
+
+static PyValue builtin_os_path_lexists(const Vector<PyValue>& args, void*) {
+	if(!PolicyKit::Get().Check(PYPERM_FILE_READ)) throw Exc("PermissionError: file read access denied");
+	if(args.GetCount() < 1) return PyValue(false);
+#ifdef flagWIN32
+	return builtin_os_path_exists(args, NULL);
+#else
+	struct stat st;
+	return PyValue(lstat(args[0].ToString(), &st) == 0);
+#endif
+}
+
+static PyValue builtin_os_path_getatime(const Vector<PyValue>& args, void*) {
+	if(!PolicyKit::Get().Check(PYPERM_FILE_READ)) throw Exc("PermissionError: file read access denied");
+	if(args.GetCount() < 1) return PyValue(0.0);
+	FindFile ff(args[0].ToString());
+	if(ff) return PyValue((double)(Time(ff.GetLastAccessTime()) - Time(1970, 1, 1)));
+	return PyValue(0.0);
+}
+
+static PyValue builtin_os_path_getmtime(const Vector<PyValue>& args, void*) {
+	if(!PolicyKit::Get().Check(PYPERM_FILE_READ)) throw Exc("PermissionError: file read access denied");
+	if(args.GetCount() < 1) return PyValue(0.0);
+	FindFile ff(args[0].ToString());
+	if(ff) return PyValue((double)(Time(ff.GetLastWriteTime()) - Time(1970, 1, 1)));
+	return PyValue(0.0);
+}
+
+static PyValue builtin_os_path_getctime(const Vector<PyValue>& args, void*) {
+	if(!PolicyKit::Get().Check(PYPERM_FILE_READ)) throw Exc("PermissionError: file read access denied");
+	if(args.GetCount() < 1) return PyValue(0.0);
+	FindFile ff(args[0].ToString());
+	if(ff) {
+#ifdef flagWIN32
+		return PyValue((double)(Time(ff.GetCreationTime()) - Time(1970, 1, 1)));
+#else
+		return PyValue((double)(Time(ff.GetLastChangeTime()) - Time(1970, 1, 1)));
+#endif
+	}
+	return PyValue(0.0);
+}
+
+static PyValue builtin_os_path_realpath(const Vector<PyValue>& args, void*) {
+	if(!PolicyKit::Get().Check(PYPERM_FILE_READ)) throw Exc("PermissionError: file read access denied");
+	if(args.GetCount() < 1) return PyValue("");
+	return PyValue(GetFullPath(args[0].ToString()));
+}
+
+static PyValue builtin_os_path_abspath(const Vector<PyValue>& args, void*) {
+	if(!PolicyKit::Get().Check(PYPERM_FILE_READ)) throw Exc("PermissionError: file read access denied");
+	if(args.GetCount() < 1) return PyValue("");
+	return PyValue(GetFullPath(args[0].ToString()));
+}
+
+static PyValue builtin_os_path_samefile(const Vector<PyValue>& args, void*) {
+	if(!PolicyKit::Get().Check(PYPERM_FILE_READ)) throw Exc("PermissionError: file read access denied");
+	if(args.GetCount() < 2) return PyValue(false);
+	return PyValue(PathIsEqual(args[0].ToString(), args[1].ToString()));
+}
+
+static PyValue builtin_os_path_join(const Vector<PyValue>& args, void*) {
+	if(args.GetCount() == 0) return PyValue("");
+	String path = args[0].ToString();
+	for(int i = 1; i < args.GetCount(); i++)
+		path = AppendFileName(path, args[i].ToString());
+	return PyValue(path);
+}
+
+static PyValue builtin_os_path_basename(const Vector<PyValue>& args, void*) {
+	if(args.GetCount() < 1) return PyValue("");
+	return PyValue(GetFileName(args[0].ToString()));
+}
+
+static PyValue builtin_os_path_dirname(const Vector<PyValue>& args, void*) {
+	if(args.GetCount() < 1) return PyValue("");
+	return PyValue(GetFileFolder(args[0].ToString()));
+}
+
+static PyValue builtin_os_path_split(const Vector<PyValue>& args, void*) {
+	if(args.GetCount() < 1) return PyValue::Tuple();
+	String path = args[0].ToString();
+	PyValue t = PyValue::Tuple();
+	t.Add(PyValue(GetFileFolder(path)));
+	t.Add(PyValue(GetFileName(path)));
+	return t;
+}
+
+static PyValue builtin_os_path_splitext(const Vector<PyValue>& args, void*) {
+	if(args.GetCount() < 1) return PyValue::Tuple();
+	String path = args[0].ToString();
+	PyValue t = PyValue::Tuple();
+	String ext = GetFileExt(path);
+	if(ext.GetCount()) {
+		t.Add(PyValue(path.Left(path.GetCount() - ext.GetCount() - 1)));
+		t.Add(PyValue("." + ext));
+	} else {
+		t.Add(PyValue(path));
+		t.Add(PyValue(""));
+	}
+	return t;
+}
+
+static PyValue builtin_os_path_isabs(const Vector<PyValue>& args, void*) {
+	if(args.GetCount() < 1) return PyValue(false);
+	String path = args[0].ToString();
+#ifdef flagWIN32
+	return PyValue((path.GetCount() >= 2 && IsAlpha(path[0]) && path[1] == ':') || path.StartsWith("\\") || path.StartsWith("/"));
+#else
+	return PyValue(path.StartsWith("/"));
+#endif
+}
+
+static PyValue builtin_os_path_normpath(const Vector<PyValue>& args, void*) {
+	if(args.GetCount() < 1) return PyValue("");
+	return PyValue(NormalizePath(args[0].ToString()));
+}
+
+static PyValue builtin_os_path_normcase(const Vector<PyValue>& args, void*) {
+	if(args.GetCount() < 1) return PyValue("");
+#ifdef flagWIN32
+	return PyValue(ToLower(args[0].ToString()));
+#else
+	return args[0];
+#endif
+}
+
+static PyValue builtin_os_getlogin(const Vector<PyValue>& args, void*) {
+	return PyValue(GetUserName());
+}
+
+static PyValue builtin_os_getppid(const Vector<PyValue>& args, void*) {
+#ifdef flagWIN32
+	return PyValue((int64)0); 
+#else
+	return PyValue((int64)getppid());
+#endif
+}
+
+static PyValue builtin_os_makedirs(const Vector<PyValue>& args, void*) {
+	if(!PolicyKit::Get().Check(PYPERM_FILE_WRITE)) throw Exc("PermissionError: file write access denied");
+	if(args.GetCount() < 1) return PyValue::None();
+	RealizeDirectory(args[0].ToString());
+	return PyValue::None();
+}
+
+static PyValue builtin_os_removedirs(const Vector<PyValue>& args, void*) {
+	if(!PolicyKit::Get().Check(PYPERM_FILE_WRITE)) throw Exc("PermissionError: file write access denied");
+	if(args.GetCount() < 1) return PyValue::None();
+	DeleteFolderDeep(args[0].ToString());
+	return PyValue::None();
+}
+
+static PyValue builtin_os_replace(const Vector<PyValue>& args, void*) {
+	if(!PolicyKit::Get().Check(PYPERM_FILE_WRITE)) throw Exc("PermissionError: file write access denied");
+	if(args.GetCount() < 2) return PyValue::None();
+	return PyValue(FileMove(args[0].ToString(), args[1].ToString()));
+}
+
+static PyValue builtin_os_truncate(const Vector<PyValue>& args, void*) {
+	if(!PolicyKit::Get().Check(PYPERM_FILE_WRITE)) throw Exc("PermissionError: file write access denied");
+	if(args.GetCount() < 2) return PyValue::None();
+	String path = args[0].ToString();
+	int64 length = args[1].AsInt64();
+	FileOut out(path);
+	if(out) out.SetSize(length);
+	return PyValue::None();
+}
+
+static PyValue builtin_os_system(const Vector<PyValue>& args, void*) {
+	if(!PolicyKit::Get().Check(PYPERM_PROCESS_EXEC)) throw Exc("PermissionError: process execution denied");
+	if(args.GetCount() < 1) return PyValue(-1);
+	return PyValue((int64)system(args[0].ToString()));
+}
+
+static PyValue builtin_os_cpu_count(const Vector<PyValue>& args, void*) {
+	return PyValue((int64)CPU_Cores());
+}
+
+static PyValue builtin_os_urandom(const Vector<PyValue>& args, void*) {
+	if(args.GetCount() < 1) return PyValue("");
+	int n = args[0].AsInt();
+	Buffer<byte> b(n);
+	for(int i = 0; i < n; i++) b[i] = (byte)Random(256);
+	return PyValue(String((const char*)~b, n));
+}
+
+static PyValue builtin_os_readlink(const Vector<PyValue>& args, void*) {
+	if(!PolicyKit::Get().Check(PYPERM_FILE_READ)) throw Exc("PermissionError: file read access denied");
+	if(args.GetCount() < 1) return PyValue("");
+#ifdef flagWIN32
+	return PyValue(""); 
+#else
+	char buf[1024];
+	ssize_t len = readlink(args[0].ToString(), buf, sizeof(buf)-1);
+	if(len != -1) {
+		buf[len] = '\0';
+		return PyValue(String(buf));
+	}
+	return PyValue("");
+#endif
+}
+
+static PyValue builtin_os_symlink(const Vector<PyValue>& args, void*) {
+	if(!PolicyKit::Get().Check(PYPERM_FILE_WRITE)) throw Exc("PermissionError: file write access denied");
+	if(args.GetCount() < 2) return PyValue::None();
+#ifdef flagWIN32
+	return PyValue::None();
+#else
+	symlink(args[0].ToString(), args[1].ToString());
+	return PyValue::None();
+#endif
+}
+
+static PyValue builtin_os_abort(const Vector<PyValue>& args, void*) {
+	abort();
+	return PyValue::None();
+}
+
+static PyValue builtin_os_access(const Vector<PyValue>& args, void*) {
+	if(args.GetCount() < 1) return PyValue(false);
+	String path = args[0].ToString();
+	int mode = 0;
+	if(args.GetCount() >= 2) mode = args[1].AsInt();
+	return PyValue(access(path, mode) == 0);
+}
+
+static PyValue builtin_os_chmod(const Vector<PyValue>& args, void*) {
+	if(!PolicyKit::Get().Check(PYPERM_FILE_WRITE)) throw Exc("PermissionError: file write access denied");
+	if(args.GetCount() < 2) return PyValue::None();
+	chmod(args[0].ToString(), args[1].AsInt());
+	return PyValue::None();
+}
+
+static PyValue builtin_subprocess_run(const Vector<PyValue>& args, void*) {
+	if(!PolicyKit::Get().Check(PYPERM_PROCESS_EXEC)) throw Exc("PermissionError: process execution denied");
+	if(args.GetCount() < 1) return PyValue::None();
+	String cmd;
+	if(args[0].GetType() == PY_LIST || args[0].GetType() == PY_TUPLE) {
+		const Vector<PyValue>& v = args[0].GetArray();
+		for(int i = 0; i < v.GetCount(); i++) {
+			if(i) cmd << " ";
+			String arg = v[i].ToString();
+			if(arg.Find(' ') >= 0) cmd << "\"" << arg << "\"";
+			else cmd << arg;
+		}
+	} else {
+		cmd = args[0].ToString();
+	}
+	
+	LocalProcess lp;
+	if(!lp.Start(cmd)) {
+		PyValue obj = PyValue::Dict();
+		obj.SetItem(PyValue("returncode"), PyValue(1));
+		obj.SetItem(PyValue("stdout"), PyValue(""));
+		obj.SetItem(PyValue("stderr"), PyValue("Failed to start process"));
+		return obj;
+	}
+
+	String out;
+	while(lp.IsRunning()) {
+		out.Cat(lp.Get());
+		Sleep(1);
+	}
+	out.Cat(lp.Get());
+
+	PyValue obj = PyValue::Dict();
+	obj.SetItem(PyValue("returncode"), PyValue(lp.GetExitCode()));
+	obj.SetItem(PyValue("stdout"), PyValue(out));
+	obj.SetItem(PyValue("stderr"), PyValue(""));
+	return obj;
+}
+
+static PyValue builtin_str_endswith(const Vector<PyValue>& args, void* user_data) {
+	if(args.GetCount() < 2) return PyValue(false);
+	String self = args[0].ToString();
+	return PyValue(self.EndsWith(args[1].ToString()));
+}
+
+static PyValue builtin_str_lower(const Vector<PyValue>& args, void* user_data) {
+	if(args.GetCount() < 1) return PyValue("");
+	String self = args[0].ToString();
+	return PyValue(ToLower(self));
+}
+
+static PyValue builtin_str_startswith(const Vector<PyValue>& args, void* user_data) {
+	if(args.GetCount() < 2) return PyValue(false);
+	String self = args[0].ToString();
+	return PyValue(self.StartsWith(args[1].ToString()));
+}
+
+static PyValue builtin_str_strip(const Vector<PyValue>& args, void* user_data) {
+	if(args.GetCount() < 1) return PyValue("");
+	String self = args[0].ToString();
+	return PyValue(TrimBoth(self));
+}
+
+static PyValue builtin_str_replace(const Vector<PyValue>& args, void* user_data) {
+	if(args.GetCount() < 3) return PyValue(args[0]);
+	String self = args[0].ToString();
+	String old_s = args[1].ToString();
+	String new_s = args[2].ToString();
+	String res = self;
+	res.Replace(old_s, new_s);
+	return PyValue(res);
+}
+
+static int IsSpaceFilter(int c) { return IsSpace(c); }
+
+static PyValue builtin_str_split(const Vector<PyValue>& args, void* user_data) {
+	if(args.GetCount() < 1) return PyValue::List();
+	String self = args[0].ToString();
+	PyValue res = PyValue::List();
+	if(args.GetCount() >= 2) {
+		String sep = args[1].ToString();
+		Vector<String> v = Split(self, sep);
+		for(int i = 0; i < v.GetCount(); i++) res.Add(PyValue(v[i]));
+	} else {
+		Vector<String> v = Split(self, IsSpaceFilter);
+		for(int i = 0; i < v.GetCount(); i++) {
+			if(!v[i].IsEmpty()) res.Add(PyValue(v[i]));
+		}
+	}
+	return res;
+}
+
+static PyValue builtin_str_join(const Vector<PyValue>& args, void* user_data) {
+	if(args.GetCount() < 2) return PyValue("");
+	String self = args[0].ToString();
+	String res;
+	PyValue list = args[1];
+	for(int i = 0; i < list.GetCount(); i++) {
+		if(i) res << self;
+		res << list.GetItem(i).ToString();
+	}
+	return PyValue(res);
+}
+
+static PyValue builtin_os_uname(const Vector<PyValue>& args, void*) {
+	PyValue t = PyValue::Tuple();
+#ifdef flagWIN32
+	t.Add(PyValue("Windows"));
+#elif defined(flagLINUX)
+	t.Add(PyValue("Linux"));
+#elif defined(flagMACOS)
+	t.Add(PyValue("Darwin"));
+#else
+	t.Add(PyValue("Unknown"));
+#endif
+	t.Add(PyValue(GetComputerName()));
+	t.Add(PyValue("")); // release
+	t.Add(PyValue("")); // version
+	t.Add(PyValue("")); // machine
+	return t;
+}
+
+static PyValue builtin_sys_exit(const Vector<PyValue>& args, void*) {
+	int code = 0;
+	if(args.GetCount() >= 1) code = args[0].AsInt();
+	String msg = "EXIT:" + AsString(code);
+	LOG("builtin_sys_exit: throwing " << msg);
+	throw Exc(msg);
+	return PyValue::None();
+}
+
+static PyValue builtin_math_asinh(const Vector<PyValue>& args, void*) { if(args.GetCount() < 1) return PyValue(0.0); return PyValue(asinh(args[0].AsDouble())); }
+static PyValue builtin_math_acosh(const Vector<PyValue>& args, void*) { if(args.GetCount() < 1) return PyValue(0.0); return PyValue(acosh(args[0].AsDouble())); }
+static PyValue builtin_math_atanh(const Vector<PyValue>& args, void*) { if(args.GetCount() < 1) return PyValue(0.0); return PyValue(atanh(args[0].AsDouble())); }
+static PyValue builtin_math_sinh(const Vector<PyValue>& args, void*) { if(args.GetCount() < 1) return PyValue(0.0); return PyValue(sinh(args[0].AsDouble())); }
+static PyValue builtin_math_cosh(const Vector<PyValue>& args, void*) { if(args.GetCount() < 1) return PyValue(0.0); return PyValue(cosh(args[0].AsDouble())); }
+static PyValue builtin_math_tanh(const Vector<PyValue>& args, void*) { if(args.GetCount() < 1) return PyValue(0.0); return PyValue(tanh(args[0].AsDouble())); }
+static PyValue builtin_math_log10(const Vector<PyValue>& args, void*) { if(args.GetCount() < 1) return PyValue(0.0); return PyValue(log10(args[0].AsDouble())); }
+static PyValue builtin_math_log2(const Vector<PyValue>& args, void*) { if(args.GetCount() < 1) return PyValue(0.0); return PyValue(log2(args[0].AsDouble())); }
+static PyValue builtin_math_log1p(const Vector<PyValue>& args, void*) { if(args.GetCount() < 1) return PyValue(0.0); return PyValue(log1p(args[0].AsDouble())); }
+static PyValue builtin_math_expm1(const Vector<PyValue>& args, void*) { if(args.GetCount() < 1) return PyValue(0.0); return PyValue(expm1(args[0].AsDouble())); }
+static PyValue builtin_math_erf(const Vector<PyValue>& args, void*) { if(args.GetCount() < 1) return PyValue(0.0); return PyValue(erf(args[0].AsDouble())); }
+static PyValue builtin_math_erfc(const Vector<PyValue>& args, void*) { if(args.GetCount() < 1) return PyValue(0.0); return PyValue(erfc(args[0].AsDouble())); }
+static PyValue builtin_math_gamma(const Vector<PyValue>& args, void*) { if(args.GetCount() < 1) return PyValue(0.0); return PyValue(tgamma(args[0].AsDouble())); }
+static PyValue builtin_math_lgamma(const Vector<PyValue>& args, void*) { if(args.GetCount() < 1) return PyValue(0.0); return PyValue(lgamma(args[0].AsDouble())); }
+static PyValue builtin_math_fmod(const Vector<PyValue>& args, void*) { if(args.GetCount() < 2) return PyValue(0.0); return PyValue(fmod(args[0].AsDouble(), args[1].AsDouble())); }
+static PyValue builtin_math_remainder(const Vector<PyValue>& args, void*) { if(args.GetCount() < 2) return PyValue(0.0); return PyValue(remainder(args[0].AsDouble(), args[1].AsDouble())); }
+static PyValue builtin_math_copysign(const Vector<PyValue>& args, void*) { if(args.GetCount() < 2) return PyValue(0.0); return PyValue(copysign(args[0].AsDouble(), args[1].AsDouble())); }
+static PyValue builtin_math_nextafter(const Vector<PyValue>& args, void*) { if(args.GetCount() < 2) return PyValue(0.0); return PyValue(nextafter(args[0].AsDouble(), args[1].AsDouble())); }
+
+static PyValue builtin_math_cbrt(const Vector<PyValue>& args, void*) { if(args.GetCount() < 1) return PyValue(0.0); return PyValue(cbrt(args[0].AsDouble())); }
+static PyValue builtin_math_exp2(const Vector<PyValue>& args, void*) { if(args.GetCount() < 1) return PyValue(0.0); return PyValue(exp2(args[0].AsDouble())); }
+
+static PyValue builtin_math_isclose(const Vector<PyValue>& args, void*) {
+	if(args.GetCount() < 2) return PyValue(false);
+	double a = args[0].AsDouble();
+	double b = args[1].AsDouble();
+	double rel_tol = 1e-09;
+	double abs_tol = 0.0;
+	if(args.GetCount() >= 3) rel_tol = args[2].AsDouble();
+	if(args.GetCount() >= 4) abs_tol = args[3].AsDouble();
+	if(std::isinf(a) || std::isinf(b)) return PyValue(a == b);
+	return PyValue(std::abs(a - b) <= std::max(rel_tol * std::max(std::abs(a), std::abs(b)), abs_tol));
+}
+
+static PyValue builtin_math_isqrt(const Vector<PyValue>& args, void*) {
+	if(args.GetCount() < 1) return PyValue(0);
+	int64 n = args[0].AsInt64();
+	if(n < 0) return PyValue(0); // Should really raise ValueError
+	if(n == 0) return PyValue(0);
+	int64 x = (int64)sqrt((double)n);
+	if((x + 1) * (x + 1) <= n) x++;
+	else if(x * x > n) x--;
+	return PyValue(x);
+}
+
+static int64 py_gcd(int64 a, int64 b) {
+	while(b) { a %= b; Swap(a, b); }
+	return a;
+}
+
+static PyValue builtin_math_lcm(const Vector<PyValue>& args, void*) {
+	if(args.GetCount() < 1) return PyValue(0);
+	int64 res = std::abs(args[0].AsInt64());
+	for(int i = 1; i < args.GetCount(); i++) {
+		int64 b = std::abs(args[i].AsInt64());
+		if(res == 0 || b == 0) { res = 0; break; }
+		res = (res / py_gcd(res, b)) * b;
+	}
+	return PyValue(res);
+}
+
+static PyValue builtin_math_ldexp(const Vector<PyValue>& args, void*) {
+	if(args.GetCount() < 2) return PyValue(0.0);
+	return PyValue(ldexp(args[0].AsDouble(), (int)args[1].AsInt64()));
+}
+
+static PyValue builtin_math_frexp(const Vector<PyValue>& args, void*) {
+	if(args.GetCount() < 1) return PyValue(0.0);
+	int exp;
+	double m = frexp(args[0].AsDouble(), &exp);
+	PyValue res = PyValue::Tuple();
+	res.Add(PyValue(m));
+	res.Add(PyValue(exp));
+	return res;
+}
+
+static PyValue builtin_math_modf(const Vector<PyValue>& args, void*) {
+	if(args.GetCount() < 1) return PyValue(0.0);
+	double iptr;
+	double f = modf(args[0].AsDouble(), &iptr);
+	PyValue res = PyValue::Tuple();
+	res.Add(PyValue(f));
+	res.Add(PyValue(iptr));
+	return res;
+}
+
+static PyValue builtin_math_ulp(const Vector<PyValue>& args, void*) {
+	if(args.GetCount() < 1) return PyValue(0.0);
+	double x = args[0].AsDouble();
+	if(std::isnan(x)) return PyValue(x);
+	if(std::isinf(x)) return PyValue(std::numeric_limits<double>::infinity());
+	x = std::abs(x);
+	return PyValue(nextafter(x, std::numeric_limits<double>::infinity()) - x);
+}
+
+static PyValue builtin_math_comb(const Vector<PyValue>& args, void*) {
+	if(args.GetCount() < 2) return PyValue(0);
+	int64 n = args[0].AsInt64();
+	int64 k = args[1].AsInt64();
+	if(k < 0 || k > n) return PyValue(0);
+	if(k == 0 || k == n) return PyValue(1);
+	if(k > n / 2) k = n - k;
+	double r = 1;
+	for(int64 i = 1; i <= k; i++) r = r * (n - i + 1) / i;
+	return PyValue((int64)(r + 0.5));
+}
+
+static PyValue builtin_math_perm(const Vector<PyValue>& args, void*) {
+	if(args.GetCount() < 1) return PyValue(0);
+	int64 n = args[0].AsInt64();
+	int64 k = n;
+	if(args.GetCount() >= 2) k = args[1].AsInt64();
+	if(k < 0 || k > n) return PyValue(0);
+	int64 r = 1;
+	for(int64 i = 0; i < k; i++) r *= (n - i);
+	return PyValue(r);
+}
+
+static PyValue builtin_math_dist(const Vector<PyValue>& args, void*) {
+	if(args.GetCount() < 2) return PyValue(0.0);
+	const Vector<PyValue>& p = args[0].GetArray();
+	const Vector<PyValue>& q = args[1].GetArray();
+	int n = std::min(p.GetCount(), q.GetCount());
+	double s2 = 0;
+	for(int i = 0; i < n; i++) {
+		double d = p[i].AsDouble() - q[i].AsDouble();
+		s2 += d * d;
+	}
+	return PyValue(sqrt(s2));
+}
+
+static PyValue builtin_math_prod(const Vector<PyValue>& args, void*) {
+	if(args.GetCount() == 0) return PyValue(1.0);
+	const Vector<PyValue> *items = &args;
+	double start = 1.0;
+	if(args.GetCount() >= 1 && (args[0].GetType() == PY_LIST || args[0].GetType() == PY_TUPLE)) {
+		items = &args[0].GetArray();
+		if(args.GetCount() >= 2) start = args[1].AsDouble();
+	}
+	double p = start;
+	for(const auto& v : *items) p *= v.AsDouble();
+	return PyValue(p);
+}
+
+static PyValue builtin_math_sumprod(const Vector<PyValue>& args, void*) {
+	if(args.GetCount() < 2) return PyValue(0.0);
+	const Vector<PyValue>& p = args[0].GetArray();
+	const Vector<PyValue>& q = args[1].GetArray();
+	int n = std::min(p.GetCount(), q.GetCount());
+	double s = 0;
+	for(int i = 0; i < n; i++) s += p[i].AsDouble() * q[i].AsDouble();
+	return PyValue(s);
+}
+
+static PyValue builtin_math_sqrt(const Vector<PyValue>& args, void*) {
+	if(args.GetCount() < 1) return PyValue(0.0);
+	return PyValue(sqrt(args[0].AsDouble()));
+}
+
+static PyValue builtin_math_pow(const Vector<PyValue>& args, void*) {
+	if(args.GetCount() < 2) return PyValue(0.0);
+	return PyValue(pow(args[0].AsDouble(), args[1].AsDouble()));
+}
+
+static PyValue builtin_math_isinf(const Vector<PyValue>& args, void*) {
+	if(args.GetCount() < 1) return PyValue(false);
+	return PyValue(std::isinf(args[0].AsDouble()));
+}
+
+static PyValue builtin_math_isnan(const Vector<PyValue>& args, void*) {
+	if(args.GetCount() < 1) return PyValue(false);
+	return PyValue(std::isnan(args[0].AsDouble()));
+}
+
+static PyValue builtin_math_isfinite(const Vector<PyValue>& args, void*) {
+	if(args.GetCount() < 1) return PyValue(false);
+	return PyValue(std::isfinite(args[0].AsDouble()));
+}
+
+static PyValue builtin_math_gcd(const Vector<PyValue>& args, void*) {
+	if(args.GetCount() < 2) return PyValue(0);
+	return PyValue(py_gcd(args[0].AsInt64(), args[1].AsInt64()));
+}
+
+static PyValue builtin_math_factorial(const Vector<PyValue>& args, void*) {
+	if(args.GetCount() < 1) return PyValue(0);
+	int64 n = args[0].AsInt64();
+	if(n < 0) return PyValue(0);
+	int64 r = 1;
+	for(int64 i = 2; i <= n; i++) r *= i;
+	return PyValue(r);
+}
+
+static PyValue builtin_math_hypot(const Vector<PyValue>& args, void*) {
+	double s2 = 0;
+	for(const auto& v : args) {
+		double d = v.AsDouble();
+		s2 += d * d;
+	}
+	return PyValue(sqrt(s2));
+}
+
+static PyValue builtin_math_trunc(const Vector<PyValue>& args, void*) {
+	if(args.GetCount() < 1) return PyValue(0);
+	return PyValue((int64)args[0].AsDouble());
+}
+
+static PyValue builtin_math_fsum(const Vector<PyValue>& args, void*) {
+	if(args.GetCount() == 0) return PyValue(0.0);
+	const Vector<PyValue> *items = &args;
+	if(args.GetCount() == 1 && (args[0].GetType() == PY_LIST || args[0].GetType() == PY_TUPLE))
+		items = &args[0].GetArray();
+	double s = 0;
+	for(const auto& v : *items) s += v.AsDouble();
+	return PyValue(s);
+}
+
+static PyValue builtin_math_asin(const Vector<PyValue>& args, void*) {
+	if(args.GetCount() < 1) return PyValue(0.0);
+	return PyValue(asin(args[0].AsDouble()));
+}
+
+static PyValue builtin_math_acos(const Vector<PyValue>& args, void*) {
+	if(args.GetCount() < 1) return PyValue(0.0);
+	return PyValue(acos(args[0].AsDouble()));
+}
+
+static PyValue builtin_math_atan(const Vector<PyValue>& args, void*) {
+	if(args.GetCount() < 1) return PyValue(0.0);
+	return PyValue(atan(args[0].AsDouble()));
+}
+
+static PyValue builtin_math_atan2(const Vector<PyValue>& args, void*) {
+	if(args.GetCount() < 2) return PyValue(0.0);
+	return PyValue(atan2(args[0].AsDouble(), args[1].AsDouble()));
+}
+
+static PyValue builtin_math_sin(const Vector<PyValue>& args, void*) {
+	if(args.GetCount() < 1) return PyValue(0.0);
+	return PyValue(sin(args[0].AsDouble()));
+}
+
+static PyValue builtin_math_cos(const Vector<PyValue>& args, void*) {
+	if(args.GetCount() < 1) return PyValue(0.0);
+	return PyValue(cos(args[0].AsDouble()));
+}
+
+static PyValue builtin_math_tan(const Vector<PyValue>& args, void*) {
+	if(args.GetCount() < 1) return PyValue(0.0);
+	return PyValue(tan(args[0].AsDouble()));
+}
+
+static PyValue builtin_math_radians(const Vector<PyValue>& args, void*) {
+	if(args.GetCount() < 1) return PyValue(0.0);
+	return PyValue(args[0].AsDouble() * M_PI / 180.0);
+}
+
+static PyValue builtin_math_degrees(const Vector<PyValue>& args, void*) {
+	if(args.GetCount() < 1) return PyValue(0.0);
+	return PyValue(args[0].AsDouble() * 180.0 / M_PI);
+}
+
+static PyValue builtin_math_exp(const Vector<PyValue>& args, void*) {
+	if(args.GetCount() < 1) return PyValue(0.0);
+	return PyValue(exp(args[0].AsDouble()));
+}
+
+static PyValue builtin_math_log(const Vector<PyValue>& args, void*) {
+	if(args.GetCount() < 1) return PyValue(0.0);
+	if(args.GetCount() >= 2) return PyValue(log(args[0].AsDouble()) / log(args[1].AsDouble()));
+	return PyValue(log(args[0].AsDouble()));
+}
+
+static PyValue builtin_math_ceil(const Vector<PyValue>& args, void*) {
+	if(args.GetCount() < 1) return PyValue(0.0);
+	return PyValue(ceil(args[0].AsDouble()));
+}
+
+static PyValue builtin_math_floor(const Vector<PyValue>& args, void*) {
+	if(args.GetCount() < 1) return PyValue(0.0);
+	return PyValue(floor(args[0].AsDouble()));
+}
+
+static PyValue builtin_time_time(const Vector<PyValue>& args, void*) {
+	return PyValue((double)(GetUtcTime() - Time(1970, 1, 1)));
+}
+
+static PyValue builtin_time_sleep(const Vector<PyValue>& args, void*) {
+	if(args.GetCount() < 1) return PyValue::None();
+	PyScheduler::Get().Unlock();
+	#ifdef flagWIN32
+	::Sleep((int)(args[0].AsDouble() * 1000));
+	#else
+	Upp::Sleep((int)(args[0].AsDouble() * 1000));
+	#endif
+	PyScheduler::Get().Lock();
+	return PyValue::None();
+}
+
+static PyValue builtin_time_ctime(const Vector<PyValue>& args, void*) {
+	Time t = GetSysTime();
+	if(args.GetCount() >= 1) t = Time(1970, 1, 1) + (int64)args[0].AsDouble();
+	return PyValue(Format(t));
+}
+
+static PyValue builtin_time_perf_counter(const Vector<PyValue>& args, void*) {
+	static int64 start = msecs();
+	return PyValue((double)(msecs() - start) / 1000.0);
+}
+
+static PyValue time_to_tuple(Time t) {
+	PyValue res = PyValue::Tuple();
+	res.Add(PyValue(t.year));
+	res.Add(PyValue(t.month));
+	res.Add(PyValue(t.day));
+	res.Add(PyValue(t.hour));
+	res.Add(PyValue(t.minute));
+	res.Add(PyValue(t.second));
+	res.Add(PyValue(DayOfWeek(t))); // tm_wday
+	res.Add(PyValue(DayOfYear(t))); // tm_yday
+	res.Add(PyValue(-1)); // tm_isdst
+	return res;
+}
+
+static PyValue builtin_time_gmtime(const Vector<PyValue>& args, void*) {
+	Time t = GetUtcTime();
+	if(args.GetCount() >= 1) t = Time(1970, 1, 1) + (int64)args[0].AsDouble();
+	return time_to_tuple(t);
+}
+
+static PyValue builtin_time_localtime(const Vector<PyValue>& args, void*) {
+	Time t = GetSysTime();
+	if(args.GetCount() >= 1) {
+		t = Time(1970, 1, 1) + (int64)args[0].AsDouble(); // Not perfect as it doesn't account for local TZ properly but okay for now
+	}
+	return time_to_tuple(t);
+}
+
+static PyValue builtin_json_dumps(const Vector<PyValue>& args, void*) {
+	if(args.GetCount() < 1) return PyValue("");
+	bool pretty = false;
+	if(args.GetCount() >= 2) {
+		if(args[1].IsInt() && args[1].AsInt() > 0) pretty = true;
+	}
+	return PyValue(AsJSON(args[0].ToValue(), pretty));
+}
+
+static PyValue builtin_json_loads(const Vector<PyValue>& args, void*) {
+	if(args.GetCount() < 1) return PyValue::None();
+	return PyValue::FromValue(ParseJSON(args[0].ToString()));
+}
+
+static PyValue builtin_json_dump(const Vector<PyValue>& args, void*) {
+	if(!PolicyKit::Get().Check(PYPERM_FILE_WRITE)) throw Exc("PermissionError: file write access denied");
+	if(args.GetCount() < 2) return PyValue::None();
+	SaveFile(args[1].ToString(), AsJSON(args[0].ToValue()));
+	return PyValue::None();
+}
+
+static PyValue builtin_json_load(const Vector<PyValue>& args, void*) {
+	if(!PolicyKit::Get().Check(PYPERM_FILE_READ)) throw Exc("PermissionError: file read access denied");
+	if(args.GetCount() < 1) return PyValue::None();
+	return PyValue::FromValue(ParseJSON(LoadFile(args[0].ToString())));
+}
+
+static PyValue builtin_os_path_relpath(const Vector<PyValue>& args, void*) {
+	if(!PolicyKit::Get().Check(PYPERM_FILE_READ)) throw Exc("PermissionError: file read access denied");
+	if(args.GetCount() < 1) return PyValue("");
+	String path = args[0].ToString();
+	String start = GetCurrentDirectory();
+	if(args.GetCount() >= 2) start = args[1].ToString();
+	return PyValue(GetRelPath(path, start));
+}
+
+static PyValue builtin_threading_Thread(const Vector<PyValue>& args, void*) {
+	if(args.GetCount() < 1) return PyValue::None();
+	PyValue target = args[0];
+	Vector<PyValue> targs;
+	if(args.GetCount() >= 2 && (args[1].GetType() == PY_LIST || args[1].GetType() == PY_TUPLE)) {
+		const Vector<PyValue>& va = args[1].GetArray();
+		for(int i = 0; i < va.GetCount(); i++) targs.Add(va[i]);
+	}
+	return PyScheduler::Get().CreateThread(target, pick(targs));
+}
+
+static PyValue builtin_threading_current_thread(const Vector<PyValue>& args, void*) {
+	return PyValue("MainThread"); // Simplified
+}
+
+void PyVM::Push(PyValue v)
+{
+	stack.Add(v);
+}
+
+PyValue PyVM::Pop()
+{
+	if(stack.IsEmpty())
+		throw Exc("RuntimeError: stack underflow");
+	return stack.Pop();
+}
+
+void PyVM::InitBuiltins()
+{
+    if (globals.IsNone()) globals = PyValue::Dict();
+    else if (globals.GetType() == PY_DICT) globals.GetDictRW().Clear();
+    else globals = PyValue::Dict();
+	globals.GetDictRW().GetAdd(PyValue("__name__")) = PyValue("__main__");
+
+	globals.GetDictRW().GetAdd(PyValue("print")) = PyValue::Function("print", builtin_print, this);
+
+	static const char* exc_names[] = {
+		"Exception", "ValueError", "RuntimeError", "TypeError",
+		"KeyError", "IndexError", "StopIteration"
+	};
+	for(const char* n : exc_names)
+		globals.GetDictRW().GetAdd(PyValue(n)) = PyValue::Function(n,
+			[](const Vector<PyValue>& args, void* user_data) -> PyValue {
+				String msg = (const char*)user_data;
+				if(args.GetCount() >= 1)
+					msg << ": " << args[0].ToString();
+				return PyValue(msg);
+			}, (void*)n);
+
+	PyValue p_len = PyValue::Function("len");
+	p_len.GetLambdaRW().builtin = builtin_len;
+	globals.GetDictRW().GetAdd(PyValue("len")) = p_len;
+	
+	PyValue p_range = PyValue::Function("range");
+	p_range.GetLambdaRW().builtin = builtin_range;
+	globals.GetDictRW().GetAdd(PyValue("range")) = p_range;
+
+	PyValue p_complex = PyValue::Function("complex");
+	p_complex.GetLambdaRW().builtin = builtin_complex;
+	globals.GetDictRW().GetAdd(PyValue("complex")) = p_complex;
+
+	PyValue p_bool = PyValue::Function("bool");
+	p_bool.GetLambdaRW().builtin = builtin_bool;
+	globals.GetDictRW().GetAdd(PyValue("bool")) = p_bool;
+
+	PyValue p_str = PyValue::Function("str");
+	p_str.GetLambdaRW().builtin = builtin_str;
+	globals.GetDictRW().GetAdd(PyValue("str")) = p_str;
+
+
+	PyValue p_iter = PyValue::Function("iter");
+	p_iter.GetLambdaRW().builtin = builtin_iter;
+	globals.GetDictRW().GetAdd(PyValue("iter")) = p_iter;
+
+	PyValue p_next = PyValue::Function("next");
+	p_next.GetLambdaRW().builtin = builtin_next;
+	globals.GetDictRW().GetAdd(PyValue("next")) = p_next;
+
+	PyValue p_dir = PyValue::Function("dir");
+	p_dir.GetLambdaRW().builtin = builtin_dir;
+	globals.GetDictRW().GetAdd(PyValue("dir")) = p_dir;
+
+	PyValue p_min = PyValue::Function("min");
+	p_min.GetLambdaRW().builtin = builtin_min;
+	globals.GetDictRW().GetAdd(PyValue("min")) = p_min;
+
+	PyValue p_max = PyValue::Function("max");
+	p_max.GetLambdaRW().builtin = builtin_max;
+	globals.GetDictRW().GetAdd(PyValue("max")) = p_max;
+
+	PyValue p_sum = PyValue::Function("sum");
+	p_sum.GetLambdaRW().builtin = builtin_sum;
+	globals.GetDictRW().GetAdd(PyValue("sum")) = p_sum;
+
+	PyValue p_abs = PyValue::Function("abs");
+	p_abs.GetLambdaRW().builtin = builtin_abs;
+	globals.GetDictRW().GetAdd(PyValue("abs")) = p_abs;
+
+	PyValue p_chr = PyValue::Function("chr");
+	p_chr.GetLambdaRW().builtin = builtin_chr;
+	globals.GetDictRW().GetAdd(PyValue("chr")) = p_chr;
+
+	PyValue p_ord = PyValue::Function("ord");
+	p_ord.GetLambdaRW().builtin = builtin_ord;
+	globals.GetDictRW().GetAdd(PyValue("ord")) = p_ord;
+
+	PyValue p_open = PyValue::Function("open");
+	p_open.GetLambdaRW().builtin = builtin_open;
+	globals.GetDictRW().GetAdd(PyValue("open")) = p_open;
+
+	// shutil module
+	PyValue shutil = PyValue::Dict();
+	shutil.SetItem(PyValue("copy"), PyValue::Function("copy", builtin_shutil_copy));
+	globals.GetDictRW().GetAdd(PyValue("shutil")) = shutil;
+
+	// glob module
+	PyValue glob = PyValue::Dict();
+	glob.SetItem(PyValue("glob"), PyValue::Function("glob", builtin_glob_glob));
+	globals.GetDictRW().GetAdd(PyValue("glob")) = glob;
+
+	// threading module
+	PyValue threading = PyValue::Dict();
+	threading.SetItem(PyValue("Thread"), PyValue::Function("Thread", builtin_threading_Thread));
+	threading.SetItem(PyValue("current_thread"), PyValue::Function("current_thread", builtin_threading_current_thread));
+	globals.GetDictRW().GetAdd(PyValue("threading")) = threading;
+
+	// os module
+	PyValue os = PyValue::Dict();
+	os.SetItem(PyValue("getcwd"), PyValue::Function("getcwd", builtin_os_getcwd));
+	os.SetItem(PyValue("mkdir"), PyValue::Function("mkdir", builtin_os_mkdir));
+	os.SetItem(PyValue("rmdir"), PyValue::Function("rmdir", builtin_os_rmdir));
+	os.SetItem(PyValue("rename"), PyValue::Function("rename", builtin_os_rename));
+	os.SetItem(PyValue("getenv"), PyValue::Function("getenv", builtin_os_getenv));
+	os.SetItem(PyValue("putenv"), PyValue::Function("putenv", builtin_os_putenv));
+	os.SetItem(PyValue("getpid"), PyValue::Function("getpid", builtin_os_getpid));
+	os.SetItem(PyValue("getuid"), PyValue::Function("getuid", builtin_os_getuid));
+	os.SetItem(PyValue("getgid"), PyValue::Function("getgid", builtin_os_getgid));
+	os.SetItem(PyValue("listdir"), PyValue::Function("listdir", builtin_os_listdir));
+	os.SetItem(PyValue("remove"), PyValue::Function("remove", builtin_os_remove));
+	os.SetItem(PyValue("chdir"), PyValue::Function("chdir", builtin_os_chdir));
+	os.SetItem(PyValue("getlogin"), PyValue::Function("getlogin", builtin_os_getlogin));
+	os.SetItem(PyValue("getppid"), PyValue::Function("getppid", builtin_os_getppid));
+	os.SetItem(PyValue("makedirs"), PyValue::Function("makedirs", builtin_os_makedirs));
+	os.SetItem(PyValue("removedirs"), PyValue::Function("removedirs", builtin_os_removedirs));
+	os.SetItem(PyValue("replace"), PyValue::Function("replace", builtin_os_replace));
+	os.SetItem(PyValue("truncate"), PyValue::Function("truncate", builtin_os_truncate));
+	os.SetItem(PyValue("system"), PyValue::Function("system", builtin_os_system));
+	os.SetItem(PyValue("cpu_count"), PyValue::Function("cpu_count", builtin_os_cpu_count));
+	os.SetItem(PyValue("urandom"), PyValue::Function("urandom", builtin_os_urandom));
+	os.SetItem(PyValue("readlink"), PyValue::Function("readlink", builtin_os_readlink));
+	os.SetItem(PyValue("symlink"), PyValue::Function("symlink", builtin_os_symlink));
+	os.SetItem(PyValue("abort"), PyValue::Function("abort", builtin_os_abort));
+	os.SetItem(PyValue("access"), PyValue::Function("access", builtin_os_access));
+	os.SetItem(PyValue("chmod"), PyValue::Function("chmod", builtin_os_chmod));
+	os.SetItem(PyValue("uname"), PyValue::Function("uname", builtin_os_uname));
+	
+#ifdef flagWIN32
+	os.SetItem(PyValue("name"), PyValue("nt"));
+	os.SetItem(PyValue("sep"), PyValue("\\"));
+	os.SetItem(PyValue("altsep"), PyValue("/"));
+	os.SetItem(PyValue("extsep"), PyValue("."));
+	os.SetItem(PyValue("pathsep"), PyValue(";"));
+	os.SetItem(PyValue("linesep"), PyValue("\r\n"));
+	os.SetItem(PyValue("devnull"), PyValue("nul"));
+#else
+	os.SetItem(PyValue("name"), PyValue("posix"));
+	os.SetItem(PyValue("sep"), PyValue("/"));
+	os.SetItem(PyValue("altsep"), PyValue::None());
+	os.SetItem(PyValue("extsep"), PyValue("."));
+	os.SetItem(PyValue("pathsep"), PyValue(":"));
+	os.SetItem(PyValue("linesep"), PyValue("\n"));
+	os.SetItem(PyValue("devnull"), PyValue("/dev/null"));
+#endif
+	
+	PyValue environ = PyValue::Dict();
+	const auto& env = Environment();
+	for(int i = 0; i < env.GetCount(); i++)
+		environ.SetItem(PyValue(env.GetKey(i)), PyValue(env[i]));
+	os.SetItem(PyValue("environ"), environ);
+	
+	PyValue os_path = PyValue::Dict();
+	os_path.SetItem(PyValue("exists"), PyValue::Function("exists", builtin_os_path_exists));
+	os_path.SetItem(PyValue("isdir"), PyValue::Function("isdir", builtin_os_path_isdir));
+	os_path.SetItem(PyValue("isfile"), PyValue::Function("isfile", builtin_os_path_isfile));
+	os_path.SetItem(PyValue("islink"), PyValue::Function("islink", builtin_os_path_islink));
+	os_path.SetItem(PyValue("lexists"), PyValue::Function("lexists", builtin_os_path_lexists));
+	os_path.SetItem(PyValue("getsize"), PyValue::Function("getsize", builtin_os_path_getsize));
+	os_path.SetItem(PyValue("getatime"), PyValue::Function("getatime", builtin_os_path_getatime));
+	os_path.SetItem(PyValue("getmtime"), PyValue::Function("getmtime", builtin_os_path_getmtime));
+	os_path.SetItem(PyValue("getctime"), PyValue::Function("getctime", builtin_os_path_getctime));
+	os_path.SetItem(PyValue("join"), PyValue::Function("join", builtin_os_path_join));
+	os_path.SetItem(PyValue("abspath"), PyValue::Function("abspath", builtin_os_path_abspath));
+	os_path.SetItem(PyValue("realpath"), PyValue::Function("realpath", builtin_os_path_realpath));
+	os_path.SetItem(PyValue("relpath"), PyValue::Function("relpath", builtin_os_path_relpath));
+	os_path.SetItem(PyValue("samefile"), PyValue::Function("samefile", builtin_os_path_samefile));
+	os_path.SetItem(PyValue("basename"), PyValue::Function("basename", builtin_os_path_basename));
+	os_path.SetItem(PyValue("dirname"), PyValue::Function("dirname", builtin_os_path_dirname));
+	os_path.SetItem(PyValue("split"), PyValue::Function("split", builtin_os_path_split));
+	os_path.SetItem(PyValue("splitext"), PyValue::Function("splitext", builtin_os_path_splitext));
+	os_path.SetItem(PyValue("isabs"), PyValue::Function("isabs", builtin_os_path_isabs));
+	os_path.SetItem(PyValue("normpath"), PyValue::Function("normpath", builtin_os_path_normpath));
+	os_path.SetItem(PyValue("normcase"), PyValue::Function("normcase", builtin_os_path_normcase));
+	
+os_path.SetItem(PyValue("sep"), os.GetItem(PyValue("sep")));
+	os_path.SetItem(PyValue("altsep"), os.GetItem(PyValue("altsep")));
+	os_path.SetItem(PyValue("extsep"), os.GetItem(PyValue("extsep")));
+	os_path.SetItem(PyValue("pathsep"), os.GetItem(PyValue("pathsep")));
+
+	os.SetItem(PyValue("path"), os_path);
+	globals.GetDictRW().GetAdd(PyValue("os")) = os;
+
+	// sys module
+	PyValue sys = PyValue::Dict();
+	sys.SetItem(PyValue("exit"), PyValue::Function("exit", builtin_sys_exit));
+	sys.SetItem(PyValue("executable"), PyValue(GetExeFilePath()));
+	
+	PyValue argv = PyValue::List();
+	const Vector<String>& cmd = CommandLine();
+	for(int i = 0; i < cmd.GetCount(); i++)
+		argv.Add(PyValue(cmd[i]));
+	sys.SetItem(PyValue("argv"), argv);
+
+	sys.SetItem(PyValue("path"), PyValue::List());
+	sys.SetItem(PyValue("modules"), PyValue::Dict());
+	
+#ifdef CPU_LE
+	sys.SetItem(PyValue("byteorder"), PyValue("little"));
+#else
+	sys.SetItem(PyValue("byteorder"), PyValue("big"));
+#endif
+	
+#ifdef flagWIN32
+	sys.SetItem(PyValue("platform"), PyValue("win32"));
+#elif defined(flagLINUX)
+	sys.SetItem(PyValue("platform"), PyValue("linux"));
+#elif defined(flagMACOS)
+	sys.SetItem(PyValue("platform"), PyValue("darwin"));
+#else
+	sys.SetItem(PyValue("platform"), PyValue("unknown"));
+#endif
+
+	sys.SetItem(PyValue("version"), PyValue("0.1v (Uppy)"));
+	
+globals.GetDictRW().GetAdd(PyValue("sys")) = sys;
+
+	// math module
+	PyValue math = PyValue::Dict();
+	math.SetItem(PyValue("__name__"), PyValue("math"));
+	math.SetItem(PyValue("__doc__"), PyValue("This module provides access to the mathematical functions defined by the C standard."));
+	math.SetItem(PyValue("__package__"), PyValue(""));
+	math.SetItem(PyValue("__loader__"), PyValue::None());
+	math.SetItem(PyValue("__spec__"), PyValue::None());
+	math.SetItem(PyValue("__file__"), PyValue("built-in"));
+
+	math.SetItem(PyValue("sqrt"), PyValue::Function("sqrt", builtin_math_sqrt));
+	math.SetItem(PyValue("cbrt"), PyValue::Function("cbrt", builtin_math_cbrt));
+	math.SetItem(PyValue("exp2"), PyValue::Function("exp2", builtin_math_exp2));
+	math.SetItem(PyValue("isclose"), PyValue::Function("isclose", builtin_math_isclose));
+	math.SetItem(PyValue("isqrt"), PyValue::Function("isqrt", builtin_math_isqrt));
+	math.SetItem(PyValue("lcm"), PyValue::Function("lcm", builtin_math_lcm));
+	math.SetItem(PyValue("ldexp"), PyValue::Function("ldexp", builtin_math_ldexp));
+	math.SetItem(PyValue("frexp"), PyValue::Function("frexp", builtin_math_frexp));
+	math.SetItem(PyValue("modf"), PyValue::Function("modf", builtin_math_modf));
+	math.SetItem(PyValue("ulp"), PyValue::Function("ulp", builtin_math_ulp));
+	math.SetItem(PyValue("comb"), PyValue::Function("comb", builtin_math_comb));
+	math.SetItem(PyValue("perm"), PyValue::Function("perm", builtin_math_perm));
+	math.SetItem(PyValue("dist"), PyValue::Function("dist", builtin_math_dist));
+	math.SetItem(PyValue("prod"), PyValue::Function("prod", builtin_math_prod));
+	math.SetItem(PyValue("sumprod"), PyValue::Function("sumprod", builtin_math_sumprod));
+	math.SetItem(PyValue("fabs"), PyValue::Function("fabs", builtin_math_fabs));
+	math.SetItem(PyValue("asin"), PyValue::Function("asin", builtin_math_asin));
+	math.SetItem(PyValue("acos"), PyValue::Function("acos", builtin_math_acos));
+	math.SetItem(PyValue("atan"), PyValue::Function("atan", builtin_math_atan));
+	math.SetItem(PyValue("atan2"), PyValue::Function("atan2", builtin_math_atan2));
+	math.SetItem(PyValue("asinh"), PyValue::Function("asinh", builtin_math_asinh));
+	math.SetItem(PyValue("acosh"), PyValue::Function("acosh", builtin_math_acosh));
+	math.SetItem(PyValue("atanh"), PyValue::Function("atanh", builtin_math_atanh));
+	math.SetItem(PyValue("sin"), PyValue::Function("sin", builtin_math_sin));
+	math.SetItem(PyValue("cos"), PyValue::Function("cos", builtin_math_cos));
+	math.SetItem(PyValue("tan"), PyValue::Function("tan", builtin_math_tan));
+	math.SetItem(PyValue("sinh"), PyValue::Function("sinh", builtin_math_sinh));
+	math.SetItem(PyValue("cosh"), PyValue::Function("cosh", builtin_math_cosh));
+	math.SetItem(PyValue("tanh"), PyValue::Function("tanh", builtin_math_tanh));
+	math.SetItem(PyValue("radians"), PyValue::Function("radians", builtin_math_radians));
+	math.SetItem(PyValue("degrees"), PyValue::Function("degrees", builtin_math_degrees));
+	math.SetItem(PyValue("exp"), PyValue::Function("exp", builtin_math_exp));
+	math.SetItem(PyValue("expm1"), PyValue::Function("expm1", builtin_math_expm1));
+	math.SetItem(PyValue("log"), PyValue::Function("log", builtin_math_log));
+	math.SetItem(PyValue("log10"), PyValue::Function("log10", builtin_math_log10));
+	math.SetItem(PyValue("log2"), PyValue::Function("log2", builtin_math_log2));
+	math.SetItem(PyValue("log1p"), PyValue::Function("log1p", builtin_math_log1p));
+	math.SetItem(PyValue("ceil"), PyValue::Function("ceil", builtin_math_ceil));
+	math.SetItem(PyValue("floor"), PyValue::Function("floor", builtin_math_floor));
+	math.SetItem(PyValue("pow"), PyValue::Function("pow", builtin_math_pow));
+	math.SetItem(PyValue("isinf"), PyValue::Function("isinf", builtin_math_isinf));
+	math.SetItem(PyValue("isnan"), PyValue::Function("isnan", builtin_math_isnan));
+	math.SetItem(PyValue("isfinite"), PyValue::Function("isfinite", builtin_math_isfinite));
+	math.SetItem(PyValue("gcd"), PyValue::Function("gcd", builtin_math_gcd));
+	math.SetItem(PyValue("factorial"), PyValue::Function("factorial", builtin_math_factorial));
+	math.SetItem(PyValue("hypot"), PyValue::Function("hypot", builtin_math_hypot));
+	math.SetItem(PyValue("trunc"), PyValue::Function("trunc", builtin_math_trunc));
+	math.SetItem(PyValue("fsum"), PyValue::Function("fsum", builtin_math_fsum));
+	math.SetItem(PyValue("fmod"), PyValue::Function("fmod", builtin_math_fmod));
+	math.SetItem(PyValue("remainder"), PyValue::Function("remainder", builtin_math_remainder));
+	math.SetItem(PyValue("copysign"), PyValue::Function("copysign", builtin_math_copysign));
+	math.SetItem(PyValue("nextafter"), PyValue::Function("nextafter", builtin_math_nextafter));
+	math.SetItem(PyValue("erf"), PyValue::Function("erf", builtin_math_erf));
+	math.SetItem(PyValue("erfc"), PyValue::Function("erfc", builtin_math_erfc));
+	math.SetItem(PyValue("gamma"), PyValue::Function("gamma", builtin_math_gamma));
+	math.SetItem(PyValue("lgamma"), PyValue::Function("lgamma", builtin_math_lgamma));
+	math.SetItem(PyValue("pi"), PyValue(M_PI));
+	math.SetItem(PyValue("e"), PyValue(M_E));
+	math.SetItem(PyValue("tau"), PyValue(2.0 * M_PI));
+	math.SetItem(PyValue("inf"), PyValue(std::numeric_limits<double>::infinity()));
+	math.SetItem(PyValue("nan"), PyValue(std::numeric_limits<double>::quiet_NaN()));
+	globals.GetDictRW().GetAdd(PyValue("math")) = math;
+
+	// time module
+	PyValue time = PyValue::Dict();
+	time.SetItem(PyValue("time"), PyValue::Function("time", builtin_time_time));
+	time.SetItem(PyValue("sleep"), PyValue::Function("sleep", builtin_time_sleep));
+	time.SetItem(PyValue("ctime"), PyValue::Function("ctime", builtin_time_ctime));
+	time.SetItem(PyValue("perf_counter"), PyValue::Function("perf_counter", builtin_time_perf_counter));
+	time.SetItem(PyValue("gmtime"), PyValue::Function("gmtime", builtin_time_gmtime));
+	time.SetItem(PyValue("localtime"), PyValue::Function("localtime", builtin_time_localtime));
+	globals.GetDictRW().GetAdd(PyValue("time")) = time;
+
+	// json module
+	PyValue json = PyValue::Dict();
+	json.SetItem(PyValue("dumps"), PyValue::Function("dumps", builtin_json_dumps));
+	json.SetItem(PyValue("loads"), PyValue::Function("loads", builtin_json_loads));
+	json.SetItem(PyValue("dump"), PyValue::Function("dump", builtin_json_dump));
+	json.SetItem(PyValue("load"), PyValue::Function("load", builtin_json_load));
+	globals.GetDictRW().GetAdd(PyValue("json")) = json;
+	
+	// subprocess module
+	PyValue subprocess = PyValue::Dict();
+	subprocess.SetItem(PyValue("run"), PyValue::Function("run", builtin_subprocess_run));
+	globals.GetDictRW().GetAdd(PyValue("subprocess")) = subprocess;
+
+	// any / all / int / float / list / isinstance
+	globals.GetDictRW().GetAdd(PyValue("any")) = PyValue::Function("any", builtin_any);
+	globals.GetDictRW().GetAdd(PyValue("all")) = PyValue::Function("all", builtin_all);
+	globals.GetDictRW().GetAdd(PyValue("int")) = PyValue::Function("int", builtin_int);
+	globals.GetDictRW().GetAdd(PyValue("float")) = PyValue::Function("float", builtin_float);
+	globals.GetDictRW().GetAdd(PyValue("list")) = PyValue::Function("list", builtin_list);
+	globals.GetDictRW().GetAdd(PyValue("isinstance")) = PyValue::Function("isinstance", builtin_isinstance);
+
+	// enumerate: returns list of (index, value) tuples
+	globals.GetDictRW().GetAdd(PyValue("enumerate")) = PyValue::Function("enumerate", [](const Vector<PyValue>& args, void*){
+		PyValue result = PyValue::List();
+		if(args.GetCount() == 0) return result;
+		const PyValue& src = args[0];
+		int start = args.GetCount() >= 2 ? (int)args[1].AsInt64() : 0;
+		for(int i = 0; i < src.GetCount(); i++) {
+			PyValue pair = PyValue::List();
+			pair.Add(PyValue((int64)(i + start)));
+			pair.Add(src.GetItem(i));
+			result.Add(pair);
+}
+
+		return result;
+	});
+
+	// sorted: return sorted copy (supports key=func)
+	globals.GetDictRW().GetAdd(PyValue("sorted")) = PyValue::Function("sorted", [](const Vector<PyValue>& args, void* ud){
+		PyVM* vm = (PyVM*)ud;
+		if(args.GetCount() == 0) return PyValue::List();
+		const PyValue& src = args[0];
+		PyValue result = PyValue::List();
+		for(int i = 0; i < src.GetCount(); i++) result.Add(src.GetItem(i));
+		Vector<PyValue>& l = const_cast<Vector<PyValue>&>(result.GetArray());
+		if(args.GetCount() >= 2 && args[1].IsFunction()) {
+			PyValue key_fn = args[1];
+			int n = l.GetCount();
+			Vector<PyValue> keys(n);
+			for(int i = 0; i < n; i++) {
+				Vector<PyValue> kargs; kargs.Add(l[i]);
+				keys[i] = vm->Call(key_fn, kargs);
+			}
+			for(int i = 1; i < n; i++) {
+				int j = i;
+				while(j > 0 && keys[j] < keys[j-1]) {
+					Swap(keys[j], keys[j-1]);
+					Swap(l[j], l[j-1]);
+					j--;
+				}
+			}
+		} else {
+			Sort(l);
+		}
+		return result;
+	}, this);
+
+	// random module
+	PyValue random_mod = PyValue::Dict();
+	random_mod.SetItem(PyValue("shuffle"), PyValue::Function("shuffle", builtin_random_shuffle));
+	random_mod.SetItem(PyValue("random"), PyValue::Function("random", [](const Vector<PyValue>&, void*){
+		return PyValue((double)Random(1000000) / 1000000.0);
+	}));
+	random_mod.SetItem(PyValue("randint"), PyValue::Function("randint", [](const Vector<PyValue>& args, void*){
+		if(args.GetCount() < 2) return PyValue((int64)0);
+		int64 a = args[0].AsInt64(), b = args[1].AsInt64();
+		if(a > b) return PyValue(a);
+		return PyValue(a + (int64)Random((int)(b - a + 1)));
+	}));
+	random_mod.SetItem(PyValue("choice"), PyValue::Function("choice", [](const Vector<PyValue>& args, void*){
+		if(args.GetCount() == 0 || args[0].GetCount() == 0) return PyValue::None();
+		int n = args[0].GetCount();
+		return args[0].GetItem(Random(n));
+	}));
+	random_mod.SetItem(PyValue("sample"), PyValue::Function("sample", [](const Vector<PyValue>& args, void*){
+		if(args.GetCount() < 2) return PyValue::List();
+		const PyValue& src = args[0];
+		int k = (int)args[1].AsInt64();
+		int n = src.GetCount();
+		Vector<int> idx;
+		for(int i = 0; i < n; i++) idx.Add(i);
+		// Fisher-Yates for k samples
+		for(int i = 0; i < k && i < n; i++) {
+			int j = i + Random(n - i);
+			Swap(idx[i], idx[j]);
+		}
+		PyValue result = PyValue::List();
+		for(int i = 0; i < min(k, n); i++)
+			result.Add(src.GetItem(idx[i]));
+		return result;
+	}));
+	globals.GetDictRW().GetAdd(PyValue("random")) = random_mod;
+	
+	PyValue modules = sys.GetItem(PyValue("modules"));
+	// modules.SetItem(PyValue("os"), os); // Disabled to break circular reference
+	// modules.SetItem(PyValue("sys"), sys); // Disabled to break circular reference
+	modules.SetItem(PyValue("math"), globals.GetItem(PyValue("math")));
+	modules.SetItem(PyValue("time"), globals.GetItem(PyValue("time")));
+	modules.SetItem(PyValue("json"), globals.GetItem(PyValue("json")));
+	modules.SetItem(PyValue("shutil"), globals.GetItem(PyValue("shutil")));
+	modules.SetItem(PyValue("glob"), globals.GetItem(PyValue("glob")));
+	modules.SetItem(PyValue("threading"), globals.GetItem(PyValue("threading")));
+	modules.SetItem(PyValue("subprocess"), globals.GetItem(PyValue("subprocess")));
+	modules.SetItem(PyValue("random"), random_mod);
+	sys = PyValue::None();
+	modules = PyValue::None();
+	os = PyValue::None();
+	math = PyValue::None();
+	time = PyValue::None();
+	json = PyValue::None();
+	subprocess = PyValue::None();
+	random_mod = PyValue::None();
+}
+
+PyVM::PyVM()
+{
+    InitBuiltins();
+}
+
+PyVM::~PyVM()
+{
+	for(int i = 0; i < frames.GetCount(); i++) {
+		ReleaseLocals(frames[i].locals);
+		frames[i].func = PyValue::None();
+	}
+	frames.Clear();
+	frames.Shrink();
+	ReleaseStack(stack);
+	last_result = PyValue::None();
+	if(globals.GetType() == PY_DICT) {
+		Vector<PyValue> todo;
+		todo.Add(globals);
+		Index<void*> seen;
+		seen.Add(globals.GetPtr());
+		int head = 0;
+		while(head < todo.GetCount()) {
+			PyValue v = todo[head++];
+			if(v.GetType() == PY_DICT) {
+				VectorMap<PyValue, PyValue>& dv = v.GetDictRW();
+				for(int i = 0; i < dv.GetCount(); i++) {
+					PyValue val = dv[i];
+					if((val.GetType() == PY_DICT || val.GetType() == PY_LIST || val.GetType() == PY_TUPLE) && seen.Find(val.GetPtr()) < 0) {
+						seen.Add(val.GetPtr());
+						todo.Add(val);
+					}
+				}
+			} else if(v.GetType() == PY_LIST || v.GetType() == PY_TUPLE) {
+				const Vector<PyValue>& l = v.GetArray();
+				for(int i = 0; i < l.GetCount(); i++) {
+					PyValue val = l[i];
+					if((val.GetType() == PY_DICT || val.GetType() == PY_LIST || val.GetType() == PY_TUPLE) && seen.Find(val.GetPtr()) < 0) {
+						seen.Add(val.GetPtr());
+						todo.Add(val);
+					}
+				}
+			}
+		}
+		for(int pass = 0; head > 0 && pass < 2; pass++) {
+			for(int i = todo.GetCount() - 1; i >= 0; i--) {
+				if(todo[i].GetType() == PY_DICT) todo[i].GetDictRW().Clear();
+				else if(todo[i].GetType() == PY_LIST || todo[i].GetType() == PY_TUPLE) {
+					Vector<PyValue>& l = const_cast<Vector<PyValue>&>(todo[i].GetArray());
+					l.Clear();
+				}
+			}
+		}
+	}
+	globals = PyValue::None();
+}
+
+void PyVM::Clear()
+{
+	this->~PyVM();
+	new(this) PyVM();
+}
+
+void PyVM::AddBreakpoint(const String& file, int line)
+{
+	for(auto& bp : breakpoints)
+		if(bp.file == file && bp.line == line)
+			return; // Already exists
+
+	breakpoints.Add(Breakpoint(file, line));
+}
+
+void PyVM::RemoveBreakpoint(const String& file, int line)
+{
+	for(int i = 0; i < breakpoints.GetCount(); i++)
+		if(breakpoints[i].file == file && breakpoints[i].line == line) {
+			breakpoints.Remove(i);
+			return;
+		}
+}
+
+void PyVM::ClearBreakpoints()
+{
+	breakpoints.Clear();
+}
+
+void PyVM::EnableBreakpoint(const String& file, int line, bool enable)
+{
+	for(auto& bp : breakpoints)
+		if(bp.file == file && bp.line == line) {
+			bp.enabled = enable;
+			return;
+		}
+}
+
+bool PyVM::HasBreakpoint(const String& file, int line) const
+{
+	for(const auto& bp : breakpoints)
+		if(bp.file == file && bp.line == line && bp.enabled)
+			return true;
+	return false;
+}
+
+bool PyVM::CheckBreakpoint(const String& file, int line)
+{
+	for(auto& bp : breakpoints)
+		if(bp.file == file && bp.line == line && bp.enabled) {
+			bp.hit_count++;
+			WhenBreakpointHit(file, line);
+			return true;
+		}
+	return false;
+}
+
+Vector<PyVM::StackFrame> PyVM::GetCallStack() const
+{
+	Vector<StackFrame> stack;
+
+	for(int i = frames.GetCount() - 1; i >= 0; i--) {
+		const Frame& f = frames[i];
+		StackFrame sf;
+		sf.frame_index = i;
+		sf.locals = &f.locals;
+
+		// Extract function name from PyValue
+		if(f.func.GetType() == PY_FUNCTION) {
+			sf.function_name = f.func.GetLambda().name;
+		}
+		else {
+			sf.function_name = "<builtin>";
+		}
+
+		// Get current file:line from IR
+		if(f.pc < f.ir->GetCount()) {
+			sf.file = (*f.ir)[f.pc].file;
+			sf.line = (*f.ir)[f.pc].line;
+		}
+		else if(!f.ir->IsEmpty()) {
+			sf.file = f.ir->Top().file;
+			sf.line = f.ir->Top().line;
+		}
+
+		stack.Add(sf);
+	}
+
+	return stack;
+}
+
+const VectorMap<PyValue, PyValue>& PyVM::GetLocals(int frame_index) const
+{
+	ASSERT(frame_index >= 0 && frame_index < frames.GetCount());
+	return frames[frame_index].locals;
+}
+
+void PyVM::SetIR(Vector<PyIR>& _ir)
+{
+	frames.Clear();
+	stack.Clear();
+	Frame& f = frames.Add();
+	f.func = PyValue::Function("__main__");
+	f.func.GetLambdaRW().ir = pick(_ir);
+	f.func.GetLambdaRW().globals = globals;
+	f.ir = &f.func.GetLambda().ir;
+	f.pc = 0;
+	f.globals = globals;
+	f.is_module = true;
+	f.stack_base = 0;
+	last_result = PyValue::None();
+}
+
+PyValue PyVM::Run()
+{
+	PyScheduler::Get().Lock();
+	try {
+		while(IsRunning()) {
+			Step();
+		}
+	} catch (Exc& e) {
+		PyScheduler::Get().Unlock();
+		LOG("PyVM Exception: " << e);
+		throw;
+	} catch (...) {
+		PyScheduler::Get().Unlock();
+		throw;
+	}
+	PyScheduler::Get().Unlock();
+	return last_result;
+}
+
+bool PyVM::LoadModule(const String& module_name, const String& src, const String& filename)
+{
+	PyValue mod_dict = PyValue::Dict();
+	mod_dict.SetItem(PyValue("__name__"), PyValue(module_name));
+	mod_dict.SetItem(PyValue("__file__"), PyValue(filename));
+	mod_dict.SetItem(PyValue("__builtins__"), globals);
+
+	try {
+		Tokenizer tk;
+		tk.SkipComments();
+		tk.SkipPythonComments();
+		if(!tk.Process(src, filename))
+			return false;
+		tk.NewlineToEndStatement();
+		tk.CombineTokens();
+
+		PyCompiler compiler(tk.GetTokens(), filename);
+		Vector<PyIR> ir;
+		compiler.Compile(ir);
+
+		// Execute the module code in its own globals
+		int base = frames.GetCount();
+		Frame& f = frames.Add();
+		f.func = PyValue::Function(module_name);
+		f.func.GetLambdaRW().ir = pick(ir);
+		f.func.GetLambdaRW().globals = mod_dict;
+		f.ir = &f.func.GetLambda().ir;
+		f.pc = 0;
+		f.globals = mod_dict;
+		f.is_module = true;
+		f.stack_base = stack.GetCount();
+
+		// If we are already running, we need to Step until this module returns
+		if (base > 0) {
+			while (frames.GetCount() > base)
+				Step();
+		} else {
+			Run();
+		}
+	} catch(Exc& e) {
+		LOG("PyVM::LoadModule error (" << module_name << "): " << e);
+		return false;
+	} catch(std::exception& e) {
+		LOG("PyVM::LoadModule std::exception (" << module_name << "): " << e.what());
+		return false;
+	} catch(...) {
+		LOG("PyVM::LoadModule unknown exception (" << module_name << ")");
+		return false;
+	}
+
+	// Store in sys.modules under the full dotted name
+	PyValue sys = globals.GetItem(PyValue("sys"));
+	if(sys.GetType() == PY_DICT) {
+		PyValue modules = sys.GetItem(PyValue("modules"));
+		if(modules.GetType() == PY_DICT)
+			modules.SetItem(PyValue(module_name), mod_dict);
+	}
+
+	// Wire into parent packages: "hearts.logic" → globals["hearts"]["logic"] = mod_dict
+	Vector<String> parts = Split(module_name, '.');
+	if(parts.GetCount() > 1) {
+		// Ensure parent package exists in globals
+		PyValue pkg = globals.GetItem(PyValue(parts[0]));
+		if(pkg.IsNone()) {
+			pkg = PyValue::Dict();
+			globals.SetItem(PyValue(parts[0]), pkg);
+		}
+		// Walk down creating intermediate packages
+		for(int i = 1; i < parts.GetCount() - 1; i++) {
+			PyValue sub = pkg.GetItem(PyValue(parts[i]));
+			if(sub.IsNone()) {
+				sub = PyValue::Dict();
+				pkg.SetItem(PyValue(parts[i]), sub);
+			}
+			pkg = sub;
+		}
+		pkg.SetItem(PyValue(parts.Top()), mod_dict);
+	} else {
+		globals.SetItem(PyValue(module_name), mod_dict);
+	}
+
+	return true;
+}
+
+PyValue PyVM::Call(const PyValue& callable_in, const Vector<PyValue>& args)
+{
+	PyValue callable = callable_in;
+	Vector<PyValue> call_args;
+	call_args.Reserve(args.GetCount());
+	for (const PyValue& v : args)
+		call_args.Add(v);
+	if (callable.IsBoundMethod()) {
+		PyValue func = callable.GetBound().func;
+		PyValue self = callable.GetBound().self;
+		call_args.Insert(0, self);
+		callable = func;
+	}
+	if (!callable.IsFunction())
+		return PyValue::None();
+
+	const PyLambda& l = callable.GetLambda();
+	if (l.builtin)
+		return l.builtin(call_args, l.user_data);
+
+	int base = frames.GetCount();
+	int stack_base = stack.GetCount();
+	Frame& f = frames.Add();
+	f.func = callable;
+	f.ir = &l.ir;
+	f.pc = 0;
+	f.globals = l.globals.IsNone() ? globals : l.globals;
+	f.stack_base = stack_base;
+	// Pre-populate locals from closure (captured enclosing scope), args override
+	if(l.closure.GetType() == PY_DICT) {
+		const VectorMap<PyValue, PyValue>& cv = l.closure.GetDict();
+		for(int ci = 0; ci < cv.GetCount(); ci++)
+			f.locals.GetAdd(cv.GetKey(ci)) = cv[ci];
+	}
+	for (int i = 0; i < min(l.arg.GetCount(), call_args.GetCount()); i++) {
+		PyValue key = i < l.arg_values.GetCount() ? l.arg_values[i] : PyValue(l.arg[i]);
+		int q = f.locals.Find(key);
+		if(q >= 0) f.locals[q] = call_args[i];
+		else f.locals.Add(key, call_args[i]);
+	}
+
+	PyValue prev_last = last_result;
+	last_result = PyValue::None();
+	PyScheduler::Get().Lock();
+	try {
+		while (frames.GetCount() > base)
+			Step();
+	}
+	catch (...) {
+		PyScheduler::Get().Unlock();
+		for (int i = frames.GetCount() - 1; i >= base; --i) {
+			ReleaseLocals(frames[i].locals);
+			frames[i].func = PyValue::None();
+		}
+		frames.SetCount(base);
+		// Only clean up stack entries added by this call, not the outer caller's stack
+		for(int i = stack_base; i < stack.GetCount(); i++) stack[i] = PyValue::None();
+		stack.SetCount(stack_base);
+		last_result = prev_last;
+		throw;
+	}
+	PyScheduler::Get().Unlock();
+	// RETURN_VALUE already pushed the result onto the stack and set last_result.
+	// Pop the result from the stack (it was pushed by RETURN_VALUE) so caller's stack is clean.
+	PyValue res;
+	if(stack.GetCount() > stack_base)
+		res = stack.Pop();
+	else
+		res = last_result;
+	last_result = prev_last;
+	for (int i = frames.GetCount() - 1; i >= base; --i) {
+		ReleaseLocals(frames[i].locals);
+		frames[i].func = PyValue::None();
+	}
+	frames.SetCount(base);
+	return res;
+}
+
+void PyVM::Continue()
+{
+	if(debug_state == DEBUG_PAUSED)
+		debug_state = DEBUG_RUNNING;
+}
+
+void PyVM::Pause()
+{
+	debug_state = DEBUG_PAUSED;
+}
+
+void PyVM::StepOver()
+{
+	if(debug_state == DEBUG_PAUSED) {
+		debug_state = DEBUG_STEP_OVER;
+		step_frame_depth = frames.GetCount();
+	}
+}
+
+void PyVM::StepIn()
+{
+	if(debug_state == DEBUG_PAUSED) {
+		debug_state = DEBUG_STEP_IN;
+	}
+}
+
+void PyVM::StepOut()
+{
+	if(debug_state == DEBUG_PAUSED) {
+		debug_state = DEBUG_STEP_OUT;
+		step_frame_depth = frames.GetCount() - 1;
+	}
+}
+
+void PyVM::Reset()
+{
+	for(int i = 0; i < frames.GetCount(); i++) {
+		ReleaseLocals(frames[i].locals);
+		frames[i].func = PyValue::None();
+    InitBuiltins();
+    breakpoints_enabled = true;
+}
+	frames.Clear();
+	ReleaseStack(stack);
+	debug_state = DEBUG_RUNNING;
+	last_result = PyValue::None();
+	if(globals.GetType() == PY_DICT)
+		globals.GetDictRW().Clear();
+	globals = PyValue::Dict();
+	breakpoints_enabled = true;
+}
+
+bool PyVM::Step()
+{
+	if(frames.IsEmpty()) return false;
+	
+	// Periodic GIL yield to allow other threads to run
+	if (++instruction_count >= 100) {
+		instruction_count = 0;
+		PyScheduler::Get().Unlock();
+		// Small yield
+		#ifdef flagWIN32
+		::Sleep(0);
+		#else
+		sched_yield();
+		#endif
+		PyScheduler::Get().Lock();
+	}
+
+	Frame& frame = TopFrame();
+
+	// Get current location (file:line) from IR metadata
+	if(frame.pc < frame.ir->GetCount()) {
+		const PyIR& instr = (*frame.ir)[frame.pc];
+		current_file = instr.file;
+		current_line = instr.line;
+
+		// Check for breakpoint
+		if(debug_state == DEBUG_RUNNING && breakpoints_enabled && HasBreakpoint(current_file, current_line)) {
+			if(CheckBreakpoint(current_file, current_line)) {
+				debug_state = DEBUG_PAUSED;
+				return true; // Paused at breakpoint
+			}
+		}
+
+		// Handle stepping modes
+		if(debug_state == DEBUG_STEP_IN) {
+			debug_state = DEBUG_PAUSED;
+		}
+		else if(debug_state == DEBUG_STEP_OVER) {
+			if(frames.GetCount() <= step_frame_depth)
+				debug_state = DEBUG_PAUSED;
+		}
+		else if(debug_state == DEBUG_STEP_OUT) {
+			if(frames.GetCount() <= step_frame_depth)
+				debug_state = DEBUG_PAUSED;
+		}
+	}
+
+	if(frame.pc >= frame.ir->GetCount()) {
+		PYVM_TRACE("PYVM frame-end drop function");
+		int sb = frame.stack_base;
+		ReleaseLocals(frame.locals);
+		frame.func = PyValue::None();
+		frames.Drop();
+		stack.SetCount(sb);
+		return !frames.IsEmpty();
+	}
+	
+	const PyIR& instr = (*frame.ir)[frame.pc++];
+	PYVM_TRACE("PYVM pc=" << frame.pc - 1 << " op=" << (int)instr.code << " stack=" << stack.GetCount());
+	
+	VectorMap<PyValue, PyValue>& globals = frame.globals.GetDictRW();
+
+	try {
+		switch(instr.code) {
+		case PY_NOP: break;
+		
+		case PY_UNARY_POSITIVE: break; // Identity
+		
+		case PY_UNARY_NEGATIVE: {
+			PyValue v = Pop();
+			if (v.IsInt()) Push(PyValue(-v.AsInt64()));
+			else if (v.IsFloat()) Push(PyValue(-v.AsDouble()));
+			break;
+		}
+
+		case PY_UNARY_NOT: {
+			PyValue v = Pop();
+			Push(PyValue(!v.IsTrue()));
+			break;
+		}
+
+		case PY_UNARY_INVERT: {
+			PyValue v = Pop();
+			if (v.IsInt()) Push(PyValue(~v.AsInt64()));
+			break;
+		}
+
+		case PY_POP_TOP:
+			last_result = Pop();
+			break;
+
+		case PY_DUP_TOP: {
+			if(stack.IsEmpty()) throw Exc("RuntimeError: DUP_TOP on empty stack");
+			Push(stack.Top());
+			break;
+		}
+
+		case PY_ROT_TWO: {
+			if(stack.GetCount() < 2) throw Exc("RuntimeError: ROT_TWO requires 2 stack items");
+			int n = stack.GetCount();
+			Swap(stack[n-1], stack[n-2]);
+			break;
+		}
+
+		case PY_ROT_THREE: {
+			if(stack.GetCount() < 3) throw Exc("RuntimeError: ROT_THREE requires 3 stack items");
+			int n = stack.GetCount();
+			PyValue tmp = stack[n-1]; // TOS
+			stack[n-1] = stack[n-2]; // TOS = old TOS1
+			stack[n-2] = stack[n-3]; // TOS1 = old TOS2
+			stack[n-3] = tmp;        // TOS2 = old TOS
+			break;
+		}
+
+		case PY_LOAD_CONST: {
+			PyValue v = instr.arg;
+			// Attach enclosing locals as closure for lambdas/nested functions
+			if(v.IsFunction() && !v.GetLambda().builtin && !frame.locals.IsEmpty()) {
+				PyLambda& lam = v.GetLambdaRW();
+				lam.closure = PyValue::Dict();
+				for(int ci = 0; ci < frame.locals.GetCount(); ci++)
+					lam.closure.SetItem(frame.locals.GetKey(ci), frame.locals[ci]);
+			}
+			Push(v);
+			break;
+		}
+		
+		case PY_LOAD_NAME: {
+			int q = frame.locals.Find(instr.arg);
+			if(q >= 0) Push(frame.locals[q]);
+			else {
+				int qg = globals.Find(instr.arg);
+				if(qg >= 0) Push(globals[qg]);
+				else {
+					// Fallback to builtins
+					int qb = this->globals.GetDict().Find(instr.arg);
+					if(qb >= 0) Push(this->globals.GetDict()[qb]);
+					else throw Exc("NameError: name '" + instr.arg.ToString() + "' is not defined");
+				}
+			}
+			break;
+		}
+	
+		case PY_STORE_NAME: {
+			PyValue value = Pop();
+			if(frame.is_module) {
+				int q = globals.Find(instr.arg);
+				if(q >= 0) globals[q] = value;
+				else globals.Add(instr.arg, value);
+				PYVM_TRACE("PYVM store-global name=" << instr.arg.ToString());
+			}
+			else {
+				int q = frame.locals.Find(instr.arg);
+				if(q >= 0) frame.locals[q] = value;
+				else frame.locals.Add(instr.arg, value);
+				PYVM_TRACE("PYVM store-local name=" << instr.arg.ToString());
+			}
+			break;
+		}
+
+		case PY_LOAD_GLOBAL: {
+			int q = globals.Find(instr.arg);
+			if(q >= 0) Push(globals[q]);
+			else {
+				// Fallback to builtins
+				int qb = this->globals.GetDict().Find(instr.arg);
+				if(qb >= 0) Push(this->globals.GetDict()[qb]);
+				else throw Exc("NameError: name '" + instr.arg.ToString() + "' is not defined");
+			}
+			break;
+		}
+			
+		case PY_STORE_GLOBAL:
+			globals.GetAdd(instr.arg) = Pop();
+			break;
+
+		case PY_IMPORT_NAME: {
+			String name = instr.arg.ToString();
+			// Support dotted names like os.path
+			Vector<String> parts = Split(name, '.');
+			PyValue current;
+
+			// Check sys.modules first
+			PyValue sys = this->globals.GetItem(PyValue("sys"));
+			if(sys.GetType() == PY_DICT) {
+				PyValue modules = sys.GetItem(PyValue("modules"));
+				if(modules.GetType() == PY_DICT) {
+					current = modules.GetItem(PyValue(parts[0]));
+				}
+			}
+			
+			                        // If still not found, try to load from disk
+                        if (current.IsNone()) {
+                                Vector<String> search_paths;
+                                search_paths.Add(""); // Current CWD
+                                if (!current_file.IsEmpty()) {
+                                    search_paths.Add(GetFileFolder(current_file));
+                                }
+
+                                for (const String& search_path : search_paths) { 
+                                    String path = AppendFileName(search_path, parts[0] + ".py");
+                                    String pkg_path = AppendFileName(search_path, parts[0]);
+                                    String init_path = AppendFileName(pkg_path, "__init__.py");
+                                    
+                                    if (FileExists(path)) {
+                                        if (LoadModule(parts[0], LoadFile(path), path)) {
+                                            PyValue sys2 = this->globals.GetItem(PyValue("sys"));
+                                            PyValue modules2 = sys2.GetItem(PyValue("modules"));
+                                            current = modules2.GetItem(PyValue(parts[0]));
+                                            break;
+                                        }
+                                    } else if (DirectoryExists(pkg_path) && FileExists(init_path)) {
+                                        if (LoadModule(parts[0], LoadFile(init_path), init_path)) {
+                                            PyValue sys2 = this->globals.GetItem(PyValue("sys"));
+                                            PyValue modules2 = sys2.GetItem(PyValue("modules"));
+                                            current = modules2.GetItem(PyValue(parts[0]));
+                                            // Set __path__ for the package
+                                            current.SetItem(PyValue("__path__"), PyValue(pkg_path));
+                                            break;
+                                        }
+                                    }
+                                }
+                        }
+			if (current.IsNone()) {
+				if (DirectoryExists(parts[0])) {
+					// Create dummy module for package directory
+					PyValue pkg = PyValue::Dict();
+					pkg.SetItem(PyValue("__name__"), PyValue(parts[0]));
+					pkg.SetItem(PyValue("__path__"), PyValue(parts[0]));
+					PyValue sys4 = this->globals.GetItem(PyValue("sys"));
+					if(sys4.GetType() == PY_DICT) {
+						PyValue modules4 = sys4.GetItem(PyValue("modules"));
+						if(modules4.GetType() == PY_DICT) {
+							modules4.SetItem(PyValue(parts[0]), pkg);
+							current = pkg;
+						}
+					}
+				}
+			}
+			
+			// Then check builtins/main globals
+			if (current.IsNone()) {
+				int q = this->globals.GetDict().Find(parts[0]);
+				if(q >= 0) {
+					current = this->globals.GetDict()[q];
+				}
+			}
+
+			if(!current.IsNone()) {
+			for(int i = 1; i < parts.GetCount(); i++) {
+				if(current.GetType() == PY_DICT) {
+					PyValue next = current.GetItem(PyValue(parts[i]));
+					if(next.IsNone()) {
+						String sub_name = "";
+						for(int j = 0; j <= i; j++) { if(j>0) sub_name << "."; sub_name << parts[j]; }
+						String sub_path = "";
+						for(int j = 0; j <= i; j++) { if(j>0) sub_path << "/"; sub_path << parts[j]; }
+						sub_path << ".py";
+						if(FileExists(sub_path)) {
+							if(LoadModule(sub_name, LoadFile(sub_path), sub_path)) {
+								PyValue sys3 = this->globals.GetItem(PyValue("sys"));
+								PyValue modules3 = sys3.GetItem(PyValue("modules"));
+								next = modules3.GetItem(PyValue(sub_name));
+								current.SetItem(PyValue(parts[i]), next);
+							}
+						}
+					}
+					current = next;
+				} else {
+					current = PyValue::None();
+					break;
+				}
+			}
+			}
+
+			Push(current);
+			break;
+		}
+
+		case PY_IMPORT_FROM: {
+			PyValue name = instr.arg;
+			PyValue mod = stack.Top();
+			if (mod.GetType() == PY_DICT) {
+				Push(mod.GetItem(name));
+			} else if (mod.IsUserDataValid()) {
+				Push(mod.GetUserData().GetAttr(name.ToString()));
+			} else {
+				Push(PyValue::None());
+			}
+			break;
+		}
+
+		case PY_IMPORT_STAR: {
+			PyValue mod = Pop();
+			if(mod.GetType() == PY_DICT) {
+				const VectorMap<PyValue, PyValue>& m = mod.GetDict();
+				for(int i = 0; i < m.GetCount(); i++) {
+					String name = m.GetKey(i).ToString();
+					if(!name.StartsWith("_")) {
+						globals.GetAdd(m.GetKey(i)) = m[i];
+					}
+				}
+			}
+			break;
+		}
+
+		case PY_LOAD_ATTR: {
+			PyValue obj = Pop();
+			String attr = instr.arg.ToString();
+			if (obj.GetType() == PY_DICT) {
+				// Instance attribute lookup: check instance first, then class dict
+				PyValue val = obj.GetItem(instr.arg);
+				if(val.IsNone()) {
+					PyValue cls = obj.GetItem(PyValue("__class__"));
+					if(cls.GetType() == PY_DICT) {
+						val = cls.GetItem(instr.arg);
+						if(val.IsFunction())
+							val = PyValue::BoundMethod(val, obj);
+					}
+				}
+				Push(val);
+			} else if (obj.GetType() == PY_STR) {
+				if(attr == "endswith") {
+					Push(PyValue::BoundMethod(PyValue::Function("endswith", builtin_str_endswith), obj));
+				} else if(attr == "startswith") {
+					Push(PyValue::BoundMethod(PyValue::Function("startswith", builtin_str_startswith), obj));
+				} else if(attr == "strip") {
+					Push(PyValue::BoundMethod(PyValue::Function("strip", builtin_str_strip), obj));
+				} else if(attr == "replace") {
+					Push(PyValue::BoundMethod(PyValue::Function("replace", builtin_str_replace), obj));
+				} else if(attr == "split") {
+					Push(PyValue::BoundMethod(PyValue::Function("split", builtin_str_split), obj));
+				} else if(attr == "join") {
+					Push(PyValue::BoundMethod(PyValue::Function("join", builtin_str_join), obj));
+				} else if(attr == "lower") {
+					Push(PyValue::BoundMethod(PyValue::Function("lower", builtin_str_lower), obj));
+				} else {
+					Push(PyValue::None());
+				}
+			} else if (obj.GetType() == PY_LIST) {
+				if(attr == "sort") {
+					Push(PyValue::BoundMethod(PyValue::Function("sort", [](const Vector<PyValue>& args, void* ud){
+						PyVM* vm = (PyVM*)ud;
+						// args[0]=self, args[1]=key_func (optional)
+						if(args.GetCount() > 0 && args[0].GetType() == PY_LIST) {
+							Vector<PyValue>& l = const_cast<Vector<PyValue>&>(args[0].GetArray());
+							if(args.GetCount() > 1 && args[1].IsFunction()) {
+								PyValue key_fn = args[1];
+								// Sort with key function using vm->Call
+								// Build sort key array
+								int n = l.GetCount();
+								Vector<int> idx(n);
+								for(int i = 0; i < n; i++) idx[i] = i;
+								Vector<PyValue> keys(n);
+								for(int i = 0; i < n; i++) {
+									Vector<PyValue> kargs;
+									kargs.Add(l[i]);
+									keys[i] = vm->Call(key_fn, kargs);
+								}
+								// Insertion sort by keys
+								for(int i = 1; i < n; i++) {
+									int j = i;
+									while(j > 0 && keys[j] < keys[j-1]) {
+										Swap(keys[j], keys[j-1]);
+										Swap(l[j], l[j-1]);
+										j--;
+									}
+								}
+							} else {
+								Sort(l);
+							}
+						}
+						return PyValue::None();
+					}, this), obj));
+				} else if(attr == "append") {
+					Push(PyValue::BoundMethod(PyValue::Function("append", [](const Vector<PyValue>& args, void*){
+						if(args.GetCount() >= 2 && args[0].GetType() == PY_LIST)
+							const_cast<PyValue&>(args[0]).Add(args[1]);
+						return PyValue::None();
+					}), obj));
+				} else if(attr == "extend") {
+					Push(PyValue::BoundMethod(PyValue::Function("extend", [](const Vector<PyValue>& args, void*){
+						if(args.GetCount() >= 2 && args[0].GetType() == PY_LIST) {
+							PyValue& lst = const_cast<PyValue&>(args[0]);
+							PyValue& other = const_cast<PyValue&>(args[1]);
+							if(other.GetType() == PY_LIST || other.GetType() == PY_TUPLE)
+								for(int i = 0; i < other.GetCount(); i++)
+									lst.Add(other.GetItem(i));
+						}
+						return PyValue::None();
+					}), obj));
+				} else if(attr == "remove") {
+					Push(PyValue::BoundMethod(PyValue::Function("remove", [](const Vector<PyValue>& args, void*){
+						if(args.GetCount() >= 2 && args[0].GetType() == PY_LIST) {
+							Vector<PyValue>& l = const_cast<Vector<PyValue>&>(args[0].GetArray());
+							for(int i = 0; i < l.GetCount(); i++) {
+								if(l[i] == args[1]) { l.Remove(i); break; }
+							}
+						}
+						return PyValue::None();
+					}), obj));
+				} else if(attr == "pop") {
+					Push(PyValue::BoundMethod(PyValue::Function("pop", [](const Vector<PyValue>& args, void*){
+						if(args.GetCount() >= 1 && args[0].GetType() == PY_LIST) {
+							Vector<PyValue>& l = const_cast<Vector<PyValue>&>(args[0].GetArray());
+							if(l.IsEmpty()) return PyValue::None();
+							int idx = args.GetCount() >= 2 ? (int)args[1].AsInt64() : l.GetCount()-1;
+							if(idx < 0) idx += l.GetCount();
+							if(idx >= 0 && idx < l.GetCount()) {
+								PyValue v = l[idx];
+								l.Remove(idx);
+								return v;
+							}
+						}
+						return PyValue::None();
+					}), obj));
+				} else if(attr == "index") {
+					Push(PyValue::BoundMethod(PyValue::Function("index", [](const Vector<PyValue>& args, void*){
+						if(args.GetCount() >= 2 && args[0].GetType() == PY_LIST) {
+							const Vector<PyValue>& l = args[0].GetArray();
+							for(int i = 0; i < l.GetCount(); i++)
+								if(l[i] == args[1]) return PyValue((int64)i);
+						}
+						return PyValue((int64)-1);
+					}), obj));
+				} else {
+					Push(PyValue::None());
+				}
+			} else if (obj.IsUserDataValid()) {
+				Push(obj.GetUserData().GetAttr(attr));
+			} else {
+				Push(PyValue::None());
+			}
+			break;
+		}
+
+		case PY_STORE_ATTR: {
+			PyValue val = Pop();
+			PyValue obj = Pop();
+			if (obj.GetType() == PY_DICT) {
+				obj.SetItem(instr.arg, val);
+			} else if (obj.IsUserDataValid()) {
+				obj.GetUserData().SetAttr(instr.arg.ToString(), val);
+			}
+			break;
+		}
+			
+		case PY_BUILD_LIST: {
+			int n = instr.iarg;
+			PyValue list = PyValue::List();
+			Vector<PyValue> items;
+			for(int i = 0; i < n; i++) items.Add(Pop());
+			for(int i = n - 1; i >= 0; i--) list.Add(items[i]);
+			Push(list);
+			break;
+		}
+		
+		case PY_BUILD_TUPLE: {
+			int n = instr.iarg;
+			PyValue tuple = PyValue::Tuple();
+			Vector<PyValue> items;
+			for(int i = 0; i < n; i++) items.Add(Pop());
+			for(int i = n - 1; i >= 0; i--) tuple.Add(items[i]);
+			Push(tuple);
+			break;
+		}
+		
+		case PY_BUILD_MAP: {
+			int n = instr.iarg;
+			PyValue dict = PyValue::Dict();
+			Vector<PyKV> items;
+			for(int i = 0; i < n; i++) {
+				PyValue v = Pop();
+				PyValue k = Pop();
+				items.Add(PyKV(k, v));
+			}
+			for(int i = n - 1; i >= 0; i--) dict.SetItem(items[i].k, items[i].v);
+			Push(dict);
+			break;
+		}
+
+		case PY_BUILD_CLASS: {
+			// TOS = class body function (compiled as def with no args).
+			// Execute it with a fresh local scope; collect locals into class dict.
+			String class_name = instr.arg.ToString();
+			PyValue body_func = Pop();
+			PyValue class_dict = PyValue::Dict();
+			class_dict.SetItem(PyValue("__name__"), PyValue(class_name));
+			class_dict.SetItem(PyValue("__class_dict__"), PyValue(true));
+			if(body_func.IsFunction()) {
+				const PyLambda& l = body_func.GetLambda();
+				Frame& f = frames.Add();
+				f.func = body_func;
+				f.ir = &l.ir;
+				f.pc = 0;
+				f.globals = l.globals.IsNone() ? this->globals : l.globals;
+				f.stack_base = stack.GetCount();
+				// Mark this frame as a class body; after it returns, collect locals into class_dict
+				f.locals.GetAdd(PyValue("__class_body_result__")) = class_dict;
+			} else {
+				Push(class_dict);
+			}
+			break;
+		}
+			
+		case PY_BINARY_SLICE: {
+			// Stack: [obj, start, stop] — stop=TOS
+			PyValue stop  = Pop();
+			PyValue start = Pop();
+			PyValue obj   = Pop();
+			PyValue result = PyValue::List();
+			if(obj.GetType() == PY_LIST || obj.GetType() == PY_TUPLE) {
+				int n = obj.GetCount();
+				int s = (int)start.AsInt64();
+				int e = stop.IsNone() || stop.AsInt64() == -1 ? n : (int)stop.AsInt64();
+				if(s < 0) s += n;
+				if(e < 0) e += n;
+				s = max(s, 0); e = min(e, n);
+				for(int i = s; i < e; i++) result.Add(obj.GetItem(i));
+			} else if(obj.GetType() == PY_STR) {
+				WString ws = obj.GetStr();
+				int n = ws.GetCount();
+				int s = (int)start.AsInt64();
+				int e = stop.IsNone() || stop.AsInt64() == -1 ? n : (int)stop.AsInt64();
+				if(s < 0) s += n; if(e < 0) e += n;
+				s = max(s,0); e = min(e,n);
+				Push(PyValue(ws.Mid(s, e-s)));
+				break;
+			}
+			Push(result);
+			break;
+		}
+
+		case PY_BINARY_ADD: {
+			PyValue b = Pop();
+			PyValue a = Pop();
+			if(a.GetType() == PY_COMPLEX || b.GetType() == PY_COMPLEX)
+				Push(PyValue(a.GetComplex() + b.GetComplex()));
+			else if(a.IsInt() && b.IsInt()) Push(PyValue(a.AsInt64() + b.AsInt64()));
+			else if(a.IsNumber() && b.IsNumber()) Push(PyValue(a.AsDouble() + b.AsDouble()));
+			else if(a.GetType() == PY_STR) Push(PyValue(a.GetStr() + b.ToString().ToWString()));
+			else if(b.GetType() == PY_STR) Push(PyValue(a.ToString().ToWString() + b.GetStr()));
+			else if(a.GetType() == PY_LIST && b.GetType() == PY_LIST) {
+				PyValue res = PyValue::List();
+				const Vector<PyValue>& va = a.GetArray();
+				const Vector<PyValue>& vb = b.GetArray();
+				for(int i = 0; i < va.GetCount(); i++) res.Add(va[i]);
+				for(int i = 0; i < vb.GetCount(); i++) res.Add(vb[i]);
+				Push(res);
+			}
+			else {
+				throw Exc("TypeError: unsupported operand type(s) for +: '" + PyTypeName(a.GetType()) + "' and '" + PyTypeName(b.GetType()) + "'");
+			}
+			break;
+		}
+
+		case PY_BINARY_SUBTRACT: {
+			PyValue b = Pop();
+			PyValue a = Pop();
+			if(a.GetType() == PY_COMPLEX || b.GetType() == PY_COMPLEX)
+				Push(PyValue(a.GetComplex() - b.GetComplex()));
+			else if(a.IsInt() && b.IsInt()) Push(PyValue(a.AsInt64() - b.AsInt64()));
+			else Push(PyValue(a.AsDouble() - b.AsDouble()));
+			break;
+		}
+
+		case PY_BINARY_MULTIPLY: {
+			PyValue b = Pop();
+			PyValue a = Pop();
+			if(a.GetType() == PY_COMPLEX || b.GetType() == PY_COMPLEX)
+				Push(PyValue(a.GetComplex() * b.GetComplex()));
+			else if(a.IsInt() && b.IsInt()) Push(PyValue(a.AsInt64() * b.AsInt64()));
+			else Push(PyValue(a.AsDouble() * b.AsDouble()));
+			break;
+		}
+		
+		case PY_BINARY_MODULO: {
+			PyValue b = Pop();
+			PyValue a = Pop();
+			if(a.GetType() == PY_STR) {
+				String fmt = a.ToString();
+				if(b.GetType() == PY_TUPLE || b.GetType() == PY_LIST) {
+					// Very basic multiple arg formatting
+					String res;
+					int arg_idx = 0;
+					for(int i = 0; i < fmt.GetCount(); i++) {
+						if(fmt[i] == '%' && i + 1 < fmt.GetCount() && arg_idx < b.GetCount()) {
+							char spec = fmt[i+1];
+							if(spec == 's' || spec == 'd' || spec == 'g') {
+									res << b.GetItem(arg_idx++).ToString();
+								i++;
+								continue;
+							}
+						}
+						res.Cat(fmt[i]);
+					}
+					Push(PyValue(res));
+				} else {
+					// Single arg formatting
+					String res;
+					for(int i = 0; i < fmt.GetCount(); i++) {
+						if(fmt[i] == '%' && i + 1 < fmt.GetCount()) {
+							char spec = fmt[i+1];
+							if(spec == 's' || spec == 'd' || spec == 'g') {
+									res << b.ToString();
+								i++;
+								continue;
+							}
+						}
+						res.Cat(fmt[i]);
+					}
+					Push(PyValue(res));
+				}
+			} else if(a.IsInt() && b.IsInt()) {
+				if(b.AsInt64() == 0) throw Exc("ZeroDivisionError: integer modulo by zero");
+				int64 r = a.AsInt64() % b.AsInt64();
+				// Python modulo always has sign of divisor
+				if(r != 0 && (r < 0) != (b.AsInt64() < 0)) r += b.AsInt64();
+				Push(PyValue(r));
+			} else {
+				Push(PyValue(fmod(a.AsDouble(), b.AsDouble())));
+			}
+			break;
+		}
+		
+		case PY_BINARY_TRUE_DIVIDE: {
+			PyValue b = Pop();
+			PyValue a = Pop();
+			if (b.AsDouble() == 0) throw Exc("ZeroDivisionError: division by zero");
+			Push(PyValue(a.AsDouble() / b.AsDouble()));
+			break;
+		}
+		case PY_BINARY_SUBSCR: {
+			PyValue sub = Pop();
+			PyValue container = Pop();
+			if(sub.IsInt() && (container.GetType() == PY_LIST || container.GetType() == PY_TUPLE)) {
+				int idx = sub.AsInt();
+				int n = container.GetCount();
+				if(idx < 0) idx += n;
+				if (idx < 0 || idx >= n) throw Exc("IndexError: list index out of range");
+				Push(container.GetItem(idx));
+			}
+			else
+				Push(container.GetItem(sub));
+			break;
+		}
+
+		case PY_STORE_SUBSCR: {
+			PyValue val = Pop();
+			PyValue sub = Pop();
+			PyValue obj = Pop();
+			if(sub.IsInt() && obj.GetType() == PY_LIST)
+				obj.SetItem(sub.AsInt(), val);
+			else
+				obj.SetItem(sub, val);
+			break;
+		}
+
+		case PY_COMPARE_OP: {
+			PyValue b = Pop();
+			PyValue a = Pop();
+			bool res = false;
+			switch(instr.iarg) {
+			case PY_CMP_EQ: res = (a == b); break;
+			case PY_CMP_NE: res = (a != b); break;
+			case PY_CMP_LT: res = (a < b); break;
+			case PY_CMP_LE: res = (a < b || a == b); break;
+			case PY_CMP_GT: res = (b < a); break;
+			case PY_CMP_GE: res = (b < a || a == b); break;
+			case PY_CMP_IN: res = b.Contains(a); break;
+			case PY_CMP_NOT_IN: res = !b.Contains(a); break;
+			case PY_CMP_IS: res = a.IsSameObject(b); break;
+			case PY_CMP_IS_NOT: res = !a.IsSameObject(b); break;
+			}
+			Push(PyValue(res));
+			break;
+		}
+
+		case PY_JUMP_ABSOLUTE:
+			frame.pc = instr.iarg;
+			break;
+			
+		case PY_POP_JUMP_IF_FALSE: {
+			PyValue v = Pop();
+			if(!v.IsTrue()) frame.pc = instr.iarg;
+			break;
+		}
+
+		case PY_POP_JUMP_IF_TRUE: {
+			PyValue v = Pop();
+			if(v.IsTrue()) frame.pc = instr.iarg;
+			break;
+		}
+
+		case PY_JUMP_IF_FALSE_OR_POP: {
+			if(stack.IsEmpty()) throw Exc("RuntimeError: stack underflow in PY_JUMP_IF_FALSE_OR_POP");
+			if(!stack.Top().IsTrue()) frame.pc = instr.iarg;
+			else Pop();
+			break;
+		}
+
+		case PY_JUMP_IF_TRUE_OR_POP: {
+			if(stack.IsEmpty()) throw Exc("RuntimeError: stack underflow in PY_JUMP_IF_TRUE_OR_POP");
+			if(stack.Top().IsTrue()) frame.pc = instr.iarg;
+			else Pop();
+			break;
+		}
+
+		case PY_MAKE_FUNCTION: {
+			PyValue func = Pop();
+			if (func.IsFunction()) {
+				PyLambda *l2 = new PyLambda();
+				const PyLambda& l1 = func.GetLambda();
+				l2->name = l1.name;
+				l2->arg <<= l1.arg;
+				l2->arg_values <<= l1.arg_values;
+				l2->defaults <<= l1.defaults;
+				l2->ir <<= l1.ir;
+				l2->builtin = l1.builtin;
+				l2->user_data = l1.user_data;
+				l2->globals = frame.globals;
+				Push(PyValue(PY_FUNCTION, l2)); l2->Release();
+			} else {
+				Push(func);
+			}
+			break;
+		}
+
+		case PY_CALL_FUNCTION: {
+			int nargs = instr.iarg;
+			Vector<PyValue> args;
+			for(int i = 0; i < nargs; i++) args.Add(Pop());
+			Vector<PyValue> sorted_args;
+			for(int i = nargs - 1; i >= 0; i--) sorted_args.Add(args[i]);
+
+			PyValue callable = Pop();
+			PYVM_TRACE("PYVM call callable=" << callable.ToString() << " nargs=" << nargs);
+			if (callable.IsBoundMethod()) {
+				PyValue func = callable.GetBound().func;
+				PyValue self = callable.GetBound().self;
+				sorted_args.Insert(0, self);
+				callable = func;
+			}
+
+			// Class instantiation: calling a class dict creates an instance
+			if(callable.GetType() == PY_DICT &&
+			   callable.GetItem(PyValue("__class_dict__")).IsTrue()) {
+				PyValue instance = PyValue::Dict();
+				instance.SetItem(PyValue("__class__"), callable);
+				PyValue init = callable.GetItem(PyValue("__init__"));
+				if(init.IsFunction()) {
+					sorted_args.Insert(0, instance);
+					const PyLambda& l = init.GetLambda();
+					Frame& f = frames.Add();
+					f.func = init;
+					f.ir = &l.ir;
+					f.pc = 0;
+					f.globals = l.globals.IsNone() ? this->globals : l.globals;
+					f.stack_base = stack.GetCount();
+					BindCallArgs(f, l, sorted_args);
+					// After __init__ returns, push instance (handled in RETURN_VALUE path)
+					// We need a way to push instance after __init__ returns.
+					// Use a sentinel: push the instance now; __init__ return will push None over it.
+					// Instead: push instance to stack BEFORE calling __init__,
+					// and after __init__ returns we need to restore it.
+					// Simplest: push it after the frame completes by noting it on the frame.
+					// For now: push instance BEFORE the frame so it's below the call frame.
+					// We'll handle in RETURN_VALUE by checking if the frame was an __init__ call.
+					// Actually easier: just push instance now and let __init__ RETURN_VALUE
+					// drop its None result. We hijack: store instance in a temp global and push after.
+					// Best simple approach: push instance to stack before the init frame runs,
+					// mark the frame as "instance init" and push instance in RETURN_VALUE.
+					// For simplicity: just push instance after the frame pop.
+					// Mark the frame with the instance to push after return:
+					f.locals.GetAdd(PyValue("__instance_result__")) = instance;
+				} else {
+					Push(instance);
+				}
+				break;
+			}
+
+			if(callable.IsFunction()) {
+				const PyLambda& l = callable.GetLambda();
+				if(l.builtin) {
+					Push(l.builtin(sorted_args, l.user_data));
+				}
+				else {
+					Frame& f = frames.Add();
+					PYVM_TRACE("PYVM push-frame function=" << l.name << " argc=" << sorted_args.GetCount());
+					f.func = callable;
+					f.ir = &l.ir;
+					f.pc = 0;
+					f.globals = l.globals.IsNone() ? this->globals : l.globals;
+					f.stack_base = stack.GetCount();
+					// Pre-populate locals from closure, args override
+					if(l.closure.GetType() == PY_DICT) {
+						const VectorMap<PyValue, PyValue>& cv = l.closure.GetDict();
+						for(int ci = 0; ci < cv.GetCount(); ci++)
+							f.locals.GetAdd(cv.GetKey(ci)) = cv[ci];
+					}
+					BindCallArgs(f, l, sorted_args);
+				}
+			}
+			else {
+				args.Clear();
+				throw Exc("TypeError: '" + callable.ToString() + "' object is not callable");
+			}
+			break;
+		}
+
+		                                case PY_GET_ITER: {
+		                                        PyValue obj = Pop();
+		                                        if(obj.GetType() == PY_LIST || obj.GetType() == PY_TUPLE || obj.GetType() == PY_STR) {
+		                                                Push(PyValue::Iterator(new PyVectorIter(obj)));
+		                                        }
+		                			else if(obj.IsIterator()) {
+				Push(obj);
+			}
+			else {
+				throw Exc("TypeError: '" + obj.ToString() + "' object is not iterable");
+			}
+			break;
+		}
+		
+		case PY_FOR_ITER: {
+			PyValue iterator = Pop();
+			if(iterator.IsIterator()) {
+				PyValue next_val = iterator.GetIter().Next();
+				if(next_val.IsStopIteration()) {
+					frame.pc = instr.iarg;
+				}
+				else {
+					Push(iterator);
+					Push(next_val);
+				}
+			}
+			else {
+				throw Exc("TypeError: '" + iterator.ToString() + "' object is not an iterator");
+			}
+			break;
+		}
+
+		case PY_LIST_APPEND: {
+			PyValue val = Pop();
+			int offset = instr.iarg;
+			PyValue& list = stack[stack.GetCount() - offset];
+			list.Add(val);
+			break;
+		}
+
+			case PY_RETURN_VALUE: {
+				PyValue val = Pop();
+				PYVM_TRACE("PYVM return function");
+				// If this frame was a class body, collect locals into class dict and push it
+				{
+					int class_body_idx = frame.locals.Find(PyValue("__class_body_result__"));
+					if(class_body_idx >= 0) {
+						PyValue class_dict = frame.locals[class_body_idx];
+						for(int ki = 0; ki < frame.locals.GetCount(); ki++) {
+							String kname = frame.locals.GetKey(ki).ToString();
+							if(kname != "__class_body_result__")
+								class_dict.SetItem(frame.locals.GetKey(ki), frame.locals[ki]);
+						}
+						val = class_dict;
+					}
+				}
+				// If this frame was a class __init__ call, push the instance instead of None
+				{
+					int instance_idx = frame.locals.Find(PyValue("__instance_result__"));
+					if(instance_idx >= 0)
+						val = frame.locals[instance_idx];
+				}
+				// Truncate stack to frame's base (handles early return from inside for loops)
+				int sb = frame.stack_base;
+				bool is_mod = frame.is_module;
+				ReleaseLocals(frame.locals);
+				frame.func = PyValue::None();
+				frames.Drop();
+				stack.SetCount(sb);
+				if(!frames.IsEmpty()) {
+					// Don't push module return values — module loading is transparent to the caller
+					if(!is_mod)
+						Push(val);
+			}
+			else {
+				if(!val.IsNone() || last_result.IsNone())
+					last_result = val;
+			}
+			break;
+		}
+			
+		case PY_SETUP_EXCEPT: {
+			// Push an exception handler entry; iarg is the absolute PC of the handler
+			Frame::ExceptHandler h;
+			h.handler_pc  = instr.iarg;
+			h.stack_depth = stack.GetCount();
+			TopFrame().except_stack.Add(h);
+			break;
+		}
+
+		case PY_POP_EXCEPT: {
+			// End of try block reached normally — pop handler
+			if(!TopFrame().except_stack.IsEmpty())
+				TopFrame().except_stack.Drop();
+			break;
+		}
+
+		case PY_RAISE: {
+			// raise expr  (iarg==1) or bare raise (iarg==0, re-raise last)
+			if(instr.iarg >= 1) {
+				PyValue exc_val = Pop();
+				throw Exc(exc_val.ToString());
+			} else {
+				throw Exc("RuntimeError: bare raise outside except");
+			}
+		}
+
+		case PY_RAISE_STR: {
+			// raise with a literal string (used by assert)
+			throw Exc(instr.arg.ToString());
+		}
+
+		default:
+			throw Exc("RuntimeError: Unknown opcode: " + AsString((int)instr.code));
+		}
+	} catch (Exc& e) {
+		// Check if current frame has an except handler — if so, dispatch to it
+		Frame& cur = TopFrame();
+		if(!cur.except_stack.IsEmpty()) {
+			Frame::ExceptHandler h = cur.except_stack.Pop();
+			// Restore stack to the depth at the try block entry, then push exception string
+			stack.SetCount(h.stack_depth);
+			Push(PyValue(String(e)));   // exception accessible as TOS in handler
+			cur.pc = h.handler_pc;
+			return !frames.IsEmpty();  // continue execution at handler
+		}
+		// No handler — build traceback and propagate
+		String func_name = "<module>";
+		if (cur.func.IsFunction()) func_name = cur.func.GetLambda().name;
+		String loc = "  File \"<stdin>\", line " + AsString(instr.line) + ", in " + func_name;
+		if (e.Find("Traceback") < 0) {
+			throw Exc("Traceback (most recent call last):\n" + loc + "\n" + e);
+		} else {
+			String msg = e;
+			int q = msg.Find('\n');
+			if (q >= 0) msg.Insert(q + 1, loc + "\n");
+			throw Exc(msg);
+		}
+	}
+	return !frames.IsEmpty();
+}
+
+}

@@ -36,7 +36,7 @@ public:
 	
 	bool			Init(String html, String address);
 	void			SetBaseUrl(String url) {base_addr = url;}
-	Element*		CreateElement(HtmlNode& n);
+	virtual Element* CreateElement(HtmlNode& n);
 	HtmlCtrl&		GetHtmlCtrl() {return *ctrl;}
 	const HtmlCtrl&	GetHtmlCtrl() const {return *ctrl;}
 	Element*		GetRoot() {if (Object::GetCount() == 0) return NULL; return At(0).As<Element>();}

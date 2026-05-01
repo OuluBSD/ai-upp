@@ -1,9 +1,6 @@
 #include "TextParsing.h"
 
-#ifdef flagSTDEXC
-
 NAMESPACE_UPP
-
 
 UrlParser::UrlParser() {
 	
@@ -18,134 +15,60 @@ bool UrlParser::Parse(String url) {
 	for(int i = 0; i < url.GetCount(); i++) {
 		int chr = url[i];
 		if (chr == '/') {
-			int chr1 = i+1 < url.GetCount() ? url[i+1] : 0;
-			if (chr1 == '/') {
+			if (i + 1 < url.GetCount() && url[i+1] == '/') {
 				tokens.Add().Set(DOUBLESLASH, "//");
 				i++;
-			}
-			else
+			} else {
 				tokens.Add().Set(SLASH, "/");
-		}
-		else if (chr == ':')
+			}
+		} else if (chr == ':') {
 			tokens.Add().Set(COLON, ":");
-		else {
-			if (tokens.IsEmpty() || tokens.Top().type != TEXT)
-				tokens.Add().type = TEXT;
-			tokens.Top().text.Cat(chr);
+		} else {
+			String text;
+			while (i < url.GetCount() && url[i] != '/' && url[i] != ':') {
+				text.Cat(url[i]);
+				i++;
+			}
+			tokens.Add().Set(TEXT, text);
+			i--;
 		}
 	}
-	//DUMPC(tokens);
-	if (tokens.IsEmpty()) return false;
 	
 	cursor = 0;
-	bool succ = false;
-	try {
-		ReadProtocol();
-		
-		if (protocol == "file") {
-			succ = true;
-			without_protocol = "";
-			while (!IsEnd()) {
-				without_protocol += Get().text;
-				cursor++;
-			}
-			server_addr = without_protocol;
-		}
-		else {
-			base_addr = ReadText();
-			
-			if (Type(COLON))
-				port = ReadInt();
-			
-			server_addr = "";
-			while (!IsEnd()) {
-				server_addr += Get().text;
-				cursor++;
-			}
-			without_protocol = base_addr + ":" + IntStr(port) + server_addr;
-			
-			succ = true;
-		}
-	}
-	catch (Exc e) {
-		
+	ReadProtocol();
+	
+	without_protocol = "";
+	for(int i = cursor; i < tokens.GetCount(); i++) {
+		without_protocol += tokens[i].text;
 	}
 	
-	return succ;
-}
-
-bool UrlParser::Type(int type) {
-	if (IsEnd()) return false;
-	if (Get().type == type) {
-		cursor++;
-		return true;
-	}
-	return false;
-}
-
-String UrlParser::ReadText() {
-	if (IsEnd()) throw Exc("Unexpected end");
-	const UrlToken& t = Get();
-	if (t.type != TEXT) throw Exc("Unexpected type");
-	cursor++;
-	return t.text;
-}
-
-int UrlParser::ReadInt() {
-	if (IsEnd()) throw Exc("Unexpected end");
-	const UrlToken& t = Get();
-	if (t.type != TEXT) throw Exc("Unexpected type");
-	cursor++;
-	return ScanInt(t.text);
+	// Base addr is everything before the last slash
+	int i = url.ReverseFind("/");
+	if (i >= 0)
+		base_addr = url.Left(i+1);
+	else
+		base_addr = url;
+		
+	return true;
 }
 
 void UrlParser::ReadProtocol() {
-	protocol = "http";
-	port = 80;
-	
-	const UrlToken& t = Get();
-	if (t.type == TEXT) {
-		UrlToken* t1 = cursor+1 < tokens.GetCount() ? &tokens[cursor+1] : NULL;
-		UrlToken* t2 = cursor+2 < tokens.GetCount() ? &tokens[cursor+2] : NULL;
-		if (t1 && t2 && t1->type == COLON && t2->type == DOUBLESLASH) {
-			protocol = t.text;
-			cursor += 3;
-			is_protocol_defined = true;
+	if (tokens.GetCount() >= 2 && tokens[0].type == TEXT && tokens[1].type == COLON) {
+		protocol = tokens[0].text;
+		cursor = 2;
+		is_protocol_defined = true;
+		if (cursor < tokens.GetCount() && tokens[cursor].type == DOUBLESLASH) {
+			cursor++;
 		}
 	}
-	if (protocol == "http")			port = 80;
-	else if (protocol == "https")	port = 443;
-	else if (protocol == "ftp")		port = 21;
-	else if (protocol == "dns")		port = 53;
-	else if (protocol == "dns")		port = 53;
-	else if (protocol == "dict")	port = 2628;
-	else if (protocol == "imap")	port = 143;
-	else if (protocol == "smtp")	port = 25;
-	else if (protocol == "irc")		port = 6667;
-	else if (protocol == "javascript")	port = 80;
-	else if (protocol == "mms")		port = 1755;
-	else if (protocol == "nfs")		port = 111;
-	else if (protocol == "pop3")	port = 110;
-	else if (protocol == "rtsp")	port = 554;
-	else if (protocol == "rtsp")	port = 554;
-	else if (protocol == "telnet")	port = 23;
-	else if (protocol == "whois")	port = 43;
-	else if (protocol == "xmpp")	port = 5222;
-	else port = 0;
 }
 
 String UrlParser::GetFormattedAddr() const {
-	if (protocol == "file")
-		return "file://" + server_addr;
-	else
-		return protocol + "://" + base_addr + ":" + IntStr(port) + server_addr;
+	return url;
 }
 
 String UrlParser::GetFormattedBaseAddr() const {
-	if (protocol == "file")
-		return "file://";
-	else
-		return protocol + "://" + base_addr + ":" + IntStr(port);
+	return base_addr;
 }
 
 String UrlParser::GetFormattedDirectory() const {
@@ -156,16 +79,10 @@ String UrlParser::GetFormattedDirectory() const {
 	return addr;
 }
 
-
-
-
 String JoinUrl(String base, String rel_path) {
 	while (base.Right(1) == "/") base = base.Left(base.GetCount() - 1);
 	while (rel_path.Left(1) == "/") rel_path = rel_path.Mid(1);
 	return base + "/" + rel_path;
 }
 
-
 END_UPP_NAMESPACE
-
-#endif

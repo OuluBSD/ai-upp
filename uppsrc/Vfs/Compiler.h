@@ -35,6 +35,8 @@ public:
 	
 	void OnProcMsg(ProcMsg msg);
 	
+	Callback1<ProcMsg> WhenMessage;
+	
 	template <class T> T& Get(String s) {return val.GetAdd<T>(s);}
 	TokenStructure& GetTokenStructure() {return Get<TokenStructure>("TokenStructure");}
 	SemanticParser& GetSemanticParser() {return Get<SemanticParser>("SemanticParser");}

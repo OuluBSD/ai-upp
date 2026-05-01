@@ -168,21 +168,8 @@ static Vector<GroupDef> ParseGroupAnnotations(const String& eon_text)
 	return groups;
 }
 
-// Map VFS path to group (for nodes with hierarchical paths like /enc/node1)
-static String GetGroupPathForNode(const String& node_id, const VectorMap<String, GroupDef>& groups)
-{
-	// Try longest prefix match
-	String best_match;
-	for(int i = groups.GetCount() - 1; i >= 0; i--) {
-		const String& gpath = groups[i].vfs_path;
-		if(node_id.StartsWith(gpath + "/") || node_id == gpath)
-			return gpath;
-	}
-	return String();
-}
-
 // ---------------------------------------------------------------------------
-// Walk the SemanticParser AST root and extract node type declarations + net
+// Helpers
 // ---------------------------------------------------------------------------
 
 // Parse a "|"-separated field string: "a|b|c|d" -> parts[0..3]
@@ -212,7 +199,6 @@ static void CollectNodeTypeDefs(const AstNode& root,
 			for (const AstNode& item : const_cast<AstNode&>(child).val.Sub<AstNode>()) {
 				String name = item.GetName();
 				if (name == "pin_in" || name == "pin_out") {
-					// str = "portname|TYPE"
 					Vector<String> parts = SplitPipe(item.str, 2);
 					PinDef& p = def.pins.Add();
 					p.name   = parts[0];
@@ -220,7 +206,6 @@ static void CollectNodeTypeDefs(const AstNode& root,
 					p.is_out = (name == "pin_out");
 				}
 				else if (name == "node_param") {
-					// str = "key|type|default|widget"
 					Vector<String> parts = SplitPipe(item.str, 4);
 					ParamDef& p = def.params.Add();
 					p.name        = parts[0];
@@ -236,7 +221,6 @@ static void CollectNodeTypeDefs(const AstNode& root,
 	}
 }
 
-// Map color name string to Color value
 static Color NamedColor(const String& name)
 {
 	static const struct { const char* n; Color c; } map[] = {
@@ -251,7 +235,6 @@ static Color NamedColor(const String& name)
 	return Null;
 }
 
-// Helper: parse integer from string, return false on failure
 static bool ParseInt(const String& s, int& result)
 {
 	result = 0;
@@ -268,31 +251,24 @@ static bool ParseInt(const String& s, int& result)
 	return true;
 }
 
-// Parse group style properties from string like "saturation: 50, hue: green, contrast: 50"
 static GroupStyle ParseGroupStyle(const String& style_str)
 {
 	GroupStyle s;
-	if(style_str.IsEmpty()) return s; // Return default style if empty
-	
+	if(style_str.IsEmpty()) return s; 
 	String str = style_str;
 	str.Replace("{", "");
 	str.Replace("}", "");
-
 	Vector<String> props = Split(str, ',');
 	for(String& prop : props) {
 		prop = TrimBoth(prop);
 		int colon = prop.Find(':');
 		if(colon < 0) continue;
-
 		String key = TrimBoth(prop.Left(colon));
 		String val = TrimBoth(prop.Mid(colon + 1));
-
 		if(key == "saturation") {
 			val.Replace("%", "");
-			val = TrimBoth(val);
 			int v;
-			if(ParseInt(val, v) && v >= 0 && v <= 100)
-				s.saturation = v;
+			if(ParseInt(TrimBoth(val), v) && v >= 0 && v <= 100) s.saturation = v;
 		}
 		else if(key == "hue") {
 			if(val == "red") s.hue = 0;
@@ -302,48 +278,34 @@ static GroupStyle ParseGroupStyle(const String& style_str)
 			else if(val == "cyan") s.hue = 180;
 			else if(val == "blue") s.hue = 240;
 			else if(val == "purple") s.hue = 270;
-			else if(val == "ltblue") s.hue = 200;
 			else {
-				val = TrimBoth(val);
 				int v;
-				if(ParseInt(val, v) && v >= 0 && v <= 360)
-					s.hue = v;
+				if(ParseInt(TrimBoth(val), v) && v >= 0 && v <= 360) s.hue = v;
 			}
 		}
 		else if(key == "contrast") {
 			val.Replace("%", "");
-			val = TrimBoth(val);
 			int v;
-			if(ParseInt(val, v) && v >= 0 && v <= 100)
-				s.contrast = v;
+			if(ParseInt(TrimBoth(val), v) && v >= 0 && v <= 100) s.contrast = v;
 		}
 	}
 	return s;
 }
 
-// Map pin type name to display color
 static Color PinTypeColor(const String& type_name)
 {
-	if (type_name == "MODEL")        return Color(175, 100, 255); // purple
-	if (type_name == "CLIP")         return Color(255, 220,  50); // yellow
-	if (type_name == "CONDITIONING") return Color(255, 150,  50); // orange
-	if (type_name == "LATENT")       return Color(255, 180, 200); // pink
-	if (type_name == "VAE")          return Color(220,  80,  80); // red
-	if (type_name == "IMAGE")        return Color( 80, 210, 100); // green
-	if (type_name == "INT")          return Color(150, 200, 255); // light blue
-	if (type_name == "FLOAT")        return Color(200, 230, 180); // light green
-	if (type_name == "STRING")       return Color(200, 200, 200); // gray
-	if (type_name == "LAYER_STACK")  return Color(105, 185, 255); // neural stack
-	if (type_name == "TENSOR")       return Color(150, 120, 255); // neural tensor
-	if (type_name == "MODEL_STRING") return Color(205, 185, 255); // textual model
-	if (type_name == "METRICS")      return Color(255, 165, 110); // metrics
-	if (type_name == "REPORT")       return Color(235, 185, 115);
-	if (type_name == "SCRIPT")       return Color(210, 210, 170);
-	if (type_name == "HYPERPARAMETERS") return Color(180, 210, 150);
+	if (type_name == "MODEL")        return Color(175, 100, 255);
+	if (type_name == "CLIP")         return Color(255, 220,  50);
+	if (type_name == "CONDITIONING") return Color(255, 150,  50);
+	if (type_name == "LATENT")       return Color(255, 180, 200);
+	if (type_name == "VAE")          return Color(220,  80,  80);
+	if (type_name == "IMAGE")        return Color( 80, 210, 100);
+	if (type_name == "INT")          return Color(150, 200, 255);
+	if (type_name == "FLOAT")        return Color(200, 230, 180);
+	if (type_name == "STRING")       return Color(200, 200, 200);
 	return Color(160, 160, 160);
 }
 
-// Apply pin definitions from a NodeTypeDef to a NodeDoc
 static void ApplyPins(NodeDoc& nd, const NodeTypeDef& def)
 {
 	for (const PinDef& p : def.pins) {
@@ -356,7 +318,6 @@ static void ApplyPins(NodeDoc& nd, const NodeTypeDef& def)
 	}
 }
 
-// Split "node_id.port_name" — tries to find the longest prefix that is a known node id.
 static void SplitNodePort(const Graph& g, const String& full,
                           String& node_id, String& port_id)
 {
@@ -372,26 +333,21 @@ static void SplitNodePort(const Graph& g, const String& full,
 	}
 }
 
-// Extract the value string from a param ExprStmt's children.
 static String ExtractParamValue(const AstNode& expr_stmt)
 {
 	if (!expr_stmt.rval) return String();
 	const AstNode* assign_op = expr_stmt.rval;
 	if (!assign_op->arg[1]) return String();
 	const AstNode* val_node = assign_op->arg[1];
-	// String literal
 	if (!val_node->str.IsEmpty()) return val_node->str;
-	// Integer / bool
 	if (IsPartially(val_node->src, Cursor_Literal_INT32) ||
 	    IsPartially(val_node->src, Cursor_Literal_BOOL))
 		return IntStr((int)val_node->i64);
-	// Double
 	if (IsPartially(val_node->src, Cursor_Literal_DOUBLE))
 		return DblStr(val_node->dbl);
 	return String();
 }
 
-// Extract the param key name from a param ExprStmt.
 static String ExtractParamKey(const AstNode& expr_stmt)
 {
 	if (!expr_stmt.rval) return String();
@@ -399,7 +355,7 @@ static String ExtractParamKey(const AstNode& expr_stmt)
 	if (!assign_op->arg[0]) return String();
 	const AstNode* rval = assign_op->arg[0];
 	if (rval->rval) return rval->rval->GetName();
-	return rval->GetName(); // fallback
+	return rval->GetName(); 
 }
 
 static String CollectPath(const AstNode& node) {
@@ -417,59 +373,12 @@ static String CollectPath(const AstNode& node) {
 	return s;
 }
 
-static void AddNodesRecursive(const AstNode& node, String prefix, Graph& g,
-                              const VectorMap<String, NodeTypeDef>& types)
-{
-	String name = node.GetName();
-	if (name.IsEmpty()) name = node.str;
-	if (name.IsEmpty()) return;
-
-	String full = prefix.IsEmpty() ? name : prefix + "." + name;
-	if (full[0] == '/') full = full.Mid(1);
-
-	bool is_atom = (node.src == Cursor_AtomStmt);
-	bool is_leaf = node.val.Sub<AstNode>().IsEmpty();
-
-	// In EON nets, NameParts are nodes if they are leaves or explicitly declared
-	if (is_atom || (node.src == Cursor_NamePart && is_leaf)) {
-		if (IsValidEntityId(full)) {
-			// Check for explicit type in AtomStmt block
-			String type_id = full;
-			if (is_atom) {
-				for (const AstNode& achild : const_cast<AstNode&>(node).val.Sub<AstNode>()) {
-					if (achild.src != Cursor_CompoundStmt) continue;
-					for (const AstNode& gc : const_cast<AstNode&>(achild).val.Sub<AstNode>()) {
-						if (gc.src != Cursor_ExprStmt) continue;
-						const AstNode* unres = gc.rval;
-						if (unres) {
-							String t = CollectPath(*unres);
-							if (!t.IsEmpty()) { type_id = t; break; }
-						}
-					}
-					if (type_id != full) break;
-				}
-			}
-
-			NodeDoc& nd = g.AddNode(full);
-			nd.label = full;
-			nd.node_type_id = type_id;
-			{
-				int dot = type_id.Find('.');
-				nd.category = (dot >= 0) ? type_id.Left(dot) : type_id;
-			}
-
-			int current_type_idx = types.Find(type_id);
-			if (current_type_idx >= 0)
-				ApplyPins(nd, types[current_type_idx]);
-		}
-	}
-
-	// Recurse to children (except for CompoundStmt which is handled separately for params)
-	for (const AstNode& child : const_cast<AstNode&>(node).val.Sub<AstNode>()) {
-		if (child.src != Cursor_CompoundStmt)
-			AddNodesRecursive(child, full, g, types);
-	}
-}
+// Forward declarations
+static void LoadEonRecursive(const AstNode& node, String prefix, Graph& g,
+                             const VectorMap<String, NodeTypeDef>& types,
+                             Vector<ValidationMessage>& out,
+                             bool& found_net,
+                             NodeDoc* parent_node = nullptr);
 
 static void LoadNetCompound(const AstNode& compound, Graph& g,
                             const VectorMap<String, NodeTypeDef>& types,
@@ -479,7 +388,8 @@ static void LoadNetCompound(const AstNode& compound, Graph& g,
 		if (stmt.src == Cursor_VarDecl) continue;
 
 		if (stmt.src == Cursor_AtomStmt || stmt.src == Cursor_NamePart) {
-			AddNodesRecursive(stmt, "", g, types);
+			bool found_net_dummy = false;
+			LoadEonRecursive(stmt, "", g, types, out, found_net_dummy);
 			continue;
 		}
 
@@ -495,7 +405,6 @@ static void LoadNetCompound(const AstNode& compound, Graph& g,
 				SplitNodePort(g, dst_full, dst_node, dst_pin);
 				if (src_node.IsEmpty() || dst_node.IsEmpty()) continue;
 
-				// Auto-create pins if they don't exist and look like EON port indices (numbers)
 				auto EnsurePin = [&](const String& nid, const String& pid, PinKind kind) {
 					NodeDoc* nd = g.FindNode(nid);
 					if (nd && !pid.IsEmpty()) {
@@ -506,7 +415,7 @@ static void LoadNetCompound(const AstNode& compound, Graph& g,
 							p.id = pid;
 							p.label = pid;
 							p.kind = kind;
-							p.color = PinTypeColor(""); // default color
+							p.color = PinTypeColor(""); 
 						}
 					}
 				};
@@ -591,13 +500,105 @@ static void LoadNetCompound(const AstNode& compound, Graph& g,
 	}
 }
 
-static void LoadNet(const AstNode& net_node, Graph& g,
-                    const VectorMap<String, NodeTypeDef>& types,
-                    Vector<ValidationMessage>& out)
+static void LoadEonRecursive(const AstNode& node, String prefix, Graph& g,
+                             const VectorMap<String, NodeTypeDef>& types,
+                             Vector<ValidationMessage>& out,
+                             bool& found_net,
+                             NodeDoc* parent_node)
 {
-	for (const AstNode& child : const_cast<AstNode&>(net_node).val.Sub<AstNode>()) {
-		if (child.src == Cursor_CompoundStmt)
-			LoadNetCompound(child, g, types, out);
+	if (node.src == Cursor_NetStmt) {
+		for (const AstNode& child : const_cast<AstNode&>(node).val.Sub<AstNode>()) {
+			if (child.src == Cursor_CompoundStmt)
+				LoadNetCompound(child, g, types, out);
+		}
+		found_net = true;
+		return;
+	}
+
+	String name = node.GetName();
+	if (name.IsEmpty()) name = node.str;
+	if (name.IsEmpty() && node.src != Cursor_CompoundStmt)
+		name = node.id.ToString();
+
+	String full = prefix;
+	if (!name.IsEmpty()) {
+		if (!full.IsEmpty()) full << ".";
+		full << name;
+	}
+	if (full.StartsWith(".")) full = full.Mid(1);
+	if (!full.IsEmpty() && full[0] == '/') full = full.Mid(1);
+
+	bool is_atom   = (node.src == Cursor_AtomStmt);
+	bool is_entity = (node.src == Cursor_EntityStmt);
+	bool is_system = (node.src == Cursor_SystemStmt);
+	bool is_comp   = (node.src == Cursor_ComponentStmt);
+	bool is_leaf   = node.val.Sub<AstNode>().IsEmpty();
+
+	NodeDoc* current_node = nullptr;
+
+	if (is_comp && parent_node) {
+		WidgetSlotDoc& slot = parent_node->slots.Add();
+		slot.id = name;
+		slot.type = "comp";
+		for (const AstNode& achild : const_cast<AstNode&>(node).val.Sub<AstNode>()) {
+			if (achild.src == Cursor_CompoundStmt) {
+				for (const AstNode& p : const_cast<AstNode&>(achild).val.Sub<AstNode>()) {
+					if (p.src == Cursor_ExprStmt) {
+						String key = ExtractParamKey(p);
+						if (!key.IsEmpty()) {
+							String val = ExtractParamValue(p);
+							slot.properties.Add(key, val);
+						}
+					}
+				}
+			}
+		}
+		return; 
+	}
+
+	if (is_atom || is_entity || is_system || (node.src == Cursor_NamePart && is_leaf)) {
+		if (IsValidEntityId(full)) {
+			String type_id = full;
+			if (is_atom || is_entity || is_system) {
+				for (const AstNode& achild : const_cast<AstNode&>(node).val.Sub<AstNode>()) {
+					if (achild.src != Cursor_CompoundStmt) continue;
+					for (const AstNode& gc : const_cast<AstNode&>(achild).val.Sub<AstNode>()) {
+						if (gc.src != Cursor_ExprStmt) continue;
+						const AstNode* unres = gc.rval;
+						if (unres) {
+							String t = CollectPath(*unres);
+							if (!t.IsEmpty()) { type_id = t; break; }
+						}
+					}
+					if (type_id != full) break;
+				}
+			}
+
+			NodeDoc& nd = g.AddNode(full);
+			nd.label = name;
+			nd.node_type_id = type_id;
+			{
+				int dot = type_id.Find('.');
+				nd.category = (dot >= 0) ? type_id.Left(dot) : type_id;
+			}
+			if (is_system) nd.category = "system";
+			int current_type_idx = types.Find(type_id);
+			if (current_type_idx >= 0)
+				ApplyPins(nd, types[current_type_idx]);
+			current_node = &nd;
+		}
+	}
+
+	if (node.src == Cursor_WorldStmt || node.src == Cursor_PoolStmt) {
+		String grp_id = full;
+		grp_id.Replace(".", "_");
+		GroupDoc& grp = g.AddGroup(grp_id);
+		grp.label = name;
+		grp.vfs_path = "/" + full;
+	}
+
+	for (const AstNode& child : const_cast<AstNode&>(node).val.Sub<AstNode>()) {
+		LoadEonRecursive(child, full, g, types, out, found_net, current_node ? current_node : parent_node);
 	}
 }
 
@@ -613,9 +614,16 @@ bool LoadEon(Graph& g, const String& eon_text,
 
 	VfsValue root_val;
 	Compiler compiler(root_val);
+	
+	Vector<ValidationMessage> parse_errors;
+	compiler.WhenMessage = Callback1<ProcMsg>([&](const ProcMsg& m) {
+		if (m.severity == PROCMSG_ERROR)
+			parse_errors.Add(ValidationMessage(ValidationMessage::ERROR, m.msg + " (" + IntStr(m.line) + ":" + IntStr(m.col) + ")"));
+	}, 1);
 
 	AstNode* sem_root = compiler.CompileToSemantic(eon_text, "<eon>", false);
 	if (!sem_root) {
+		for (const auto& m : parse_errors) out.Add(m);
 		out.Add(ValidationMessage(ValidationMessage::ERROR, "Eon parse failed"));
 		return false;
 	}
@@ -624,30 +632,42 @@ bool LoadEon(Graph& g, const String& eon_text,
 	CollectNodeTypeDefs(*sem_root, types);
 
 	bool found_net = false;
-	auto LoadNetsRecursive = [&](const AstNode& node, auto& self) -> void {
-		if (node.src == Cursor_NetStmt) {
-			LoadNet(node, g, types, out);
-			found_net = true;
-			return;
-		}
-		for (const AstNode& child : const_cast<AstNode&>(node).val.Sub<AstNode>())
-			self(child, self);
-	};
-	LoadNetsRecursive(*sem_root, LoadNetsRecursive);
+	for (const AstNode& top : sem_root->val.Sub<AstNode>()) {
+		LoadEonRecursive(top, "", g, types, out, found_net);
+	}
 
 	for(int i = 0; i < group_defs.GetCount(); i++) {
 		const GroupDef& gd = group_defs[i];
 		String grp_id = gd.vfs_path.Mid(1);
 		if(grp_id.IsEmpty()) grp_id = "group_" + IntStr(i);
-		GroupDoc& grp = g.AddGroup(grp_id);
-		grp.label = gd.label;
-		grp.vfs_path = gd.vfs_path;
-		grp.style = gd.style;
+		grp_id.Replace(".", "_");
+		
+		GroupDoc* grp = g.FindGroup(grp_id);
+		if(!grp) grp = &g.AddGroup(grp_id);
+		
+		grp->label = gd.label;
+		grp->vfs_path = gd.vfs_path;
+		grp->style = gd.style;
 
 		String prefix = gd.vfs_path.Mid(1);
 		for(auto& node : g.GetDoc().nodes) {
-			if(node.id.StartsWith(prefix + "_") || node.id == prefix)
-				grp.nodes.Add(node.id);
+			if(node.id.StartsWith(prefix + ".") || node.id == prefix) {
+				bool already = false;
+				for(const auto& nid : grp->nodes) if(nid == node.id) { already = true; break; }
+				if(!already) grp->nodes.Add(node.id);
+			}
+		}
+	}
+	
+	for(auto& grp : g.GetDoc().groups) {
+		String prefix = grp.vfs_path.Mid(1);
+		if(prefix.IsEmpty()) continue;
+		for(auto& node : g.GetDoc().nodes) {
+			if(node.id.StartsWith(prefix + ".") || node.id == prefix) {
+				bool already = false;
+				for(const auto& nid : grp.nodes) if(nid == node.id) { already = true; break; }
+				if(!already) const_cast<GroupDoc&>(grp).nodes.Add(node.id);
+			}
 		}
 	}
 

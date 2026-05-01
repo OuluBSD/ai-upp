@@ -24,7 +24,8 @@ void HtmlRenderer::Paint(Draw& d) {
 
 
 
-HtmlCtrl::HtmlCtrl() : doc(this), master_doc(this) {
+HtmlCtrl::HtmlCtrl() : master_doc(this) {
+	doc.Create(this);
 	hscroll.Horz();
 	AddFrame(vscroll);
 	AddFrame(hscroll);
@@ -45,7 +46,7 @@ HtmlCtrl::HtmlCtrl() : doc(this), master_doc(this) {
 }
 
 HtmlCtrl::~HtmlCtrl() {
-	doc.Object::Clear();
+	doc->Clear();
 }
 
 void HtmlCtrl::OnScroll() {
@@ -87,20 +88,20 @@ void HtmlCtrl::Process() {
 	
 	if (this_tread_process >= INIT) {
 		init_ready = false;
-		doc.Init(html, addr);
+		doc->Init(html, addr);
 	}
 	if (this_tread_process >= RENDER) {
 		Size sz(GetSize());
-		doc.Render(sz.cx);
+		doc->Render(sz.cx);
 	}
 	if (this_tread_process >= PAINT) {
 		Size sz(GetSize());
-		int w = doc.Width();
-		int h = min(sz.cy*2, doc.Height());
+		int w = doc->Width();
+		int h = min(sz.cy*2, doc->Height());
 		ImageDraw id(w, h);
 		id.DrawRect(Size(w,h), bg_color);
 		Position clip(0, 0, w, h);
-		doc.Paint(id, 0, 0, clip);
+		doc->Paint(id, 0, 0, clip);
 		
 		renderer.lock.Enter();
 		renderer.pieces.Clear();
@@ -122,10 +123,15 @@ void HtmlCtrl::Process() {
 	process_lock_run.Leave();
 }
 
-void HtmlCtrl::SetHtml(String html, String addr) {
-	this->html = html;
-	this->addr = addr;
+void HtmlCtrl::SetDocument(Document* d) {
+	doc.Attach(d);
+}
+
+void HtmlCtrl::SetHtml(String _html, String _addr) {
+	this->html = _html;
+	this->addr = _addr;
 	ProcessAtLeast(INIT);
+
 	Thread::Start(THISBACK(Process));
 }
 
@@ -331,7 +337,7 @@ void HtmlCtrl::DrawListMarker(Draw& hdc, const ListMarker& marker) {
 	if(!marker.image.IsEmpty())
 	{
 		String baseurl = marker.baseurl;
-		if (baseurl.GetCount() == 0) baseurl = doc.GetBaseUrl();
+		if (baseurl.GetCount() == 0) baseurl = doc->GetBaseUrl();
 		ResourceCache& cache = GetResourceCache();
 		int i = cache.FindObject(marker.image, marker.baseurl);
 		//LOG("DrawListMarker DrawImage cache_id=" << i);
@@ -453,7 +459,7 @@ void HtmlCtrl::GetImageSize(const String& src, const String& baseurl_, Size& sz)
 	
 	String baseurl = baseurl_;
 	if (baseurl.GetCount() == 0)
-		baseurl = doc.GetBaseUrl();
+		baseurl = doc->GetBaseUrl();
 	
 	int cache_id = cache.FindObject(src, baseurl);
 	
@@ -939,7 +945,7 @@ void HtmlCtrl::SetBaseUrl(const String& base_url) {
 	UrlParser p;
 	p.Parse(base_url);
 	String base_url_parsed = p.GetBaseAddress() + ":" + p.GetPort();
-	doc.SetBaseUrl(base_url_parsed);
+	doc->SetBaseUrl(base_url_parsed);
 }
 
 void HtmlCtrl::Link(Document* doc, Element* el) {

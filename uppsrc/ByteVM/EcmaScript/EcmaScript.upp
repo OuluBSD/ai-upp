@@ -1,0 +1,19 @@
+description "EcmaScript (JavaScript) bytecode VM";
+
+uses
+	Core,
+	Core/TextParsing;
+
+file
+	EcmaScript.h,
+	JsCode.h,
+	JsValue.h,
+	JsValue.cpp,
+	JsCompiler.h,
+	JsCompiler.cpp,
+	JsVM.h,
+	JsVM.cpp,
+	JsBindings.h,
+	DomBindings.h,
+	DomBindings.cpp,
+	test_vm.cpp;

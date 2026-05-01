@@ -1,0 +1,20 @@
+description "HTML GUI native-mode support";
+
+uses
+	LayoutCtrl,
+	ByteVM;
+
+file
+	HtmlGui.h,
+	ElWidget.h,
+	ElWidget.cpp,
+	HtmlDocument.h,
+	HtmlDocument.cpp,
+	SimWebSocket.h,
+	SimWebSocket.cpp,
+	DomBridge.h,
+	DomBridge.cpp,
+	LocalHttp.h,
+	LocalHttp.cpp,
+	HtmlApp.h,
+	HtmlApp.cpp;

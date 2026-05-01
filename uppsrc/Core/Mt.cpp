@@ -706,6 +706,10 @@ RWMutex::~RWMutex()
 	pthread_rwlock_destroy(rwlock);
 }
 
+#ifdef PLATFORM_OSX
+#include <sys/time.h>
+#endif
+
 bool ConditionVariable::Wait(Mutex& m, int timeout_ms)
 {
 	if(timeout_ms < 0) {
@@ -713,7 +717,14 @@ bool ConditionVariable::Wait(Mutex& m, int timeout_ms)
 		return true;
 	}
 	::timespec until;
+#if defined(PLATFORM_OSX) && __MAC_OS_X_VERSION_MIN_REQUIRED < 101200
+	struct timeval tv;
+	gettimeofday(&tv, NULL);
+	until.tv_sec = tv.tv_sec;
+	until.tv_nsec = tv.tv_usec * 1000;
+#else
 	clock_gettime(CLOCK_REALTIME, &until);
+#endif
 	
 	until.tv_sec += timeout_ms / 1000;
 	timeout_ms %= 1000;

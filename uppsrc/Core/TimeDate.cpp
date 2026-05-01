@@ -647,12 +647,28 @@ bool SetSysTime(Time time)
 	tmp_time.tm_year = time.year-1900;
 	time_t raw_time  = mktime(&tmp_time);
 
+#if defined(PLATFORM_POSIX) && !defined(PLATFORM_OSX)
 	struct ::timespec sys_time;
 	sys_time.tv_sec  = raw_time;
 	sys_time.tv_nsec = 0;
 
 	int result = clock_settime(CLOCK_REALTIME, &sys_time);
 	return (result == 0);
+#elif defined(PLATFORM_OSX)
+#if __MAC_OS_X_VERSION_MIN_REQUIRED >= 101200
+	struct ::timespec sys_time;
+	sys_time.tv_sec  = raw_time;
+	sys_time.tv_nsec = 0;
+
+	int result = clock_settime(CLOCK_REALTIME, &sys_time);
+	return (result == 0);
+#else
+	struct timeval tv;
+	tv.tv_sec = raw_time;
+	tv.tv_usec = 0;
+	return settimeofday(&tv, NULL) == 0;
+#endif
+#endif
 #endif
 #ifdef PLATFORM_WIN32
 	SYSTEMTIME systime;

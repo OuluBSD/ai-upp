@@ -86,11 +86,9 @@ struct Visitor {
 		(*stream) / count;
 		if (!storing)
 			o.SetCount(count);
-		int dbg_i = 0;
 		for (auto& v : o) {
 			ChkSerializeMagic();
 			v.Visit(*this);
-			dbg_i++;
 		}
 	}
 	
@@ -315,7 +313,6 @@ struct Visitor {
 	template<class T>
 	void VisitMapMapJson(String key, T& map) {
 		using K = decltype(map.PopKey());
-		using V = typename T::value_type;
 		if (!storing) {
 			map.Clear();
 			const class Value& va = this->json->Get()[key];

@@ -160,7 +160,7 @@ struct IrVM {
 	const Vector<IR>&			ir;
 	
 	IrVM(Esc* esc, ArrayMap<String, EscValue>& g, ArrayMap<String, EscValue>& v, int64& op_limit, const Vector<IR>& ir)
-		: esc(*esc), global(g), var(v), op_limit(op_limit), ir(ir)
+		: esc(*esc), op_limit(op_limit), global(g), var(v), ir(ir)
 		{s = &state;}
 	
 	int		InitLambdaExecution(EscLambda& l, IrVM& parent);

@@ -76,3 +76,10 @@ cookie.txt
 .tmp/
 .venv/
 .gemini/
+stdsrc/build/*.o
+out/
+_out/
+uppsrc/umk.out
+bin/umk
+bin/build
+

@@ -264,9 +264,21 @@ vector<MainConfig> ReadMainConfigs(const string& upp_path) {
                 smatch m;
                 regex re("\"([^\"]*)\"\\s*=\\s*\"([^\"]*)\"");
                 if (regex_search(line, m, re)) {
-                    configs.push_back({m[1].str(), m[2].str()});
+                    string name = m[1].str();
+                    string flags = m[2].str();
+                    if (name.empty()) name = flags;
+                    configs.push_back({name, flags});
+                } else {
+                    // Try without quotes on the left
+                    regex re2("([^\\s=]+)\\s*=\\s*\"([^\"]*)\"");
+                    if (regex_search(line, m, re2)) {
+                        string name = m[1].str();
+                        string flags = m[2].str();
+                        if (name.empty()) name = flags;
+                        configs.push_back({name, flags});
+                    }
                 }
-            } else if (!line.empty()) {
+            } else if (!line.empty() && line[0] != '/' && line[0] != '#') {
                 break;
             }
         }
@@ -525,36 +537,53 @@ Options ParseArgs(int argc, char* argv[]) {
     Options opts;
     for (int i = 1; i < argc; ++i) {
         string arg = argv[i];
-        string lower = ToLower(arg);
-        if (lower == "--help" || lower == "-h" || lower == "-help") opts.help = true;
-        else if (lower == "--release" || lower == "-r" || lower == "-release") opts.release = true;
-        else if (lower == "--clean" || lower == "-c" || lower == "-clean") opts.clean = true;
-        else if (lower == "--verbose" || lower == "-v" || lower == "-verbose") opts.verbose = true;
-        else if (lower == "--rainbow" || lower == "-rainbow") opts.rainbow = true;
-        else if (lower == "--bootstrap" || lower == "-bs" || lower == "-bootstrap") opts.bootstrap = true;
-        else if (lower == "--list-methods" || lower == "-listmethods") opts.list_methods = true;
-        else if (lower == "--list-mainconfigs" || lower == "-lc" || lower == "--list-conf") {
+        if (arg == "--verbose" || arg == "-v") {
+            opts.verbose = true;
+        }
+    }
+
+    for (int i = 1; i < argc; ++i) {
+        string arg = argv[i];
+        
+        if (arg == "-h" || arg == "--help") {
+            opts.help = true;
+        } else if (arg == "-r" || arg == "--release") {
+            opts.release = true;
+        } else if (arg == "-c" || arg == "--clean") {
+            opts.clean = true;
+        } else if (arg == "-v" || arg == "--verbose") {
+            opts.verbose = true;
+        } else if (arg == "-R" || arg == "--rainbow") {
+            opts.rainbow = true;
+        } else if (arg == "-bs" || arg == "--bootstrap") {
+            opts.bootstrap = true;
+        } else if (arg == "-listmethods" || arg == "--list-methods") {
+            opts.list_methods = true;
+        } else if (arg == "-lc" || arg == "--list-mainconfigs") {
             if (++i < argc) opts.list_mainconfigs = argv[i];
-        } else if (lower == "--config" || lower == "-c") {
+        } else if (arg == "-C" || arg == "--config") {
             if (++i < argc) opts.conf_mode = argv[i];
-        } else if (lower == "--conf-release" || lower == "-cr") opts.conf_mode = "release";
-        else if (lower == "--conf-debug" || lower == "-cd") opts.conf_mode = "debug";
-        else if (lower == "--mainconfig" || lower == "-M" || lower == "--mainconf" || lower == "-mc") {
+        } else if (arg == "-cr" || arg == "--conf-release") {
+            opts.conf_mode = "release";
+        } else if (arg == "-cd" || arg == "--conf-debug") {
+            opts.conf_mode = "debug";
+        } else if (arg == "-M" || arg == "-mc" || arg == "--mainconfig") {
             if (++i < argc) opts.mainconf = argv[i];
-        } else if (lower == "--method" || lower == "--methods" || lower == "-m") {
+        } else if (arg == "-m" || arg == "--method") {
             if (++i < argc) opts.method = argv[i];
-        } else if (lower == "--jobs" || lower == "-j" || StartsWith(lower, "-j")) {
-            if (lower == "--jobs" || lower == "-j") {
+        } else if (arg == "-j" || arg == "--jobs" || StartsWith(arg, "-j")) {
+            if (arg == "-j" || arg == "--jobs") {
                 if (++i < argc) opts.jobs = atoi(argv[i]);
             } else {
-                opts.jobs = atoi(argv[i] + 2);
+                opts.jobs = atoi(arg.c_str() + 2);
             }
-        } else if (lower == "--search-root" || lower == "-sr") {
+        } else if (arg == "-sr" || arg == "--search-root") {
             if (++i < argc) opts.search_roots.push_back(argv[i]);
-        } else if (lower == "--add-root" || lower == "-ar") {
+        } else if (arg == "-ar" || arg == "--add-root") {
             if (++i < argc) opts.add_roots.push_back(argv[i]);
-        } else if (lower == "--dump-cmd") opts.dump_cmd = true;
-        else if (arg[0] == '-') {
+        } else if (arg == "--dump-cmd") {
+            opts.dump_cmd = true;
+        } else if (arg[0] == '-') {
             cerr << "Unknown option: " << arg << endl;
         } else {
             if (opts.target.empty()) opts.target = arg;
@@ -642,7 +671,9 @@ int main(int argc, char* argv[]) {
     if (!opts.mainconf.empty()) {
         if (isdigit(opts.mainconf[0])) {
             int idx = atoi(opts.mainconf.c_str());
-            if (idx >= 0 && (size_t)idx < configs.size()) selected = configs[idx];
+            if (idx >= 0 && (size_t)idx < configs.size()) {
+                selected = configs[idx];
+            }
         } else {
             for (const auto& c : configs) {
                 if (ToLower(c.name) == ToLower(opts.mainconf)) {
@@ -673,19 +704,56 @@ int main(int argc, char* argv[]) {
     vector<BuildMethod> methods = CollectMethods();
     BuildMethod method = {"", "", "", false, false, ""};
     if (!opts.method.empty()) {
-        for (const auto& m : methods) {
-            if (ToLower(m.name) == ToLower(opts.method)) {
-                method = m;
-                break;
+        if (isdigit(opts.method[0])) {
+            int idx = atoi(opts.method.c_str());
+            if (idx >= 0 && (size_t)idx < methods.size()) {
+                method = methods[idx];
+            }
+        } else {
+            string target_method = ToLower(opts.method);
+            // 1. Try exact match on name
+            for (const auto& m : methods) {
+                if (ToLower(m.name) == target_method) {
+                    method = m;
+                    break;
+                }
+            }
+            // 2. Try partial match on name or exact on path
+            if (method.path.empty()) {
+                for (const auto& m : methods) {
+                    if (ToLower(m.name).find(target_method) != string::npos || ToLower(m.path) == target_method) {
+                        method = m;
+                        break;
+                    }
+                }
             }
         }
     } else {
-        if (!methods.empty()) method = methods[0];
+        if (!methods.empty()) {
+            // Try to find a sensible default
+            for (const auto& m : methods) {
+                string b = ToLower(m.builder);
+                if (b.find("clang") != string::npos || b.find("gcc") != string::npos || b.find("msc") != string::npos) {
+                    method = m;
+                    break;
+                }
+            }
+            if (method.path.empty()) method = methods[0];
+        }
     }
 
     if (method.path.empty()) {
         cerr << "No suitable build method found." << endl;
+        if (!methods.empty()) {
+            cerr << "Available methods:" << endl;
+            ListMethods(methods);
+        }
         return 1;
+    }
+
+    if (opts.verbose) {
+        cout << "Selected mainconfig: " << selected.name << " = " << selected.flags << endl;
+        cout << "Selected method: " << method.name << " (" << method.path << ")" << endl;
     }
 
     string umk = ResolveUmkPath();
@@ -713,13 +781,14 @@ int main(int argc, char* argv[]) {
         );
     }
     
-    ss << " " << GetFileTitle(upp_path) << " " << method.path;
+    string target_name = GetFileTitle(upp_path);
+    ss << " " << target_name << " " << method.path;
     ss << " " << (opts.release ? "-rbsH1" : "-bsdH1");
     if (opts.clean) ss << "a";
     if (opts.jobs > 0) ss << " -H" << opts.jobs;
     if (!selected.flags.empty()) ss << " +" << Replace(selected.flags, " ", ",");
     
-    string out_exe = JoinPath("bin", GetFileTitle(upp_path));
+    string out_exe = JoinPath("bin", target_name);
 #ifdef _WIN32
     out_exe += ".exe";
 #endif

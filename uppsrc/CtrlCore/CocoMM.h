@@ -9,6 +9,34 @@
 #define Rect  NS_Rect
 #define Size  NS_Size
 #include <AppKit/AppKit.h>
+
+#if !defined(MAC_OS_X_VERSION_10_12) || MAC_OS_X_VERSION_MAX_ALLOWED < MAC_OS_X_VERSION_10_12
+#define NSEventModifierFlagCommand NSCommandKeyMask
+#define NSEventModifierFlagShift   NSShiftKeyMask
+#define NSEventModifierFlagControl NSControlKeyMask
+#define NSEventModifierFlagOption  NSAlternateKeyMask
+#define NSControlStateValueOn      NSOnState
+#define NSControlStateValueOff     NSOffState
+#define NSControlStateValueMixed   NSMixedState
+#define NSControlSizeRegular       NSRegularControlSize
+#define NSControlSizeSmall         NSSmallControlSize
+#define NSButtonTypeSwitch         NSSwitchButton
+#define NSButtonTypeRadio          NSRadioButton
+#define NSButtonTypePushOnPushOff  NSPushOnPushOffButton
+#define NSBezelStyleRounded        NSRoundedBezelStyle
+#define NSBezelStyleRegularSquare  NSRegularSquareBezelStyle
+#define NSEventMaskLeftMouseDown   NSLeftMouseDownMask
+#define NSEventMaskAny             NSAnyEventMask
+#define NSEventTypeApplicationDefined NSApplicationDefined
+#define NSWindowStyleMaskBorderless   NSBorderlessWindowMask
+#define NSWindowStyleMaskTitled       NSTitledWindowMask
+#define NSWindowStyleMaskClosable     NSClosableWindowMask
+#define NSWindowStyleMaskResizable    NSResizableWindowMask
+#define NSWindowStyleMaskMiniaturizable NSMiniaturizableWindowMask
+#define NSEventModifierFlagCapsLock   NSAlphaShiftKeyMask
+#define NSPasteboardNameDrag          NSDragPboard
+#endif
+
 #undef  Point
 #undef  Rect
 #undef  Size

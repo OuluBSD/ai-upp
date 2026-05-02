@@ -95,9 +95,12 @@ void Coco_PaintCh(void *cgcontext, int type, int value, int state)
 		    CGContextRestoreGState(cg);
 		}
 	};
-	if (@available(macOS 11.0, *)) {
+#if __MAC_OS_X_VERSION_MAX_ALLOWED >= 101400
+	if (@available(macOS 10.14, *)) {
 		[NSApp.effectiveAppearance performAsCurrentDrawingAppearance:^{ dopaint(); }];
-	} else {
+	} else
+#endif
+	{
 		dopaint();
 	}
 }

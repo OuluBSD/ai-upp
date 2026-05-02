@@ -5,8 +5,8 @@ Macro  =  -DflagCLANG -DflagDEBUG -DflagSHARED -DflagDEBUG_FULL -DflagPOSIX -Dfl
 CXX = /opt/local/bin/clang++-mp-16
 LINKER = $(CXX)
 CFLAGS = -D_DEBUG -mpopcnt -O0 -ggdb -g2 
-CXXFLAGS = -D_DEBUG -mpopcnt -O0 -ggdb -g2  -std=c++17 -Wno-logical-op-parentheses
-LDFLAGS =  $(LINKOPTIONS)
+CXXFLAGS = -D_DEBUG -mpopcnt -O0 -ggdb -g2  -std=c++17 -Wno-logical-op-parentheses -mmacosx-version-min=10.11
+LDFLAGS =  $(LINKOPTIONS) -mmacosx-version-min=10.11
 LIBPATH =
 AR = /opt/local/bin/llvm-ar-mp-16 rc
 

@@ -14,6 +14,8 @@ String GccBuilder::CompilerName() const
 String GccBuilder::CmdLine(const String& package, const Package& pkg)
 {
 	String cc = CompilerName();
+	if(HasFlag("OSX"))
+		cc << " -mmacosx-version-min=10.11";
 	cc << " -c";
 	for(String s : pkg_config)
 		cc << " `" << Host::CMDLINE_PREFIX << "pkg-config --cflags " << s << "`";
@@ -516,6 +518,8 @@ bool GccBuilder::Link(const Vector<String>& linkfile, const String& linkoptions,
 		if(GetFileTime(linkfile[i]) > targettime) {
 			Vector<String> lib;
 			String lnk = CompilerName();
+			if(HasFlag("OSX"))
+				lnk << " -mmacosx-version-min=10.11";
 //			if(IsVerbose())
 //				lnk << " -v";
 			if(HasFlag("GCC32"))

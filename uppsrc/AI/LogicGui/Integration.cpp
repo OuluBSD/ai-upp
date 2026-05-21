@@ -17,8 +17,8 @@ static PyValue builtin_check_constraints(const Vector<PyValue>& args, void*) {
 }
 
 void RegisterConstraintBindings(PyVM& vm) {
-	auto& globals = vm.GetGlobals();
-	globals.GetAdd(PyValue("check_constraints")) = PyValue::Function("check_constraints", builtin_check_constraints);
+	auto& globals = vm.GetGlobalsRW();
+	globals.GetDictRW().GetAdd(PyValue("check_constraints")) = PyValue::Function("check_constraints", builtin_check_constraints);
 }
 
 struct ViolationDisplay : TopWindow {

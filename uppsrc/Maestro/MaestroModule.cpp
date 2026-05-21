@@ -25,9 +25,9 @@ static PyValue builtin_maestro_call(const Vector<PyValue>& args, void*) {
 }
 
 void RegisterMaestroModule(PyVM& vm) {
-	PyValue maestro = vm.GetGlobals().Get(PyValue("maestro"), PyValue::Dict());
+	PyValue maestro = vm.GetGlobals().GetDict().Get(PyValue("maestro"), PyValue::Dict());
 	maestro.SetItem(PyValue("call"), PyValue::Function("call", builtin_maestro_call));
-	vm.GetGlobals().GetAdd(PyValue("maestro")) = maestro;
+	vm.GetGlobalsRW().GetDictRW().GetAdd(PyValue("maestro")) = maestro;
 }
 
 }

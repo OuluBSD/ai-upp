@@ -4,7 +4,8 @@
 struct RepoDiff : DiffDlg {
 	FrameTop<ParentCtrl> pane;
 	DropList r, branch;
-	Button   copy_hash;
+	Button   copy_hash, copy_log;
+	Button   github;
 	
 	String repo_dir;
 	int    kind;
@@ -85,16 +86,43 @@ void RepoDiff::Set(const String& f)
 
 	if(kind == GIT_DIR) {
 		pane << branch.LeftPos(0, Zx(100)).VSizePos()
-		     << r.HSizePos(Zx(100) + DPI(2), Zx(80) + DPI(2)).VSizePos()
-		     << copy_hash.RightPos(0, Zx(80)).VSizePos();
+		     << r.HSizePos(Zx(100) + DPI(2), 2 * Zx(80) + DPI(4) + DPI(20)).VSizePos()
+		     << copy_hash.RightPos(0, Zx(79)).VSizePos()
+		     << copy_log.RightPos(Zx(80), Zx(79)).VSizePos()
+		     << github.RightPos(2 * Zx(80) + DPI(2), DPI(20)).VSizePos();
+
 		copy_hash.SetLabel("Copy Hash");
 		
-		copy_hash << [=] {
+		auto GetHash = [=] {
 			String h = ~~r;
 			String commit, path;
 			SplitTo(h, ':', commit, path);
-			WriteClipboardText(commit);
+			return commit;
 		};
+
+		copy_hash << [=] {
+			WriteClipboardText(GetHash());
+		};
+
+		copy_log.SetLabel("Copy Log");
+		copy_log << [=] {
+			CopyGitRevisions(r);
+		};
+
+		github.SetImage(IdeImg::GitHub());
+		String origin = HostSys("git -C " + GetFileFolder(f) + " remote get-url origin");
+		if(origin.StartsWith("https://github.com/")) {
+			github.Show();
+			github << [=] {
+				String h = GetHash();
+				String url = origin;
+				url.TrimEnd(".git");
+				url << "/commit/" << h;
+				LaunchWebBrowser(url);
+			};
+		}
+		else
+			github.Hide();
 
 		LoadBranches(branch, GetFileFolder(f));
 		LoadGit();
@@ -110,7 +138,6 @@ void LoadBranches(DropList& branch, const String& dir)
 	branch.Clear();
 	String branches = GitCmd(dir, "branch --all");
 	StringStream ss(branches);
-	String author, date, commit;
 	int ci = -1;
 	auto Add = [&](const String& l) {
 		String s = l.Mid(2);
@@ -134,6 +161,19 @@ void LoadBranches(DropList& branch, const String& dir)
 		branch.SetIndex(ci);
 }
 
+void CopyGitRevisions(const DropList& dl)
+{
+	String qtf;
+	for(int i = 0; i < dl.GetCount(); i++) {
+		String s = ~dl.GetValue(i);
+		s.TrimStart("\1");
+		MergeWith(qtf, "&", s);
+	}
+	RichText txt = ParseQTF(qtf);
+	ClearClipboard();
+	AppendClipboard(pick(txt));
+}
+
 void LoadGitRevisions(DropList& r, const String& dir, const String& branch, const String& file)
 {
 	String gitcmd = "log --format=medium --date=short --name-only ";
@@ -153,7 +193,7 @@ void LoadGitRevisions(DropList& r, const String& dir, const String& branch, cons
 				h.Trim(6);
 			r.Add(IsNull(file) ? commit : commit + ":" + path,
 			      "\1[g [@b \1" + date + "\1] [@g \1" + h + "\1] [@r \1" + author + "\1]: "
-			      "[* \1" + Join(Split(msg, CharFilterWhitespace), " "));
+			      "[* \1" + Join(Split(msg, CharFilterWhitespace), " ") + "\1]");
 		}
 		date = commit = author = msg = Null;
 	};

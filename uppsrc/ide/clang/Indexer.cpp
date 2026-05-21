@@ -119,6 +119,7 @@ void ReferenceItem::Jsonize(JsonIO& json) {
 			("pos", pos)
 			("ref_pos", ref_pos)
 			("kind", kind)
+			("macro", macro)
 			;
 }
 
@@ -154,6 +155,7 @@ void ReferenceItem::Serialize(Stream& s)
 	  % pos
 	  % ref_pos
 	  % kind
+	  % macro
 	;
 }
 
@@ -178,7 +180,7 @@ String CachedAnnotationPath(const String& source_file, const String& defines, co
 	  << defines
 	  << includes
 	  << master_file
-	  << "version 2.1"
+	  << "version 2.2"
 #ifdef _DEBUG
 	  << "debug" // to have different codebase for development
 #endif

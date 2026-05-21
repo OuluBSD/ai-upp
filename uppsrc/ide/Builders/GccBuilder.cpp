@@ -511,6 +511,7 @@ bool GccBuilder::Link(const Vector<String>& linkfile, const String& linkoptions,
 		return CreateLib(ForceExt(target, ".a"), linkfile, Vector<String>(), Vector<String>(), linkoptions);
 
 	int time = msecs();
+	bool portable = HasFlag("PORTABLE_HYBRID");
 #ifdef PLATFORM_OSX
 	CocoaAppBundle();
 #endif
@@ -526,6 +527,9 @@ bool GccBuilder::Link(const Vector<String>& linkfile, const String& linkoptions,
 				lnk << " -m32";
 			if(HasFlag("DLL"))
 				lnk << " -shared";
+			if(portable)
+				lnk << " -static-libstdc++ -static-libgcc -Wl,-Bstatic";
+			else
 			if(!HasFlag("SHARED") && !HasFlag("SO"))
 				lnk << " -static";
 			if(HasFlag("WINCE"))
@@ -584,10 +588,20 @@ bool GccBuilder::Link(const Vector<String>& linkfile, const String& linkoptions,
 			if(!HasFlag("SOLARIS") && !HasFlag("OSX") && !HasFlag("OBJC"))
 				lnk << " -Wl,--start-group ";
 			for(String s : pkg_config)
-				lnk << " `" << Host::CMDLINE_PREFIX << "pkg-config --libs " << s << "`";
+				if(portable) {
+					Vector<String> libs = Split(HostSys("pkg-config --libs " + s), CharFilterWhitespace);
+					libs.RemoveIf([&](int i) { return findarg(libs[i], "-ldl", "-lpthread", "-lrt", "-lm") >= 0; });
+					if(libs.GetCount())
+						lnk << ' ' << Join(libs, " ");
+				}
+				else
+					lnk << " `" << Host::CMDLINE_PREFIX << "pkg-config --libs " << s << "`";
 			for(int pass = 0; pass < 2; pass++) {
 				for(i = 0; i < lib.GetCount(); i++) {
 					String ln = lib[i];
+					if(portable && (ln == "dl" || ln == "pthread" || ln == "rt" || ln == "m"))
+						continue;
+
 					String ext = ToLower(GetFileExt(ln));
 					
 					// unix shared libs shall have version number AFTER .so (sic)
@@ -617,8 +631,11 @@ bool GccBuilder::Link(const Vector<String>& linkfile, const String& linkoptions,
 				}
 				if(pass == 1 && !HasFlag("SOLARIS") && !HasFlag("OSX"))
 					lnk << " -Wl,--end-group";
-			}
-			PutConsole("Linking...");
+				}
+				if(portable)
+				lnk << " -Wl,-Bdynamic -lpthread -ldl -lrt -lm";
+
+				PutConsole("Linking...");
 			bool error = false;
 			CustomStep(".pre-link", Null, error);
 			if(!error && Execute(lnk) == 0) {

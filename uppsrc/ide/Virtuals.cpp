@@ -269,7 +269,45 @@ void AssistEditor::Virtuals()
 
 void AssistEditor::ConvertToOverrides()
 {
-	Make([](String& out) {
+	// Returns insertion point after trailing qualifiers and sets has_final
+	auto SkipTrailingQualifiers = [](const char *start, bool& hasfinal) -> const char* {
+		const char *ins = start;
+		hasfinal = false;
+		for(;;) {
+			const char *q = ins;
+			while(*q == ' ' || *q == '\t' || *q == '\n' || *q == '\r') // Multiline support
+				q++;
+			if(memcmp(q, "const", 5) == 0 && !iscid(q[5]))
+				ins = q + 5;
+			else
+			if(memcmp(q, "noexcept", 8) == 0 && !iscid(q[8]))
+				ins = q + 8;
+			else
+			if(memcmp(q, "final", 5) == 0 && !iscid(q[5])) {
+				ins = q + 5;
+				hasfinal = true;
+			}
+			else
+			if(*q == '&' || *q == '*')
+				ins = q + 1;
+			else
+			if(*q == '[') { // attributes [[...]]
+				int depth = 1;
+				q++;
+				while(*q && depth) {
+					if(*q == '[') depth++;
+					else if(*q == ']') depth--;
+					q++;
+				}
+				ins = q;
+			}
+			else
+				break;
+		}
+		return ins;
+	};
+
+	Make([&](String& out) {
 		String r;
 		const char *s = out;
 		bool virt = false;
@@ -282,7 +320,7 @@ void AssistEditor::ConvertToOverrides()
 			if(len == 7 && memcmp(b, "virtual", 7) == 0) {
 				virt = true;
 				lvl = 0;
-				while(*s == ' ' || *s == '\t')
+				while(*s == ' ' || *s == '\t' || *s == '\n' || *s == '\r') // Multiline support
 					s++;
 			}
 			else {
@@ -293,8 +331,16 @@ void AssistEditor::ConvertToOverrides()
 				if(*s == ')') {
 					lvl = max(lvl - 1, 0);
 					if(lvl == 0 && virt) {
-						r << " override";
+						bool hasfinal = false;
+						const char *q = SkipTrailingQualifiers(s + 1, hasfinal);
+						// Append everything up to insertion point
+						r.Cat(s + 1, int(q - (s + 1)));
+						// Insert override if not final
+						if(!hasfinal)
+							r.Cat(" override");
+						s = q;
 						virt = false;
+						continue;
 					}
 				}
 				s++;

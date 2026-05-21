@@ -1,7 +1,12 @@
 //#BLITZ_APPROVE
 
+#ifdef VERSION
+#undef VERSION
+#endif
+
 #define IMAGE_META(k, v)
 
+#define VERSION(v)
 #define PREMULTIPLIED
 #define IMAGE_ID(n)
 #define IMAGE_BEGIN_DATA

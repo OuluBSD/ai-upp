@@ -1,4 +1,3 @@
-#ifdef flagGUI
 #include "IconDes.h"
 
 void IconDes::MaskSelection()
@@ -57,8 +56,6 @@ void IconDes::SyncShow()
 		Slot& c = Current();
 		iconshow.image = c.image;
 		iconshow.flags = c.flags;
-		iconshow.show_downscaled = show_downscaled;
-		iconshow.show_synthetics = show_synthetics;
 		ilist.Set(2, RawToValue(MakeTuple(c.image, c.flags)));
 	}
 	iconshow.Refresh();
@@ -699,4 +696,3 @@ void IconDes::SingleMode()
 	single.Add(resize.LeftPos(0, fsz.cx + 2 * fsz.cy).TopPos(4 * fsz.cy / 3, 4 * fsz.cy / 3));
 	resize <<= THISBACK(EditImage);
 }
-#endif // flagGUI

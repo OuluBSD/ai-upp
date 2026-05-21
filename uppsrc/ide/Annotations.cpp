@@ -41,7 +41,7 @@ bool AssistEditor::GetAnnotationRefs(Vector<String>& tl, String& coderef, int q)
 int GetMatchLen(const char *s, const char *t)
 {
 	int i = 0;
-	while(s[i] == t[i] && s[i])
+	while(s[i] == t[i] && s[i] && t[i])
 		i++;
 	return i;
 }
@@ -122,9 +122,11 @@ RichText AssistEditor::GetCodeTopic(const String& tl, const String& coderef, boo
 			}
 			else
 			if(CleanupTppId(topic_text.Get(i).format.label) == cr) {
-				while(i < topic_text.GetPartCount() && CleanupTppId(topic_text.Get(i).format.label) == cr)
+				while(i < topic_text.GetPartCount() && CleanupTppId(topic_text.Get(i).format.label) == cr) {
 					if(!skip_header)
-						result.Cat(topic_text.Get(i++));
+						result.Cat(topic_text.Get(i));
+					i++;
+				}
 				while(i < topic_text.GetPartCount() && topic_text.Get(i).format.label.GetCount() == 0
 				      && !IsBeginEnd(topic_text, i)) {
 					if(topic_text.IsPara(i))

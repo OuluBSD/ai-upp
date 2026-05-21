@@ -311,7 +311,13 @@ enum {
 	IML_IMAGE_FLAG_UHD          = 0x8,
 	IML_IMAGE_FLAG_DARK         = 0x10,
 	IML_IMAGE_FLAG_S3           = 0x20,
+	IML_IMAGE_FLAG_QHD          = 0x40,
 };
+
+int ImlFlagsToDPIScale(int imlflags);
+int DPIScaleToImlFlags(int dpiscale);
+
+Image DPISmartRescale(const Image& img, Size sz);
 
 Image MakeImlImage(const String& id, Function<ImageIml (int, const String&)> GetRaw, dword global_flags);
 
@@ -376,3 +382,6 @@ Size   GetImageStringDots(const String& src);
 #include "Raster.h"
 #include "ImageOp.h"
 #include "SIMD.h"
+
+inline bool IsUHDMode() { return GetDPIScale() >= DPI_200; }
+inline void SyncUHDMode() {}

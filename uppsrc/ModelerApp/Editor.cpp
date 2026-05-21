@@ -1877,17 +1877,17 @@ void ScriptEditorCtrl::RunFile() {
 	owner->RegisterScriptVM(vm);
 	if (owner->state) {
 		PyValue root_obj = MakeDisplayObject(owner, &owner->state->GetActiveScene().val, &vm);
-		vm.GetGlobals().GetAdd(PyValue("root")) = root_obj;
+		vm.GetGlobalsRW().GetDictRW().GetAdd(PyValue("root")) = root_obj;
 		PyValue this_obj = root_obj;
 		if (script && script->val.owner) {
 			PyValue owner_obj = MakeDisplayObject(owner, script->val.owner, &vm);
 			if (!owner_obj.IsNone())
 				this_obj = owner_obj;
 		}
-		vm.GetGlobals().GetAdd(PyValue("this")) = this_obj;
+		vm.GetGlobalsRW().GetDictRW().GetAdd(PyValue("this")) = this_obj;
 	}
-	vm.GetGlobals().GetAdd(PyValue("__project_dir__")) = PyValue(owner->project_dir);
-	vm.GetGlobals().GetAdd(PyValue("__script_path__")) = PyValue(path);
+	vm.GetGlobalsRW().GetDictRW().GetAdd(PyValue("__project_dir__")) = PyValue(owner->project_dir);
+	vm.GetGlobalsRW().GetDictRW().GetAdd(PyValue("__script_path__")) = PyValue(path);
 	String code = editor.Get();
 	String err;
 	Vector<PyIR> ir;
@@ -1922,17 +1922,17 @@ void ScriptEditorCtrl::RunSelection() {
 	owner->RegisterScriptVM(vm);
 	if (owner->state) {
 		PyValue root_obj = MakeDisplayObject(owner, &owner->state->GetActiveScene().val, &vm);
-		vm.GetGlobals().GetAdd(PyValue("root")) = root_obj;
+		vm.GetGlobalsRW().GetDictRW().GetAdd(PyValue("root")) = root_obj;
 		PyValue this_obj = root_obj;
 		if (script && script->val.owner) {
 			PyValue owner_obj = MakeDisplayObject(owner, script->val.owner, &vm);
 			if (!owner_obj.IsNone())
 				this_obj = owner_obj;
 		}
-		vm.GetGlobals().GetAdd(PyValue("this")) = this_obj;
+		vm.GetGlobalsRW().GetDictRW().GetAdd(PyValue("this")) = this_obj;
 	}
-	vm.GetGlobals().GetAdd(PyValue("__project_dir__")) = PyValue(owner->project_dir);
-	vm.GetGlobals().GetAdd(PyValue("__script_path__")) = PyValue(path);
+	vm.GetGlobalsRW().GetDictRW().GetAdd(PyValue("__project_dir__")) = PyValue(owner->project_dir);
+	vm.GetGlobalsRW().GetDictRW().GetAdd(PyValue("__script_path__")) = PyValue(path);
 	String err;
 	Vector<PyIR> ir;
 	if (!CompilePySource(code, path, ir, err)) {
@@ -4912,16 +4912,16 @@ void Edit3D::RegisterScriptVM(PyVM& vm) {
 		PY_MODULE_FUNC(exit, ModelerExecExit, this);
 	}
 	PyValue stage_obj = PyValue(new StageProxy(this, &vm));
-	vm.GetGlobals().GetAdd(PyValue("stage")) = stage_obj;
-	vm.GetGlobals().GetAdd(PyValue("trace")) = PyValue::Function("trace", ModelerTrace, this);
-	vm.GetGlobals().GetAdd(PyValue("getTimer")) = PyValue::Function("getTimer", ModelerGetTimer, this);
-	vm.GetGlobals().GetAdd(PyValue("random")) = PyValue::Function("random", ModelerRandom, this);
-	vm.GetGlobals().GetAdd(PyValue("input")) = PyValue(new InputProxy(&input_state));
+	vm.GetGlobalsRW().GetDictRW().GetAdd(PyValue("stage")) = stage_obj;
+	vm.GetGlobalsRW().GetDictRW().GetAdd(PyValue("trace")) = PyValue::Function("trace", ModelerTrace, this);
+	vm.GetGlobalsRW().GetDictRW().GetAdd(PyValue("getTimer")) = PyValue::Function("getTimer", ModelerGetTimer, this);
+	vm.GetGlobalsRW().GetDictRW().GetAdd(PyValue("random")) = PyValue::Function("random", ModelerRandom, this);
+	vm.GetGlobalsRW().GetDictRW().GetAdd(PyValue("input")) = PyValue(new InputProxy(&input_state));
 	PyValue root_obj = PyValue::None();
 	if (state)
 		root_obj = MakeDisplayObject(this, &state->GetActiveScene().val, &vm);
-	vm.GetGlobals().GetAdd(PyValue("root")) = root_obj;
-	vm.GetGlobals().GetAdd(PyValue("this")) = root_obj;
+	vm.GetGlobalsRW().GetDictRW().GetAdd(PyValue("root")) = root_obj;
+	vm.GetGlobalsRW().GetDictRW().GetAdd(PyValue("this")) = root_obj;
 }
 
 void Edit3D::EnsureScriptInstances() {
@@ -4996,29 +4996,30 @@ void Edit3D::UpdateScriptInstance(ScriptInstance& inst, bool force_reload) {
 	RegisterScriptVM(inst.vm);
 	if (state) {
 		PyValue root_obj = MakeDisplayObject(this, &state->GetActiveScene().val, &inst.vm);
-		inst.vm.GetGlobals().GetAdd(PyValue("root")) = root_obj;
+		inst.vm.GetGlobalsRW().GetDictRW().GetAdd(PyValue("root")) = root_obj;
 		PyValue this_obj = root_obj;
 		if (inst.owner) {
 			PyValue owner_obj = MakeDisplayObject(this, inst.owner, &inst.vm);
 			if (!owner_obj.IsNone())
 				this_obj = owner_obj;
 		}
-		inst.vm.GetGlobals().GetAdd(PyValue("this")) = this_obj;
+		inst.vm.GetGlobalsRW().GetDictRW().GetAdd(PyValue("this")) = this_obj;
 	}
-	inst.vm.GetGlobals().GetAdd(PyValue("__project_dir__")) = PyValue(project_dir);
-	inst.vm.GetGlobals().GetAdd(PyValue("__script_path__")) = PyValue(abs);
+	inst.vm.GetGlobalsRW().GetDictRW().GetAdd(PyValue("__project_dir__")) = PyValue(project_dir);
+	inst.vm.GetGlobalsRW().GetDictRW().GetAdd(PyValue("__script_path__")) = PyValue(abs);
 	if (!RunPyIR(inst.vm, ir, err)) {
 		LOG("Script run failed: " + err);
 		return;
 	}
 	inst.loaded = true;
 	inst.main_ir = pick(ir);
-	int on_load_idx = inst.vm.GetGlobals().Find(PyValue("on_load"));
-	int on_start_idx = inst.vm.GetGlobals().Find(PyValue("on_start"));
-	int on_frame_idx = inst.vm.GetGlobals().Find(PyValue("on_frame"));
-	inst.has_load = on_load_idx >= 0 && !inst.vm.GetGlobals()[on_load_idx].IsNone();
-	inst.has_start = on_start_idx >= 0 && !inst.vm.GetGlobals()[on_start_idx].IsNone();
-	inst.has_frame = on_frame_idx >= 0 && !inst.vm.GetGlobals()[on_frame_idx].IsNone();
+	const VectorMap<PyValue, PyValue>& globals = inst.vm.GetGlobals().GetDict();
+	int on_load_idx = globals.Find(PyValue("on_load"));
+	int on_start_idx = globals.Find(PyValue("on_start"));
+	int on_frame_idx = globals.Find(PyValue("on_frame"));
+	inst.has_load = on_load_idx >= 0 && !globals[on_load_idx].IsNone();
+	inst.has_start = on_start_idx >= 0 && !globals[on_start_idx].IsNone();
+	inst.has_frame = on_frame_idx >= 0 && !globals[on_frame_idx].IsNone();
 	if (inst.has_load) {
 		Vector<PyIR> load_ir;
 		if (CompilePySource("on_load()", abs, load_ir, err))
@@ -5067,7 +5068,7 @@ void Edit3D::RunScriptFrame(ScriptInstance& inst, double dt) {
 		return;
 	if (!inst.loaded || !inst.has_frame)
 		return;
-	inst.vm.GetGlobals().GetAdd(PyValue("__dt__")) = PyValue(dt);
+	inst.vm.GetGlobalsRW().GetDictRW().GetAdd(PyValue("__dt__")) = PyValue(dt);
 	String err;
 	if (!RunPyIR(inst.vm, inst.frame_ir, err))
 		LOG("Script on_frame failed: " + err);

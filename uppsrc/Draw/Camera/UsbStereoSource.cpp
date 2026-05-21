@@ -119,7 +119,7 @@ public:
 		out.Add("Cam Frame Count", IntStr(stats.frame_count));
 		out.Add("Cam Dropped Frames", IntStr(stats.dropped_frames));
 		if (size.cx > 0 && size.cy > 0)
-			out.Add("Cam Mode", Format("%dx%d @ %d", size.cx, size.cy, fps));
+			out.Add("Cam Mode", Format("%d`x%d @ %d", size.cx, size.cy, fps));
 		if (fmt != VID_PIX_UNKNOWN)
 			out.Add("Cam Format", FormatPixelFormat(fmt));
 #endif

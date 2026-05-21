@@ -302,6 +302,7 @@ struct EditorTabBar : public FileTabs {
 };
 
 int    memcmp_i(const char *s, const char *t, int n);
+int    GetMatchLen(const char *s, const char *t);
 
 String ResolveTParam(const String& type, const Vector<String>& tparam);
 void   ResolveTParam(Vector<String>& type, const Vector<String>& tparam);
@@ -632,6 +633,7 @@ public:
 	bool      disable_uhd = false;
 	bool      darkmode = false;
 	bool      minimize = false;
+	int       scale = 0;
 	String    stdout_file;
 	String    recent_stdout_file;
 
@@ -881,7 +883,7 @@ public:
 		void   Print();
 		void   DoDiff(FileDiff *diffdlg);
 		void   Diff();
-		void   DiffWith(const String& path);
+		void   DiffWith(const String& path, const Image& icon);
 		void   DiffFiles(const char *lname, const String& l, const char *rname, const String& r);
 		String LoadConflictFile(const String& n);
 
@@ -1129,6 +1131,8 @@ public:
 	String    GetTargetLogPath();
 	String    GetIdeLogPath();
 	void      OpenLog(const String& logFilePath);
+	bool      IsInLogFile();
+	bool      FindLOG();
 
 	String    include_path; // cached value of include path, GetIncludePath
 

@@ -1,0 +1,33 @@
+{
+  "description": "Mapping from upstream ultimatepp/ultimatepp monolithic files to our split architecture.",
+  "files": {
+    "uppsrc/ide/main.cpp": {
+      "destinations": [
+        {
+          "file": "uppsrc/ide/Core/main.cpp",
+          "upstream_lines": [1, 50],
+          "note": "Example block: Console/headless startup logic"
+        },
+        {
+          "file": "uppsrc/ide/Ctrl/main_gui.cpp",
+          "upstream_lines": [51, 100],
+          "note": "Example block: GUI initialization"
+        }
+      ]
+    },
+    "uppsrc/ide/ide.h": {
+      "destinations": [
+        {
+          "file": "uppsrc/ide/ide.h",
+          "upstream_lines": [1, 20],
+          "note": "Example: Common definitions"
+        },
+        {
+          "file": "uppsrc/ide/Ctrl/ide_gui.h",
+          "upstream_lines": [21, 500],
+          "note": "Example: GUI definitions"
+        }
+      ]
+    }
+  }
+}

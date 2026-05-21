@@ -209,6 +209,27 @@ String DecoratedItem(const String& name, const String& pretty)
 	return qtf + "]";
 }
 
+String RemoveQualifications(const char *s)
+{
+	String r;
+	const char *s0 = s;
+	while(*s) {
+		if(iscib(*s)) {
+			r.Cat(s0, s);
+			s0 = s;
+			while(iscid(*s) || *s == ':') {
+				if(*s == ':')
+					s0 = s + 1;
+				s++;
+			}
+		}
+		else
+			s++;
+	}
+	r.Cat(s0, s);
+	return r;
+}
+
 String CreateQtf(const AnnotationItem& m, const String& lang, bool onlyhdr = false)
 {
 	String qtf;
@@ -217,7 +238,7 @@ String CreateQtf(const AnnotationItem& m, const String& lang, bool onlyhdr = fal
 		qtf << "[s4 &]";
 	String st = str ? "[s2;" : "[s1;";
 	String k = st + ":" + DeQtf(m.id) + ": ";
-	String pretty = m.pretty;
+	String pretty = RemoveQualifications(m.pretty);
 	if(IsStruct(m.kind)) {
 		pretty = m.pretty0; // because otherwise it is just a name
 		int q = pretty.ReverseFind("{");

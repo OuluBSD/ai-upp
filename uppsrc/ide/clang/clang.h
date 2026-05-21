@@ -106,12 +106,13 @@ bool IsTypedef(int kind);
 bool IsTemplate(int kind);
 bool IsFunction(int kind);
 bool IsMethod(int kind);
-bool IsVariable(int kind);
 bool IsDecl(int kind);
 bool IsTypeDecl(int kind);
 bool IsTypeRef(int kind);
 bool IsErrorKind(int kind);
-int  FindId(const String& s, const String& id);
+bool IsVariable(int kind);
+int  FindFirstId(const String& s, const String& id);
+int  FindLastId(const String& s, const String& id);
 
 struct AutoCompleteItem : Moveable<AutoCompleteItem> {
 	String parent;
@@ -163,10 +164,10 @@ struct ReferenceItem : Moveable<ReferenceItem> {
 	int    kind; // Added to fix compilation error
 	Point  pos;
 	Point  ref_pos;
-	
-	bool operator==(const ReferenceItem& b) const { return id == b.id && pos == b.pos; }
-	hash_t GetHashValue() const                   { return CombineHash(id, pos); }
-	String ToString() const;
+	bool   macro = false;
+
+	bool operator==(const ReferenceItem& b) const { return id == b.id && pos == b.pos && macro == b.macro; }
+	hash_t GetHashValue() const                   { return CombineHash(id, pos, macro); }	String ToString() const;
 	String MakeLocalString(const String& filepath) const;
 	String MakeTargetString(const String& filepath) const;
 	void Serialize(Stream& s);

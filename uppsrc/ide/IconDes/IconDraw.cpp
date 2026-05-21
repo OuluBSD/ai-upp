@@ -1,4 +1,3 @@
-#ifdef flagGUI
 #include "IconDes.h"
 
 void IconDraw::PutHorz(int x, int y, int cx)
@@ -73,4 +72,3 @@ void IconDraw::DrawEllipse(const Rect& r_, bool fill_empty, RGBA color, int pen,
 		Ellipse(r, pen);
 	}
 }
-#endif // flagGUI

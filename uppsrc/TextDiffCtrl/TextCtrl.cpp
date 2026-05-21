@@ -259,7 +259,7 @@ int TextCompareCtrl::GetMatchLen(const wchar *s1, const wchar *s2, int len)
 	return len;
 }
 
-bool TextCompareCtrl::LineDiff(bool left, Vector<LineEdit::Highlight>& hln, Color eq_color,
+bool TextCompareCtrl::LineDiff(Vector<LineEdit::Highlight>& hln, Color eq_color,
                                const wchar *s1, int l1, int h1,
                                const wchar *s2, int l2, int h2, int depth)
 {
@@ -285,13 +285,13 @@ bool TextCompareCtrl::LineDiff(bool left, Vector<LineEdit::Highlight>& hln, Colo
 			}
 		}
 	
-	if(matchlen > 1 || matchlen && !IsAlNum(s1[p1])) {
+	if(matchlen > 1) {
 		for(int i = 0; i < matchlen; i++)
-			hln[(left ? p1 : p2) + i].paper = eq_color;
+			hln[p1 + i].paper = eq_color;
 
 		if(++depth < 20) {
-			LineDiff(left, hln, eq_color, s1, l1, p1, s2, l2, p2, depth);
-			LineDiff(left, hln, eq_color, s1, p1 + matchlen, h1, s2, p2 + matchlen, h2, depth);
+			LineDiff(hln, eq_color, s1, l1, p1, s2, l2, p2, depth);
+			LineDiff(hln, eq_color, s1, p1 + matchlen, h1, s2, p2 + matchlen, h2, depth);
 		}
 		return true;
 	}
@@ -465,12 +465,16 @@ void TextCompareCtrl::Paint(Draw& draw)
 				WString ln_diff = l.text_diff.ToWString();
 				ln_diff = ExpandTabs(ln_diff);
 				if((int64)ln_diff.GetCount() * ln.GetCount() < 50000) {
-					if(left)
-						ldiff = LineDiff(true, hln, paper_color,
-						                 ~ln, 0, ln.GetCount(), ~ln_diff, 0, ln_diff.GetCount(), 0);
-					else
-						ldiff = LineDiff(false, hln, paper_color,
-						                 ~ln_diff, 0, ln_diff.GetCount(), ~ln, 0, ln.GetCount(), 0);
+					int l1 = 0;
+					int l2 = 0;
+					while(l1 < ln.GetCount() && findarg(ln[l1], ' ', '\t') >= 0)
+						l1++;
+					while(l2 < ln_diff.GetCount() && findarg(ln_diff[l2], ' ', '\t') >= 0)
+						l2++;
+					ldiff = LineDiff(hln, paper_color, ~ln, l1, ln.GetCount(), ~ln_diff, l2, ln_diff.GetCount(), 0);
+					if(ldiff && DirDiffDlg::GetIgnoreIndentation(this))
+						for(int i = 0; i < l1; i++)
+							hln[i].paper = paper_color;
 				}
 			}
 			if(show_white_space) {

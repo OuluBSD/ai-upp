@@ -1,4 +1,3 @@
-#ifdef flagGUI
 #include "IconDes.h"
 
 void AlphaCtrl::Layout()
@@ -120,4 +119,3 @@ AlphaCtrl::AlphaCtrl()
 	mask = false;
 	maskvalue = 255;
 }
-#endif // flagGUI

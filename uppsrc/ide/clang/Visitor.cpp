@@ -514,11 +514,10 @@ bool ClangVisitor::ProcessNode(CXCursor cursor)
 			}
 		}
 		else {
-			static String op = "operator";
-			int q = FindId(r.id, r.kind == CXCursor_ConversionFunction ? String("operator") : r.name);
-			if(q >= 0) {
-				r.nest = r.id.Mid(0, q);
-				r.nest.TrimEnd("::");
+		        static String op = "operator";
+		        int q = FindLastId(r.id, r.kind == CXCursor_ConversionFunction ? String("operator") : r.name);
+		        if(q >= 0) {
+		                r.nest = r.id.Mid(0, q);				r.nest.TrimEnd("::");
 			}
 			if(IsStruct(kind))
 				MergeWith(r.nest, "::", r.name);
@@ -545,6 +544,7 @@ bool ClangVisitor::ProcessNode(CXCursor cursor)
 			rm.id = ref_ci.Id();
 			rm.parent_id = parent_id;
 			rm.ref_pos = ref_loc.pos;
+			rm.macro = ref_ci.Kind() == CXCursor_MacroDefinition;
 		#if 0
 			DLOG("=======");
 			DDUMP(sl.pos);

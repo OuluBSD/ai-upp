@@ -1,4 +1,3 @@
-#ifdef flagGUI
 #include "IconDes.h"
 
 RGBA GetPixel(const Image& img, int x, int y)
@@ -94,4 +93,3 @@ void IconDes::Smoothen()
 		}
 	}
 }
-#endif // flagGUI

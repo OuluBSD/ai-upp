@@ -1,4 +1,3 @@
-#ifdef flagGUI
 #include "IconDes.h"
 
 void IconDes::Interpolate()
@@ -528,5 +527,3 @@ void IconDes::RestoreAlpha()
 		Restore(c.image);
 	SyncShow();
 }
-
-#endif // flagGUI

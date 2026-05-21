@@ -117,8 +117,8 @@ void DirRepoDiffDlg::Mode(int i)
 	(i ? dir2 : dir1).Show(b);
 	branch[i].Show(!b);
 	hash[i].Show(!b);
+	log[i].Show(!b);
 	r[i].Show(!b);
-
 	if(!b) {
 		LoadBranches(branch[i], ~~dl);
 		Revs(i);

@@ -199,9 +199,31 @@ void Iml::AddData(const byte *s, int len, int count, int mode)
 	data[mode].Shrink();
 }
 
-void Iml::AddId(int mode1, const char *name)
+void  Iml::AddId(int mode1, const char *name)
 {
 	ex_name[mode1].Add(name);
+}
+
+int ImlFlagsToDPIScale(int imlflags) {
+	int scale = DPI_100;
+	if(imlflags & IML_IMAGE_FLAG_UHD)
+		scale = DPI_200;
+	if(imlflags & IML_IMAGE_FLAG_S3)
+		scale *= 3;
+	if(imlflags & IML_IMAGE_FLAG_QHD)
+		scale++;
+	return scale;
+}
+
+int DPIScaleToImlFlags(int dpiscale) {
+	return dpiscale == DPI_600 ? IML_IMAGE_FLAG_S3|IML_IMAGE_FLAG_UHD
+	: get_i(dpiscale, 0, 0,
+		0, // DPI_100
+		IML_IMAGE_FLAG_QHD, // DPI_150
+		IML_IMAGE_FLAG_UHD, // DPI_200
+		IML_IMAGE_FLAG_UHD|IML_IMAGE_FLAG_QHD, // 'DPI_250' - not used
+		IML_IMAGE_FLAG_S3 // DPI_300
+	);
 }
 
 void Iml::ResetAll()

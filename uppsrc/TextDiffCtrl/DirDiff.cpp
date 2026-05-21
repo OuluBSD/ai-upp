@@ -11,9 +11,8 @@ DirDiffDlg::DirDiffDlg()
 
 	hidden.SetLabel(t_("Hidden"));
 	split_lines.SetLabel(t_("Split long lines"));
-	
-	added.SetColor(Green()).SetLabel(t_("New"));
-	modified.SetLabel(t_("Modified"));
+
+	added.SetColor(Green()).SetLabel(t_("New"));	modified.SetLabel(t_("Modified"));
 	removed.SetColor(Red()).SetLabel(t_("Removed"));
 	
 	recent <<= Null;
@@ -149,6 +148,7 @@ DirDiffDlg::DirDiffDlg()
 	SetupRemove(removeright, &diff.right, &dir2);
 	
 	split_lines << [=] { File(); };
+	diff.indent << [=] { File(); };
 
 	Icon(DiffImg::DirDiff());
 

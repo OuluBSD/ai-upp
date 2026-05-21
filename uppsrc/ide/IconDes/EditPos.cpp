@@ -1,4 +1,3 @@
-#ifdef flagGUI
 #include "IconDes.h"
 
 bool IsSelection(const Image& m) {
@@ -51,4 +50,3 @@ void IconDes::SetEditPos(const EditPos& e)
 	}
 	SyncImage();
 }
-#endif // flagGUI

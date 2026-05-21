@@ -8,18 +8,19 @@ namespace Upp {
 #ifdef flagGUI
 
 GuiBridge::GuiBridge() {
-	vm.GetGlobals().GetAdd("FRY") = (int)FRY;
-	vm.GetGlobals().GetAdd("MODAL") = (int)MODAL;
-	vm.GetGlobals().GetAdd("COMPRESSED") = (int)COMPRESSED;
-	vm.GetGlobals().GetAdd("HEAD") = (int)HEAD;
-	vm.GetGlobals().GetAdd("FALSETTO") = (int)FALSETTO;
-	vm.GetGlobals().GetAdd("SUBHARMONIC") = (int)SUBHARMONIC;
-	vm.GetGlobals().GetAdd("DISTORTION") = (int)DISTORTION;
+	auto& dict = vm.GetGlobalsRW().GetDictRW();
+	dict.GetAdd("FRY") = (int)FRY;
+	dict.GetAdd("MODAL") = (int)MODAL;
+	dict.GetAdd("COMPRESSED") = (int)COMPRESSED;
+	dict.GetAdd("HEAD") = (int)HEAD;
+	dict.GetAdd("FALSETTO") = (int)FALSETTO;
+	dict.GetAdd("SUBHARMONIC") = (int)SUBHARMONIC;
+	dict.GetAdd("DISTORTION") = (int)DISTORTION;
 	
-	vm.GetGlobals().GetAdd("simulate_click") = PyValue::Function("simulate_click", PySimulateClick, this);
-	vm.GetGlobals().GetAdd("plotter_clear") = PyValue::Function("plotter_clear", PyPlotterClear, this);
-	vm.GetGlobals().GetAdd("plotter_add_node") = PyValue::Function("plotter_add_node", PyPlotterAddNode, this);
-	vm.GetGlobals().GetAdd("plotter_start") = PyValue::Function("plotter_start", PyPlotterStart, this);
+	dict.GetAdd("simulate_click") = PyValue::Function("simulate_click", PySimulateClick, this);
+	dict.GetAdd("plotter_clear") = PyValue::Function("plotter_clear", PyPlotterClear, this);
+	dict.GetAdd("plotter_add_node") = PyValue::Function("plotter_add_node", PyPlotterAddNode, this);
+	dict.GetAdd("plotter_start") = PyValue::Function("plotter_start", PyPlotterStart, this);
 }
 
 void GuiBridge::RegisterCtrl(const String& name, Ctrl& ctrl) {

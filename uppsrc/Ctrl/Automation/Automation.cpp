@@ -179,9 +179,11 @@ void TriggerEvent(const String& event) {
 		for(const PyValue& h : handlers) {
 			PyVM temp_vm;
 			const auto& src_globals = sCurrentVM->GetGlobals();
-			auto& dst_globals = temp_vm.GetGlobals();
-			for(int i = 0; i < src_globals.GetCount(); i++)
-				dst_globals.Add(src_globals.GetKey(i), src_globals[i]);
+			auto& dst_globals = temp_vm.GetGlobalsRW();
+			const VectorMap<PyValue, PyValue>& src_dict = src_globals.GetDict();
+			VectorMap<PyValue, PyValue>& dst_dict = dst_globals.GetDictRW();
+			for(int i = 0; i < src_dict.GetCount(); i++)
+				dst_dict.Add(src_dict.GetKey(i), src_dict[i]);
 			
 			Vector<PyIR> ir;
 			ir.Add(PyIR(PY_LOAD_CONST, h));
@@ -261,47 +263,48 @@ static PyValue builtin_find_all(const Vector<PyValue>& args, void*) {
 }
 
 void RegisterAutomationBindings(PyVM& vm) {
-    auto& globals = vm.GetGlobals();
+    auto& globals = vm.GetGlobalsRW();
+    auto& dict = globals.GetDictRW();
     Cout() << "Registering Automation Bindings...\n";
     Cout().Flush();
     
-    globals.GetAdd(PyValue("find")) = PyValue::Function("find", builtin_find);
-    globals.GetAdd(PyValue("find_all")) = PyValue::Function("find_all", builtin_find_all);
-    globals.GetAdd(PyValue("dump_ui")) = PyValue::Function("dump_ui", builtin_dump_ui);
-    globals.GetAdd(PyValue("wait_ready")) = PyValue::Function("wait_ready", builtin_wait_ready);
-    globals.GetAdd(PyValue("wait_time")) = PyValue::Function("wait_time", builtin_wait_time);
-    globals.GetAdd(PyValue("mock_ai")) = PyValue::Function("mock_ai", builtin_mock_ai);
-    globals.GetAdd(PyValue("eval")) = PyValue::Function("eval", builtin_eval);
-    globals.GetAdd(PyValue("navigate")) = PyValue::Function("navigate", builtin_navigate);
-    globals.GetAdd(PyValue("bind_event")) = PyValue::Function("bind_event", builtin_bind_event);
-    globals.GetAdd(PyValue("send_key")) = PyValue::Function("send_key", builtin_send_key);
-    globals.GetAdd(PyValue("log")) = PyValue::Function("log", builtin_log);
-    globals.GetAdd(PyValue("_exit")) = PyValue::Function("_exit", builtin_exit);
-    globals.GetAdd(PyValue("exit")) = PyValue::Function("exit", builtin_exit);
+    dict.GetAdd(PyValue("find")) = PyValue::Function("find", builtin_find);
+    dict.GetAdd(PyValue("find_all")) = PyValue::Function("find_all", builtin_find_all);
+    dict.GetAdd(PyValue("dump_ui")) = PyValue::Function("dump_ui", builtin_dump_ui);
+    dict.GetAdd(PyValue("wait_ready")) = PyValue::Function("wait_ready", builtin_wait_ready);
+    dict.GetAdd(PyValue("wait_time")) = PyValue::Function("wait_time", builtin_wait_time);
+    dict.GetAdd(PyValue("mock_ai")) = PyValue::Function("mock_ai", builtin_mock_ai);
+    dict.GetAdd(PyValue("eval")) = PyValue::Function("eval", builtin_eval);
+    dict.GetAdd(PyValue("navigate")) = PyValue::Function("navigate", builtin_navigate);
+    dict.GetAdd(PyValue("bind_event")) = PyValue::Function("bind_event", builtin_bind_event);
+    dict.GetAdd(PyValue("send_key")) = PyValue::Function("send_key", builtin_send_key);
+    dict.GetAdd(PyValue("log")) = PyValue::Function("log", builtin_log);
+    dict.GetAdd(PyValue("_exit")) = PyValue::Function("_exit", builtin_exit);
+    dict.GetAdd(PyValue("exit")) = PyValue::Function("exit", builtin_exit);
     
     // Key constants
-    globals.GetAdd(PyValue("K_F5")) = PyValue((int64)K_F5);
-    globals.GetAdd(PyValue("K_SHIFT_F5")) = PyValue((int64)K_SHIFT_F5);
-    globals.GetAdd(PyValue("K_CTRL_SHIFT_F5")) = PyValue((int64)(K_CTRL | K_SHIFT | K_F5));
-    globals.GetAdd(PyValue("K_ALT")) = PyValue((int64)K_ALT);
-    globals.GetAdd(PyValue("K_CTRL")) = PyValue((int64)K_CTRL);
-    globals.GetAdd(PyValue("K_SHIFT")) = PyValue((int64)K_SHIFT);
-    globals.GetAdd(PyValue("K_ESCAPE")) = PyValue((int64)K_ESCAPE);
-    globals.GetAdd(PyValue("K_ENTER")) = PyValue((int64)K_ENTER);
-    
+    dict.GetAdd(PyValue("K_F5")) = PyValue((int64)K_F5);
+    dict.GetAdd(PyValue("K_SHIFT_F5")) = PyValue((int64)K_SHIFT_F5);
+    dict.GetAdd(PyValue("K_CTRL_SHIFT_F5")) = PyValue((int64)(K_CTRL | K_SHIFT | K_F5));
+    dict.GetAdd(PyValue("K_ALT")) = PyValue((int64)K_ALT);
+    dict.GetAdd(PyValue("K_CTRL")) = PyValue((int64)K_CTRL);
+    dict.GetAdd(PyValue("K_SHIFT")) = PyValue((int64)K_SHIFT);
+    dict.GetAdd(PyValue("K_ESCAPE")) = PyValue((int64)K_ESCAPE);
+    dict.GetAdd(PyValue("K_ENTER")) = PyValue((int64)K_ENTER);
+
     for(int i = 0; i < 12; i++) {
         String name = "K_F";
         name << (i + 1);
-        globals.GetAdd(PyValue(name)) = PyValue((int64)(K_F1 + i));
+        dict.GetAdd(PyValue(name)) = PyValue((int64)(K_F1 + i));
     }
     
     for(int i = 0; i < 26; i++) {
         String name = "K_";
         name << (char)('A' + i);
-        globals.GetAdd(PyValue(name)) = PyValue((int64)('A' + i));
+        dict.GetAdd(PyValue(name)) = PyValue((int64)('A' + i));
     }
     
-    globals.GetAdd(PyValue("AutomationElement")) = PyValue::Function("AutomationElement", AutomationElement_Ctor);
+    dict.GetAdd(PyValue("AutomationElement")) = PyValue::Function("AutomationElement", AutomationElement_Ctor);
     PyValue& current_class_dict = PyAutomationElement::GetClassDict();
     RegisterFunction(current_class_dict, "click", AutomationElement_click);
     RegisterFunction(current_class_dict, "set", AutomationElement_set);

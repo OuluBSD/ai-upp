@@ -14,15 +14,18 @@ static int CompareGetCount(I a, I b, int max_count)
 	return max_count;
 }
 
-Vector<String> GetLineMap(Stream& stream)
+Vector<String> GetLineMap(Stream& stream, bool ignore_indent)
 {
 	Vector<String> out;
 	int emp = 0;
 	if(stream.IsOpen())
 		while(!stream.IsEof()) {
 			String s = stream.GetLine();
-			const char *p = s, *e = s.End(), *f = e;
-			while(e > p && /*(byte)e[-1] != 9 && */(byte)e[-1] < ' ')
+			const char *p = s, *e = s.end(), *f = e;
+			if(ignore_indent)
+				while((byte)*p <= 32 && p != e)
+					p++;
+			while(e > p && (byte)e[-1] < ' ')
 				e--;
 			if(e == p)
 				emp++;
@@ -30,25 +33,15 @@ Vector<String> GetLineMap(Stream& stream)
 			{
 				while(emp-- > 0)
 					out.Add(Null);
+				if(p != s.begin())
+					s = String(p, e);
+				else
 				if(e != f)
 					s.Trim(int(e - p));
 				out.Add(s);
-				emp = 0;
 			}
 		}
 	return out;
-}
-
-Vector<String> GetFileLineMap(const String& path)
-{
-	FileIn fi(path);
-	return GetLineMap(fi);
-}
-
-Vector<String> GetStringLineMap(const String& s)
-{
-	StringStream ss(s);
-	return GetLineMap(ss);
 }
 
 class TextComparator
@@ -210,4 +203,4 @@ void TextComparator::Split(Array<TextSection>& dest, int start1, int end1, int s
 		dest.Add(TextSection(start1, end1 - start1, start2, end2 - start2, false));
 }
 
-};
+} // namespace Upp

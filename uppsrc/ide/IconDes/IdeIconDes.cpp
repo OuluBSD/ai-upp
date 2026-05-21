@@ -1,4 +1,3 @@
-#ifdef flagGUI
 #include <ide/ide.h>
 
 bool IconDes::Load(const char *_filename)
@@ -102,4 +101,3 @@ void IconDes::EditMenu(Bar& bar)
 	bar.Add("Draw", THISBACK(DrawBar));
 	bar.Add("Settings", THISBACK(SettingBar));
 }
-#endif // flagGUI

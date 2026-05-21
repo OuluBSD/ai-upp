@@ -510,7 +510,7 @@ String GetClass(const AnnotationItem& m)
 		q = cls.Find('~');
 	}
 	else
-		q = FindId(cls, m.name);
+		q = FindLastId(cls, m.name);
 
 	if(q >= 0) {
 		cls.Trim(q);
@@ -543,7 +543,7 @@ String MakeDefinition(const AnnotationItem& m, const String& klass)
 	String result;
 	String pretty = m.pretty;
 	pretty.TrimStart("static ");
-	int q = FindId(pretty, m.name);
+	int q = FindLastId(pretty, m.name);
 	if(q < 0)
 		result << pretty;
 	else

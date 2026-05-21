@@ -127,6 +127,8 @@ extern SelectPackageDlg* sActiveSelectPkgDlg;
 bool CopyFolder(const char *dst, const char *src, Progress *pi = NULL);
 
 int  MaxAscent(Font f);
+
+void ExportPdf(const RichEdit& editor);
 #endif
 
 bool HasSvn();
@@ -141,6 +143,11 @@ void QTFEdit(String& text);
 
 #ifdef flagGUI
 void IdeHelpButton(Button& help, const String& link);
+
+namespace Upp {
+void ExportMarkdown(const char *qtf, const char *name);
+}
+
 #endif
 
 #endif

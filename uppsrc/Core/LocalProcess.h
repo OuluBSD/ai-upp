@@ -1,3 +1,5 @@
+#ifndef CORE_LOCALPROCESS_H
+#define CORE_LOCALPROCESS_H
 struct AProcess : NoCopy {
 public:
 	virtual void Kill() = 0;
@@ -93,3 +95,5 @@ String Sys(const char *cmdline, bool convertcharset = true);
 
 int    Sys(const char *cmd, const Vector<String>& arg, String& out, bool convertcharset = true);
 String Sys(const char *cmd, const Vector<String>& arg, bool convertcharset = true);
+
+#endif

@@ -1,6 +1,6 @@
 #ifdef flagGUI
 #include "Debuggers.h"
-#include <ide/UwpUtils.h>
+#include <ide/MainCtrl/UwpUtils.h>
 
 #define KEYGROUPNAME "Debugger"
 #define KEYNAMESPACE PdbKeys

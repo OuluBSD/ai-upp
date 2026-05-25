@@ -91,7 +91,6 @@ struct Nuller {};
 
 // Aggregate public headers (no system includes inside these)
 NAMESPACE_UPP
-#include "Defs.h"
 #include "String.h"
 #include "WString.h"
 #include "Vcont.h"

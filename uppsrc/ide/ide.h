@@ -4,8 +4,8 @@
 #include <Core/Core.h>
 #include <Draw/Draw.h>
 
-#include "About.h"
-#include "version.h"
+#include <ide/MainCtrl/About.h>
+#include <ide/MainCtrl/version.h>
 
 #ifdef flagGUI
 
@@ -34,18 +34,18 @@
 #include <ide/Shell/Shell.h>
 #endif
 
-#include "MethodsCtrls.h"
+#include <ide/MainCtrl/MethodsCtrls.h>
 
-#define LAYOUTFILE <ide/ide.lay>
+#define LAYOUTFILE <ide/MainCtrl/ide.lay>
 #include <CtrlCore/lay.h>
 
 #define IMAGECLASS IdeImg
-#define IMAGEFILE  <ide/ide.iml>
+#define IMAGEFILE  <ide/MainCtrl/ide.iml>
 #include <Draw/iml_header.h>
 
 #define KEYGROUPNAME "Ide"
 #define KEYNAMESPACE IdeKeys
-#define KEYFILE      <ide/ide.key>
+#define KEYFILE      <ide/MainCtrl/ide.key>
 #include             <CtrlLib/key_header.h>
 
 #include <ide/Builders/Builders.h>
@@ -54,7 +54,7 @@ const char *FindTag(const char *txt, const char *tag);
 const char *FindAfter(const char *txt, const char *tag);
 int         IdeLocateLine(String old_file, int old_line, String new_file);
 
-#include "UppDlg.h"
+#include <ide/MainCtrl/UppDlg.h>
 
 bool IsTextFile(const String& file, int maxline = INT_MAX);
 
@@ -321,7 +321,7 @@ void   InsertPath(EditString *es);
 
 void   DlSpellerLangs(DropList& dl);
 
-#include "Assist.h"
+#include <ide/MainCtrl/Assist.h>
 
 void FileSelect(Ctrl& t, Button& b, Event<> ev, const char *types, bool saveas);
 void FileSelectSaveAs(Ctrl& t, Button& b, Event<> ev, const char *types = NULL);
@@ -376,7 +376,7 @@ int ApplyChanges(LineEdit& editor, const String& new_content);
 
 struct RepoDiff;
 
-#include "AiProvider.h"
+#include <ide/MainCtrl/AiProvider.h>
 
 struct Ide : public TopWindow, public WorkspaceWork, public IdeContext, public MakeBuild {
 public:
@@ -1373,7 +1373,7 @@ Index<String> GetAllNests(bool sleep = false);
 
 bool MapFlag(const VectorMap<class String, class String>& map, const char *key);
 
-#include "urepo.h"
+#include <ide/MainCtrl/urepo.h>
 
 #endif // flagGUI
 

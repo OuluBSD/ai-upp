@@ -5,7 +5,6 @@
 #include <CtrlLib/CtrlLib.h>
 
 
-#include "Defs.h"
 #include "TemplateUtils.h"
 #include "Resources.h"
 #include "Utils.h"

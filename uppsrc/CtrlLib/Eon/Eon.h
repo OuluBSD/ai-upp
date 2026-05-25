@@ -4,7 +4,6 @@
 #include <CtrlLib/CtrlLib.h>
 #include <Geometry/Geometry.h>
 
-#include "Defs.h"
 #include "Compat.h"
 
 NAMESPACE_UPP

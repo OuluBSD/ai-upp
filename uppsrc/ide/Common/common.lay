@@ -1,0 +1,5 @@
+LAYOUT(QTFLayout, 400, 200)
+	ITEM(CodeEditor, editor, HSizePosZ(4, 4).VSizePosZ(4, 32))
+	ITEM(Button, ok, RightPosZ(84, 76).BottomPosZ(4, 24))
+	ITEM(Button, cancel, RightPosZ(4, 76).BottomPosZ(4, 24))
+END_LAYOUT

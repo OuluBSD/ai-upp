@@ -1,6 +1,22 @@
 #ifndef _Vfs_Backend_h_
 #define _Vfs_Backend_h_
 
+NAMESPACE_UPP
+
+#include "Defs.h"
+#include "Node.h"
+#include "Util.h"
+#include "Ast.h"
+#include "EonStd.h"
+#include "Exporter.h"
+#include "TokenStructure.h"
+#include "SemanticParser.h"
+#include "AstRunner.h"
+#include "AstExporter.h"
+#include "Compiler.h"
+
+END_UPP_NAMESPACE
+
 #ifdef flagASTCLANG
 #ifndef flagLCLANG
 	#ifdef PLATFORM_POSIX
@@ -20,17 +36,6 @@
 
 NAMESPACE_UPP
 
-#include "Defs.h"
-#include "Node.h"
-#include "Util.h"
-#include "Ast.h"
-#include "EonStd.h"
-#include "Exporter.h"
-#include "TokenStructure.h"
-#include "SemanticParser.h"
-#include "AstRunner.h"
-#include "AstExporter.h"
-#include "Compiler.h"
 
 END_UPP_NAMESPACE
 

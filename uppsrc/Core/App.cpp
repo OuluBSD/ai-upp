@@ -1203,6 +1203,6 @@ String GetDataDirectoryFile(String file) {
 	return AppendFileName(GetDataDirectory(), file);
 }
 
-int Upp; // prevent nested Upp namespace
+int NestedUppCheck; // prevent nested Upp namespace
 
 }

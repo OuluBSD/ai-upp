@@ -2685,8 +2685,15 @@ bool PyVM::Step()
 					String res;
 					int arg_idx = 0;
 					for(int i = 0; i < fmt.GetCount(); i++) {
-						if(fmt[i] == '%' && i + 1 < fmt.GetCount() && arg_idx < b.GetCount()) {
+						if(fmt[i] == '%' && i + 1 < fmt.GetCount()) {
 							char spec = fmt[i+1];
+							if(spec == '%') {
+								res.Cat('%');
+								i++;
+								continue;
+							}
+							if(arg_idx >= b.GetCount())
+								continue;
 							if(spec == 's' || spec == 'd' || spec == 'g') {
 									res << b.GetItem(arg_idx++).ToString();
 								i++;
@@ -2702,6 +2709,11 @@ bool PyVM::Step()
 					for(int i = 0; i < fmt.GetCount(); i++) {
 						if(fmt[i] == '%' && i + 1 < fmt.GetCount()) {
 							char spec = fmt[i+1];
+							if(spec == '%') {
+								res.Cat('%');
+								i++;
+								continue;
+							}
 							if(spec == 's' || spec == 'd' || spec == 'g') {
 									res << b.ToString();
 								i++;

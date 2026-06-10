@@ -575,7 +575,9 @@ void DockCont::Highlight()
 
 Image DockCont::GetHighlightImage()
 {
-	Ctrl *ctrl = GetCtrl(GetCursor());
+	int cursor = GetCursor();
+	if (cursor < 0) return Image();
+	Ctrl *ctrl = GetCtrl(cursor);
 	if (!ctrl) return Image();
 	Size sz = ctrl->GetRect().GetSize();
 	if (tabbar.IsAutoHide()) {

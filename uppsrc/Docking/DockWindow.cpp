@@ -1510,7 +1510,7 @@ void DockWindow::SerializeLayout(Stream& s, bool withsavedlayouts)
 		}
 		// Clear empty containers
 		for (int i = conts.GetCount()-1; i >= 0; i--) {
-			if (!conts.GetCount()) CloseContainer(conts[i]);
+			if (!conts[i].GetCount()) CloseContainer(conts[i]);
 		}
 		RefreshLayout();
 	}

@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE package>
+<package description="U++ XML Package Support Test">
+	<uses>
+		<item when="" text="Core"/>
+	</uses>
+	<file>
+		<item path="main.cpp" highlight=""/>
+	</file>
+	<config>
+		<item name="Default" param=""/>
+	</config>
+</package>

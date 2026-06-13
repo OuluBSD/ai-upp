@@ -383,6 +383,7 @@ struct OptItem {
 	String   text;
 
 	String ToString() const { return when + ": " + text ; }
+	void Xmlize(XmlIO& xml);
 };
 
 struct CustomStep {
@@ -396,6 +397,7 @@ struct CustomStep {
 
 	String GetExt() const;
 	bool   MatchExt(const char *fn) const;
+	void Xmlize(XmlIO& xml);
 };
 
 Vector<String> Combine(const Vector<String>& conf, const char *flags);
@@ -447,10 +449,12 @@ public:
 
 		File()                            { Init(); }
 		File(const String& s) : String(s) { Init(); }
+		void Xmlize(XmlIO& xml);
 	};
 	struct Config {
 		String name;
 		String param;
+		void Xmlize(XmlIO& xml);
 	};
 	byte                     charset;
 	int                      tabsize;
@@ -484,6 +488,7 @@ public:
 
 	bool  Load(const char *path);
 	bool  Save(const char *file) const;
+	void  Xmlize(XmlIO& xml);
 
 	static void SetPackageResolver(bool (*Resolve)(const String& error, const String& path, int line));
 

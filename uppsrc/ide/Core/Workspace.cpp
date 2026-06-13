@@ -56,7 +56,9 @@ bool IsDirectoryPackage(const String& path)
 {
 	if(IsExternalMode())
 		return DirectoryExists(path);
-	return FileExists(AppendFileName(path, GetFileTitle(path) + ".upp"));
+	String title = GetFileTitle(path);
+	return FileExists(AppendFileName(path, title + ".upp")) ||
+	       FileExists(AppendFileName(path, title + ".xupp"));
 }
 
 String EncodePathAsFileName(const String& path)
@@ -82,7 +84,13 @@ String PackageFile(const String& package)
 		RealizePath(p);
 		return p;
 	}
-	return AppendFileName(PackageDirectory(package), GetFileTitle(package) + ".upp");
+	String dir = PackageDirectory(package);
+	String title = GetFileTitle(package);
+	String p = AppendFileName(dir, title + ".upp");
+	if(FileExists(p))
+		return p;
+	String px = AppendFileName(dir, title + ".xupp");
+	return FileExists(px) ? px : p;
 }
 
 bool IsNestReadOnly(const String& path)

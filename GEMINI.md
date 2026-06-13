@@ -14,6 +14,15 @@ This document serves as an internal guide for the Gemini AI agent.
 - Debugging strategies and environment-specific considerations (e.g., sandbox detection).
 - **Windows Environment**: Note that `busybox` might be present on Windows systems. It should be used when necessary to perform Unix-like operations or when standard Windows shell commands are insufficient or problematic (e.g., creating files with specific content without escape sequence issues).
 
+## Runtime Policy
+
+- This repository follows a crash-fast philosophy for violated invariants.
+- Do not hide bugs behind silent fallbacks, retries, or "customer experience" masking.
+- `ASSERT(cond)` and `ASSERT_(cond, msg)` are permanent invariant checks, not temporary diagnostics.
+- If the real invariant changes, update the assertion to match it. Do not remove assertions just to avoid crashes.
+- `ASSERT` macros are debug-only and compile to empty statements in release builds.
+- U++ mainconfig flags map to `flag...` preprocessor symbols. For example, `SOMEFLAG` becomes `flagSOMEFLAG`, so `#ifdef SOMEFLAG` is not the right check.
+
 ## Naming Conflicts and Include Policies (MSVC/Win32)
 
 - **System Header Placement:** NEVER include system or external headers (like `windows.h`, `dshow.h`, `portaudio.h`, etc.) inside a `namespace Upp { ... }` or between `NAMESPACE_UPP` and `END_UPP_NAMESPACE`. Doing so causes identifiers like `CY` and `FAR` to be prefixed with `Upp::`, leading to severe syntax errors in Windows SDK headers.

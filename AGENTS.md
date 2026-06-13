@@ -35,6 +35,25 @@ When working with the Ultimate++ codebase, pay special attention to the `flagV1`
 - Code within `#ifdef flagV1` or `#ifdef flagV1 ... #else ... #endif` blocks represents the original Ultimate++ code
 - Preserve this distinction when resolving merge conflicts to maintain our custom functionality
 
+## Assertion Philosophy
+
+This repository follows a crash-fast philosophy for violated invariants.
+
+- Prefer failing immediately over hiding defects behind silent fallbacks or "customer-friendly" masking.
+- `ASSERT(cond)` and `ASSERT_(cond, msg)` are expected to stay in the codebase as permanent invariant checks.
+- If the underlying condition changes, update the assertion to match the new reality. Do not remove assertions just to avoid seeing failures.
+- Assertions are debug-only macros here: they are active when debug flags are enabled and compile to empty statements in release builds.
+- Because of that, release builds do not need assertion cleanup. The build configuration and `umk`/TheIDE handling already take care of it.
+
+## Preprocessor Flag Mapping
+
+U++ mainconfig flags are converted into preprocessor symbols with the `flag` prefix.
+
+- A mainconfig flag named `SOMEFLAG` becomes the preprocessor symbol `flagSOMEFLAG`.
+- That means `#ifdef flagSOMEFLAG` can be true when the flag is enabled.
+- That does **not** make `#ifdef SOMEFLAG` true.
+- When checking build flags in code, always use the `flag...` form.
+
 ## Current Implementation Status
 
 - The stdsrc implementation for Core, CtrlCore, CtrlLib, and Draw packages is currently incomplete

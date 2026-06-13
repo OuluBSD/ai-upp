@@ -4,6 +4,15 @@
 **Important**: This guide uses simple language and repeats important rules
 **See also**: [AGENTS.md](AGENTS.md) has ALL the rules. Read AGENTS.md first!
 
+## Very Important Rules
+
+- This repository uses crash-fast behavior for broken invariants.
+- Do not hide bugs with silent fallbacks or "user experience" masking.
+- `ASSERT(cond)` and `ASSERT_(cond, msg)` stay in the codebase. They are not temporary.
+- If an assertion becomes wrong, update it. Do not remove it just to avoid failure.
+- `ASSERT` macros are debug-only. In release builds they become empty statements automatically.
+- Mainconfig flags become `flag...` preprocessor symbols. `SOMEFLAG` means `flagSOMEFLAG`, not `SOMEFLAG`.
+
 ---
 
 ## Step 1: Read These Files First (Always!)

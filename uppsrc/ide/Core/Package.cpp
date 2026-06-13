@@ -215,6 +215,36 @@ void Package::Option(bool& option, const char *name)
 
 bool Package::Load(const char *path)
 {
+	if(ToLower(GetFileExt(path)) == ".xupp") {
+		Reset();
+		library.Clear();
+		static_library.Clear();
+		target.Clear();
+		flag.Clear();
+		option.Clear();
+		link.Clear();
+		uses.Clear();
+		include.Clear();
+		pkg_config.Clear();
+		accepts.Clear();
+		file.Clear();
+		config.Clear();
+		custom.Clear();
+		description.Clear();
+		this->path = path;
+		this->dir = GetFileDirectory(path);
+		time = FileGetTime(path);
+		if(IsNull(time)) return false;
+		try {
+			LoadFromXMLFile(*this, path);
+		} catch (XmlError e) {
+			if(sResolve(e, path, 0)) return false;
+			Save(path);
+			return true;
+		}
+		return true;
+	}
+
 	for(;;) {
 		Reset();
 		library.Clear();
@@ -454,6 +484,10 @@ void PutSpellCheckComments(StringStream& out, int sc)
 }
 
 bool Package::Save(const char *path) const {
+	if(ToLower(GetFileExt(path)) == ".xupp") {
+		return StoreAsXMLFile(const_cast<Package&>(*this), "package", path);
+	}
+
 	StringStream out;
 	if(description.GetCount() || italic || bold || !IsNull(ink)) {
 		String d = description;
@@ -531,4 +565,70 @@ bool Package::Save(const char *path) const {
 	if(cr)
 		content.Replace("\n", "\r\n");
 	return SaveChangedFile(path, content);
+}
+
+void OptItem::Xmlize(XmlIO& xml) {
+	xml.Attr("when", when);
+	xml.Attr("text", text);
+}
+
+void CustomStep::Xmlize(XmlIO& xml) {
+	xml.Attr("when", when);
+	xml.Attr("ext", ext);
+	xml.Attr("command", command);
+	xml.Attr("output", output);
+}
+
+void Package::File::Xmlize(XmlIO& xml) {
+	xml.Attr("path", (String&)*this);
+	xml("option", option);
+	xml("depends", depends);
+	xml.Attr("readonly", readonly, false);
+	xml.Attr("separator", separator, false);
+	xml.Attr("tabsize", tabsize, (int)Null);
+	xml.Attr("charset", charset, (byte)0);
+	xml.Attr("font", font, 0);
+	xml.Attr("highlight", highlight);
+	xml.Attr("pch", pch, false);
+	xml.Attr("nopch", nopch, false);
+	xml.Attr("noblitz", noblitz, false);
+	xml.Attr("spellcheck_comments", spellcheck_comments, (int)Null);
+}
+
+void Package::Config::Xmlize(XmlIO& xml) {
+	xml.Attr("name", name);
+	xml.Attr("param", param);
+}
+
+void Package::Xmlize(XmlIO& xml) {
+	xml.Attr("charset", charset, (byte)0);
+	xml.Attr("tabsize", tabsize, (int)Null);
+	xml.Attr("noblitz", noblitz, false);
+	xml.Attr("nowarnings", nowarnings, false);
+	xml.Attr("description", description);
+	xml.Attr("bold", bold, false);
+	xml.Attr("italic", italic, false);
+	xml.Attr("spellcheck_comments", spellcheck_comments, (int)Null);
+	xml.Attr("cr", cr, false);
+	int r = IsNull(ink) ? -1 : ink.GetR();
+	int g = IsNull(ink) ? -1 : ink.GetG();
+	int b = IsNull(ink) ? -1 : ink.GetB();
+	xml.Attr("ink_r", r, -1).Attr("ink_g", g, -1).Attr("ink_b", b, -1);
+	if(xml.IsLoading()) {
+		if(r >= 0 && g >= 0 && b >= 0) ink = Color(r, g, b);
+		else ink = Null;
+	}
+	xml("accepts", accepts);
+	xml("flag", flag);
+	xml("uses", uses);
+	xml("target", target);
+	xml("library", library);
+	xml("static_library", static_library);
+	xml("link", link);
+	xml("option", option);
+	xml("include", include);
+	xml("pkg_config", pkg_config);
+	xml("file", file);
+	xml("config", config);
+	xml("custom", custom);
 }

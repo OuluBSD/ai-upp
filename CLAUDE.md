@@ -13,6 +13,16 @@ You're working with Ultimate++ (U++) codebase. Read these in order:
 3. **[THREAD_DEPENDENCIES.md](THREAD_DEPENDENCIES.md)** - Current work priorities
 4. **[task/](task/)** - Active development threads
 
+## Non-Negotiable Runtime Policy
+
+This repository is built around crash-fast behavior on broken invariants.
+
+- Do not hide assertion failures behind retries, silent fallbacks, or "customer experience" masking.
+- Permanent `ASSERT(cond)` and `ASSERT_(cond, msg)` checks are part of the design, not temporary debugging aids.
+- If an invariant changes, update the assertion to reflect the new invariant instead of removing it.
+- `ASSERT` macros are debug-only: they compile to empty statements in release builds, so release code does not need to strip them out manually.
+- U++ mainconfig flags map to `flag...` preprocessor symbols. A mainconfig flag `SOMEFLAG` becomes `flagSOMEFLAG`, not `SOMEFLAG`.
+
 ### Building Projects
 
 **IMPORTANT**: Always use `script/build.py` to build projects, NOT `theide` directly:

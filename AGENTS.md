@@ -4,24 +4,28 @@
 **See also**:
 - **[CLAUDE.md](CLAUDE.md)** - Advanced guidance for Claude (Anthropic)
 - **[QWEN.md](QWEN.md)** - Simple, repetitive guidance for Qwen AI
+- **[GEMINI.md](GEMINI.md)** - Redirect stub for Gemini-specific guidance
 
 ---
 
 ## AI Agent-Specific Guides
 
 ### Claude (Anthropic)
-Claude excels at complex reasoning and architectural analysis. See **[CLAUDE.md](CLAUDE.md)** for:
-- Advanced reasoning patterns
-- Complex refactoring guidance
-- Architectural decision-making tips
-- Cross-reference to active threads
+Claude is the best fit for complex reasoning, architecture, refactoring, and cross-package analysis.
+- Prefer Claude-style workflows when a task needs deep dependency tracing or design judgment.
+- Read `task/*.md` and `CURRENT_TASK.md` first when a task has active thread context.
+- When you need implementation guidance, use the sections below instead of a separate persona file.
 
 ### Qwen AI
-Qwen benefits from simple, repetitive instructions. See **[QWEN.md](QWEN.md)** for:
-- Step-by-step procedures
-- Repeated critical rules
-- Simple task checklists
-- Basic workflow guidance
+Qwen-style work benefits from short checklists and repeated critical rules.
+- Keep instructions explicit and incremental.
+- Prefer a small step list over broad abstractions when describing a task.
+- If a rule matters, repeat it in the relevant section rather than hiding it in a persona file.
+
+### Gemini
+Gemini-specific notes have also been consolidated here.
+- Keep platform-specific and implementation-specific guidance in this file.
+- If a separate guide ever contains important rules, move them here and leave the other file as a redirect.
 
 ---
 
@@ -93,10 +97,20 @@ Current Task Files (`CURRENT_TASK.md`)
 
 ## Build & Sandbox Policy
 
-- Build entrypoints live in `script/`. We do **not** maintain repo-level `Makefile` or `umkMakefile`; use our custom U++ make utility `uppsrc/umk` via the helper scripts (e.g., `script/build_ide_console.sh` for TheIDE console builds).
+- Build projects with `script/build.py`, not by invoking `theide` directly.
+- Build entrypoints live in `script/`. We do **not** maintain repo-level `Makefile` or `umkMakefile`; use our custom U++ make utility `uppsrc/umk` via the helper scripts.
+- Common entrypoints such as `script/build_ide_console.sh` are examples of that workflow.
 - Repository build scripts (e.g., those under `script/`) assume full filesystem access. Running them inside a sandboxed environment (read-only cache paths) causes permission failures in `~/.cache/upp.out`.
 - AI agents must detect sandboxed execution before invoking `script/build_*.sh`. If sandboxing is active (no write access to `~/.cache`), halt and report instead of attempting the build.
 - **Windows Environment**: In Windows environments, `busybox` might be available and should be preferred for shell-like operations where standard Windows commands (cmd/PowerShell) might behave unexpectedly or when Unix-like behavior is needed (e.g., `busybox sh`, `busybox base64`).
+
+## Platform and Tooling Notes
+
+- On MSVC/Win32, never place system or external headers inside `namespace Upp { ... }` or between `NAMESPACE_UPP` and `END_UPP_NAMESPACE`.
+- If a Windows SDK header needs `CY` or `FAR`, wrap it with the `#define` / `#undef` protection pattern documented below.
+- GUI automation should prefer `LOG()` over modal dialogs when running unattended.
+- Rich text in this codebase uses QTF; prefer `SetQTF()` for rich text controls.
+- The `RecyclerPool` / `BiVectorRecycler` family is used for reuse-oriented buffering when capacity retention matters.
 
 ## Logging Rules (U++ Debug Macros)
 
@@ -115,6 +129,23 @@ Use the correct macro for the build context:
 - `RLOG` is equivalent to `LOG` but is considered noisy; prefer `LOG`.
 - Log files are written to `~/.local/state/u++/log/<AppName>.log` (e.g. `ScriptIDE.log`).
 - Remove temporary debug `LOG` calls before committing, or mark with `// TODO: remove`.
+
+## MSVC / Win32 Header Protection
+
+- System headers such as `windows.h`, `dshow.h`, or `portaudio.h` must never be included inside `namespace Upp`.
+- Use the existing protection pattern for problematic Windows SDK names:
+  ```cpp
+  #ifdef flagWIN32
+  #define CY win32_CY_
+  #define FAR win32_FAR_
+  #endif
+  #include <system_header.h>
+  #ifdef flagWIN32
+  #undef CY
+  #undef FAR
+  #endif
+  ```
+- Local package includes follow the main-header BLITZ rules elsewhere in this file.
 
 ## UWP Development
 
@@ -254,6 +285,22 @@ END_UPP_NAMESPACE
 - **No HTML/XML**: NEVER use HTML or XML for rich text UI elements or reports unless explicitly requested. 
 - **API usage**: Always prefer `SetQTF()` over other methods for displaying formatted text in `RichTextView` or other rich text-capable controls.
 - **Constraints**: If a constraint requires validating rich text content, it should ideally verify that the string is valid QTF.
+
+## GUI Automation
+
+- Avoid modal dialogs like `Exclamation` and `PromptOK` in automated runs.
+- Prefer logging or test-mode message routing when a UI would otherwise block execution.
+- Use `LOG()` for observation and real-time log inspection rather than stdout.
+
+## ByteVM / Python Notes
+
+- Recursive module lookups should consult both globals and `sys.modules`.
+- Statement parsing must explicitly consume terminators on every path.
+- Bound methods like `str.endswith()` are implemented as `PyValue::BoundMethod` wrappers.
+- Built-in modules such as `os` and `sys` are dictionary-backed module objects with function wrappers.
+- `sys.exit(code)` should raise an `Exc` that the main loop can convert into an exit status.
+- `%` formatting for strings is handled in `PY_BINARY_MODULO` when the left operand is a string.
+- Be careful with recursive `subprocess.run` / `system()` interactions that can deadlock or buffer unexpectedly.
 
 Subpackage Independence
 - Subpackages like `AI`, `AI/Core`, `AI/Core/Core` are independent packages; do not gather headers in the parent package.

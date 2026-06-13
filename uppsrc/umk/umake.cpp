@@ -258,7 +258,7 @@ CONSOLE_APP_MAIN
 		}
 		PutVerbose("Output directory: " + GetUppOut());
 		ide.main = param[1];
-		v = SourcePath(ide.main, GetFileTitle(ide.main) + ".upp");
+		v = PackageFile(ide.main);
 		PutVerbose("Main package: " + v);
 		if(!FileExists(v)) {
 			Puts("Package " + ide.main + " does not exist\n");

@@ -138,7 +138,9 @@ void UppHubDlg::Install(const Index<String>& ii_, bool update)
 					cmd << ' ' << dir;
 					PutConsole(cmd);
 					system(cmd);
-					for(String p : FindAllPaths(dir, "*.upp")) {
+					Vector<String> manifests = FindAllPaths(dir, "*.upp");
+					manifests.Append(FindAllPaths(dir, "*.xupp"));
+					for(String p : manifests) {
 						Package pkg;
 						pkg.Load(p);
 						for(const auto& u : pkg.uses)

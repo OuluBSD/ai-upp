@@ -369,31 +369,31 @@ def resolve_upp_path(repo_root, target, extra_search_roots=None, include_rainbow
     if not target_path.is_absolute():
         target_path = repo_root / target_path
     if target_path.is_dir():
-        candidates = list(target_path.glob("*.upp"))
+        candidates = list(target_path.glob("*.upp")) + list(target_path.glob("*.xupp"))
         if len(candidates) == 1:
             return candidates[0].resolve()
         if len(candidates) > 1:
             raise ValueError(
-                f"Multiple .upp files in {target_path}: "
+                f"Multiple package files in {target_path}: "
                 + ", ".join(str(path) for path in candidates)
             )
-        raise ValueError(f"No .upp file found in {target_path}")
-    if target_path.suffix == ".upp":
+        raise ValueError(f"No .upp or .xupp file found in {target_path}")
+    if target_path.suffix in (".upp", ".xupp"):
         path = target_path
         if not path.is_absolute():
             path = repo_root / path
         if not path.exists():
-            raise ValueError(f"Missing .upp file: {path}")
+            raise ValueError(f"Missing package file: {path}")
         return path.resolve()
     return find_upp_by_name(
         repo_root,
-        f"{target}.upp",
+        target,
         extra_search_roots,
         include_rainbow=include_rainbow,
     )
 
 
-def find_upp_by_name(repo_root, filename, extra_search_roots=None, include_rainbow=False):
+def find_upp_by_name(repo_root, name, extra_search_roots=None, include_rainbow=False):
     search_roots = [
         repo_root / "upptst",
         repo_root / "uppsrc",
@@ -411,24 +411,30 @@ def find_upp_by_name(repo_root, filename, extra_search_roots=None, include_rainb
             root = Path(path)
             if root not in search_roots:
                 search_roots.append(root)
+    
+    filenames = [f"{name}.upp", f"{name}.xupp"]
     matches = []
     for root in search_roots:
         if not root.exists():
             continue
-        matches.extend(root.rglob(filename))
+        for filename in filenames:
+            matches.extend(root.rglob(filename))
+            
     if not matches:
         for root, dirs, files in os.walk(repo_root):
             if ".git" in dirs:
                 dirs.remove(".git")
             if "bin" in dirs:
                 dirs.remove("bin")
-            if filename in files:
-                matches.append(Path(root) / filename)
+            for filename in filenames:
+                if filename in files:
+                    matches.append(Path(root) / filename)
+                    
     if not matches:
-        raise ValueError(f"Unable to locate .upp file for {filename}")
+        raise ValueError(f"Unable to locate package file for {name}")
     if len(matches) > 1:
         raise ValueError(
-            f"Multiple .upp files named {filename}: "
+            f"Multiple package files named {name}: "
             + ", ".join(str(path) for path in matches)
         )
     return matches[0].resolve()
@@ -436,27 +442,30 @@ def find_upp_by_name(repo_root, filename, extra_search_roots=None, include_rainb
 
 def read_mainconfigs(upp_path):
     text = upp_path.read_text(encoding="utf-8", errors="replace")
-    lines = text.splitlines()
-    start = None
-    for idx, line in enumerate(lines):
-        if line.strip() == "mainconfig":
-            start = idx + 1
-            break
-    if start is None:
-        return []
-    block_lines = []
-    for line in lines[start:]:
-        if not line.strip():
-            if block_lines:
-                break
-            continue
-        if line[:1].isspace():
-            block_lines.append(line)
-            continue
-        break
-    block = "\n".join(block_lines)
-    entries = re.findall(r'"([^"]*)"\s*=\s*"([^"]*)"', block)
-    return [{"name": name, "flags": flags} for name, flags in entries]
+    if upp_path.suffix == ".xupp":
+        match = re.search(r"<config\b[^>]*>(.*?)</config>", text, re.DOTALL)
+        if not match:
+            # Fallback for old-style or missing config tag
+            match = re.search(r"<package\b[^>]*>(.*?)</package>", text, re.DOTALL)
+        if match:
+            block = match.group(1)
+            items = re.findall(r"<item\s+([^>]*)\s*/?>", block)
+            configs = []
+            for attrs in items:
+                name_m = re.search(r'name\s*=\s*"([^"]*)"', attrs)
+                param_m = re.search(r'param\s*=\s*"([^"]*)"', attrs)
+                if name_m and param_m:
+                    configs.append({"name": name_m.group(1), "flags": param_m.group(1)})
+            if configs:
+                return configs
+
+    # Improved .upp parsing
+    match = re.search(r"mainconfig\b(.*?);", text, re.DOTALL)
+    if match:
+        block = match.group(1)
+        entries = re.findall(r'"([^"]*)"\s*=\s*"([^"]*)"', block)
+        return [{"name": name, "flags": flags} for name, flags in entries]
+    return []
 
 
 def config_matches_os(name, is_windows):

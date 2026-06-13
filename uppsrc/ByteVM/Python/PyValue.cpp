@@ -273,7 +273,15 @@ bool PyValue::Contains(const PyValue& v) const
 		for(const auto& x : tuple->l) if(x == v) return true;
 	}
 	else if(type == PY_DICT) {
-		return dict->d.Find(v) >= 0;
+		const VectorMap<PyValue, PyValue>& d = dict->d;
+		for(int i = 0; i < d.GetCount(); i++)
+			if(d.GetKey(i) == v)
+				return true;
+	}
+	else if(type == PY_SET) {
+		for(const auto& x : set->s)
+			if(x == v)
+				return true;
 	}
 	else if(type == PY_STR) {
 		return wstr->s.Find(v.GetStr()) >= 0;

@@ -20,4 +20,5 @@ file
 	PyScheduler.cpp,
 	PyBindings.h,
 	test_lambda_debug.cpp,
+	test_assert.py,
 	test_minimal.py;

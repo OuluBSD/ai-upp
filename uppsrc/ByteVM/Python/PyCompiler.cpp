@@ -453,11 +453,14 @@ void PyCompiler::Statement()
 		if(IsToken(TK_COMMA)) {
 			Next();
 			Expression();
+			EmitConst(PyValue("AssertionError: "));
+			Emit(PY_ROT_TWO);
+			Emit(PY_BINARY_ADD);
 			Emit(PY_RAISE, 1);
 		}
 		else {
 			PyIR r(PY_RAISE_STR, 0, GetLine(), file);
-			r.arg = PyValue("AssertionError: assertion failed");
+			r.arg = PyValue("AssertionError");
 			ir.Add(r);
 		}
 		Patch(ok, Label());

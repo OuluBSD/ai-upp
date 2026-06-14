@@ -87,8 +87,8 @@ bool PyValue::IsUserDataValid() const { return type == PY_USERDATA && userdata; 
 bool PyValue::IsBoundMethod() const { return type == PY_BOUND_METHOD; }
 bool PyValue::IsStopIteration() const { return type == PY_STOP_ITERATION; }
 
-int64 PyValue::AsInt64() const { return type == PY_INT ? i64 : (type == PY_FLOAT ? (int64)f64 : 0); }
-double PyValue::AsDouble() const { return type == PY_FLOAT ? f64 : (type == PY_INT ? (double)i64 : 0.0); }
+int64 PyValue::AsInt64() const { return type == PY_INT ? i64 : (type == PY_FLOAT ? (int64)f64 : (type == PY_BOOL ? (b ? 1 : 0) : 0)); }
+double PyValue::AsDouble() const { return type == PY_FLOAT ? f64 : (type == PY_INT ? (double)i64 : (type == PY_BOOL ? (b ? 1.0 : 0.0) : 0.0)); }
 
 PyValue::PyValue(PyIter *it)
 {
@@ -128,6 +128,14 @@ PyValue PyVectorIter::Next()
 {
 	if(i < v.GetCount())
 		return v.GetItem(i++);
+	return PyValue::StopIteration();
+}
+
+PyValue PySetIter::Next()
+{
+	const Index<PyValue>& s = v.GetSet();
+	if(i < s.GetCount())
+		return s[i++];
 	return PyValue::StopIteration();
 }
 
@@ -221,6 +229,7 @@ PyValue PyValue::GetItem(int i) const
 {
 	if(type == PY_LIST) return list->l[i];
 	if(type == PY_TUPLE) return tuple->l[i];
+	if(type == PY_SET) return set->s[i];
 	if(type == PY_STR) {
 		if(i >= 0 && i < wstr->s.GetCount())
 			return PyValue(WString(wstr->s[i], 1));
@@ -237,6 +246,7 @@ void PyValue::Add(const PyValue& v)
 {
 	if(type == PY_LIST) list->l.Add(v);
 	if(type == PY_TUPLE) tuple->l.Add(v);
+	if(type == PY_SET && set->s.Find(v) < 0) set->s.Add(v);
 }
 
 PyValue PyValue::GetItem(const PyValue& key) const
@@ -279,9 +289,7 @@ bool PyValue::Contains(const PyValue& v) const
 				return true;
 	}
 	else if(type == PY_SET) {
-		for(const auto& x : set->s)
-			if(x == v)
-				return true;
+		return set->s.Find(v) >= 0;
 	}
 	else if(type == PY_STR) {
 		return wstr->s.Find(v.GetStr()) >= 0;
@@ -359,6 +367,10 @@ String PyValue::ToString() const
 		break;
 	}
 	case PY_SET: {
+		if(set->s.IsEmpty()) {
+			res = "set()";
+			break;
+		}
 		String s = "{";
 		for(int i = 0; i < set->s.GetCount(); i++) {
 			if(i) s << ", ";
@@ -418,6 +430,14 @@ hash_t PyValue::GetHashValue() const
 		for(int i = 0; i < tuple->l.GetCount(); i++)
 			h << tuple->l[i].GetHashValue();
 		break;
+	case PY_SET:
+	{
+		hash_t sh = 0;
+		for(int i = 0; i < set->s.GetCount(); i++)
+			sh ^= set->s[i].GetHashValue() + 0x9e3779b9 + (sh << 6) + (sh >> 2);
+		h << sh;
+		break;
+	}
 	}
 	return h;
 }
@@ -443,7 +463,13 @@ bool PyValue::operator==(const PyValue& other) const
 	case PY_LIST: return list->l == other.list->l;
 	case PY_TUPLE: return tuple->l == other.tuple->l;
 	case PY_DICT: return dict->d == other.dict->d;
-	case PY_SET: return set->s == other.set->s;
+	case PY_SET:
+		if(set->s.GetCount() != other.set->s.GetCount())
+			return false;
+		for(const auto& x : set->s)
+			if(!other.Contains(x))
+				return false;
+		return true;
 	case PY_FUNCTION: return lambda == other.lambda;
 	default: return ptr == other.ptr;
 	}
@@ -470,6 +496,8 @@ bool PyValue::operator<(const PyValue& other) const
 			if(other.list->l[i] < list->l[i]) return false;
 		}
 		return list->l.GetCount() < other.list->l.GetCount();
+	case PY_SET:
+		return set->s < other.set->s;
 	}
 	return false;
 }
@@ -494,6 +522,12 @@ const Vector<PyValue>& PyValue::GetArray() const
 	if(type == PY_TUPLE) return tuple->l;
 	static Vector<PyValue> empty;
 	return empty;
+}
+
+const Index<PyValue>& PyValue::GetSet() const
+{
+	ASSERT(type == PY_SET);
+	return set->s;
 }
 
 PyValue PyValue::None() { return PyValue(); }

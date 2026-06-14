@@ -123,6 +123,8 @@ static PyValue builtin_iter(const Vector<PyValue>& args, void*) {
 	PyValue obj = args[0];
 	if(obj.GetType() == PY_LIST || obj.GetType() == PY_TUPLE || obj.GetType() == PY_STR)
 		return PyValue::Iterator(new PyVectorIter(obj));
+	if(obj.GetType() == PY_SET)
+		return PyValue::Iterator(new PySetIter(obj));
 	if(obj.IsIterator())
 		return obj;
 	return PyValue::None();
@@ -210,6 +212,34 @@ static PyValue builtin_list(const Vector<PyValue>& args, void*) {
 		for(int i = 0; i < src.GetCount(); i++)
 			result.Add(src.GetItem(i));
 	return result;
+}
+
+static PyValue builtin_set(const Vector<PyValue>& args, void*) {
+	PyValue result = PyValue::Set();
+	if(args.GetCount() == 0) return result;
+
+	const PyValue& src = args[0];
+	if(src.GetType() == PY_LIST || src.GetType() == PY_TUPLE || src.GetType() == PY_SET) {
+		for(int i = 0; i < src.GetCount(); i++)
+			result.Add(src.GetItem(i));
+		return result;
+	}
+	if(src.GetType() == PY_STR) {
+		WString s = src.GetStr();
+		for(int i = 0; i < s.GetCount(); i++)
+			result.Add(PyValue(WString(s[i], 1)));
+		return result;
+	}
+	if(src.IsIterator()) {
+		PyValue it = src;
+		for(;;) {
+			PyValue v = it.GetIter().Next();
+			if(v.IsStopIteration()) break;
+			result.Add(v);
+		}
+		return result;
+	}
+	throw Exc("TypeError: set() argument must be iterable");
 }
 
 static PyValue builtin_isinstance(const Vector<PyValue>& args, void*) {
@@ -1314,6 +1344,10 @@ void PyVM::InitBuiltins()
 	PyValue p_str = PyValue::Function("str");
 	p_str.GetLambdaRW().builtin = builtin_str;
 	globals.GetDictRW().GetAdd(PyValue("str")) = p_str;
+
+	PyValue p_set = PyValue::Function("set");
+	p_set.GetLambdaRW().builtin = builtin_set;
+	globals.GetDictRW().GetAdd(PyValue("set")) = p_set;
 
 
 	PyValue p_iter = PyValue::Function("iter");
@@ -2529,6 +2563,16 @@ bool PyVM::Step()
 				} else {
 					Push(PyValue::None());
 				}
+			} else if (obj.GetType() == PY_SET) {
+				if(attr == "add") {
+					Push(PyValue::BoundMethod(PyValue::Function("add", [](const Vector<PyValue>& args, void*){
+						if(args.GetCount() >= 2 && args[0].GetType() == PY_SET)
+							const_cast<PyValue&>(args[0]).Add(args[1]);
+						return PyValue::None();
+					}), obj));
+				} else {
+					Push(PyValue::None());
+				}
 			} else if (obj.IsUserDataValid()) {
 				Push(obj.GetUserData().GetAttr(attr));
 			} else {
@@ -2674,6 +2718,29 @@ bool PyVM::Step()
 				Push(PyValue(a.GetComplex() * b.GetComplex()));
 			else if(a.IsInt() && b.IsInt()) Push(PyValue(a.AsInt64() * b.AsInt64()));
 			else Push(PyValue(a.AsDouble() * b.AsDouble()));
+			break;
+		}
+
+		case PY_BINARY_AND: {
+			PyValue b = Pop();
+			PyValue a = Pop();
+			if(a.GetType() == PY_SET && b.GetType() == PY_SET) {
+				PyValue result = PyValue::Set();
+				const PyValue& lhs = a.GetCount() <= b.GetCount() ? a : b;
+				const PyValue& rhs = a.GetCount() <= b.GetCount() ? b : a;
+				for(int i = 0; i < lhs.GetCount(); i++) {
+					PyValue v = lhs.GetItem(i);
+					if(rhs.Contains(v))
+						result.Add(v);
+				}
+				Push(result);
+			}
+			else if((a.IsInt() || a.IsBool()) && (b.IsInt() || b.IsBool())) {
+				Push(PyValue(a.AsInt64() & b.AsInt64()));
+			}
+			else {
+				throw Exc("TypeError: unsupported operand type(s) for &: '" + String(PyTypeName(a.GetType())) + "' and '" + String(PyTypeName(b.GetType())) + "'");
+			}
 			break;
 		}
 		

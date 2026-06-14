@@ -882,23 +882,23 @@ void PyCompiler::NotExpr()
 
 void PyCompiler::Comparison()
 {
-	AddExpr();
-	if(IsToken(TK_EQ)) { Next(); AddExpr(); Emit(PY_COMPARE_OP, PY_CMP_EQ); }
-	else if(IsToken(TK_INEQ)) { Next(); AddExpr(); Emit(PY_COMPARE_OP, PY_CMP_NE); }
-	else if(IsToken(TK_LESS)) { Next(); AddExpr(); Emit(PY_COMPARE_OP, PY_CMP_LT); }
-	else if(IsToken(TK_LSEQ)) { Next(); AddExpr(); Emit(PY_COMPARE_OP, PY_CMP_LE); }
-	else if(IsToken(TK_GREATER)) { Next(); AddExpr(); Emit(PY_COMPARE_OP, PY_CMP_GT); }
-	else if(IsToken(TK_GREQ)) { Next(); AddExpr(); Emit(PY_COMPARE_OP, PY_CMP_GE); }
-	else if(IsId("in")) { Next(); AddExpr(); Emit(PY_COMPARE_OP, PY_CMP_IN); }
+	BitAndExpr();
+	if(IsToken(TK_EQ)) { Next(); BitAndExpr(); Emit(PY_COMPARE_OP, PY_CMP_EQ); }
+	else if(IsToken(TK_INEQ)) { Next(); BitAndExpr(); Emit(PY_COMPARE_OP, PY_CMP_NE); }
+	else if(IsToken(TK_LESS)) { Next(); BitAndExpr(); Emit(PY_COMPARE_OP, PY_CMP_LT); }
+	else if(IsToken(TK_LSEQ)) { Next(); BitAndExpr(); Emit(PY_COMPARE_OP, PY_CMP_LE); }
+	else if(IsToken(TK_GREATER)) { Next(); BitAndExpr(); Emit(PY_COMPARE_OP, PY_CMP_GT); }
+	else if(IsToken(TK_GREQ)) { Next(); BitAndExpr(); Emit(PY_COMPARE_OP, PY_CMP_GE); }
+	else if(IsId("in")) { Next(); BitAndExpr(); Emit(PY_COMPARE_OP, PY_CMP_IN); }
 	else if(IsId("is")) {
 		Next();
 		if(IsId("not")) {
 			Next();
-			AddExpr();
+			BitAndExpr();
 			Emit(PY_COMPARE_OP, PY_CMP_IS_NOT);
 		}
 		else {
-			AddExpr();
+			BitAndExpr();
 			Emit(PY_COMPARE_OP, PY_CMP_IS);
 		}
 	}
@@ -906,12 +906,22 @@ void PyCompiler::Comparison()
 		Next();
 		if (IsId("in")) {
 			Next();
-			AddExpr();
+			BitAndExpr();
 			Emit(PY_COMPARE_OP, PY_CMP_NOT_IN);
 		} else {
 			// Backtrack
 			pos--;
 		}
+	}
+}
+
+void PyCompiler::BitAndExpr()
+{
+	AddExpr();
+	while(IsToken(TK_AMPERSAND)) {
+		Next();
+		AddExpr();
+		Emit(PY_BINARY_AND);
 	}
 }
 

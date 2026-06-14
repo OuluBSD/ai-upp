@@ -1,0 +1,11 @@
+description "Reference sample for the timing suite";
+
+uses
+	CtrlLib;
+
+file
+	README.md,
+	main.cpp;
+
+mainconfig
+	"" = "GUI TIMING";

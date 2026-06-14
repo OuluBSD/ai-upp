@@ -123,6 +123,7 @@ public:
 	void        Add(const PyValue& v);
 
 	const Vector<PyValue>& GetArray() const;
+	const Index<PyValue>&  GetSet() const;
 
 	// Dict operations
 	PyValue     GetItem(const PyValue& key) const;
@@ -141,6 +142,7 @@ public:
 	bool operator==(const PyValue& other) const;
 	bool operator!=(const PyValue& other) const { return !(*this == other); }
 	bool operator<(const PyValue& other) const;
+	int  Compare(const PyValue& other) const { return *this == other ? 0 : (*this < other ? -1 : 1); }
 	bool IsSameObject(const PyValue& other) const;
 
 	static PyValue None();
@@ -219,6 +221,13 @@ struct PyVectorIter : PyIter {
 	PyValue v;
 	int i = 0;
 	PyVectorIter(const PyValue& v) : v(v) {}
+	virtual PyValue Next() override;
+};
+
+struct PySetIter : PyIter {
+	PyValue v;
+	int i = 0;
+	PySetIter(const PyValue& v) : v(v) {}
 	virtual PyValue Next() override;
 };
 

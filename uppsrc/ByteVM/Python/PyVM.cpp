@@ -331,6 +331,53 @@ static PyValue builtin_dir(const Vector<PyValue>& args, void*) {
 	return list;
 }
 
+static PyValue builtin_dict_get(const Vector<PyValue>& args, void*) {
+	if(args.GetCount() < 2)
+		return PyValue::None();
+	const PyValue& self = args[0];
+	const PyValue& key = args[1];
+	PyValue def = args.GetCount() >= 3 ? args[2] : PyValue::None();
+	if(self.GetType() != PY_DICT)
+		return def;
+	if(self.Contains(key))
+		return self.GetItem(key);
+	return def;
+}
+
+static PyValue builtin_dict_items(const Vector<PyValue>& args, void*) {
+	PyValue list = PyValue::List();
+	if(args.GetCount() < 1 || args[0].GetType() != PY_DICT)
+		return list;
+	const VectorMap<PyValue, PyValue>& dict = args[0].GetDict();
+	for(int i = 0; i < dict.GetCount(); i++) {
+		PyValue item = PyValue::List();
+		item.Add(dict.GetKey(i));
+		item.Add(dict[i]);
+		list.Add(item);
+	}
+	return list;
+}
+
+static PyValue builtin_dict_keys(const Vector<PyValue>& args, void*) {
+	PyValue list = PyValue::List();
+	if(args.GetCount() < 1 || args[0].GetType() != PY_DICT)
+		return list;
+	const VectorMap<PyValue, PyValue>& dict = args[0].GetDict();
+	for(int i = 0; i < dict.GetCount(); i++)
+		list.Add(dict.GetKey(i));
+	return list;
+}
+
+static PyValue builtin_dict_values(const Vector<PyValue>& args, void*) {
+	PyValue list = PyValue::List();
+	if(args.GetCount() < 1 || args[0].GetType() != PY_DICT)
+		return list;
+	const VectorMap<PyValue, PyValue>& dict = args[0].GetDict();
+	for(int i = 0; i < dict.GetCount(); i++)
+		list.Add(dict[i]);
+	return list;
+}
+
 static PyValue builtin_min(const Vector<PyValue>& args, void*) {
 	if(args.GetCount() == 0) return PyValue::None();
 	PyValue m;
@@ -2445,17 +2492,27 @@ bool PyVM::Step()
 			PyValue obj = Pop();
 			String attr = instr.arg.ToString();
 			if (obj.GetType() == PY_DICT) {
-				// Instance attribute lookup: check instance first, then class dict
-				PyValue val = obj.GetItem(instr.arg);
-				if(val.IsNone()) {
-					PyValue cls = obj.GetItem(PyValue("__class__"));
-					if(cls.GetType() == PY_DICT) {
-						val = cls.GetItem(instr.arg);
-						if(val.IsFunction())
-							val = PyValue::BoundMethod(val, obj);
+				if(attr == "get")
+					Push(PyValue::BoundMethod(PyValue::Function("get", builtin_dict_get), obj));
+				else if(attr == "items")
+					Push(PyValue::BoundMethod(PyValue::Function("items", builtin_dict_items), obj));
+				else if(attr == "keys")
+					Push(PyValue::BoundMethod(PyValue::Function("keys", builtin_dict_keys), obj));
+				else if(attr == "values")
+					Push(PyValue::BoundMethod(PyValue::Function("values", builtin_dict_values), obj));
+				else {
+					// Instance attribute lookup: check instance first, then class dict
+					PyValue val = obj.GetItem(instr.arg);
+					if(val.IsNone()) {
+						PyValue cls = obj.GetItem(PyValue("__class__"));
+						if(cls.GetType() == PY_DICT) {
+							val = cls.GetItem(instr.arg);
+							if(val.IsFunction())
+								val = PyValue::BoundMethod(val, obj);
+						}
 					}
+					Push(val);
 				}
-				Push(val);
 			} else if (obj.GetType() == PY_STR) {
 				if(attr == "endswith") {
 					Push(PyValue::BoundMethod(PyValue::Function("endswith", builtin_str_endswith), obj));
@@ -3013,6 +3070,13 @@ bool PyVM::Step()
 		                                        PyValue obj = Pop();
 		                                        if(obj.GetType() == PY_LIST || obj.GetType() == PY_TUPLE || obj.GetType() == PY_STR) {
 		                                                Push(PyValue::Iterator(new PyVectorIter(obj)));
+		                                        }
+		                                        else if(obj.GetType() == PY_DICT) {
+		                                                PyValue keys = PyValue::List();
+		                                                const VectorMap<PyValue, PyValue>& dict = obj.GetDict();
+		                                                for(int i = 0; i < dict.GetCount(); i++)
+		                                                        keys.Add(dict.GetKey(i));
+		                                                Push(PyValue::Iterator(new PyVectorIter(keys)));
 		                                        }
 		                			else if(obj.IsIterator()) {
 				Push(obj);

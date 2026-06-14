@@ -350,7 +350,7 @@ Do not instrument everything by default. The suite becomes much more useful when
 
 If you are adding the timing suite to a project that does not have any timing yet, start with this order:
 
-1. Add the `TIMING` flag and rebuild.
+1. Edit the package’s `.upp` file and add `TIMING` to the `mainconfig`. `reference/TimingSuite/TimingSuite.upp` shows the pattern.
 2. Add one `TimingWidget` entry point to the application UI.
 3. Make that entry point available in a developer tab, tool window, or modal diagnostics dialog.
 4. Add 3 to 5 high-value `TimingScope` points around the slow path you are currently investigating.
@@ -412,7 +412,7 @@ If you are extending the system, preserve that compatibility. It is more valuabl
 
 Start with the smallest useful setup:
 
-- turn on `TIMING`
+- add `TIMING` to the package’s `mainconfig` in the `.upp` file
 - keep callstack capture off
 - add a few high-value `TimingScope` points
 - separate states with `TimingContextScope`

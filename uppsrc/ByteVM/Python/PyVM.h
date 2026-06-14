@@ -122,9 +122,15 @@ public:
 	String  GetCurrentFile() const { return current_file; }
 	int     GetCurrentLine() const { return current_line; }
 
+	// Set execution deadline. VM throws Exc("script_timeout") in Step() when GetTickCount() > ms.
+	// Pass 0 to disable.
+	void SetDeadlineMs(int64 ms) { deadline_ms_ = ms; }
+	int64 GetDeadlineMs() const  { return deadline_ms_; }
+
 private:
 	PyValue last_result = PyValue::None();
 	int     instruction_count = 0;
+	int64   deadline_ms_ = 0;
 	Vector<Breakpoint> breakpoints;
 	DebugState debug_state = DEBUG_RUNNING;
 	int step_frame_depth = 0;

@@ -2114,6 +2114,8 @@ bool PyVM::Step()
 		sched_yield();
 		#endif
 		PyScheduler::Get().Lock();
+		if(deadline_ms_ > 0 && msecs() > deadline_ms_)
+			throw Exc("script_timeout");
 	}
 
 	Frame& frame = TopFrame();
@@ -2741,6 +2743,25 @@ bool PyVM::Step()
 			PyValue a = Pop();
 			if (b.AsDouble() == 0) throw Exc("ZeroDivisionError: division by zero");
 			Push(PyValue(a.AsDouble() / b.AsDouble()));
+			break;
+		}
+		case PY_BINARY_FLOOR_DIVIDE: {
+			PyValue b = Pop();
+			PyValue a = Pop();
+			if(a.IsInt() && b.IsInt()) {
+				int64 ai = a.AsInt64();
+				int64 bi = b.AsInt64();
+				if(bi == 0) throw Exc("ZeroDivisionError: integer division by zero");
+				int64 q = ai / bi;
+				if((ai ^ bi) < 0 && q * bi != ai)
+					q--;
+				Push(PyValue(q));
+			}
+			else {
+				double db = b.AsDouble();
+				if(db == 0) throw Exc("ZeroDivisionError: float floor division by zero");
+				Push(PyValue(floor(a.AsDouble() / db)));
+			}
 			break;
 		}
 		case PY_BINARY_SUBSCR: {

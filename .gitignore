@@ -68,7 +68,9 @@ share/icons/large/*.png
 uppsrc/ScriptIDE/reference/Hearts/render.mp4
 
 # Plan files and directories moved to Manager
+plan
 plan/
+**/plan
 **/plan/
 cookie.txt
 **/cookie.txt
@@ -82,4 +84,3 @@ _out/
 uppsrc/umk.out
 bin/umk
 bin/build
-

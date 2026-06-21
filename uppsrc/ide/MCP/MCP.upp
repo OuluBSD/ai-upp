@@ -14,9 +14,7 @@ file
 	Protocol.h,
 	DebugProtocol.h,
 	DebugBridge.h,
-	DebugBridge.cpp,
 	IdeBridge.h,
-	IdeBridge.cpp,
 	Server.h,
 	Server.cpp,
 	Index.h,
@@ -24,5 +22,4 @@ file
 	WorkspaceBridge.h,
 	WorkspaceBridge.cpp,
 	LayBridge.h,
-	LayBridge.cpp;
 

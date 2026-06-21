@@ -1,6 +1,7 @@
 #ifndef _ComputerVision_TemplateMatchCtrl_h_
 #define _ComputerVision_TemplateMatchCtrl_h_
 
+#ifdef GUI
 #include <CtrlLib/CtrlLib.h>
 #include <ComputerVision/ComputerVision.h>
 
@@ -59,4 +60,5 @@ private:
 
 END_UPP_NAMESPACE
 
+#endif
 #endif

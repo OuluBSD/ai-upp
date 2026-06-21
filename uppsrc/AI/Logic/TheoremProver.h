@@ -3,7 +3,6 @@
 
 #include <Core/Core.h>
 
-using namespace Upp;
 
 /*
 	TheoremProver
@@ -25,6 +24,7 @@ using namespace Upp;
 #include "Language.h"
 
 namespace TheoremProver {
+using namespace Upp;
 
 class InvalidInputError : public Exc {
 

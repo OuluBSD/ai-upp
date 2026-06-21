@@ -1,3 +1,4 @@
+#ifdef GUI
 #include "TemplateMatchCtrl.h"
 
 NAMESPACE_UPP
@@ -191,3 +192,4 @@ void TemplateMatchCtrl::RightDown(Point, dword) {
 }
 
 END_UPP_NAMESPACE
+#endif

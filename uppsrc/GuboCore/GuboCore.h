@@ -14,7 +14,6 @@
 #include <Eon/Draw/Draw.h>
 #endif
 
-#include "Defs.h"
 #include "Util.h"
 #include "CtrlEvent.h"
 #include "DrawCommand.h"

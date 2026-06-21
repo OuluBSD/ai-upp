@@ -156,6 +156,9 @@ class Mutex : NoCopy {
 protected:
 	CRITICAL_SECTION section;
 	MtInspector        *mti;
+#ifdef flagTIMING
+	dword              timing_enter_time = 0;
+#endif
 
 	Mutex(int)         {}
 
@@ -163,15 +166,15 @@ protected:
 
 public:
 	bool  TryEnter();
-	void  Leave()                { LeaveCriticalSection(&section); }
+	void  Leave();
 
 #ifdef flagPROFILEMT
-	void  Enter()                { if(!TryEnter()) { mti->blocked++; EnterCriticalSection(&section); }; mti->locked++; }
+	void  Enter();
 	void  Set(MtInspector& m)    { mti = &m; }
 
 	Mutex()                      { mti = MtInspector::Dumi(); InitializeCriticalSection(&section); }
 #else
-	void  Enter()                { EnterCriticalSection(&section); }
+	void  Enter();
 
 	Mutex()                      { InitializeCriticalSection(&section); }
 #endif
@@ -235,18 +238,21 @@ class Mutex : NoCopy {
 #ifdef flagPROFILEMT
 	MtInspector     *mti;
 #endif
+#ifdef flagTIMING
+	dword           timing_enter_time = 0;
+#endif
 	friend class ConditionVariable;
 
 public:
 #ifdef flagPROFILEMT
-	bool  TryEnter()          { bool b = pthread_mutex_trylock(mutex) == 0; mti->locked += b; return b; }
-	void  Enter()             { if(pthread_mutex_trylock(mutex) != 0) { mti->blocked++; pthread_mutex_lock(mutex); } mti->locked++; }
+	bool  TryEnter();
+	void  Enter();
 	void  Set(MtInspector& m) { mti = &m; }
 #else
-	bool  TryEnter()          { return pthread_mutex_trylock(mutex) == 0; }
-	void  Enter()             { pthread_mutex_lock(mutex); }
+	bool  TryEnter();
+	void  Enter();
 #endif
-	void  Leave()             { pthread_mutex_unlock(mutex); }
+	void  Leave();
 
 	class Lock;
 
@@ -258,10 +264,10 @@ class RWMutex : NoCopy {
 	pthread_rwlock_t rwlock[1];
 
 public:
-	void EnterWrite()  { pthread_rwlock_wrlock(rwlock); }
-	void LeaveWrite()  { pthread_rwlock_unlock(rwlock); }
-	void EnterRead()   { pthread_rwlock_rdlock(rwlock); }
-	void LeaveRead()   { pthread_rwlock_unlock(rwlock); }
+	void EnterWrite();
+	void LeaveWrite();
+	void EnterRead();
+	void LeaveRead();
 
 	RWMutex();
 	~RWMutex();
@@ -394,7 +400,7 @@ struct SpinLock : Moveable<SpinLock> {
 	void Leave()    { __sync_lock_release(&locked); }
 #endif
 
-	void Enter()    { while(!TryEnter()) Wait(); }
+	void Enter();
 	
 	void Wait();
 	

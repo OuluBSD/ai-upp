@@ -390,6 +390,8 @@ class YamlIO;
 
 #include "Profile.h"
 
+#include "Timing.h"
+
 #include "FilterStream.h"
 
 #include "Format.h"

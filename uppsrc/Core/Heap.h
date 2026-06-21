@@ -14,6 +14,9 @@ enum {
 	UPP_HEAP_MINBLOCK = 32,
 };
 
+void TimingMemoryAllocHook(size_t size);
+void TimingMemoryFreeHook(size_t size);
+
 #ifdef UPP_HEAP
 
 void *MemoryAllocPermanent(size_t size);
@@ -134,13 +137,13 @@ inline MemoryOptions::MemoryOptions() {}
 inline MemoryOptions::~MemoryOptions() {}
 
 inline void  *MemoryAllocPermanent(size_t size)                { return malloc(size); }
-inline void  *MemoryAlloc(size_t size)     { return malloc(size); }
-inline void  *MemoryAllocSz(size_t &size)  { return malloc(size); }
-inline void   MemoryFree(void *p)          { free(p); }
-inline void  *MemoryAlloc32()              { return malloc(32); }
-inline void  *MemoryAlloc48()              { return malloc(48); }
-inline void   MemoryFree32(void *ptr)      { free(ptr); }
-inline void   MemoryFree48(void *ptr)      { free(ptr); }
+inline void  *MemoryAlloc(size_t size)     { void *p = malloc(size); if(p) TimingMemoryAllocHook(size); return p; }
+inline void  *MemoryAllocSz(size_t &size)  { void *p = malloc(size); if(p) TimingMemoryAllocHook(size); return p; }
+inline void   MemoryFree(void *p)          { if(p) TimingMemoryFreeHook(0); free(p); }
+inline void  *MemoryAlloc32()              { void *p = malloc(32); if(p) TimingMemoryAllocHook(32); return p; }
+inline void  *MemoryAlloc48()              { void *p = malloc(48); if(p) TimingMemoryAllocHook(48); return p; }
+inline void   MemoryFree32(void *ptr)      { if(ptr) TimingMemoryFreeHook(32); free(ptr); }
+inline void   MemoryFree48(void *ptr)      { if(ptr) TimingMemoryFreeHook(48); free(ptr); }
 inline void   MemoryInitDiagnostics()      {}
 inline void   MemoryCheck() {}
 inline void   MemoryCheckDebug() {}

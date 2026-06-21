@@ -12,6 +12,9 @@ public:
 	void   SetTimelineMode(bool b);
 	bool   IsTimelineMode() const                { return timeline.Get(); }
 
+	void   SetContextIntervalMode(bool b);
+	bool   IsContextIntervalMode() const         { return intervals.Get(); }
+
 	void   SetContextFilter(const String& s);
 	String GetContextFilter() const;
 
@@ -27,6 +30,12 @@ public:
 	void   SetKeepTimeline(bool b);
 	bool   IsKeepTimeline() const                { return keep_timeline.Get(); }
 
+	void   SetLockEvents(bool b);
+	bool   IsLockEvents() const                  { return locks.Get(); }
+
+	void   SetMemoryEvents(bool b);
+	bool   IsMemoryEvents() const                { return memory.Get(); }
+
 	TimingView&       GetView()                  { return view; }
 	const TimingView& GetView() const            { return view; }
 
@@ -39,9 +48,15 @@ private:
 	Label      thread_lbl;
 	EditString  thread;
 	Option      timeline;
+	Option      intervals;
 	Option      active;
 	Option      capture;
 	Option      keep_timeline;
+	Option      scopes;
+	Option      contexts;
+	Option      locks;
+	Option      memory;
+	Option      markers;
 	Button      refresh;
 	Button      clear;
 	TimingView  view;
@@ -53,6 +68,8 @@ private:
 	void   UpdateDetails();
 	void   OnViewSelect(int row);
 	bool   GetThreadValue(uint64& id) const;
+	uint64 BuildCategoryMask() const;
+	String FormatStorageStats() const;
 
 	uint64 thread_filter = 0;
 };

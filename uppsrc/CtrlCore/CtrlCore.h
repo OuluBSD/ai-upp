@@ -1927,6 +1927,7 @@ RichText   ParseRTF(const char *rtf);
 void WriteClipboardHTML(const String& html);
 
 #include <CtrlCore/TopWindow.h>
+#include <CtrlCore/Timing.h>
 
 #include GUIPLATFORM_INCLUDE_AFTER
 

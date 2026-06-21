@@ -30,7 +30,6 @@ file
 	ProgPainter3.h,
 	ProgPainter3.cpp,
 	3D readonly separator,
-	Defs.h,
 	Util.h,
 	Util.cpp,
 	Frame.h,
@@ -47,4 +46,3 @@ file
 	TopSurface.h,
 	TopSurface.cpp,
 	_ readonly separator;
-

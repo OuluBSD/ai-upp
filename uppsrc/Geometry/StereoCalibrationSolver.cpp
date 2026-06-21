@@ -1467,7 +1467,7 @@ bool StereoCalibrationSolver::Solve(StereoCalibrationParams& params, bool lock_d
 			trace.Addf("Match #%d:\n", i + 1);
 			trace.Addf("  Input pixels: L=(%.2f, %.2f), R=(%.2f, %.2f)\n",
 				m.left_px[0], m.left_px[1], m.right_px[0], m.right_px[1]);
-			trace.Addf("  Image size: %dx%d\n", m.image_size.cx, m.image_size.cy);
+			trace.Addf("  Image size: %d`x%d\n", m.image_size.cx, m.image_size.cy);
 			if (m.dist_l > 0 || m.dist_r > 0) {
 				trace.Addf("  Measured distances: L=%.6f m (%.2f mm), R=%.6f m (%.2f mm)\n",
 					m.dist_l, m.dist_l * 1000.0, m.dist_r, m.dist_r * 1000.0);

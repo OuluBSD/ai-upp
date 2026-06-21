@@ -1,4 +1,4 @@
-description "Core Logic Engine for Theorem Proving";
+description "Core Logic Engine for Theorem Proving\377";
 
 uses
 	Core,

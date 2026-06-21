@@ -4,6 +4,7 @@ Objective
 - Bring GuboCore (3D GUI) to practical parity with CtrlCore’s developer-facing API while preserving its manager-driven rendering/event model.
 
 Progress
+- Cleanup: Removed obsolete `Defs.h` from the umbrella headers and package manifest; supporting definitions now remain in `Util.h/.cpp` and other focused headers.
 - Phase 1 implemented: SurfaceFrame capture plumbing now delegates to Gu::SurfaceManager; Surface container-level frame capture getters/setters are manager-backed.
 - Phase 2 (core methods): Implemented
   - Surface::GetWorkArea, ReleaseSurfaceCapture, GetCaptureSurface

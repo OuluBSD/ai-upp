@@ -25,7 +25,7 @@ Architecture
 - Frames
   - `Frame.h`: `SurfaceFrame`/`GuboFrame` logic (per-container frame painting/layout and event capture for borders/toolbars etc.).
 - Misc
-  - `Defs.h`, `Util.h/.cpp`, `Images.h/.cpp` supporting definitions and assets.
+  - `Util.h/.cpp`, `Images.h/.cpp` supporting definitions and assets.
 
 Relation To CtrlCore (API Parity)
 - Intent: preserve naming and semantics where possible to keep 2D/3D usage consistent.
@@ -65,4 +65,3 @@ Open TODOs / Gaps (as of this snapshot)
 Coding Conventions
 - Follow repository `CODESTYLE.md` and the Header Include Policy above.
 - Keep changes minimal and focused; avoid adding global includes to `GuboCore.h` unless necessary for aggregation.
-

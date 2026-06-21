@@ -119,9 +119,9 @@ protected:
 
 public:
 	bool  TryEnter();
-	void  Leave()                { }
+	void  Leave();
 
-	void  Enter()                { }
+	void  Enter();
 
 	Mutex()                      { }
 	~Mutex()                     { }
@@ -235,7 +235,7 @@ struct SpinLock : Moveable<SpinLock> {
 	bool TryEnter() { return true; }
 	void Leave()    { }
 
-	void Enter()    { }
+	void Enter();
 	
 	void Wait();
 	

@@ -516,16 +516,30 @@ inline void *LogAlloc(void *ptr, size_t sz) { return ptr; }
 never_inline
 void *MemoryAlloc2(size_t& sz)
 {
-	HeapMutexLock __;
-	return LogAlloc(MakeHeap()->AllocSz(sz), sz);
+	void *ptr;
+	{
+		HeapMutexLock __;
+		ptr = LogAlloc(MakeHeap()->AllocSz(sz), sz);
+	}
+#ifdef flagTIMING
+	if(ptr && TimingManager::IsMemoryEventCollectionActive())
+		TimingManager::Global().RecordMemoryAlloc(sz);
+#endif
+	return ptr;
 }
 
 void *MemoryAlloc(size_t sz)
 {
 	LTIMING("MemoryAlloc");
 	Heap *heap = heap_tls__;
-	if(heap)
-		return LogAlloc(heap->AllocSz(sz), sz);
+	if(heap) {
+		void *ptr = LogAlloc(heap->AllocSz(sz), sz);
+#ifdef flagTIMING
+		if(ptr && TimingManager::IsMemoryEventCollectionActive())
+			TimingManager::Global().RecordMemoryAlloc(sz);
+#endif
+		return ptr;
+	}
 	return MemoryAlloc2(sz);
 }
 
@@ -533,16 +547,28 @@ void *MemoryAllocSz(size_t& sz)
 {
 	LTIMING("MemoryAllocSz");
 	Heap *heap = heap_tls__;
-	if(heap)
-		return LogAlloc(heap->AllocSz(sz), sz);
+	if(heap) {
+		void *ptr = LogAlloc(heap->AllocSz(sz), sz);
+#ifdef flagTIMING
+		if(ptr && TimingManager::IsMemoryEventCollectionActive())
+			TimingManager::Global().RecordMemoryAlloc(sz);
+#endif
+		return ptr;
+	}
 	return MemoryAlloc2(sz);
 }
 
 never_inline
 void MemoryFree2(void *ptr)
 {
-	HeapMutexLock __;
-	MakeHeap()->Free(ptr);
+	{
+		HeapMutexLock __;
+		MakeHeap()->Free(ptr);
+	}
+#ifdef flagTIMING
+	if(ptr && TimingManager::IsMemoryEventCollectionActive())
+		TimingManager::Global().RecordMemoryFree(0);
+#endif
 }
 
 void  MemoryFree(void *ptr)
@@ -551,10 +577,17 @@ void  MemoryFree(void *ptr)
 	LogFree(ptr);
 
 	Heap *heap = heap_tls__;
+	size_t sz = 0;
+	if(heap && ptr)
+		sz = heap->GetBlockSize(ptr);
 	if(heap)
 		heap->Free(ptr);
 	else
 		MemoryFree2(ptr);
+#ifdef flagTIMING
+	if(ptr && heap && TimingManager::IsMemoryEventCollectionActive())
+		TimingManager::Global().RecordMemoryFree(sz);
+#endif
 }
 
 size_t GetMemoryBlockSize(void *ptr)
@@ -576,8 +609,16 @@ bool MemoryTryRealloc__(void *ptr, size_t& size)
 never_inline
 void *MemoryAlloc32_2()
 {
-	HeapMutexLock __;
-	return LogAlloc(MakeHeap()->Alloc32(), 32);
+	void *ptr;
+	{
+		HeapMutexLock __;
+		ptr = LogAlloc(MakeHeap()->Alloc32(), 32);
+	}
+#ifdef flagTIMING
+	if(ptr && TimingManager::IsMemoryEventCollectionActive())
+		TimingManager::Global().RecordMemoryAlloc(32);
+#endif
+	return ptr;
 }
 
 force_inline
@@ -585,8 +626,14 @@ void *MemoryAlloc32_i()
 {
 	LTIMING("MemoryAlloc32");
 	Heap *heap = heap_tls__;
-	if(heap)
-		return LogAlloc(heap->Alloc32(), 32);
+	if(heap) {
+		void *ptr = LogAlloc(heap->Alloc32(), 32);
+#ifdef flagTIMING
+		if(ptr && TimingManager::IsMemoryEventCollectionActive())
+			TimingManager::Global().RecordMemoryAlloc(32);
+#endif
+		return ptr;
+	}
 	return MemoryAlloc32_2();
 }
 
@@ -595,8 +642,14 @@ void *MemoryAlloc32() { return MemoryAlloc32_i(); }
 never_inline
 void  MemoryFree32_2(void *ptr)
 {
-	HeapMutexLock __;
-	MakeHeap()->Free32(ptr);
+	{
+		HeapMutexLock __;
+		MakeHeap()->Free32(ptr);
+	}
+#ifdef flagTIMING
+	if(ptr && TimingManager::IsMemoryEventCollectionActive())
+		TimingManager::Global().RecordMemoryFree(32);
+#endif
 }
 
 force_inline
@@ -609,6 +662,10 @@ void  MemoryFree32_i(void *ptr)
 		heap->Free32(ptr);
 	else
 		MemoryFree32_2(ptr);
+#ifdef flagTIMING
+	if(ptr && heap && TimingManager::IsMemoryEventCollectionActive())
+		TimingManager::Global().RecordMemoryFree(32);
+#endif
 }
 
 void  MemoryFree32(void *ptr) { MemoryFree32_i(ptr); }

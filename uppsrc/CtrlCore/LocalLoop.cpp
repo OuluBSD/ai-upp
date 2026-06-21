@@ -9,6 +9,7 @@ namespace Upp {
 void LocalLoop::Run()
 {
 	ASSERT(master);
+	TimingScope timing("LocalLoop::Run");
 	master->AddChild(this);
 	SizePos();
 	Ptr<Ctrl> focus = GetFocusCtrl();

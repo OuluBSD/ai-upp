@@ -268,7 +268,6 @@ void AutomationBar::Separator() {}
 
 void GuiAutomationVisitor::Read(Ctrl& c)
 {
-	Cout() << "GuiAutomation READ: " << c.GetLayoutId() << "\n";
 	elements.Clear();
 	automation_items.Clear();
 	synthetic_id = 0;
@@ -385,7 +384,6 @@ void GuiAutomationVisitor::Walk(Ctrl& c, bool parent_visible)
 
 bool GuiAutomationVisitor::Write(Ctrl& c, const String& path, const ::Upp::Value& val, bool do_action)
 {
-	Cout() << "GuiAutomation WRITE: " << path << " action=" << do_action << "\n";
 	write_mode = true;
 	target_path = path;
 	target_value = val;

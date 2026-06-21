@@ -18,6 +18,7 @@ static void sCheckGuiLock()
 void Ctrl::RefreshFrame(const Rect& r) {
 	sCheckGuiLock();
 	GuiLock __; // Beware: Even if we have ThreadHasGuiLock ASSERT, we still can be the main thread!
+	TimingScope timing("Ctrl::RefreshFrame");
 	if(!IsOpen() || !IsVisible() || r.IsEmpty())
 		return;
 	LTIMING("RefreshFrame");
@@ -279,6 +280,7 @@ struct sDrawLevelCheck {
 void Ctrl::CtrlPaint(SystemDraw& w, const Rect& clip) {
 	GuiLock __;
 	LEVELCHECK(w, this);
+	TimingScope timing("Ctrl::CtrlPaint");
 	LTIMING("CtrlPaint");
 	LLOG("=== CtrlPaint " << UPP::Name(this) << ", clip: " << clip << ", rect: " << GetRect() << ", view: " << GetView());
 	Rect rect = GetRect().GetSize();
@@ -410,6 +412,7 @@ void Ctrl::ExcludeDHCtrls(SystemDraw& w, const Rect& r, const Rect& clip)
 void Ctrl::UpdateArea0(SystemDraw& draw, const Rect& clip, int backpaint)
 {
 	GuiLock __;
+	TimingScope timing("Ctrl::UpdateArea0");
 	LTIMING("UpdateArea");
 	LLOG("========== UPDATE AREA " << UPP::Name(this) << ", clip: " << clip << " ==========");
 	ExcludeDHCtrls(draw, GetRect().GetSize(), clip);

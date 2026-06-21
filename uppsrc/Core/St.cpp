@@ -220,6 +220,14 @@ bool Mutex::TryEnter()
 	return true;
 }
 
+void Mutex::Enter()
+{
+}
+
+void Mutex::Leave()
+{
+}
+
 /* Win32 RWMutex implementation by Chris Thomasson, cristom@comcast.net */
 
 void RWMutex::EnterWrite()
@@ -300,7 +308,10 @@ LazyUpdate::LazyUpdate()
 
 void SpinLock::Wait()
 {
-	
+}
+
+void SpinLock::Enter()
+{
 }
 
 bool StartAuxThread(auxthread_t (auxthread__ *fn)(void *ptr), void *ptr)

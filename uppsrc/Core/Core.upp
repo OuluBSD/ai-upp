@@ -85,9 +85,11 @@ file
 	FileMapping.h,
 	FileMapping.cpp,
 	Profile.h,
+	Timing.h,
 	Diag.h,
 	Log.cpp,
 	Debug.cpp,
+	Timing.cpp,
 	Util.h,
 	Ini.cpp,
 	StringsStream.cpp,
@@ -228,4 +230,3 @@ file
 	src.tpp,
 	srcimp.tpp,
 	Copying;
-

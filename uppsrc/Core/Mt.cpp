@@ -10,6 +10,32 @@ namespace Upp {
 
 #define LLOG(x)  // DLOG(x)
 
+#ifdef flagTIMING
+static inline bool TimingLockEvents()
+{
+	return TimingManager::IsLockEventCollectionActive();
+}
+
+static inline void TimingLockStart(bool& active, dword& start)
+{
+	active = TimingLockEvents();
+	if(active)
+		start = tmGetTime();
+}
+
+static inline void TimingLockWait(const char *label, bool active, dword start)
+{
+	if(active)
+		TimingManager::Global().RecordLockWait(label, tmGetTime() - start);
+}
+
+static inline void TimingLockHold(const char *label, dword start)
+{
+	if(start)
+		TimingManager::Global().RecordLockHold(label, tmGetTime() - start);
+}
+#endif
+
 static Mutex& sMutexLock()
 { // this is Mutex intended to synchronize initialization of other primitives
 	static Mutex m;
@@ -535,7 +561,17 @@ void Semaphore::Release(int n)
 
 bool Semaphore::Wait(int timeout_ms)
 {
-	return WaitForSingleObject(handle, timeout_ms < 0 ? INFINITE : timeout_ms) == WAIT_OBJECT_0;
+#ifdef flagTIMING
+	bool timing;
+	dword start = 0;
+	TimingLockStart(timing, start);
+#endif
+	bool ok = WaitForSingleObject(handle, timeout_ms < 0 ? INFINITE : timeout_ms) == WAIT_OBJECT_0;
+#ifdef flagTIMING
+	if(timing)
+		TimingManager::Global().RecordSemaphoreWait("Semaphore::Wait", tmGetTime() - start);
+#endif
+	return ok;
 }
 
 Semaphore::Semaphore()
@@ -552,18 +588,68 @@ Mutex& sMutexLock();
 
 bool Mutex::TryEnter()
 {
-	return TryEnterCriticalSection(&section);
+	bool ok = TryEnterCriticalSection(&section);
+#ifdef flagPROFILEMT
+	mti->locked += ok;
+#endif
+#ifdef flagTIMING
+	if(ok && TimingLockEvents())
+		timing_enter_time = tmGetTime();
+#endif
+	return ok;
+}
+
+void Mutex::Enter()
+{
+	if(TryEnter())
+		return;
+#ifdef flagPROFILEMT
+	mti->blocked++;
+#endif
+#ifdef flagTIMING
+	bool timing;
+	dword start = 0;
+	TimingLockStart(timing, start);
+#endif
+	EnterCriticalSection(&section);
+#ifdef flagPROFILEMT
+	mti->locked++;
+#endif
+#ifdef flagTIMING
+	timing_enter_time = timing ? tmGetTime() : 0;
+	TimingLockWait("Mutex::Enter", timing, start);
+#endif
+}
+
+void Mutex::Leave()
+{
+#ifdef flagTIMING
+	dword start = timing_enter_time;
+	timing_enter_time = 0;
+#endif
+	LeaveCriticalSection(&section);
+#ifdef flagTIMING
+	TimingLockHold("Mutex::Leave", start);
+#endif
 }
 
 /* Win32 RWMutex implementation by Chris Thomasson, cristom@comcast.net */
 
 void RWMutex::EnterWrite()
 {
+#ifdef flagTIMING
+	bool timing;
+	dword start = 0;
+	TimingLockStart(timing, start);
+#endif
 	EnterCriticalSection ( &m_wrlock );
 	LONG count = InterlockedExchangeAdd(&m_count, -LONG_MAX);
 	if(count < LONG_MAX)
 		if(InterlockedExchangeAdd ( &m_rdwake, LONG_MAX - count ) + LONG_MAX - count )
 			WaitForSingleObject ( m_wrwset, INFINITE );
+#ifdef flagTIMING
+	TimingLockWait("RWMutex::EnterWrite", timing, start);
+#endif
 }
 
 void RWMutex::LeaveWrite()
@@ -576,9 +662,17 @@ void RWMutex::LeaveWrite()
 
 void RWMutex::EnterRead()
 {
+#ifdef flagTIMING
+	bool timing;
+	dword start = 0;
+	TimingLockStart(timing, start);
+#endif
 	LONG count = InterlockedDecrement ( &m_count );
 	if(count < 0)
 		WaitForSingleObject ( m_rdwset, INFINITE );
+#ifdef flagTIMING
+	TimingLockWait("RWMutex::EnterRead", timing, start);
+#endif
 }
 
 void RWMutex::LeaveRead()
@@ -685,6 +779,53 @@ ConditionVariable::~ConditionVariable()
 
 #ifdef PLATFORM_POSIX
 
+bool Mutex::TryEnter()
+{
+	bool ok = pthread_mutex_trylock(mutex) == 0;
+#ifdef flagPROFILEMT
+	mti->locked += ok;
+#endif
+#ifdef flagTIMING
+	if(ok && TimingLockEvents())
+		timing_enter_time = tmGetTime();
+#endif
+	return ok;
+}
+
+void Mutex::Enter()
+{
+	if(TryEnter())
+		return;
+#ifdef flagPROFILEMT
+	mti->blocked++;
+#endif
+#ifdef flagTIMING
+	bool timing;
+	dword start = 0;
+	TimingLockStart(timing, start);
+#endif
+	pthread_mutex_lock(mutex);
+#ifdef flagPROFILEMT
+	mti->locked++;
+#endif
+#ifdef flagTIMING
+	timing_enter_time = timing ? tmGetTime() : 0;
+	TimingLockWait("Mutex::Enter", timing, start);
+#endif
+}
+
+void Mutex::Leave()
+{
+#ifdef flagTIMING
+	dword start = timing_enter_time;
+	timing_enter_time = 0;
+#endif
+	pthread_mutex_unlock(mutex);
+#ifdef flagTIMING
+	TimingLockHold("Mutex::Leave", start);
+#endif
+}
+
 Mutex::Mutex()
 {
 	pthread_mutexattr_t mutex_attr[1];
@@ -704,6 +845,42 @@ RWMutex::RWMutex()
 RWMutex::~RWMutex()
 {
 	pthread_rwlock_destroy(rwlock);
+}
+
+void RWMutex::EnterWrite()
+{
+#ifdef flagTIMING
+	bool timing;
+	dword start = 0;
+	TimingLockStart(timing, start);
+#endif
+	pthread_rwlock_wrlock(rwlock);
+#ifdef flagTIMING
+	TimingLockWait("RWMutex::EnterWrite", timing, start);
+#endif
+}
+
+void RWMutex::LeaveWrite()
+{
+	pthread_rwlock_unlock(rwlock);
+}
+
+void RWMutex::EnterRead()
+{
+#ifdef flagTIMING
+	bool timing;
+	dword start = 0;
+	TimingLockStart(timing, start);
+#endif
+	pthread_rwlock_rdlock(rwlock);
+#ifdef flagTIMING
+	TimingLockWait("RWMutex::EnterRead", timing, start);
+#endif
+}
+
+void RWMutex::LeaveRead()
+{
+	pthread_rwlock_unlock(rwlock);
 }
 
 #ifdef PLATFORM_OSX
@@ -744,8 +921,18 @@ void Semaphore::Release()
 
 bool Semaphore::Wait(int timeout_ms)
 {
-	return dispatch_semaphore_wait(sem, timeout_ms < 0 ? DISPATCH_TIME_FOREVER
+#ifdef flagTIMING
+	bool timing;
+	dword start = 0;
+	TimingLockStart(timing, start);
+#endif
+	bool ok = dispatch_semaphore_wait(sem, timeout_ms < 0 ? DISPATCH_TIME_FOREVER
 	                                    : dispatch_time(DISPATCH_TIME_NOW, 1000000 * timeout_ms)) == 0;
+#ifdef flagTIMING
+	if(timing)
+		TimingManager::Global().RecordSemaphoreWait("Semaphore::Wait", tmGetTime() - start);
+#endif
+	return ok;
 }
 
 Semaphore::Semaphore()
@@ -767,9 +954,19 @@ void Semaphore::Release()
 
 bool Semaphore::Wait(int timeout_ms)
 {
+#ifdef flagTIMING
+	bool timing;
+	dword start = 0;
+	TimingLockStart(timing, start);
+#endif
+	bool ok;
 	if(timeout_ms < 0) {
-		sem_wait(&sem);
-		return true;
+		ok = sem_wait(&sem) == 0;
+#ifdef flagTIMING
+		if(timing)
+			TimingManager::Global().RecordSemaphoreWait("Semaphore::Wait", tmGetTime() - start);
+#endif
+		return ok;
 	}
 	struct timespec until;
 	clock_gettime(CLOCK_REALTIME, &until);
@@ -780,7 +977,12 @@ bool Semaphore::Wait(int timeout_ms)
 	until.tv_sec += until.tv_nsec / 1000000000;
 	until.tv_nsec %= 1000000000;
 	
-	return sem_timedwait(&sem,&until) != -1;
+	ok = sem_timedwait(&sem,&until) != -1;
+#ifdef flagTIMING
+	if(timing)
+		TimingManager::Global().RecordSemaphoreWait("Semaphore::Wait", tmGetTime() - start);
+#endif
+	return ok;
 }
 
 Semaphore::Semaphore()
@@ -827,6 +1029,11 @@ LazyUpdate::LazyUpdate()
 
 void SpinLock::Wait()
 {
+#ifdef flagTIMING
+	bool timing;
+	dword start = 0;
+	TimingLockStart(timing, start);
+#endif
 	volatile int n = 0;
 	while(locked) {
 	#ifdef CPU_X86
@@ -836,6 +1043,16 @@ void SpinLock::Wait()
 		if(n > 500)
 			Sleep(0);
 	}
+#ifdef flagTIMING
+	if(timing)
+		TimingManager::Global().RecordSpinWait("SpinLock::Wait", tmGetTime() - start);
+#endif
+}
+
+void SpinLock::Enter()
+{
+	while(!TryEnter())
+		Wait();
 }
 
 bool StartAuxThread(auxthread_t (auxthread__ *fn)(void *ptr), void *ptr)

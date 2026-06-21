@@ -46,7 +46,7 @@ JMESSAGE(JERR_BAD_BUFFER_MODE, "Bogus buffer control mode")
 JMESSAGE(JERR_BAD_COMPONENT_ID, "Invalid component ID %d in SOS")
 JMESSAGE(JERR_BAD_CROP_SPEC, "Invalid crop request")
 JMESSAGE(JERR_BAD_DCT_COEF, "DCT coefficient out of range")
-JMESSAGE(JERR_BAD_DCTSIZE, "DCT scaled block size %dx%d not supported")
+JMESSAGE(JERR_BAD_DCTSIZE, "DCT scaled block size %d`x%d not supported")
 JMESSAGE(JERR_BAD_DROP_SAMPLING,
 	 "Component index %d: mismatching sampling ratio %d:%d, %d:%d, %c")
 JMESSAGE(JERR_BAD_HUFF_TABLE, "Bogus Huffman table definition")
@@ -138,7 +138,7 @@ JMESSAGE(JTRC_EMS_CLOSE, "Freed EMS handle %u")
 JMESSAGE(JTRC_EMS_OPEN, "Obtained EMS handle %u")
 JMESSAGE(JTRC_EOI, "End Of Image")
 JMESSAGE(JTRC_HUFFBITS, "        %3d %3d %3d %3d %3d %3d %3d %3d")
-JMESSAGE(JTRC_JFIF, "JFIF APP0 marker: version %d.%02d, density %dx%d  %d")
+JMESSAGE(JTRC_JFIF, "JFIF APP0 marker: version %d.%02d, density %d`x%d  %d")
 JMESSAGE(JTRC_JFIF_BADTHUMBNAILSIZE,
 	 "Warning: thumbnail image size does not match data length %u")
 JMESSAGE(JTRC_JFIF_EXTENSION,

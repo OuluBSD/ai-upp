@@ -42,7 +42,10 @@ protected:
 	void AndExpr();
 	void NotExpr();
 	void Comparison();
+	void BitOrExpr();
+	void BitXorExpr();
 	void BitAndExpr();
+	void ShiftExpr();
 	void AddExpr();
 	void MulExpr();
 	void UnaryExpr();

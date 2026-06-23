@@ -2658,6 +2658,17 @@ bool PyVM::Step()
 			Push(list);
 			break;
 		}
+
+		case PY_BUILD_SET: {
+			int n = instr.iarg;
+			PyValue set = PyValue::Set();
+			Vector<PyValue> items;
+			for(int i = 0; i < n; i++) items.Add(Pop());
+			for(int i = n - 1; i >= 0; i--)
+				set.Add(items[i]);
+			Push(set);
+			break;
+		}
 		
 		case PY_BUILD_TUPLE: {
 			int n = instr.iarg;
@@ -2798,6 +2809,72 @@ bool PyVM::Step()
 			else {
 				throw Exc("TypeError: unsupported operand type(s) for &: '" + String(PyTypeName(a.GetType())) + "' and '" + String(PyTypeName(b.GetType())) + "'");
 			}
+			break;
+		}
+
+		case PY_BINARY_OR: {
+			PyValue b = Pop();
+			PyValue a = Pop();
+			if(a.GetType() == PY_SET && b.GetType() == PY_SET) {
+				PyValue result = PyValue::Set();
+				const Index<PyValue>& sa = a.GetSet();
+				const Index<PyValue>& sb = b.GetSet();
+				for(int i = 0; i < sa.GetCount(); i++)
+					result.Add(sa[i]);
+				for(int i = 0; i < sb.GetCount(); i++)
+					result.Add(sb[i]);
+				Push(result);
+			}
+			else if((a.IsInt() || a.IsBool()) && (b.IsInt() || b.IsBool())) {
+				Push(PyValue(a.AsInt64() | b.AsInt64()));
+			}
+			else {
+				throw Exc("TypeError: unsupported operand type(s) for |: '" + String(PyTypeName(a.GetType())) + "' and '" + String(PyTypeName(b.GetType())) + "'");
+			}
+			break;
+		}
+
+		case PY_BINARY_XOR: {
+			PyValue b = Pop();
+			PyValue a = Pop();
+			if(a.GetType() == PY_SET && b.GetType() == PY_SET) {
+				PyValue result = PyValue::Set();
+				const Index<PyValue>& sa = a.GetSet();
+				const Index<PyValue>& sb = b.GetSet();
+				for(int i = 0; i < sa.GetCount(); i++)
+					if(!b.Contains(sa[i]))
+						result.Add(sa[i]);
+				for(int i = 0; i < sb.GetCount(); i++)
+					if(!a.Contains(sb[i]))
+						result.Add(sb[i]);
+				Push(result);
+			}
+			else if((a.IsInt() || a.IsBool()) && (b.IsInt() || b.IsBool())) {
+				Push(PyValue(a.AsInt64() ^ b.AsInt64()));
+			}
+			else {
+				throw Exc("TypeError: unsupported operand type(s) for ^: '" + String(PyTypeName(a.GetType())) + "' and '" + String(PyTypeName(b.GetType())) + "'");
+			}
+			break;
+		}
+
+		case PY_LSHIFT: {
+			PyValue b = Pop();
+			PyValue a = Pop();
+			if((a.IsInt() || a.IsBool()) && (b.IsInt() || b.IsBool()))
+				Push(PyValue(a.AsInt64() << b.AsInt64()));
+			else
+				throw Exc("TypeError: unsupported operand type(s) for <<: '" + String(PyTypeName(a.GetType())) + "' and '" + String(PyTypeName(b.GetType())) + "'");
+			break;
+		}
+
+		case PY_RSHIFT: {
+			PyValue b = Pop();
+			PyValue a = Pop();
+			if((a.IsInt() || a.IsBool()) && (b.IsInt() || b.IsBool()))
+				Push(PyValue(a.AsInt64() >> b.AsInt64()));
+			else
+				throw Exc("TypeError: unsupported operand type(s) for >>: '" + String(PyTypeName(a.GetType())) + "' and '" + String(PyTypeName(b.GetType())) + "'");
 			break;
 		}
 		

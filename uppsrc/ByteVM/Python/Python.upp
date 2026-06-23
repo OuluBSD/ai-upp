@@ -22,5 +22,6 @@ file
 	test_lambda_debug.cpp,
 	test_assert.py,
 	test_minimal.py,
+	test_syntax.py,
 	test_set_ops.py,
 	test_dict_ops.py;

@@ -806,11 +806,20 @@ void PyCompiler::Statement()
 
 void PyCompiler::Expression()
 {
-	int start_of_a = Label();
-	OrExpr();
+	int start_of_a = ir.GetCount();
+	if(IsId() && pos + 1 < tokens.GetCount() && tokens[pos + 1].type == TK_WALRUS) {
+		String target = Peek().str_value;
+		Next(); // name
+		Next(); // :=
+		Expression();
+		Emit(PY_DUP_TOP);
+		EmitName(IsGlobalName(target) ? PY_STORE_GLOBAL : PY_STORE_NAME, target);
+	}
+	else {
+		OrExpr();
+	}
 	if(IsId("if")) {
 		Next();
-		
 		Vector<PyIR> a_ir;
 		for(int i = start_of_a; i < ir.GetCount(); i++)
 			a_ir.Add(ir[i]);
@@ -882,23 +891,23 @@ void PyCompiler::NotExpr()
 
 void PyCompiler::Comparison()
 {
-	BitAndExpr();
-	if(IsToken(TK_EQ)) { Next(); BitAndExpr(); Emit(PY_COMPARE_OP, PY_CMP_EQ); }
-	else if(IsToken(TK_INEQ)) { Next(); BitAndExpr(); Emit(PY_COMPARE_OP, PY_CMP_NE); }
-	else if(IsToken(TK_LESS)) { Next(); BitAndExpr(); Emit(PY_COMPARE_OP, PY_CMP_LT); }
-	else if(IsToken(TK_LSEQ)) { Next(); BitAndExpr(); Emit(PY_COMPARE_OP, PY_CMP_LE); }
-	else if(IsToken(TK_GREATER)) { Next(); BitAndExpr(); Emit(PY_COMPARE_OP, PY_CMP_GT); }
-	else if(IsToken(TK_GREQ)) { Next(); BitAndExpr(); Emit(PY_COMPARE_OP, PY_CMP_GE); }
-	else if(IsId("in")) { Next(); BitAndExpr(); Emit(PY_COMPARE_OP, PY_CMP_IN); }
+	BitOrExpr();
+	if(IsToken(TK_EQ)) { Next(); BitOrExpr(); Emit(PY_COMPARE_OP, PY_CMP_EQ); }
+	else if(IsToken(TK_INEQ)) { Next(); BitOrExpr(); Emit(PY_COMPARE_OP, PY_CMP_NE); }
+	else if(IsToken(TK_LESS)) { Next(); BitOrExpr(); Emit(PY_COMPARE_OP, PY_CMP_LT); }
+	else if(IsToken(TK_LSEQ)) { Next(); BitOrExpr(); Emit(PY_COMPARE_OP, PY_CMP_LE); }
+	else if(IsToken(TK_GREATER)) { Next(); BitOrExpr(); Emit(PY_COMPARE_OP, PY_CMP_GT); }
+	else if(IsToken(TK_GREQ)) { Next(); BitOrExpr(); Emit(PY_COMPARE_OP, PY_CMP_GE); }
+	else if(IsId("in")) { Next(); BitOrExpr(); Emit(PY_COMPARE_OP, PY_CMP_IN); }
 	else if(IsId("is")) {
 		Next();
 		if(IsId("not")) {
 			Next();
-			BitAndExpr();
+			BitOrExpr();
 			Emit(PY_COMPARE_OP, PY_CMP_IS_NOT);
 		}
 		else {
-			BitAndExpr();
+			BitOrExpr();
 			Emit(PY_COMPARE_OP, PY_CMP_IS);
 		}
 	}
@@ -906,7 +915,7 @@ void PyCompiler::Comparison()
 		Next();
 		if (IsId("in")) {
 			Next();
-			BitAndExpr();
+			BitOrExpr();
 			Emit(PY_COMPARE_OP, PY_CMP_NOT_IN);
 		} else {
 			// Backtrack
@@ -915,13 +924,44 @@ void PyCompiler::Comparison()
 	}
 }
 
+void PyCompiler::BitOrExpr()
+{
+	BitXorExpr();
+	while(IsToken(TK_OR)) {
+		Next();
+		BitXorExpr();
+		Emit(PY_BINARY_OR);
+	}
+}
+
+void PyCompiler::BitXorExpr()
+{
+	BitAndExpr();
+	while(IsToken(TK_ACCENT)) {
+		Next();
+		BitAndExpr();
+		Emit(PY_BINARY_XOR);
+	}
+}
+
 void PyCompiler::BitAndExpr()
 {
-	AddExpr();
+	ShiftExpr();
 	while(IsToken(TK_AMPERSAND)) {
 		Next();
-		AddExpr();
+		ShiftExpr();
 		Emit(PY_BINARY_AND);
+	}
+}
+
+void PyCompiler::ShiftExpr()
+{
+	AddExpr();
+	while(IsToken(TK_LSHIFT) || IsToken(TK_RSHIFT)) {
+		int op = Peek().type;
+		Next();
+		AddExpr();
+		Emit(op == TK_LSHIFT ? PY_LSHIFT : PY_RSHIFT);
 	}
 }
 
@@ -1322,91 +1362,172 @@ void PyCompiler::Atom()
 	}
 	else if(IsToken(TK_BRACKET_BEGIN)) {
 		Next();
-		int n = 0;
 		if(!IsToken(TK_BRACKET_END)) {
-			// Capture key IR
-			int key_start = ir.GetCount();
-			Expression(); // key
-			this->Expect(TK_COLON);
-			// Capture val IR
-			int val_start = ir.GetCount();
-			Expression(); // value
-			int val_end = ir.GetCount();
-			// Check for dict comprehension: {key: val for var in iterable}
-			if(IsId("for")) {
-				// Save key and val IR, reset
+			int first_start = ir.GetCount();
+			Expression();
+			int first_end = ir.GetCount();
+			Vector<PyIR> first_ir;
+			for(int ki = first_start; ki < first_end; ki++)
+				first_ir.Add(ir[ki]);
+			ir.SetCount(first_start);
+
+			if(IsToken(TK_COLON)) {
+				Next();
+				int val_start = ir.GetCount();
+				Expression();
+				int val_end = ir.GetCount();
 				Vector<PyIR> key_ir, val_ir;
-				for(int ki = key_start; ki < val_start; ki++) key_ir.Add(ir[ki]);
-				for(int ki = val_start; ki < val_end; ki++) val_ir.Add(ir[ki]);
-				ir.SetCount(key_start);
-				// Create empty dict and store in temp
-				Emit(PY_BUILD_MAP, 0);
-				EmitName(PY_STORE_NAME, "__dictcomp__");
-				Next(); // consume 'for'
-				// Support tuple unpacking: for a, b in iterable
-				Vector<String> lvars;
-				lvars.Add(Peek().str_value);
-				this->Expect(TK_ID);
-				while(IsToken(TK_COMMA)) {
-					Next();
-					if(IsId() && !IsId("in")) { lvars.Add(Peek().str_value); Next(); }
-				}
-				this->ExpectId("in");
-				OrExpr();
-				Emit(PY_GET_ITER);
-				int loop_start = Label();
-				int jump_end = Label();
-				Emit(PY_FOR_ITER, 0);
-				if(lvars.GetCount() == 1) {
-					EmitName(PY_STORE_NAME, lvars[0]);
-				} else {
-					EmitName(PY_STORE_NAME, "__for_unpack__");
-					for(int ti = 0; ti < lvars.GetCount(); ti++) {
-						EmitName(PY_LOAD_NAME, "__for_unpack__");
-						EmitConst(PyValue((int64)ti));
-						Emit(PY_BINARY_SUBSCR);
-						EmitName(PY_STORE_NAME, lvars[ti]);
+				for(int ki = 0; ki < first_ir.GetCount(); ki++)
+					key_ir.Add(first_ir[ki]);
+				for(int ki = val_start; ki < val_end; ki++)
+					val_ir.Add(ir[ki]);
+				ir.SetCount(first_start);
+				if(IsId("for")) {
+					Emit(PY_BUILD_MAP, 0);
+					EmitName(PY_STORE_NAME, "__dictcomp__");
+					Next(); // consume 'for'
+					Vector<String> lvars;
+					lvars.Add(Peek().str_value);
+					this->Expect(TK_ID);
+					while(IsToken(TK_COMMA)) {
+						Next();
+						if(IsId() && !IsId("in")) { lvars.Add(Peek().str_value); Next(); }
 					}
-				}
-				// Body: __dictcomp__[key] = val
-				// STORE_SUBSCR pops: val(TOS), key(TOS1), dict(TOS2)
-				auto emit_body = [&]() {
+					this->ExpectId("in");
+					OrExpr();
+					Emit(PY_GET_ITER);
+					int loop_start = Label();
+					int jump_end = Label();
+					Emit(PY_FOR_ITER, 0);
+					if(lvars.GetCount() == 1) {
+						EmitName(PY_STORE_NAME, lvars[0]);
+					} else {
+						EmitName(PY_STORE_NAME, "__for_unpack__");
+						for(int ti = 0; ti < lvars.GetCount(); ti++) {
+							EmitName(PY_LOAD_NAME, "__for_unpack__");
+							EmitConst(PyValue((int64)ti));
+							Emit(PY_BINARY_SUBSCR);
+							EmitName(PY_STORE_NAME, lvars[ti]);
+						}
+					}
+					auto emit_body = [&]() {
+						EmitName(PY_LOAD_NAME, "__dictcomp__");
+						for(const auto& ins : key_ir) ir.Add(ins);
+						for(const auto& ins : val_ir) ir.Add(ins);
+						Emit(PY_STORE_SUBSCR);
+					};
+					if(IsId("if")) {
+						Next();
+						Expression();
+						int skip = Label();
+						Emit(PY_POP_JUMP_IF_FALSE, 0);
+						emit_body();
+						Patch(skip, Label());
+					}
+					else
+						emit_body();
+					Emit(PY_JUMP_ABSOLUTE, loop_start);
+					Patch(jump_end, Label());
+					this->Expect(TK_BRACKET_END);
 					EmitName(PY_LOAD_NAME, "__dictcomp__");
-					for(auto& ins : key_ir) ir.Add(ins);
-					for(auto& ins : val_ir) ir.Add(ins);
-					Emit(PY_STORE_SUBSCR);
-				};
-				if(IsId("if")) {
-					Next();
-					Expression();
-					int skip = Label();
-					Emit(PY_POP_JUMP_IF_FALSE, 0);
-					emit_body();
-					Patch(skip, Label());
-				} else {
-					emit_body();
 				}
-				Emit(PY_JUMP_ABSOLUTE, loop_start);
-				Patch(jump_end, Label());
-				this->Expect(TK_BRACKET_END);
-				// Leave dict on stack
-				EmitName(PY_LOAD_NAME, "__dictcomp__");
-			} else {
-				n = 1;
-				while(IsToken(TK_COMMA)) {
-					Next();
-					if(IsToken(TK_BRACKET_END)) break;
-					Expression(); // key
-					this->Expect(TK_COLON);
-					Expression(); // value
-					n++;
+				else {
+					int n = 1;
+					for(const auto& ins : key_ir)
+						ir.Add(ins);
+					for(const auto& ins : val_ir)
+						ir.Add(ins);
+					while(IsToken(TK_COMMA)) {
+						Next();
+						if(IsToken(TK_BRACKET_END))
+							break;
+						Expression();
+						this->Expect(TK_COLON);
+						Expression();
+						n++;
+					}
+					this->Expect(TK_BRACKET_END);
+					Emit(PY_BUILD_MAP, n);
 				}
-				this->Expect(TK_BRACKET_END);
-				Emit(PY_BUILD_MAP, n);
+			}
+			else {
+				if(IsId("for")) {
+					Next(); // consume 'for'
+					Emit(PY_BUILD_SET, 0);
+					EmitName(PY_STORE_NAME, "__setcomp__");
+					Vector<String> lvars;
+					lvars.Add(Peek().str_value);
+					this->Expect(TK_ID);
+					while(IsToken(TK_COMMA)) {
+						Next();
+						if(IsId() && !IsId("in")) { lvars.Add(Peek().str_value); Next(); }
+					}
+					this->ExpectId("in");
+					OrExpr();
+					Emit(PY_GET_ITER);
+					int loop_start = Label();
+					int jump_end = Label();
+					Emit(PY_FOR_ITER, 0);
+					if(lvars.GetCount() == 1) {
+						EmitName(PY_STORE_NAME, lvars[0]);
+					} else {
+						EmitName(PY_STORE_NAME, "__for_unpack__");
+						for(int ti = 0; ti < lvars.GetCount(); ti++) {
+							EmitName(PY_LOAD_NAME, "__for_unpack__");
+							EmitConst(PyValue((int64)ti));
+							Emit(PY_BINARY_SUBSCR);
+							EmitName(PY_STORE_NAME, lvars[ti]);
+						}
+					}
+					auto emit_body = [&]() {
+						EmitName(PY_LOAD_NAME, "__setcomp__");
+						EmitName(PY_LOAD_ATTR, "add");
+						for(const auto& ins : first_ir)
+							ir.Add(ins);
+						Emit(PY_CALL_FUNCTION, 1);
+						Emit(PY_POP_TOP);
+					};
+					if(IsId("if")) {
+						Next();
+						Expression();
+						int skip = Label();
+						Emit(PY_POP_JUMP_IF_FALSE, 0);
+						emit_body();
+						Patch(skip, Label());
+					}
+					else
+						emit_body();
+					Emit(PY_JUMP_ABSOLUTE, loop_start);
+					Patch(jump_end, Label());
+					this->Expect(TK_BRACKET_END);
+					EmitName(PY_LOAD_NAME, "__setcomp__");
+				}
+				else {
+					int n = 1;
+					for(const auto& ins : first_ir)
+						ir.Add(ins);
+					while(IsToken(TK_COMMA)) {
+						Next();
+						if(IsToken(TK_BRACKET_END))
+							break;
+						int item_start = ir.GetCount();
+						Expression();
+						int item_end = ir.GetCount();
+						Vector<PyIR> item_ir;
+						for(int ki = item_start; ki < item_end; ki++)
+							item_ir.Add(ir[ki]);
+						ir.SetCount(item_start);
+						for(const auto& ins : item_ir)
+							ir.Add(ins);
+						n++;
+					}
+					this->Expect(TK_BRACKET_END);
+					Emit(PY_BUILD_SET, n);
+				}
 			}
 		} else {
 			this->Expect(TK_BRACKET_END);
-			Emit(PY_BUILD_MAP, n);
+			Emit(PY_BUILD_MAP, 0);
 		}
 	}
 	else {

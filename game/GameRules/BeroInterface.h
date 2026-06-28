@@ -1,7 +1,6 @@
 #ifndef _CardEngine_BeroInterface_h_
 #define _CardEngine_BeroInterface_h_
 
-#include <CFR/CFR.h>
 #include <GameRules/EngineDefs.h>
 #include <GameRules/GameDefs.h>
 

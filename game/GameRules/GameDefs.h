@@ -3,6 +3,12 @@
 
 #include <Core/Core.h>
 
+#ifdef PLATFORM_WIN32
+#ifndef FAR
+#define FAR
+#endif
+#endif
+
 #ifndef _WIN32
 #include <sys/socket.h>
 #include <netinet/in.h>
@@ -206,9 +212,7 @@ private:
 #define NTF_NET_JOIN_NO_SPECTATORS		221
 
 enum AiBackend {
-	AI_BACKEND_POKERTH = 0,
-	AI_BACKEND_LLM_IMITATION = 1,
-	AI_BACKEND_LLM_CFR = 2
+	AI_BACKEND_POKERTH = 0
 };
 
 enum ServerMode {

@@ -1,10 +1,22 @@
-#include <StrategyBridge/StrategyBridge.h>
 #include <EditorCommon/Scripting.h>
 #include <GameRules/EngineDefs.h>
 #include <Poker/ServerListSim.h>
-#include <ConvNet/ConvNet.h>
+
+namespace Upp {
+inline void SB_InitStrategy(void*& eval_ptr, void*& strategy_ptr) {}
+inline String SB_GetStrategyAdvice(const Vector<int>& hole, const Vector<int>& board, int pot, const Vector<byte>& history, void* strategy_ptr, Vector<double>& probs) {
+	probs.SetCount(3, 0.0);
+	return "fold";
+}
+}
+
 #ifdef PLATFORM_WIN32
+#define CY win32_CY_
+#define FAR win32_FAR_
 #include <windows.h>
+#undef CY
+#undef FAR
+#define FAR
 #else
 #include <dlfcn.h>
 #endif
@@ -918,249 +930,22 @@ static TessRuntime& GetTessRuntime() {
 	return rt;
 }
 
-struct ConvNetModelRuntime {
-	bool loaded = false;
-	String load_status;
-	int width = 0;
-	int height = 0;
-	int depth = 3;
-	Vector<String> classes;
-	ConvNet::Session session;
-};
-
-static ConvNetModelRuntime& SuitRuntime() {
-	static ConvNetModelRuntime suit;
-	return suit;
-}
-
-static ConvNetModelRuntime& RankRuntime() {
-	static ConvNetModelRuntime rank;
-	return rank;
-}
-
-static ConvNetModelRuntime& SelectConvNetRuntime(const String& tag) {
-	if (tag == "suit")
-		return SuitRuntime();
-	return RankRuntime();
-}
-
-static void ResetConvNetRuntime(ConvNetModelRuntime& rt) {
-	rt.loaded = false;
-	rt.load_status.Clear();
-	rt.width = 0;
-	rt.height = 0;
-	rt.depth = 3;
-	rt.classes.Clear();
-	rt.session.Clear();
-}
-
-static void ResetConvNetRuntimeCaches() {
-	ResetConvNetRuntime(SuitRuntime());
-	ResetConvNetRuntime(RankRuntime());
-}
-
-static String GetConvNetModelRoot() {
-	String root = g_convnet_model_dir;
-	if (root.IsEmpty()) {
-		String env_dir = GetEnv("SCREENGAME_CONVNET_MODEL_DIR");
-		if (!env_dir.IsEmpty())
-			root = env_dir;
-	}
-	if (root.IsEmpty())
-		root = AppendFileName(AppendFileName(GetCurrentDirectory(), "tmp"), "convnet_models");
-	else if (!IsFullPath(root))
-		root = AppendFileName(GetCurrentDirectory(), root);
-	return root;
-}
 static PyValue builtin_set_convnet_model_dir(const Vector<PyValue>& args, void*) {
 	if (args.GetCount() < 1)
 		return PyValue::None();
 	g_convnet_model_dir = TrimBoth(args[0].ToString());
-	ResetConvNetRuntimeCaches();
 	if (g_script)
 		g_script->TraceApi("set_convnet_model_dir(" + g_convnet_model_dir + ")");
 	return PyValue::None();
 }
 
-static bool LoadConvNetModel(const String& tag, ConvNetModelRuntime& rt) {
-	if (rt.loaded)
-		return true;
-	rt.loaded = false;
-	String root = GetConvNetModelRoot();
-	String info_path = AppendFileName(root, tag + ".model.json");
-	String bin_path = AppendFileName(root, tag + ".model.bin");
-	if (!FileExists(info_path) || !FileExists(bin_path)) {
-		info_path = AppendFileName(root, tag + ".json");
-		bin_path = AppendFileName(root, tag + ".bin");
-	}
-	if (!FileExists(info_path) || !FileExists(bin_path)) {
-		rt.load_status = "model_missing";
-		return false;
-	}
-	try {
-		Value v = ParseJSON(LoadFile(info_path));
-		ValueMap m = v;
-		int qi = m.Find("width");
-		int qj = m.Find("height");
-		if (qi >= 0) rt.width = (int)m.GetValue(qi);
-		if (qj >= 0) rt.height = (int)m.GetValue(qj);
-		int qd = m.Find("depth");
-		if (qd >= 0) rt.depth = (int)m.GetValue(qd);
-		int qc = m.Find("classes");
-		if (qc >= 0) {
-			ValueArray a = m.GetValue(qc);
-			rt.classes.SetCount(a.GetCount());
-			for (int i = 0; i < a.GetCount(); i++)
-				rt.classes[i] = AsString(a[i]);
-		}
-	}
-	catch (...) {
-		rt.load_status = "model_info_parse_failed";
-		return false;
-	}
-	if (rt.width <= 0 || rt.height <= 0 || rt.depth <= 0 || rt.classes.IsEmpty()) {
-		rt.load_status = "model_info_invalid";
-		return false;
-	}
-	FileIn in(bin_path);
-	if (!in.IsOpen()) {
-		rt.load_status = "model_bin_open_failed";
-		return false;
-	}
-	in % rt.session;
-	if (in.IsError()) {
-		rt.load_status = "model_bin_load_failed";
-		return false;
-	}
-	rt.loaded = true;
-	rt.load_status = "ok";
-	return true;
-}
-
-static void FillConvNetInput(const Image& patch, ConvNet::Volume& x, int out_w, int out_h) {
-	const int src_w = patch.GetWidth();
-	const int src_h = patch.GetHeight();
-	double scale_x = (double)src_w / out_w;
-	double scale_y = (double)src_h / out_h;
-	int out_d = x.GetDepth();
-	for (int y = 0; y < out_h; y++) {
-		for (int xx = 0; xx < out_w; xx++) {
-			int sx = min((int)(xx * scale_x), src_w - 1);
-			int sy = min((int)(y * scale_y), src_h - 1);
-			const RGBA& p = patch[sy][sx];
-			double gray = (double)Grayscale(p) / 255.0 - 0.5;
-			for (int d = 0; d < out_d; d++)
-				x.Set(xx, y, d, gray);
-		}
-	}
-}
-
-static Vector<String> ParseLabelFilter(const PyValue& v) {
-	Vector<String> out;
-	if (v.GetType() == PY_LIST || v.GetType() == PY_TUPLE) {
-		for (int i = 0; i < v.GetCount(); i++) {
-			String s = TrimBoth(v.GetItem(i).ToString());
-			if (!s.IsEmpty())
-				out.Add(s);
-		}
-	}
-	return out;
-}
-
-static String FormatTopAlternatives(const Vector<String>& cls, const ConvNet::Volume& outv, int n = 3) {
-	Vector<int> idx;
-	for (int i = 0; i < outv.GetLength(); i++)
-		idx.Add(i);
-	Sort(idx, [&](int a, int b) { return outv.Get(a) > outv.Get(b); });
-	String out;
-	for (int i = 0; i < min(n, idx.GetCount()); i++) {
-		if (i) out << ",";
-		int k = idx[i];
-		String lb = (k >= 0 && k < cls.GetCount()) ? cls[k] : AsString(k);
-		out << lb << ":" << Format("%.6f", outv.Get(k));
-	}
-	return out;
-}
-
 static PyValue builtin_classify_convnet(const Vector<PyValue>& args, void*) {
 	PyValue out = PyValue::Dict();
-	if (!g_image || args.GetCount() < 5) {
-		out.SetItem(PyValue("label"), PyValue(""));
-		out.SetItem(PyValue("confidence"), PyValue(0.0));
-		out.SetItem(PyValue("method"), PyValue("convnet"));
-		out.SetItem(PyValue("status"), PyValue("bad_args"));
-		out.SetItem(PyValue("alternatives"), PyValue(""));
-		return out;
-	}
-	String tag = ToLower(TrimBoth(args[0].ToString()));
-	if (tag != "suit" && tag != "rank")
-		tag = "rank";
-	if (g_script)
-		g_script->TraceApi("classify_convnet(" + tag + ")");
-	Rect r;
-	if (!ParseRectArgs(args, 1, r)) {
-		out.SetItem(PyValue("label"), PyValue(""));
-		out.SetItem(PyValue("confidence"), PyValue(0.0));
-		out.SetItem(PyValue("method"), PyValue("convnet_" + tag));
-		out.SetItem(PyValue("status"), PyValue("bad_rect"));
-		out.SetItem(PyValue("alternatives"), PyValue(""));
-		return out;
-	}
-	Image patch = CropRectSafe(*g_image, r);
-	if (patch.IsEmpty()) {
-		out.SetItem(PyValue("label"), PyValue(""));
-		out.SetItem(PyValue("confidence"), PyValue(0.0));
-		out.SetItem(PyValue("method"), PyValue("convnet_" + tag));
-		out.SetItem(PyValue("status"), PyValue("empty_patch"));
-		out.SetItem(PyValue("alternatives"), PyValue(""));
-		return out;
-	}
-	ConvNetModelRuntime& rt = SelectConvNetRuntime(tag);
-	if (!LoadConvNetModel(tag, rt)) {
-		out.SetItem(PyValue("label"), PyValue(""));
-		out.SetItem(PyValue("confidence"), PyValue(0.0));
-		out.SetItem(PyValue("method"), PyValue("convnet_" + tag));
-		out.SetItem(PyValue("status"), PyValue(rt.load_status));
-		out.SetItem(PyValue("alternatives"), PyValue(""));
-		return out;
-	}
-	ConvNet::Volume x(rt.width, rt.height, 3, 0.0);
-	FillConvNetInput(patch, x, rt.width, rt.height);
-	ConvNet::Net& net = rt.session.GetNetwork();
-	ConvNet::Volume& pred = net.Forward(x, false);
-	Vector<String> filter;
-	if (args.GetCount() >= 6)
-		filter = ParseLabelFilter(args[5]);
-	Index<String> allowed;
-	for (const String& s : filter)
-		allowed.FindAdd(s);
-	int best_i = -1;
-	double best_v = -1;
-	for (int i = 0; i < pred.GetLength(); i++) {
-		String lb = (i < rt.classes.GetCount() ? rt.classes[i] : AsString(i));
-		if (allowed.GetCount() && allowed.Find(lb) < 0)
-			continue;
-		double v = pred.Get(i);
-		if (best_i < 0 || v > best_v) {
-			best_i = i;
-			best_v = v;
-		}
-	}
-	if (best_i < 0) {
-		for (int i = 0; i < pred.GetLength(); i++) {
-			double v = pred.Get(i);
-			if (best_i < 0 || v > best_v) {
-				best_i = i;
-				best_v = v;
-			}
-		}
-	}
-	String best_label = (best_i >= 0 && best_i < rt.classes.GetCount() ? rt.classes[best_i] : "");
-	out.SetItem(PyValue("label"), PyValue(best_label));
-	out.SetItem(PyValue("confidence"), PyValue(best_v < 0 ? 0.0 : best_v));
-	out.SetItem(PyValue("method"), PyValue("convnet_" + tag));
-	out.SetItem(PyValue("status"), PyValue(best_i >= 0 ? "ok" : "not_found"));
-	out.SetItem(PyValue("alternatives"), PyValue(FormatTopAlternatives(rt.classes, pred, 3)));
+	out.SetItem(PyValue("label"), PyValue(""));
+	out.SetItem(PyValue("confidence"), PyValue(0.0));
+	out.SetItem(PyValue("method"), PyValue("convnet"));
+	out.SetItem(PyValue("status"), PyValue("unsupported"));
+	out.SetItem(PyValue("alternatives"), PyValue(""));
 	return out;
 }
 

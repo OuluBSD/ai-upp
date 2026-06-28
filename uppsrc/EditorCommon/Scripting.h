@@ -11,7 +11,7 @@
 #ifdef False
 #undef False
 #endif
-#include <EditorCommon/Recognition.h>
+#include <EditorCommon/RecognitionData.h>
 
 namespace Upp {
 

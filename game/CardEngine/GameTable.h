@@ -1,0 +1,312 @@
+#ifndef _CardEngine_GameTable_h_
+#define _CardEngine_GameTable_h_
+
+#include <CtrlLib/CtrlLib.h>
+#include <memory>
+#include <GameRules/GuiInterface.h>
+#include <EditorCommon/GameTheme.h>
+#include "ScreenGameState.h"
+#include <EditorCommon/Scripting.h>
+
+NAMESPACE_UPP
+
+class BoardCtrl : public Ctrl {
+public:
+	Event<Draw&> WhenPaint;
+	BoardCtrl() { Transparent(); }
+	virtual void Paint(Draw& w) override {
+		WhenPaint(w);
+	}
+};
+
+class PlayerBgCtrl : public Ctrl {
+public:
+	bool isWinner = false;
+	virtual void Paint(Draw& w) override {
+		Size sz = GetSize();
+		w.DrawRect(sz, Black());
+		Color c = isWinner ? Color(0, 255, 0) : Color(0, 120, 0);
+		for(int y = 0; y < sz.cy; y += 2)
+			w.DrawRect(0, y, sz.cx, 1, c);
+		DrawFrame(w, 0, 0, sz.cx, sz.cy, isWinner ? Color(0, 255, 0) : Color(0, 180, 0));
+	}
+};
+
+class ActionButton : public Button {
+public:
+	Image img, img_h, img_p;
+	String shortcut;
+	ActionButton() { Transparent(); }
+	virtual void Paint(Draw& w) override {
+		Image i = img;
+		if (IsPush()) i = img_p;
+		else if (HasMouse()) i = img_h;
+		if (i.IsEmpty()) { Button::Paint(w); return; }
+		
+		Size sz = GetSize();
+		if (i.GetSize() == sz)
+			w.DrawImage(0, 0, i);
+		else
+			w.DrawImage(0, 0, Rescale(i, sz.cx, sz.cy));
+		
+		String lbl = GetLabel();
+		Font font = StdFont().Bold();
+		Vector<String> lines = Split(lbl, '\n');
+		int lineH = font.GetLineHeight();
+		int totalH = (int)lines.GetCount() * lineH;
+		int y = (sz.cy - totalH) / 2;
+		for(const String& s : lines) {
+			Size tsz = GetTextSize(s, font);
+			w.DrawText((sz.cx - tsz.cx) / 2, y, s, font, White());
+			y += lineH;
+		}
+		
+		if (!shortcut.IsEmpty()) {
+			Font sfont = StdFont(10).Bold();
+			Size stsz = GetTextSize(shortcut, sfont);
+			w.DrawText(sz.cx - stsz.cx - 4, sz.cy - stsz.cy - 2, shortcut, sfont, Gray());
+		}
+	}
+};
+
+class ScaledImageCtrl : public Ctrl {
+public:
+	Image img;
+	ScaledImageCtrl() { Transparent(); }
+	void SetImage(const Image& i) { img = i; Refresh(); }
+	virtual void Paint(Draw& w) override {
+		Size sz = GetSize();
+		if (!img.IsEmpty()) {
+			Size isz = img.GetSize();
+			if (isz.cx > 0 && isz.cy > 0) {
+				double r = fmin((double)sz.cx / isz.cx, (double)sz.cy / isz.cy);
+				int w1 = (int)(isz.cx * r);
+				int h1 = (int)(isz.cy * r);
+				if (w1 == isz.cx && h1 == isz.cy)
+					w.DrawImage((sz.cx - w1) / 2, (sz.cy - h1) / 2, img);
+				else
+					w.DrawImage((sz.cx - w1) / 2, (sz.cy - h1) / 2, Rescale(img, w1, h1));
+			}
+		}
+	}
+};
+
+class PlayerCtrl : public ParentCtrl {
+public:
+	PlayerBgCtrl bg;
+	ScaledImageCtrl label_Avatar;
+	Label label_PlayerName;
+	Label textLabel_Cash;
+	Label textLabel_Set;
+	ScaledImageCtrl pixmapLabel_carda;
+	ScaledImageCtrl pixmapLabel_cardb;
+	ScaledImageCtrl pixmapLabel_cards;
+	ScaledImageCtrl textLabel_Button;
+	ScaledImageCtrl actionPic;
+	StaticRect label_Timeout;
+
+	PlayerCtrl();
+	virtual void Layout() override;
+};
+
+class PokerChatCtrl : public ParentCtrl {
+public:
+	DocEdit chatHistory;
+	EditField chatInput;
+	Button btnSend;
+
+	PokerChatCtrl();
+	virtual void Layout() override;
+};
+
+class ProbabilityCtrl : public Ctrl {
+public:
+	struct Item {
+		String title;
+		double prob;
+	};
+	Array<Item> items;
+	
+	ProbabilityCtrl() {
+		const char* titles[] = {
+			"Royal Flush", "Straight Flush", "Four of a Kind", "Full House",
+			"Flush", "Straight", "Three of a Kind", "Two Pair", "One Pair", "Highest Card"
+		};
+		for(const char* t : titles) {
+			Item& it = items.Add();
+			it.title = t;
+			it.prob = 0.0;
+		}
+	}
+	
+	virtual void Paint(Draw& w) override {
+		Size sz = GetSize();
+		w.DrawRect(sz, Color(0, 60, 0));
+		int count = (int)items.GetCount();
+		if (count == 0) return;
+		int h = sz.cy / count;
+		for(int i = 0; i < count; i++) {
+			int y = i * h;
+			w.DrawText(5, y + (h - 15) / 2, items[i].title, StdFont().Bold(), White());
+			int barMaxW = sz.cx - 150;
+			int barW = (int)(barMaxW * items[i].prob);
+			if (barW > 0) {
+				for(int x = 0; x < barW; x++) {
+					Color c = Blend(Color(0, 0, 255), Color(255, 255, 0), (int)(255 * x / barMaxW));
+					w.DrawRect(100 + x, y + 5, 1, h - 10, c);
+				}
+			}
+			w.DrawText(sz.cx - 45, y + (h - 15) / 2, Format("%.1f%%", items[i].prob * 100), StdFont().Bold(), White());
+		}
+	}
+};
+
+class GameTable : public TopWindow, public GuiInterface {
+public:
+	typedef GameTable CLASSNAME;
+	GameTable();
+	virtual ~GameTable();
+
+	void SetGame(std::shared_ptr<class Game> game) override;
+
+	// GuiInterface implementation
+	virtual void initGui(int speed) override;
+	virtual void refreshGameLabels(TexasRound state) const override;
+	virtual void nextRoundCleanGui() override;
+	virtual void logNewGameHandMsg(int gameID, int HandID) override;
+	virtual void flushLogAtGame(int gameID) override;
+	virtual void logNewBlindsSetsMsg(int sbSet, int bbSet, String sbName, String bbName) override;
+	virtual void flushLogAtHand() override;
+	virtual void dealHoleCards() override;
+	virtual void refreshPot() override;
+	virtual void refreshSet() override;
+	virtual void nextPlayerAnimation() override;
+	virtual void flipHolecardsAllIn() override;
+	virtual void logDealBoardCardsMsg(int roundID, int card1, int card2, int card3, int card4 = -1, int card5 = -1) override;
+	virtual void refreshGroupbox(int playerID, int type) override;
+	virtual void preflopAnimation1() override;
+	virtual void flopAnimation1() override;
+	virtual void turnAnimation1() override;
+	virtual void riverAnimation1() override;
+	virtual void postRiverAnimation1() override;
+	virtual void logPlayerActionMsg(String playName, int action, int setValue) override;
+	virtual void logFlipHoleCardsMsg(String playerName, int card1, int card2, int cardsValueInt = -1, String showHas = "shows") override;
+	virtual void logWinningHandMsg(String playerName, String handName, int amount) override;
+	virtual void dealBeRoCards(TexasRound state) override;
+	virtual void beRoAnimation2(TexasRound state) override;
+	virtual void meInAction() override;
+	virtual void postRiverRunAnimation1() override;
+	virtual void refreshCash() override;
+	virtual void refreshAction(int playerID, int action) override;
+	virtual void SignalNetClientError(int errorId, int osErrorCode) override;
+
+	void SetRemoteState(const ScreenGameState& state);
+
+	void PaintBoard(Draw& w);
+	void RenderToImage(Draw& w);
+	void RenderNormalSnapshot(Draw& w);
+	bool DumpSnapshot(const String& path, bool image_mode);
+	void LoadTheme(const String& themeName);
+	void SetProjectContext(const String& project_name, const String& platform_name = "texas-holdem");
+	void UpdateProbabilities();
+	int GetActionDelayMs() const;
+	bool IsActionFlowPaused() const;
+	void SetScriptAutomationEnabled(bool enabled);
+	
+	virtual void Layout() override;
+	virtual void Paint(Draw& w) override;
+	virtual void Timer();
+
+private:
+	void MainMenu(Bar& bar);
+	void ViewMenu(Bar& bar);
+	void ShowMenu(Bar& bar);
+	void SettingsMenu(Bar& bar);
+	void ActionsMenu(Bar& bar);
+	
+	public: void OnViewNormal();
+	void OnViewImage();
+	void OnSaveScreenshot();
+	
+	void ToggleTab(TabCtrl& tab, Ctrl& pane, int index);
+	void OnSettings();
+	
+	void OnToggleFullScreen();
+	void OnToggleChat();
+	void OnToggleHands();
+	void OnToggleLog();
+	void OnToggleAway();
+	void OnToggleProbs();
+	void OnSpeedChange();
+	void OnNextPlayer();
+	void OnNextHand();
+	void OnPause();
+	void AppendLog(const String& s);
+	
+	void OnFold();
+	void OnCheckCall();
+	void OnBetRaise();
+	void OnAllIn();
+	void OnPot33();
+	void OnPot50();
+	void OnPot100();
+	void HideActionButtons();
+	void UpdateActionLabels();
+	void ApplyProjectThemeMetadata(const String& project_name, const String& platform_name);
+	void BuildThemeGameState(GameState& st) const;
+
+	bool m_imageMode = false;
+	bool m_scriptAutomationEnabled = false;
+	GameScript m_script;
+	String m_scriptProject = "default";
+	String m_scriptPlatform = "texas-holdem";
+	ThemeFile m_loadedTheme;
+	String m_themeProfile = "default";
+	Vector<String> m_gameLog;
+	
+	bool m_isPaused = false;
+	bool m_isFullScreen = false;
+	std::shared_ptr<class Game> m_game;
+	MenuBar menu;
+	
+	BoardCtrl board;
+	Label lblPotTitle, lblPotTotal, lblPotBets;
+	Label lblTurnTitle, lblGameInfo, lblHandInfo;
+	TabCtrl tabLeft, tabRight;
+	
+	ParentCtrl humanButtons;
+	ActionButton btnFold, btnCheckCall, btnBetRaise, btnAllIn;
+	ActionButton btnPot33, btnPot50, btnPot100;
+	EditInt editBet;
+	SliderCtrl sliderBet;
+	
+	Label lblSpeed;
+	SliderCtrl sliderSpeed;
+	Button btnPause;
+
+	PokerChatCtrl chatCtrl;
+	StaticRect handsImgPane;
+	ImageCtrl handsImg;
+	ProbabilityCtrl probCtrl;
+	
+	RichTextView engineLogView;
+	RichTextView awayLog;
+	
+	PlayerCtrl players[10];
+	int boardCards[5];
+	
+	Image tableImg;
+	Image puckDealer, puckSB, puckBB;
+	Image avatarDefault;
+	Image cardHolderFlop, cardHolderTurn, cardHolderRiver;
+	Image actionPics[10];
+	String currentCardTheme;
+	
+	Image GetCardImage(int card);
+	Image GetTransparentCard(int card, int alpha);
+	Image ApplyInterlacedTransparency(const Image& img);
+};
+
+END_UPP_NAMESPACE
+
+#endif

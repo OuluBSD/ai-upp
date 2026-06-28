@@ -1,0 +1,12 @@
+description "Unit test for TexasHoldem game package\377";
+
+uses
+	Core,
+	CardEvaluator,
+	TexasHoldem;
+
+file
+	TexasHoldemTest.cpp;
+
+mainconfig
+	"" = "CONSOLE";

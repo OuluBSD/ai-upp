@@ -79,6 +79,9 @@ cookie.txt
 .venv/
 .gemini/
 stdsrc/build/*.o
+stdsrc/build/build
+stdsrc/build/build.exe
+stdsrc/build/*.obj
 out/
 _out/
 uppsrc/umk.out

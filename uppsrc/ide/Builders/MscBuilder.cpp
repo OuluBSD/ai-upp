@@ -1039,6 +1039,8 @@ INITIALIZER(MscBuilder)
 	RegisterBuilder("MSC19X64", CreateMscBuilder);
 	RegisterBuilder("MSC22", CreateMscBuilder);
 	RegisterBuilder("MSC22X64", CreateMscBuilder);
+	RegisterBuilder("MSC26", CreateMscBuilder);
+	RegisterBuilder("MSC26X64", CreateMscBuilder);
 	RegisterBuilder("UWP_INTERNAL", CreateUwpInternalBuilder);
 	RegisterBuilder("EVC_ARM", CreateMscBuilder);
 	RegisterBuilder("EVC_MIPS", CreateMscBuilder);

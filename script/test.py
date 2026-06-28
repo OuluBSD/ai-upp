@@ -37,7 +37,7 @@ def main():
     for plugin_id in discover_plugin_ids():
         steps.append(
             ([str(REPO_ROOT / "bin" / "ScriptCLI"), "plugin", "test", plugin_id],
-             f"ScriptCLI plugin test: {plugin_id}")
+            f"ScriptCLI plugin test: {plugin_id}")
         )
 
     for cmd, description in steps:

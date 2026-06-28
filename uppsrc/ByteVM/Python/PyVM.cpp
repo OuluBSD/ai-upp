@@ -35,6 +35,110 @@ static inline void ReleaseStack(Vector<PyValue>& stack) {
 	stack.Shrink();
 }
 
+static bool IsPyFormatConv(char c)
+{
+	switch(c) {
+	case 's':
+	case 'r':
+	case 'd':
+	case 'i':
+	case 'u':
+	case 'f':
+	case 'F':
+	case 'g':
+	case 'G':
+	case 'e':
+	case 'E':
+	case 'c':
+		return true;
+	default:
+		return false;
+	}
+}
+
+static bool ParsePyFormatSpec(const String& fmt, int& i, int& precision, char& conv)
+{
+	const int n = fmt.GetCount();
+	int j = i + 1;
+	if(j >= n)
+		return false;
+	if(fmt[j] == '%') {
+		conv = '%';
+		i = j;
+		return true;
+	}
+	while(j < n) {
+		char c = fmt[j];
+		if(c == '-' || c == '+' || c == ' ' || c == '#' || c == '0')
+			j++;
+		else
+			break;
+	}
+	while(j < n && fmt[j] >= '0' && fmt[j] <= '9')
+		j++;
+	precision = -1;
+	if(j < n && fmt[j] == '.') {
+		precision = 0;
+		j++;
+		while(j < n && fmt[j] >= '0' && fmt[j] <= '9') {
+			precision = precision * 10 + (fmt[j] - '0');
+			j++;
+		}
+	}
+	while(j < n) {
+		char c = fmt[j];
+		if(c == 'h' || c == 'l' || c == 'L')
+			j++;
+		else
+			break;
+	}
+	if(j >= n)
+		return false;
+	conv = fmt[j];
+	if(!IsPyFormatConv(conv))
+		return false;
+	i = j;
+	return true;
+}
+
+static bool AppendPyFormat(String& out, const PyValue& value, char conv, int precision)
+{
+	if(conv == '%') {
+		out.Cat('%');
+		return true;
+	}
+	switch(conv) {
+	case 's':
+		out << value.ToString();
+		return true;
+	case 'r':
+		out << value.Repr();
+		return true;
+	case 'd':
+	case 'i':
+	case 'u':
+		out << IntStr64(value.AsInt64());
+		return true;
+	case 'f':
+	case 'F':
+		out << FormatF(value.AsDouble(), precision >= 0 ? precision : 6);
+		return true;
+	case 'g':
+	case 'G':
+		out << FormatG(value.AsDouble(), precision >= 0 ? precision : 6);
+		return true;
+	case 'e':
+	case 'E':
+		out << FormatE(value.AsDouble(), precision >= 0 ? precision : 6);
+		return true;
+	case 'c':
+		out.Cat((char)value.AsInt64());
+		return true;
+	default:
+		return false;
+	}
+}
+
 void PyVM::BindCallArgs(Frame& f, const PyLambda& l, const Vector<PyValue>& sorted_args) {
 	for(int i = 0; i < min(l.arg.GetCount(), sorted_args.GetCount()); i++) {
 		PyValue key = i < l.arg_values.GetCount() ? l.arg_values[i] : PyValue(l.arg[i]);
@@ -2883,50 +2987,37 @@ bool PyVM::Step()
 			PyValue a = Pop();
 			if(a.GetType() == PY_STR) {
 				String fmt = a.ToString();
-				if(b.GetType() == PY_TUPLE || b.GetType() == PY_LIST) {
-					// Very basic multiple arg formatting
-					String res;
-					int arg_idx = 0;
-					for(int i = 0; i < fmt.GetCount(); i++) {
-						if(fmt[i] == '%' && i + 1 < fmt.GetCount()) {
-							char spec = fmt[i+1];
-							if(spec == '%') {
-								res.Cat('%');
-								i++;
-								continue;
-							}
-							if(arg_idx >= b.GetCount())
-								continue;
-							if(spec == 's' || spec == 'd' || spec == 'g') {
-									res << b.GetItem(arg_idx++).ToString();
-								i++;
-								continue;
-							}
-						}
+				const bool is_seq = b.GetType() == PY_TUPLE || b.GetType() == PY_LIST;
+				const int arg_count = is_seq ? b.GetCount() : 1;
+				String res;
+				int arg_idx = 0;
+				for(int i = 0; i < fmt.GetCount(); i++) {
+					if(fmt[i] != '%' || i + 1 >= fmt.GetCount()) {
 						res.Cat(fmt[i]);
+						continue;
 					}
-					Push(PyValue(res));
-				} else {
-					// Single arg formatting
-					String res;
-					for(int i = 0; i < fmt.GetCount(); i++) {
-						if(fmt[i] == '%' && i + 1 < fmt.GetCount()) {
-							char spec = fmt[i+1];
-							if(spec == '%') {
-								res.Cat('%');
-								i++;
-								continue;
-							}
-							if(spec == 's' || spec == 'd' || spec == 'g') {
-									res << b.ToString();
-								i++;
-								continue;
-							}
-						}
-						res.Cat(fmt[i]);
+					int spec_begin = i;
+					int precision = -1;
+					char conv = 0;
+					if(!ParsePyFormatSpec(fmt, i, precision, conv)) {
+						res.Cat(fmt[spec_begin]);
+						continue;
 					}
-					Push(PyValue(res));
+					if(conv == '%') {
+						res.Cat('%');
+						continue;
+					}
+					if(arg_idx >= arg_count) {
+						res.Cat(fmt.Begin() + spec_begin, i - spec_begin + 1);
+						continue;
+					}
+					PyValue arg = is_seq ? b.GetItem(arg_idx) : b;
+					if(!AppendPyFormat(res, arg, conv, precision))
+						res.Cat(fmt.Begin() + spec_begin, i - spec_begin + 1);
+					else
+						arg_idx++;
 				}
+				Push(PyValue(res));
 			} else if(a.IsInt() && b.IsInt()) {
 				if(b.AsInt64() == 0) throw Exc("ZeroDivisionError: integer modulo by zero");
 				int64 r = a.AsInt64() % b.AsInt64();

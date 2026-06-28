@@ -163,24 +163,29 @@ def main():
     print()
 
     # Test 1: Ground truth
-    cost_gt = eval_cost(dataset, gt['focal_f'], gt['cx'], gt['cy'], gt['k1'], gt['k2'],
-                        "1. Ground Truth")
+    cost_gt = eval_cost(
+        dataset, gt['focal_f'], gt['cx'], gt['cy'], gt['k1'], gt['k2'],
+        "1. Ground Truth")
 
     # Test 2: Recovered by GA (k1 positive)
-    cost_rec_pos = eval_cost(dataset, 289.25, 310.83, 222.92, 0.4622, -4.4204,
-                              "2. GA Recovered (k1 positive)")
+    cost_rec_pos = eval_cost(
+        dataset, 289.25, 310.83, 222.92, 0.4622, -4.4204,
+        "2. GA Recovered (k1 positive)")
 
     # Test 3: Same as recovered but flip k1 sign
-    cost_rec_neg = eval_cost(dataset, 289.25, 310.83, 222.92, -0.4622, -4.4204,
-                              "3. GA Recovered with k1 sign flipped")
+    cost_rec_neg = eval_cost(
+        dataset, 289.25, 310.83, 222.92, -0.4622, -4.4204,
+        "3. GA Recovered with k1 sign flipped")
 
     # Test 4: GT focal, GT cx/cy, but recovered k1/k2
-    cost_hybrid1 = eval_cost(dataset, gt['focal_f'], gt['cx'], gt['cy'], 0.4622, -4.4204,
-                              "4. GT focal + GT center + recovered k1/k2")
+    cost_hybrid1 = eval_cost(
+        dataset, gt['focal_f'], gt['cx'], gt['cy'], 0.4622, -4.4204,
+        "4. GT focal + GT center + recovered k1/k2")
 
     # Test 5: Recovered focal/center, GT k1/k2
-    cost_hybrid2 = eval_cost(dataset, 289.25, 310.83, 222.92, gt['k1'], gt['k2'],
-                              "5. Recovered focal/center + GT k1/k2")
+    cost_hybrid2 = eval_cost(
+        dataset, 289.25, 310.83, 222.92, gt['k1'], gt['k2'],
+        "5. Recovered focal/center + GT k1/k2")
 
     print()
     print("="*80)

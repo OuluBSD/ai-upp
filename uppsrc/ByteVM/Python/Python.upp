@@ -24,4 +24,5 @@ file
 	test_minimal.py,
 	test_syntax.py,
 	test_set_ops.py,
-	test_dict_ops.py;
+	test_dict_ops.py,
+	test_float_format.py;

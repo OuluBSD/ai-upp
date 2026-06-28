@@ -10,6 +10,7 @@ The original `uppsrc/ide` package is being split to support independent console 
   - `uppsrc/ide/Ctrl`: The main IDE GUI implementation.
   - `uppsrc/ide/Core` (or similar): The IDE console implementation.
   - `uppsrc/pkg` reuses `uppsrc/ide/Core` for headless package, workspace, and build graph behavior.
+  - Keep `uppsrc/ide/Core` aligned with `pkg`, since `pkg` depends on it as the canonical headless parser and build-graph layer.
 
 ## 1. State and Mapping Data
 Synchronization relies on two JSON files:
@@ -24,6 +25,7 @@ When instructed to sync upstream commits, the agent should perform the following
 3. **Analyze Diff:** For each new commit, generate the diff and analyze which upstream files were modified.
 4. **Apply Mappings:** Use `metadata/upstream_mapping.json` to determine the target local files and line ranges for the modifications. 
    - *Note on Line Ranges:* Line ranges are indicative. Code changes over time, so the agent must use semantic understanding (e.g., matching function names, logic blocks) to correctly port the upstream diff into our local structural equivalents.
+   - Favor semantic mapping entries when the split moves code into `ide/Core`, `ide/MainCtrl`, or the `ide` shim.
 5. **Port Logic:** Intelligently port the logic changes to the mapped destinations. This is NOT a simple patch application, but a manual merge of concepts since the local codebase has a different architecture.
 6. **Verify:** Build the project (both GUI and Console targets) to ensure changes did not break the build. Run available tests.
 7. **Commit & Update State:** Commit the successfully ported changes locally, and update the `last_synced_commit` hash in `metadata/upstream_sync.json`. 

@@ -623,6 +623,52 @@ bool IsGlobalAuditFlag(const String& flag)
 	return false;
 }
 
+static String sRepoRelativePath(const PkgRepository& repo, const String& path)
+{
+	String full = UnixPath(NormalizePath(path));
+	String root = UnixPath(NormalizePath(repo.root));
+	if(full.StartsWith(root)) {
+		full = full.Mid(root.GetCount());
+		while(full.GetCount() && (full[0] == '/' || full[0] == '\\'))
+			full.Remove(0, 1);
+	}
+	return full;
+}
+
+static void sPrintAcceptFlagsPatch(const PkgRepository& repo, const PkgPackage& p, const Vector<String>& missing)
+{
+	Vector<String> merged;
+	for(const String& s : p.accepts)
+		merged.Add(s);
+	for(const String& m : missing)
+		if(FindIndex(merged, m) < 0)
+			merged.Add(m);
+	Sort(merged, [](const String& a, const String& b) { return a < b; });
+
+	Cout() << "--- a/" << sRepoRelativePath(repo, p.path) << "\n";
+	Cout() << "+++ b/" << sRepoRelativePath(repo, p.path) << "\n";
+	Cout() << "@@\n";
+	if(p.accepts.IsEmpty()) {
+		Cout() << "+acceptflags\n";
+		for(int i = 0; i < merged.GetCount(); i++) {
+			Cout() << "+" << '\t' << merged[i];
+			Cout() << (i + 1 < merged.GetCount() ? ",\n" : ";\n");
+		}
+		return;
+	}
+
+	Cout() << "-acceptflags\n";
+	for(int i = 0; i < p.accepts.GetCount(); i++) {
+		Cout() << "-" << '\t' << p.accepts[i];
+		Cout() << (i + 1 < p.accepts.GetCount() ? ",\n" : ";\n");
+	}
+	Cout() << "+acceptflags\n";
+	for(int i = 0; i < merged.GetCount(); i++) {
+		Cout() << "+" << '\t' << merged[i];
+		Cout() << (i + 1 < merged.GetCount() ? ",\n" : ";\n");
+	}
+}
+
 static Vector<String> sReadWorld(const PkgConfigPaths& paths)
 {
 	Vector<String> v;
@@ -862,6 +908,8 @@ bool ParsePkgArgs(const Vector<String>& args, PkgInvocation& inv, String& error)
 		inv.query = inv.atom;
 	if(inv.command == PKG_CMD_PLAN && inv.atom.IsEmpty() && positional.GetCount())
 		inv.atom = positional.Top();
+	if(inv.audit_patch && inv.command == PKG_CMD_PLAN && !inv.atom.IsEmpty())
+		inv.command = PKG_CMD_AUDIT_ACCEPTFLAGS;
 
 	return true;
 }
@@ -1001,7 +1049,7 @@ static void sPrintHelp(bool color)
 		<< "  explain-target <name>\n"
 		<< "  target list|info <name>|explain <name>|set <name>\n"
 		<< "  eselect ...\n"
-		<< "  audit-acceptflags [atom] [--patch]\n"
+		<< "  audit-acceptflags [atom] [--patch]  global/platform flags are skipped\n"
 		<< "  -avuDN @world\n\n"
 		<< "Recognized sets: @world, @system, @toolchain\n";
 	(void)color;
@@ -1541,9 +1589,11 @@ static void sAuditAcceptFlags(const PkgInvocation& inv, const PkgRepository& rep
 		if(p)
 			targets.Add(p);
 	}
+	Sort(targets, [](const PkgPackage* a, const PkgPackage* b) { return a->name < b->name; });
 
 	for(const PkgPackage* p : targets) {
-		Index<String> used;
+		Vector<String> used;
+		Vector<String> skipped;
 		for(const String& src : p->source_files) {
 			String txt = LoadFile(src);
 			if(txt.IsEmpty())
@@ -1553,6 +1603,9 @@ static void sAuditAcceptFlags(const PkgInvocation& inv, const PkgRepository& rep
 				int sl = line.Find("//");
 				if(sl >= 0)
 					line = line.Left(sl);
+				line = TrimLeft(line);
+				if(line.IsEmpty() || line[0] != '#')
+					continue;
 				for(;;) {
 					int q = line.Find("flag");
 					if(q < 0)
@@ -1563,8 +1616,12 @@ static void sAuditAcceptFlags(const PkgInvocation& inv, const PkgRepository& rep
 						String flag;
 						while(s < line.GetCount() && (IsAlNum(line[s]) || line[s] == '_'))
 							flag.Cat(line[s++]);
-						if(!IsGlobalAuditFlag(flag))
-							used.Add(flag);
+						if(!IsGlobalAuditFlag(flag)) {
+							if(FindIndex(used, flag) < 0)
+								used.Add(flag);
+						}
+						else if(FindIndex(skipped, flag) < 0)
+							skipped.Add(flag);
 						line = line.Mid(s);
 					}
 					else
@@ -1572,19 +1629,33 @@ static void sAuditAcceptFlags(const PkgInvocation& inv, const PkgRepository& rep
 				}
 			}
 		}
-		Index<String> accepts;
-		for(const String& a : p->accepts)
-			accepts.Add(a);
-		for(int i = 0; i < used.GetCount(); i++) {
-			if(accepts.Find(used[i]) < 0) {
-				Cout() << "[warn] " << p->name << " uses flag" << used[i] << " but "
-				     << GetFileName(p->path) << " does not accept " << used[i] << "\n";
-				Cout() << "[hint] add: acceptflags " << used[i] << ";\n";
+		Sort(skipped, [](const String& a, const String& b) { return a < b; });
+		for(const String& s : skipped)
+			Cout() << "[info] " << p->name << " uses flag" << s << " but " << s
+			     << " is skipped as a global/platform flag\n";
+
+		Sort(used, [](const String& a, const String& b) { return a < b; });
+		Vector<String> accepts;
+		for(const String& s : p->accepts)
+			accepts.Add(s);
+		Sort(accepts, [](const String& a, const String& b) { return a < b; });
+
+		Vector<String> missing;
+		for(const String& s : used) {
+			if(FindIndex(accepts, s) < 0) {
+				missing.Add(s);
+				Cout() << "[warn] " << p->name << " uses flag" << s << " but "
+				     << GetFileName(p->path) << " does not accept " << s << "\n";
+				Cout() << "[hint] add: acceptflags " << s << ";\n";
 			}
 		}
-		for(const String& a : p->accepts)
-			if(used.Find(a) < 0)
+		for(const String& a : accepts)
+			if(FindIndex(used, a) < 0)
 				Cout() << "[info] " << p->name << " accepts " << a << " but no source flag was found\n";
+		if(inv.audit_patch && !missing.IsEmpty()) {
+			Cout() << '\n';
+			sPrintAcceptFlagsPatch(repo, *p, missing);
+		}
 	}
 	if(inv.audit_patch)
 		Cout() << "\n[patch] suggestion only - no files modified\n";

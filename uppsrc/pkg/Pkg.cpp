@@ -1049,6 +1049,7 @@ static void sPrintHelp(bool color)
 		<< "  explain-target <name>\n"
 		<< "  target list|info <name>|explain <name>|set <name>\n"
 		<< "  eselect ...\n"
+		<< "  resume [--pretend]\n"
 		<< "  audit-acceptflags [atom] [--patch]  global/platform flags are skipped\n"
 		<< "  -avuDN @world\n\n"
 		<< "Recognized sets: @world, @system, @toolchain\n";
@@ -1429,6 +1430,26 @@ static void sPrintInfo(const PkgRepository& repo, const PkgInvocation& inv)
 	Cout() << "Selected provider: " << (eselect.provider.IsEmpty() ? String("[none]") : eselect.provider) << "\n";
 }
 
+static void sPrintResumeState(const PkgState& state)
+{
+	if(state.records.IsEmpty()) {
+		Cout() << "No saved transaction found.\n";
+		return;
+	}
+
+	const PkgStateRecord& rec = state.records.Top();
+	Cout() << "Last transaction:\n";
+	Cout() << "  atom: " << (rec.atom.IsEmpty() ? String("[none]") : rec.atom) << "\n";
+	Cout() << "  target: " << (rec.target.IsEmpty() ? String("[none]") : rec.target) << "\n";
+	Cout() << "  toolchain: " << (rec.toolchain.IsEmpty() ? String("[none]") : rec.toolchain) << "\n";
+	Cout() << "  build_status: " << (rec.build_status.IsEmpty() ? String("[none]") : rec.build_status) << "\n";
+	Cout() << "  artifact_path: " << (rec.artifact_path.IsEmpty() ? String("[none]") : rec.artifact_path) << "\n";
+	Cout() << "  selected_use: " << sFmtList(rec.selected_use) << "\n";
+	Cout() << "  effective_flags: " << sFmtList(rec.effective_flags) << "\n";
+	Cout() << "  providers: " << sFmtList(rec.providers) << "\n";
+	Cout() << "  timestamp: " << Format(rec.timestamp) << "\n";
+}
+
 static void sWriteState(const PkgRepository& repo, const PkgInvocation& inv, const Vector<String>& selected, const Vector<String>& effective, const Vector<String>& providers)
 {
 	PkgState state;
@@ -1441,7 +1462,7 @@ static void sWriteState(const PkgRepository& repo, const PkgInvocation& inv, con
 	rec.target = inv.target;
 	rec.toolchain = state.toolchain;
 	rec.build_status = inv.pretend ? "pretend" : "mock";
-	rec.artifact_path = repo.root + "/bin/umk.exe";
+	rec.artifact_path = repo.root + "/bin/build.exe";
 	rec.timestamp = GetSysTime();
 	for(const String& s : selected)
 		rec.selected_use.Add(s);
@@ -1741,7 +1762,9 @@ int RunPkg(const Vector<String>& args)
 		return 0;
 	}
 	if(inv.command == PKG_CMD_RESUME) {
-		Cout() << "resuming previous transaction (mock)\n";
+		PkgState state;
+		LoadFromJsonFile(state, repo.paths.state);
+		sPrintResumeState(state);
 		if(inv.pretend)
 			Cout() << "pretend mode active\n";
 		return 0;

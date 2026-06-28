@@ -440,9 +440,20 @@ int Bootstrap(const string& repo_root, const Options& opts) {
 
 #ifdef _WIN32
     cout << "Bootstrapping umk (Windows/MSVC)..." << endl;
-    cout << "Note: Full MSVC bootstrap requires complex environment setup (vcvarsall.bat)." << endl;
-    cout << "This C++ version currently only supports POSIX bootstrap via Makefile." << endl;
-    return 1;
+    string script = JoinPath(repo_root, "script/build.py");
+    if (!FileExists(script)) {
+        cerr << "Bootstrap helper not found at " << script << endl;
+        return 2;
+    }
+
+    string cmd = "python \"" + script + "\" --bootstrap";
+    if (opts.verbose) cout << "Command: " << cmd << endl;
+    int res = RunCommand(cmd);
+    if (res == 0) return 0;
+
+    string py_cmd = "py -3 \"" + script + "\" --bootstrap";
+    if (opts.verbose) cout << "Fallback command: " << py_cmd << endl;
+    return RunCommand(py_cmd);
 #else
 #ifdef __APPLE__
     string makefile_name = "Makefile.macos15";

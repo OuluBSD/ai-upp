@@ -16,7 +16,10 @@ void PkgUsePolicy::Jsonize(JsonIO& jio)
 
 void PkgTargetProfile::Jsonize(JsonIO& jio)
 {
-	jio("name", name)("thread_model", thread_model)("compiler", compiler)("linker", linker)
+	jio("name", name)("host_platform", host_platform)("build_platform", build_platform)
+	   ("target_platform", target_platform)("runtime_environment", runtime_environment)
+	   ("architecture", architecture)("toolchain", toolchain)("sysroot", sysroot)
+	   ("thread_model", thread_model)("compiler", compiler)("linker", linker)
 	   ("sdk", sdk)("summary", summary);
 	jio("forced_use", forced_use);
 	jio("masked_use", masked_use);
@@ -293,6 +296,13 @@ static Vector<PkgTargetProfile> sTargets()
 	{
 		PkgTargetProfile& p = v.Add();
 		p.name = "native";
+		p.host_platform = "host";
+		p.build_platform = "host";
+		p.target_platform = "native";
+		p.runtime_environment = "desktop";
+		p.architecture = "native";
+		p.toolchain = "auto";
+		p.sysroot = "";
 		p.thread_model = "mt";
 		p.compiler = "any";
 		p.linker = "any";
@@ -301,6 +311,13 @@ static Vector<PkgTargetProfile> sTargets()
 	{
 		PkgTargetProfile& p = v.Add();
 		p.name = "native-clang";
+		p.host_platform = "host";
+		p.build_platform = "host";
+		p.target_platform = "native";
+		p.runtime_environment = "desktop";
+		p.architecture = "native";
+		p.toolchain = "clang";
+		p.sysroot = "";
 		p.thread_model = "mt";
 		p.compiler = "clang";
 		p.linker = "lld";
@@ -309,6 +326,13 @@ static Vector<PkgTargetProfile> sTargets()
 	{
 		PkgTargetProfile& p = v.Add();
 		p.name = "native-gcc";
+		p.host_platform = "host";
+		p.build_platform = "host";
+		p.target_platform = "native";
+		p.runtime_environment = "desktop";
+		p.architecture = "native";
+		p.toolchain = "gcc";
+		p.sysroot = "";
 		p.thread_model = "mt";
 		p.compiler = "gcc";
 		p.linker = "ld";
@@ -317,6 +341,13 @@ static Vector<PkgTargetProfile> sTargets()
 	{
 		PkgTargetProfile& p = v.Add();
 		p.name = "windows-msvc";
+		p.host_platform = "windows";
+		p.build_platform = "windows";
+		p.target_platform = "windows";
+		p.runtime_environment = "desktop";
+		p.architecture = "x64";
+		p.toolchain = "msvc";
+		p.sysroot = "vcvars";
 		p.thread_model = "mt";
 		p.compiler = "msvc";
 		p.linker = "link";
@@ -325,6 +356,13 @@ static Vector<PkgTargetProfile> sTargets()
 	{
 		PkgTargetProfile& p = v.Add();
 		p.name = "windows-mingw";
+		p.host_platform = "windows";
+		p.build_platform = "windows";
+		p.target_platform = "windows";
+		p.runtime_environment = "desktop";
+		p.architecture = "x64";
+		p.toolchain = "mingw";
+		p.sysroot = "mingw";
 		p.thread_model = "mt";
 		p.compiler = "mingw";
 		p.linker = "ld";
@@ -333,6 +371,13 @@ static Vector<PkgTargetProfile> sTargets()
 	{
 		PkgTargetProfile& p = v.Add();
 		p.name = "wasm-browser";
+		p.host_platform = "any";
+		p.build_platform = "host";
+		p.target_platform = "wasm32";
+		p.runtime_environment = "browser";
+		p.architecture = "wasm32";
+		p.toolchain = "emcc";
+		p.sysroot = "emscripten";
 		p.thread_model = "st";
 		p.compiler = "emcc";
 		p.linker = "emcc";
@@ -345,6 +390,13 @@ static Vector<PkgTargetProfile> sTargets()
 	{
 		PkgTargetProfile& p = v.Add();
 		p.name = "wasm-node";
+		p.host_platform = "any";
+		p.build_platform = "host";
+		p.target_platform = "wasm32";
+		p.runtime_environment = "node";
+		p.architecture = "wasm32";
+		p.toolchain = "emcc";
+		p.sysroot = "emscripten";
 		p.thread_model = "st";
 		p.compiler = "emcc";
 		p.linker = "emcc";
@@ -354,6 +406,13 @@ static Vector<PkgTargetProfile> sTargets()
 	{
 		PkgTargetProfile& p = v.Add();
 		p.name = "linux-fb";
+		p.host_platform = "linux";
+		p.build_platform = "linux";
+		p.target_platform = "linux";
+		p.runtime_environment = "framebuffer";
+		p.architecture = "native";
+		p.toolchain = "gcc";
+		p.sysroot = "";
 		p.thread_model = "mt";
 		p.compiler = "gcc";
 		p.linker = "ld";
@@ -363,6 +422,13 @@ static Vector<PkgTargetProfile> sTargets()
 	{
 		PkgTargetProfile& p = v.Add();
 		p.name = "retro-x86";
+		p.host_platform = "any";
+		p.build_platform = "host";
+		p.target_platform = "x86";
+		p.runtime_environment = "retro";
+		p.architecture = "x86";
+		p.toolchain = "gcc";
+		p.sysroot = "retro";
 		p.thread_model = "st";
 		p.compiler = "gcc";
 		p.linker = "ld";
@@ -373,6 +439,13 @@ static Vector<PkgTargetProfile> sTargets()
 	{
 		PkgTargetProfile& p = v.Add();
 		p.name = "freebsd-native";
+		p.host_platform = "freebsd";
+		p.build_platform = "freebsd";
+		p.target_platform = "freebsd";
+		p.runtime_environment = "desktop";
+		p.architecture = "native";
+		p.toolchain = "clang";
+		p.sysroot = "";
 		p.thread_model = "mt";
 		p.compiler = "clang";
 		p.linker = "ld";
@@ -381,6 +454,13 @@ static Vector<PkgTargetProfile> sTargets()
 	{
 		PkgTargetProfile& p = v.Add();
 		p.name = "macos-native";
+		p.host_platform = "macos";
+		p.build_platform = "macos";
+		p.target_platform = "macos";
+		p.runtime_environment = "desktop";
+		p.architecture = "native";
+		p.toolchain = "clang";
+		p.sysroot = "";
 		p.thread_model = "mt";
 		p.compiler = "clang";
 		p.linker = "ld64";
@@ -651,6 +731,7 @@ bool ParsePkgArgs(const Vector<String>& args, PkgInvocation& inv, String& error)
 			else if(cmd == "metadata") inv.command = PKG_CMD_METADATA;
 			else if(cmd == "list-sets") inv.command = PKG_CMD_LIST_SETS;
 			else if(cmd == "explain-use") inv.command = PKG_CMD_EXPLAIN_USE;
+			else if(cmd == "explain-target") inv.command = PKG_CMD_EXPLAIN_TARGET;
 			else if(cmd == "deps") inv.command = PKG_CMD_DEPS;
 			else if(cmd == "target") inv.command = PKG_CMD_TARGET;
 			else if(cmd == "eselect") inv.command = PKG_CMD_ESELECT;
@@ -678,7 +759,7 @@ bool ParsePkgArgs(const Vector<String>& args, PkgInvocation& inv, String& error)
 	if(positional.GetCount()) {
 		int start = 0;
 		if(positional[0] == "help" || positional[0] == "version" || positional[0] == "info" ||
-		   positional[0] == "metadata" || positional[0] == "list-sets" || positional[0] == "explain-use" || positional[0] == "deps" ||
+		   positional[0] == "metadata" || positional[0] == "list-sets" || positional[0] == "explain-use" || positional[0] == "explain-target" || positional[0] == "deps" ||
 		   positional[0] == "target" || positional[0] == "eselect" || positional[0] == "audit-acceptflags" ||
 		   positional[0] == "resume" || positional[0] == "search")
 			start = 1;
@@ -701,6 +782,10 @@ bool ParsePkgArgs(const Vector<String>& args, PkgInvocation& inv, String& error)
 				inv.subcommand = rest[1];
 			if(rest.GetCount() > 2)
 				inv.target = rest[2];
+		}
+		else if(inv.command == PKG_CMD_EXPLAIN_TARGET) {
+			if(rest.GetCount())
+				inv.target = rest[0];
 		}
 		else if(inv.command == PKG_CMD_EXPLAIN_USE || inv.command == PKG_CMD_DEPS ||
 		        inv.command == PKG_CMD_PLAN || inv.command == PKG_CMD_AUDIT_ACCEPTFLAGS ||
@@ -780,7 +865,8 @@ static void sPrintHelp(bool color)
 		<< "  -s, --search <query>\n"
 		<< "  deps <atom> [USE flags...] --plan\n"
 		<< "  explain-use <atom> [USE flags...]\n"
-		<< "  target list|info <name>|set <name>\n"
+		<< "  explain-target <name>\n"
+		<< "  target list|info <name>|explain <name>|set <name>\n"
 		<< "  eselect ...\n"
 		<< "  audit-acceptflags [atom] [--patch]\n"
 		<< "  -avuDN @world\n\n"
@@ -811,6 +897,21 @@ static const PkgTargetProfile& sDefaultTargetProfile(const String& target)
 	return targets[0];
 }
 
+static String sTargetNameText(const String& target)
+{
+	return target.IsEmpty() ? String("native") : target;
+}
+
+static String sTargetThreadReason(const PkgTargetProfile& tp)
+{
+	if(tp.thread_model == "st") {
+		if(FindIndex(tp.forced_use, "st") >= 0)
+			return "forced by the target profile";
+		return "selected by the target profile";
+	}
+	return "MT is the default for this target profile";
+}
+
 static void sTokenizeUseArgs(const Vector<String>& use_args, Vector<String>& selected, Vector<String>& disabled)
 {
 	for(const String& a : use_args) {
@@ -823,7 +924,8 @@ static void sTokenizeUseArgs(const Vector<String>& use_args, Vector<String>& sel
 	}
 }
 
-static void sPolicyFlags(const Vector<String>& use_args, const String& target, Vector<String>& selected, Vector<String>& disabled, Vector<String>& defaulted, Vector<String>& effective)
+static void sPolicyFlags(const Vector<String>& use_args, const String& target, Vector<String>& selected, Vector<String>& disabled, Vector<String>& defaulted, Vector<String>& effective,
+                         Vector<String>* target_forced_out = nullptr, Vector<String>* target_masked_out = nullptr)
 {
 	Vector<String> target_forced;
 	Vector<String> target_masked;
@@ -835,6 +937,10 @@ static void sPolicyFlags(const Vector<String>& use_args, const String& target, V
 		target_forced.Add(tp.forced_use[i]);
 	for(int i = 0; i < tp.masked_use.GetCount(); i++)
 		target_masked.Add(tp.masked_use[i]);
+	if(target_forced_out)
+		*target_forced_out = pick(target_forced);
+	if(target_masked_out)
+		*target_masked_out = pick(target_masked);
 	sTokenizeUseArgs(use_args, selected, disabled);
 	for(const String& f : target_forced)
 		selected.Add(f);
@@ -842,13 +948,22 @@ static void sPolicyFlags(const Vector<String>& use_args, const String& target, V
 		disabled.Add(f);
 	const Vector<PkgUsePolicy> policies = sUsePolicies();
 	for(const PkgUsePolicy& p : policies) {
+		bool forced = sIsSelected(target_forced, p.name);
+		bool masked = sIsSelected(target_masked, p.name) || sIsSelected(disabled, p.name);
+		if(forced) {
+			effective.Add(p.name);
+			continue;
+		}
+		if(masked)
+			continue;
 		bool sel = sIsSelected(selected, p.name);
-		bool dis = sIsSelected(disabled, p.name);
-		if(!sel && !dis && p.default_on)
+		if(sel)
+			effective.Add(p.name);
+		else if(p.default_on)
 			defaulted.Add(p.name);
 	}
 	for(const PkgUsePolicy& p : policies)
-		if(sIsSelected(selected, p.name) || sIsSelected(defaulted, p.name))
+		if(sIsSelected(defaulted, p.name) && !sIsSelected(effective, p.name))
 			effective.Add(p.name);
 }
 
@@ -859,12 +974,30 @@ static void sExplainUse(const PkgInvocation& inv, const PkgRepository& repo)
 	Vector<String> disabled;
 	Vector<String> defaulted;
 	Vector<String> effective;
-	sPolicyFlags(inv.use_args, inv.target, selected, disabled, defaulted, effective);
+	Vector<String> target_forced;
+	Vector<String> target_masked;
+	sPolicyFlags(inv.use_args, inv.target, selected, disabled, defaulted, effective, &target_forced, &target_masked);
 	const PkgTargetProfile& tp = sDefaultTargetProfile(inv.target);
 
 	Cout() << "Use policy for " << (inv.atom.IsEmpty() ? String("[unknown atom]") : inv.atom) << "\n";
-	Cout() << "Target: " << (inv.target.IsEmpty() ? String("native") : inv.target) << "\n";
-	Cout() << "Thread model: " << tp.thread_model << "\n\n";
+	Cout() << "Target: " << sTargetNameText(inv.target) << "\n";
+	Cout() << "Thread model: " << tp.thread_model << "\n";
+	Cout() << "Thread model reason: " << sTargetThreadReason(tp) << "\n";
+	Cout() << "Target platform: " << (tp.target_platform.IsEmpty() ? String("[none]") : tp.target_platform) << "\n";
+	Cout() << "Runtime environment: " << (tp.runtime_environment.IsEmpty() ? String("[none]") : tp.runtime_environment) << "\n\n";
+
+	Cout() << "Target forced USE:\n";
+	if(target_forced.IsEmpty())
+		Cout() << "  [none]\n";
+	else
+		for(const String& s : target_forced)
+			Cout() << "  +" << s << "\n";
+	Cout() << "Target masked USE:\n";
+	if(target_masked.IsEmpty())
+		Cout() << "  [none]\n";
+	else
+		for(const String& s : target_masked)
+			Cout() << "  -" << s << "\n";
 
 	Cout() << "Selected USE:\n";
 	for(const String& s : selected)
@@ -930,7 +1063,15 @@ static void sPrintTargetInfo(const String& name)
 		return;
 	}
 	Cout() << "target: " << t->name << "\n";
+	Cout() << "host_platform: " << (t->host_platform.IsEmpty() ? String("[none]") : t->host_platform) << "\n";
+	Cout() << "build_platform: " << (t->build_platform.IsEmpty() ? String("[none]") : t->build_platform) << "\n";
+	Cout() << "target_platform: " << (t->target_platform.IsEmpty() ? String("[none]") : t->target_platform) << "\n";
+	Cout() << "runtime_environment: " << (t->runtime_environment.IsEmpty() ? String("[none]") : t->runtime_environment) << "\n";
+	Cout() << "architecture: " << (t->architecture.IsEmpty() ? String("[none]") : t->architecture) << "\n";
+	Cout() << "toolchain: " << (t->toolchain.IsEmpty() ? String("[none]") : t->toolchain) << "\n";
+	Cout() << "sysroot: " << (t->sysroot.IsEmpty() ? String("[none]") : t->sysroot) << "\n";
 	Cout() << "thread_model: " << t->thread_model << "\n";
+	Cout() << "thread_model_reason: " << sTargetThreadReason(*t) << "\n";
 	Cout() << "compiler: " << t->compiler << "\n";
 	Cout() << "linker: " << t->linker << "\n";
 	Cout() << "sdk: " << (t->sdk.IsEmpty() ? String("[none]") : t->sdk) << "\n";
@@ -945,6 +1086,30 @@ static void sListTargets()
 	Vector<PkgTargetProfile> targets = sTargets();
 	for(const PkgTargetProfile& t : targets)
 		Cout() << t.name << " [" << t.thread_model << "] - " << t.summary << "\n";
+}
+
+static void sExplainTarget(const String& name)
+{
+	const PkgTargetProfile* t = sFindTarget(name);
+	if(!t) {
+		Cout() << "Unknown target: " << name << "\n";
+		return;
+	}
+	Cout() << "Target profile: " << t->name << "\n";
+	Cout() << "Thread model: " << t->thread_model << "\n";
+	Cout() << "Thread model reason: " << sTargetThreadReason(*t) << "\n";
+	Cout() << "Host platform: " << (t->host_platform.IsEmpty() ? String("[none]") : t->host_platform) << "\n";
+	Cout() << "Build platform: " << (t->build_platform.IsEmpty() ? String("[none]") : t->build_platform) << "\n";
+	Cout() << "Target platform: " << (t->target_platform.IsEmpty() ? String("[none]") : t->target_platform) << "\n";
+	Cout() << "Runtime environment: " << (t->runtime_environment.IsEmpty() ? String("[none]") : t->runtime_environment) << "\n";
+	Cout() << "Architecture: " << (t->architecture.IsEmpty() ? String("[none]") : t->architecture) << "\n";
+	Cout() << "Compiler: " << (t->compiler.IsEmpty() ? String("[none]") : t->compiler) << "\n";
+	Cout() << "Toolchain: " << (t->toolchain.IsEmpty() ? String("[none]") : t->toolchain) << "\n";
+	Cout() << "Sysroot: " << (t->sysroot.IsEmpty() ? String("[none]") : t->sysroot) << "\n";
+	Cout() << "Forced USE: " << sFmtList(t->forced_use) << "\n";
+	Cout() << "Masked USE: " << sFmtList(t->masked_use) << "\n";
+	Cout() << "Provider preferences: " << sFmtList(t->provider_preferences) << "\n";
+	Cout() << "Summary: " << t->summary << "\n";
 }
 
 static String sResolveProvider(const String& capability, const PkgRepository& repo)
@@ -974,7 +1139,7 @@ static void sPrintDeps(const PkgInvocation& inv, const PkgRepository& repo)
 		virtuals.Add("virtual/gui-runtime");
 
 	Cout() << "Dependencies for " << inv.atom << "\n";
-	Cout() << "Target: " << (inv.target.IsEmpty() ? String("native") : inv.target) << " (" << tp.thread_model << ")\n";
+	Cout() << "Target: " << sTargetNameText(inv.target) << " (" << tp.thread_model << ")\n";
 	Cout() << "Virtual requirements:\n";
 	if(virtuals.IsEmpty())
 		Cout() << "  [none]\n";
@@ -1069,7 +1234,13 @@ static void sPrintInfo(const PkgRepository& repo, const PkgInvocation& inv)
 	Cout() << "Package.target: " << repo.paths.package_target << "\n";
 	Cout() << "Eselect file: " << repo.paths.eselect << "\n";
 	Cout() << "World entries: " << world.GetCount() << "\n";
-	Cout() << "Active target: " << (!inv.target.IsEmpty() ? inv.target : (state.target.IsEmpty() ? String("[none]") : state.target)) << "\n";
+	String active_target = !inv.target.IsEmpty() ? inv.target : (state.target.IsEmpty() ? String("native") : state.target);
+	const PkgTargetProfile& active_profile = sDefaultTargetProfile(active_target);
+	Cout() << "Active target: " << active_target << "\n";
+	Cout() << "Active target thread model: " << active_profile.thread_model << "\n";
+	Cout() << "Active target reason: " << sTargetThreadReason(active_profile) << "\n";
+	Cout() << "Active target compiler: " << active_profile.compiler << "\n";
+	Cout() << "Active target toolchain: " << active_profile.toolchain << "\n";
 	Cout() << "Active toolchain: " << (state.toolchain.IsEmpty() ? String("[none]") : state.toolchain) << "\n";
 	Cout() << "Selected compiler: " << (eselect.compiler.IsEmpty() ? String("[none]") : eselect.compiler) << "\n";
 	Cout() << "Selected linker: " << (eselect.linker.IsEmpty() ? String("[none]") : eselect.linker) << "\n";
@@ -1106,7 +1277,9 @@ static void sPrintPlan(const PkgInvocation& inv, const PkgRepository& repo, bool
 	Vector<String> disabled;
 	Vector<String> defaulted;
 	Vector<String> effective;
-	sPolicyFlags(inv.use_args, inv.target, selected, disabled, defaulted, effective);
+	Vector<String> target_forced;
+	Vector<String> target_masked;
+	sPolicyFlags(inv.use_args, inv.target, selected, disabled, defaulted, effective, &target_forced, &target_masked);
 	const PkgTargetProfile& tp = sDefaultTargetProfile(inv.target);
 	Vector<String> providers;
 	Vector<String> virtuals;
@@ -1132,7 +1305,7 @@ static void sPrintPlan(const PkgInvocation& inv, const PkgRepository& repo, bool
 	Cout() << "Calculating dependencies... done!\n";
 	Cout() << "Dependency resolution took 0.00 s (backtrack: 0/20).\n\n";
 	String use_text = String("USE=\"") + sJoin(effective, " ") + "\"";
-	String target_text = String("TARGET=\"") + (inv.target.IsEmpty() ? String("native") : inv.target) + "\"";
+	String target_text = String("TARGET=\"") + sTargetNameText(inv.target) + "\"";
 	Cout() << sAnsi("32;1", "[ebuild  N    ]", color) << ' '
 	     << sAnsi("36", inv.atom, color) << ' '
 	     << sAnsi("33", use_text, color) << ' '
@@ -1154,6 +1327,8 @@ static void sPrintTargetCommand(const PkgInvocation& inv)
 		sListTargets();
 	else if(inv.subcommand == "info")
 		sPrintTargetInfo(inv.target);
+	else if(inv.subcommand == "explain")
+		sExplainTarget(inv.target);
 	else if(inv.subcommand == "set") {
 		RealizePath(FindPkgConfigPaths(PkgRepoRoot()).ai_dir);
 		PkgEselectState st;
@@ -1271,7 +1446,7 @@ int RunPkg(const Vector<String>& args)
 
 	bool need_repo = inv.command == PKG_CMD_INFO || inv.command == PKG_CMD_METADATA || inv.command == PKG_CMD_LIST_SETS ||
 	                 inv.command == PKG_CMD_SEARCH || inv.command == PKG_CMD_EXPLAIN_USE ||
-	                 inv.command == PKG_CMD_DEPS || inv.command == PKG_CMD_PLAN ||
+	                 inv.command == PKG_CMD_EXPLAIN_TARGET || inv.command == PKG_CMD_DEPS || inv.command == PKG_CMD_PLAN ||
 	                 inv.command == PKG_CMD_AUDIT_ACCEPTFLAGS || inv.command == PKG_CMD_ESELECT ||
 	                 inv.command == PKG_CMD_TARGET;
 	PkgRepository repo;
@@ -1304,6 +1479,10 @@ int RunPkg(const Vector<String>& args)
 	}
 	if(inv.command == PKG_CMD_EXPLAIN_USE) {
 		sExplainUse(inv, repo);
+		return 0;
+	}
+	if(inv.command == PKG_CMD_EXPLAIN_TARGET) {
+		sExplainTarget(inv.target);
 		return 0;
 	}
 	if(inv.command == PKG_CMD_DEPS) {

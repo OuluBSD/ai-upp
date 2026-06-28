@@ -22,6 +22,7 @@ enum PkgCommandKind {
 	PKG_CMD_PLAN,
 	PKG_CMD_DEPS,
 	PKG_CMD_EXPLAIN_USE,
+	PKG_CMD_EXPLAIN_TARGET,
 	PKG_CMD_TARGET,
 	PKG_CMD_ESELECT,
 	PKG_CMD_AUDIT_ACCEPTFLAGS,
@@ -47,6 +48,13 @@ struct PkgUsePolicy : Moveable<PkgUsePolicy> {
 
 struct PkgTargetProfile : Moveable<PkgTargetProfile> {
 	String name;
+	String host_platform;
+	String build_platform;
+	String target_platform;
+	String runtime_environment;
+	String architecture;
+	String toolchain;
+	String sysroot;
 	String thread_model;
 	String compiler;
 	String linker;

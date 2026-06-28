@@ -580,7 +580,7 @@ bool ParsePkgArgs(const Vector<String>& args, PkgInvocation& inv, String& error)
 			else if(a == "--version") inv.command = PKG_CMD_VERSION;
 			else if(a == "--info") inv.info = true, inv.command = PKG_CMD_INFO;
 			else if(a == "--metadata") inv.metadata = true, inv.command = PKG_CMD_METADATA;
-			else if(a == "--list-sets") inv.list_sets = true;
+			else if(a == "--list-sets") inv.list_sets = true, inv.command = PKG_CMD_LIST_SETS;
 			else if(a == "--pretend") inv.pretend = true;
 			else if(a == "--ask") inv.ask = true;
 			else if(a == "--verbose") inv.verbose = true;
@@ -649,6 +649,7 @@ bool ParsePkgArgs(const Vector<String>& args, PkgInvocation& inv, String& error)
 			else if(cmd == "version") inv.command = PKG_CMD_VERSION;
 			else if(cmd == "info") inv.command = PKG_CMD_INFO;
 			else if(cmd == "metadata") inv.command = PKG_CMD_METADATA;
+			else if(cmd == "list-sets") inv.command = PKG_CMD_LIST_SETS;
 			else if(cmd == "explain-use") inv.command = PKG_CMD_EXPLAIN_USE;
 			else if(cmd == "deps") inv.command = PKG_CMD_DEPS;
 			else if(cmd == "target") inv.command = PKG_CMD_TARGET;
@@ -659,7 +660,7 @@ bool ParsePkgArgs(const Vector<String>& args, PkgInvocation& inv, String& error)
 			else inv.command = PKG_CMD_PLAN;
 		}
 		else if(inv.list_sets)
-			inv.command = PKG_CMD_INFO;
+			inv.command = PKG_CMD_LIST_SETS;
 		else if(inv.metadata)
 			inv.command = PKG_CMD_METADATA;
 		else if(inv.info)
@@ -677,7 +678,7 @@ bool ParsePkgArgs(const Vector<String>& args, PkgInvocation& inv, String& error)
 	if(positional.GetCount()) {
 		int start = 0;
 		if(positional[0] == "help" || positional[0] == "version" || positional[0] == "info" ||
-		   positional[0] == "metadata" || positional[0] == "explain-use" || positional[0] == "deps" ||
+		   positional[0] == "metadata" || positional[0] == "list-sets" || positional[0] == "explain-use" || positional[0] == "deps" ||
 		   positional[0] == "target" || positional[0] == "eselect" || positional[0] == "audit-acceptflags" ||
 		   positional[0] == "resume" || positional[0] == "search")
 			start = 1;
@@ -709,7 +710,7 @@ bool ParsePkgArgs(const Vector<String>& args, PkgInvocation& inv, String& error)
 			for(int i = 1; i < rest.GetCount(); i++)
 				inv.use_args.Add(rest[i]);
 		}
-		else if(inv.command == PKG_CMD_INFO || inv.command == PKG_CMD_METADATA || inv.command == PKG_CMD_VERSION ||
+		else if(inv.command == PKG_CMD_INFO || inv.command == PKG_CMD_METADATA || inv.command == PKG_CMD_LIST_SETS || inv.command == PKG_CMD_VERSION ||
 		        inv.command == PKG_CMD_HELP || inv.command == PKG_CMD_AUDIT_ACCEPTFLAGS) {
 			if(rest.GetCount())
 				inv.atom = rest[0];
@@ -775,6 +776,7 @@ static void sPrintHelp(bool color)
 		<< "  --version, version\n"
 		<< "  --info, info\n"
 		<< "  --metadata, metadata\n"
+		<< "  --list-sets\n"
 		<< "  -s, --search <query>\n"
 		<< "  deps <atom> [USE flags...] --plan\n"
 		<< "  explain-use <atom> [USE flags...]\n"
@@ -1098,7 +1100,7 @@ static void sWriteState(const PkgRepository& repo, const PkgInvocation& inv, con
 	StoreAsJsonFile(state, repo.paths.state, true);
 }
 
-static void sPrintPlan(const PkgInvocation& inv, const PkgRepository& repo)
+static void sPrintPlan(const PkgInvocation& inv, const PkgRepository& repo, bool color)
 {
 	Vector<String> selected;
 	Vector<String> disabled;
@@ -1129,13 +1131,17 @@ static void sPrintPlan(const PkgInvocation& inv, const PkgRepository& repo)
 	Cout() << "These are the packages that would be built, in order:\n\n";
 	Cout() << "Calculating dependencies... done!\n";
 	Cout() << "Dependency resolution took 0.00 s (backtrack: 0/20).\n\n";
-	Cout() << "[ebuild  N    ] " << inv.atom << " USE=\"" << sJoin(effective, " ") << "\" TARGET=\""
-	     << (inv.target.IsEmpty() ? String("native") : inv.target) << "\"";
+	String use_text = String("USE=\"") + sJoin(effective, " ") + "\"";
+	String target_text = String("TARGET=\"") + (inv.target.IsEmpty() ? String("native") : inv.target) + "\"";
+	Cout() << sAnsi("32;1", "[ebuild  N    ]", color) << ' '
+	     << sAnsi("36", inv.atom, color) << ' '
+	     << sAnsi("33", use_text, color) << ' '
+	     << sAnsi("35", target_text, color);
 	if(!inv.use_args.IsEmpty())
-		Cout() << " UPPFLAGS=\"" << (uppflags.IsEmpty() ? String("[none]") : sJoin(uppflags, " ")) << "\"";
+		Cout() << ' ' << sAnsi("33", String("UPPFLAGS=\"") + (uppflags.IsEmpty() ? String("[none]") : sJoin(uppflags, " ")) + "\"", color);
 	Cout() << "\n";
 	for(const String& p : providers)
-		Cout() << "  provider: " << p << "\n";
+		Cout() << "  " << sAnsi("34", "provider:", color) << ' ' << p << "\n";
 	Cout() << "\n";
 	sWriteState(repo, inv, selected, effective, providers);
 	if(!inv.oneshot && !inv.pretend)
@@ -1263,7 +1269,7 @@ int RunPkg(const Vector<String>& args)
 		return 0;
 	}
 
-	bool need_repo = inv.command == PKG_CMD_INFO || inv.command == PKG_CMD_METADATA ||
+	bool need_repo = inv.command == PKG_CMD_INFO || inv.command == PKG_CMD_METADATA || inv.command == PKG_CMD_LIST_SETS ||
 	                 inv.command == PKG_CMD_SEARCH || inv.command == PKG_CMD_EXPLAIN_USE ||
 	                 inv.command == PKG_CMD_DEPS || inv.command == PKG_CMD_PLAN ||
 	                 inv.command == PKG_CMD_AUDIT_ACCEPTFLAGS || inv.command == PKG_CMD_ESELECT ||
@@ -1272,11 +1278,12 @@ int RunPkg(const Vector<String>& args)
 	if(need_repo)
 		repo.Discover();
 
+	if(inv.command == PKG_CMD_LIST_SETS) {
+		sPrintSets(repo);
+		return 0;
+	}
 	if(inv.command == PKG_CMD_INFO) {
-		if(inv.list_sets)
-			sPrintSets(repo);
-		else
-			sPrintInfo(repo, inv);
+		sPrintInfo(repo, inv);
 		return 0;
 	}
 	if(inv.command == PKG_CMD_METADATA) {
@@ -1310,7 +1317,7 @@ int RunPkg(const Vector<String>& args)
 			Cout() << "system package installation is not implemented yet\n";
 			return 1;
 		}
-		sPrintPlan(inv, repo);
+		sPrintPlan(inv, repo, color);
 		return 0;
 	}
 	if(inv.command == PKG_CMD_AUDIT_ACCEPTFLAGS) {

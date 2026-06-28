@@ -6,7 +6,6 @@ file
 	CardRange.h,
 	CardRange.cpp,
 	CombinedRange.cpp,
-	CombinedRange.h,
 	Constants.h,
 	EquityCalculator.cpp,
 	EquityCalculator.h,
@@ -16,5 +15,6 @@ file
 	libdivide.h,
 	OffsetTable.cpp,
 	Random.h,
-	Util.h;
+	Util.h,
+	CombinedRange.h;
 

@@ -4,12 +4,9 @@ namespace Upp {
 
 #ifdef PLATFORM_WIN32
 
-// Phase 12 Stage 1 (Windows): D3D11-GL interop self-test stub
 int RunD3D11InteropSelfTest() {
-	Cout() << "=== D3D11-GL Texture Sharing Interop Test (Phase 12 Stage 1) ===
-";
-	Cout() << "Status: STUB - Windows-specific implementation pending
-";
+	Cout() << "=== D3D11-GL Texture Sharing Interop Test (Phase 12 Stage 1) ===\n";
+	Cout() << "Status: STUB - Windows-specific implementation pending\n";
 	
 	// TODO:
 	// 1. Create D3D11 device

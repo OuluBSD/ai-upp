@@ -3,8 +3,7 @@
 
 #include <Core/Core.h>
 #include <plugin/jpg/jpg.h>
-#include <plugin/png/png.h>
-#include <EditorCommon/Recognition.h>
+#include <EditorCommon/RecognitionData.h>
 #include <EditorCommon/GpuPreprocess.h>
 
 namespace Upp {
@@ -328,8 +327,7 @@ int RunV4L2EGLImageSelfTest(const String& device_path, const String& format_poli
 int RunJpgSelfTest();
 int RunPngSelfTest();
 int RunTesseractRenderSelfTest();
-int RunConvNetCardsSelfTest(int iters, const String& dump_dir, bool real_mode = true);
-int RunConvNetDiskPipelineTest(const String& data_dir, const String& model_dir, int iters, const String& tag);
+
 
 extern bool g_match_fast_exec;
 extern bool g_match_profile_exec;

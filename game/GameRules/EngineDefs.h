@@ -31,6 +31,7 @@ struct HandState {
 	Vector<int> board;
 };
 
+typedef Vector<int> ActionVec;
 typedef std::shared_ptr<std::vector<std::shared_ptr<PlayerInterface>>> PlayerList;
 typedef std::vector<std::shared_ptr<PlayerInterface>>::iterator PlayerListIterator;
 typedef std::vector<std::shared_ptr<PlayerInterface>>::const_iterator PlayerListConstIterator;

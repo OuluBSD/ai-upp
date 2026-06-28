@@ -3003,10 +3003,12 @@ bool GpuPreprocessEngine::Initialize(const GpuPreprocessConfig& c) {
 }
 
 void GpuPreprocessEngine::Shutdown() {
+#if defined(PLATFORM_POSIX) && !defined(PLATFORM_OSX)
 	if (backend) {
 		backend->Shutdown();
 		backend.Clear();
 	}
+#endif
 	initialized = false;
 	gray = ByteMat();
 	smooth = ByteMat();
@@ -3047,6 +3049,7 @@ bool GpuPreprocessEngine::PrepareFrame(const Image& img) {
 	stats.width = img.GetWidth();
 	stats.height = img.GetHeight();
 
+#if defined(PLATFORM_POSIX) && !defined(PLATFORM_OSX)
 	if (backend && backend->IsReady()) {
 		String gpu_error;
 		if (backend->PrepareFrameGpu(img, cfg.pyramid_levels, stats, gpu_error)) {
@@ -3094,6 +3097,7 @@ bool GpuPreprocessEngine::PrepareFrame(const Image& img) {
 		}
 		stats.last_error = "GPU PrepareFrame failed: " + gpu_error + "; falling back to CPU";
 	}
+#endif
 
 	ByteMat rgba(img.GetWidth(), img.GetHeight(), 4);
 	{
@@ -3234,6 +3238,7 @@ bool GpuPreprocessEngine::ComputeScoreMaps() {
 		stats.last_error = "ComputeScoreMaps: frame not prepared";
 		return false;
 	}
+#if defined(PLATFORM_POSIX) && !defined(PLATFORM_OSX)
 	if (backend && backend->IsReady()) {
 		String error;
 		if (backend->ComputeScoreMapsGpu(stats, error))
@@ -3241,6 +3246,7 @@ bool GpuPreprocessEngine::ComputeScoreMaps() {
 		stats.last_error = "ComputeScoreMapsGpu failed: " + error;
 		return false;
 	}
+#endif
 	stats.last_error = "ComputeScoreMaps: backend not ready (current backend: " + stats.backend + ")";
 	return false;
 }
@@ -3250,6 +3256,7 @@ bool GpuPreprocessEngine::GetKeypoints(Vector<GpuKp>& out, int max_keypoints) {
 		stats.last_error = "GetKeypoints: frame not prepared";
 		return false;
 	}
+#if defined(PLATFORM_POSIX) && !defined(PLATFORM_OSX)
 	if (backend && backend->IsReady()) {
 		GpuPreprocessEngine* self = const_cast<GpuPreprocessEngine*>(this);
 		String error;
@@ -3269,6 +3276,7 @@ bool GpuPreprocessEngine::GetKeypoints(Vector<GpuKp>& out, int max_keypoints) {
 		stats.last_error = "GetKeypointsGpu failed: " + error;
 		return false;
 	}
+#endif
 	stats.last_error = "GetKeypoints: backend not ready";
 	return false;
 }
@@ -3278,6 +3286,7 @@ bool GpuPreprocessEngine::ComputeDescriptors(const Vector<GpuKp>& kps, Vector<Bi
 		stats.last_error = "ComputeDescriptors: frame not prepared";
 		return false;
 	}
+#if defined(PLATFORM_POSIX) && !defined(PLATFORM_OSX)
 	if (backend && backend->IsReady()) {
 		GpuPreprocessEngine* self = const_cast<GpuPreprocessEngine*>(this);
 		String error;
@@ -3292,6 +3301,7 @@ bool GpuPreprocessEngine::ComputeDescriptors(const Vector<GpuKp>& kps, Vector<Bi
 		self->stats.last_error = "ComputeDescriptorsGpu failed: " + error;
 		return false;
 	}
+#endif
 	const_cast<GpuPreprocessEngine*>(this)->stats.last_error = "ComputeDescriptors: backend not ready";
 	return false;
 }
@@ -3301,6 +3311,7 @@ bool GpuPreprocessEngine::ExtractSparsePatches(const Vector<GpuKp>& kps, Vector<
 		stats.last_error = "ExtractSparsePatches: frame not prepared";
 		return false;
 	}
+#if defined(PLATFORM_POSIX) && !defined(PLATFORM_OSX)
 	if (backend && backend->IsReady()) {
 		String error;
 		TimeStop readback_ts;
@@ -3313,6 +3324,7 @@ bool GpuPreprocessEngine::ExtractSparsePatches(const Vector<GpuKp>& kps, Vector<
 		stats.last_error = "ExtractSparsePatchesGpu failed: " + error;
 		return false;
 	}
+#endif
 	stats.last_error = "ExtractSparsePatches: backend not ready";
 	return false;
 }
@@ -3322,6 +3334,7 @@ bool GpuPreprocessEngine::ReadbackAreas(const Vector<Rect>& rects, Vector<ByteMa
 		stats.last_error = "ReadbackAreas: frame not prepared";
 		return false;
 	}
+#if defined(PLATFORM_POSIX) && !defined(PLATFORM_OSX)
 	if (backend && backend->IsReady()) {
 		GpuPreprocessEngine* self = const_cast<GpuPreprocessEngine*>(this);
 		String error;
@@ -3335,6 +3348,7 @@ bool GpuPreprocessEngine::ReadbackAreas(const Vector<Rect>& rects, Vector<ByteMa
 		}
 		self->stats.last_error = "ReadbackAreasGpu failed: " + error;
 	}
+#endif
 
 	// CPU Fallback
 	if (gray.IsEmpty()) {
@@ -3373,6 +3387,7 @@ bool GpuPreprocessEngine::ReadbackBinarizedAreas(const Vector<Rect>& rects, floa
 		stats.last_error = "ReadbackBinarizedAreas: frame not prepared";
 		return false;
 	}
+#if defined(PLATFORM_POSIX) && !defined(PLATFORM_OSX)
 	if (backend && backend->IsReady()) {
 		GpuPreprocessEngine* self = const_cast<GpuPreprocessEngine*>(this);
 		String error;
@@ -3386,6 +3401,7 @@ bool GpuPreprocessEngine::ReadbackBinarizedAreas(const Vector<Rect>& rects, floa
 		}
 		self->stats.last_error = "ReadbackBinarizedAreasGpu failed: " + error;
 	}
+#endif
 	return false;
 }
 
@@ -3404,6 +3420,7 @@ bool GpuPreprocessEngine::GetGray(ByteMat& out) const {
 	}
 	
 	// On-demand readback if in compact mode
+#if defined(PLATFORM_POSIX) && !defined(PLATFORM_OSX)
 	if (backend && backend->IsReady()) {
 		GpuPreprocessEngine* self = const_cast<GpuPreprocessEngine*>(this);
 		GpuPreprocessBackend* b = const_cast<GpuPreprocessBackend*>(backend.Get());
@@ -3418,6 +3435,7 @@ bool GpuPreprocessEngine::GetGray(ByteMat& out) const {
 		}
 		self->stats.last_error = "GetGray on-demand readback failed: " + error;
 	}
+#endif
 
 	const_cast<GpuPreprocessEngine*>(this)->stats.last_error = "GetGray: no grayscale data available";
 	return false;
@@ -3430,6 +3448,7 @@ bool GpuPreprocessEngine::GetSmooth(ByteMat& out) const {
 		return true;
 	}
 	
+#if defined(PLATFORM_POSIX) && !defined(PLATFORM_OSX)
 	if (backend && backend->IsReady()) {
 		GpuPreprocessEngine* self = const_cast<GpuPreprocessEngine*>(this);
 		GpuPreprocessBackend* b = const_cast<GpuPreprocessBackend*>(backend.Get());
@@ -3444,6 +3463,7 @@ bool GpuPreprocessEngine::GetSmooth(ByteMat& out) const {
 		}
 		self->stats.last_error = "GetSmooth on-demand readback failed: " + error;
 	}
+#endif
 	return false;
 }
 
@@ -3454,6 +3474,7 @@ bool GpuPreprocessEngine::GetPyramidGray(Vector<ByteMat>& out) const {
 		return true;
 	}
 	
+#if defined(PLATFORM_POSIX) && !defined(PLATFORM_OSX)
 	if (backend && backend->IsReady()) {
 		GpuPreprocessEngine* self = const_cast<GpuPreprocessEngine*>(this);
 		GpuPreprocessBackend* b = const_cast<GpuPreprocessBackend*>(backend.Get());
@@ -3470,6 +3491,7 @@ bool GpuPreprocessEngine::GetPyramidGray(Vector<ByteMat>& out) const {
 		}
 		self->stats.last_error = "GetPyramidGray on-demand readback failed: " + error;
 	}
+#endif
 	return false;
 }
 
@@ -3480,6 +3502,7 @@ bool GpuPreprocessEngine::GetPyramidSmooth(Vector<ByteMat>& out) const {
 		return true;
 	}
 	
+#if defined(PLATFORM_POSIX) && !defined(PLATFORM_OSX)
 	if (backend && backend->IsReady()) {
 		GpuPreprocessEngine* self = const_cast<GpuPreprocessEngine*>(this);
 		GpuPreprocessBackend* b = const_cast<GpuPreprocessBackend*>(backend.Get());
@@ -3496,6 +3519,7 @@ bool GpuPreprocessEngine::GetPyramidSmooth(Vector<ByteMat>& out) const {
 		}
 		self->stats.last_error = "GetPyramidSmooth on-demand readback failed: " + error;
 	}
+#endif
 	return false;
 }
 

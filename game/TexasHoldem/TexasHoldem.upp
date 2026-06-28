@@ -1,0 +1,17 @@
+description "No-Limit Texas Hold'em Game Engine\377";
+
+uses
+	Core,
+	CardEvaluator;
+
+file
+	TexasHoldem.h,
+	State.h,
+	Evaluator.h,
+	Evaluator.cpp,
+	Betting.h,
+	Betting.cpp,
+	Game.h,
+	Game.cpp,
+	Bots.h,
+	Bots.cpp;

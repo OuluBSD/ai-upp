@@ -1,0 +1,14 @@
+description "ai-upp package manager console tool";
+
+uses
+	ide/Core;
+
+file
+	AGENTS.md,
+	Pkg.h,
+	Pkg.cpp,
+	main.cpp;
+
+mainconfig
+	"" = "";
+

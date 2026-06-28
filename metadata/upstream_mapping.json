@@ -1,31 +1,38 @@
 {
-  "description": "Mapping from upstream ultimatepp/ultimatepp monolithic files to our split architecture.",
+  "description": "Mapping from upstream ultimatepp/ultimatepp monolithic IDE sources to the split headless/Core and GUI packages used here.",
+  "notes": [
+    "pkg reuses uppsrc/ide/Core for headless package, workspace, and build graph behavior."
+  ],
   "files": {
     "uppsrc/ide/main.cpp": {
       "destinations": [
         {
-          "file": "uppsrc/ide/Core/main.cpp",
-          "upstream_lines": [1, 50],
-          "note": "Example block: Console/headless startup logic"
+          "file": "uppsrc/ide/Core/main_console.cpp",
+          "semantic": "Console and headless startup handling"
         },
         {
-          "file": "uppsrc/ide/Ctrl/main_gui.cpp",
-          "upstream_lines": [51, 100],
-          "note": "Example block: GUI initialization"
+          "file": "uppsrc/ide/MainCtrl/ide.cpp",
+          "semantic": "GUI application bootstrap and IDE session startup"
         }
       ]
     },
     "uppsrc/ide/ide.h": {
       "destinations": [
         {
-          "file": "uppsrc/ide/ide.h",
-          "upstream_lines": [1, 20],
-          "note": "Example: Common definitions"
+          "file": "uppsrc/ide/Core/Core.h",
+          "semantic": "Shared headless declarations and core package API"
         },
         {
-          "file": "uppsrc/ide/Ctrl/ide_gui.h",
-          "upstream_lines": [21, 500],
-          "note": "Example: GUI definitions"
+          "file": "uppsrc/ide/MainCtrl/MainCtrl.h",
+          "semantic": "GUI-only IDE declarations"
+        }
+      ]
+    },
+    "uppsrc/ide/Core/Core.cpp": {
+      "destinations": [
+        {
+          "file": "uppsrc/ide/Core/Core.cpp",
+          "semantic": "Headless package/workspace/build graph implementation"
         }
       ]
     }

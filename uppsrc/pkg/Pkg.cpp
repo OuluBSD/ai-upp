@@ -47,6 +47,54 @@ void PkgEselectState::Jsonize(JsonIO& jio)
 	jio("compiler", compiler)("linker", linker)("target", target)("provider", provider);
 }
 
+static String sTrimPath(const String& path);
+static String sEselectRoot(const PkgInvocation& inv)
+{
+	return inv.root.IsEmpty() ? PkgRepoRoot() : sTrimPath(inv.root);
+}
+
+static String sEselectPath(const PkgInvocation& inv)
+{
+	return FindPkgConfigPaths(sEselectRoot(inv)).eselect;
+}
+
+static PkgEselectState sLoadEselectState(const PkgInvocation& inv)
+{
+	PkgEselectState st;
+	LoadFromJsonFile(st, sEselectPath(inv));
+	return st;
+}
+
+static void sStoreEselectState(const PkgInvocation& inv, const PkgEselectState& st)
+{
+	StoreAsJsonFile(st, sEselectPath(inv), true);
+}
+
+static const char * const sEselectBuiltins[] = {
+	"help",
+	"usage",
+	"version",
+};
+
+static const char * const sEselectModules[] = {
+	"compiler",
+	"linker",
+	"binutils",
+	"visualstudio",
+	"vcpkg",
+	"msys2",
+	"emscripten",
+	"target",
+	"profile",
+	"provider",
+	"repository",
+	"news",
+};
+
+static const String *sEselectSlot(const PkgEselectState& st, const String& module);
+static String *sEselectSlot(PkgEselectState& st, const String& module);
+static Vector<PkgTargetProfile> sTargets();
+
 static String sJoin(const Vector<String>& v, const char *sep = " ")
 {
 	String out;
@@ -120,7 +168,7 @@ PkgConfigPaths FindPkgConfigPaths(const String& root)
 	p.package_provider = AppendFileName(p.ai_dir, "package.provider");
 	p.package_target = AppendFileName(p.ai_dir, "package.target");
 	p.state = AppendFileName(p.ai_dir, "state.json");
-	p.eselect = AppendFileName(p.ai_dir, "eselect.json");
+	p.eselect = AppendFileName(root, "eselect.json");
 	return p;
 }
 
@@ -843,6 +891,91 @@ static String sFmtList(const Vector<String>& v)
 	return v.GetCount() ? sJoin(v, " ") : String("[none]");
 }
 
+static void sPrintEselectModules(const PkgInvocation& inv)
+{
+	Cout() << "Usage: pkg eselect <global options> <module name> <module options>\n\n";
+	Cout() << "Global options:\n";
+	Cout() << "  --brief\n";
+	Cout() << "  --colour=<yes|no|auto>\n";
+	Cout() << "  --root=<path>\n";
+	Cout() << "  --sysroot=<path>\n\n";
+	Cout() << "Built-in modules:\n";
+	for(const char *m : sEselectBuiltins)
+		Cout() << "  " << m << "\n";
+	Cout() << "\nExtra modules:\n";
+	for(const char *m : sEselectModules)
+		Cout() << "  " << m << "\n";
+	Cout() << "\nRepository root: " << sEselectRoot(inv) << "\n";
+	Cout() << "Sysroot: " << (inv.sysroot.IsEmpty() ? String("[none]") : inv.sysroot) << "\n";
+}
+
+static void sPrintEselectValueList(const String& module)
+{
+	if(module == "compiler") {
+		Cout() << "Available compiler selectors:\n";
+		Cout() << "  auto\n  clang\n  gcc\n  msvc\n  mingw\n  emcc\n";
+		return;
+	}
+	if(module == "linker") {
+		Cout() << "Available linker selectors:\n";
+		Cout() << "  auto\n  ld\n  lld\n  link\n  emcc\n";
+		return;
+	}
+	if(module == "target") {
+		Vector<PkgTargetProfile> targets = sTargets();
+		for(const PkgTargetProfile& t : targets)
+			Cout() << t.name << " [" << t.thread_model << "] - " << t.summary << "\n";
+		return;
+	}
+	if(module == "provider") {
+		Cout() << "Available provider selectors:\n";
+		Cout() << "  auto\n  system\n  repository\n  plugin\n";
+		return;
+	}
+	Cout() << "Module " << module << " is recognized but has no selector list yet.\n";
+}
+
+static void sPrintEselectValueShow(const PkgEselectState& st, const String& module)
+{
+	const String *slot = sEselectSlot(st, module);
+	if(!slot || slot->IsEmpty())
+		Cout() << module << ": [none]\n";
+	else
+		Cout() << module << ": " << *slot << "\n";
+}
+
+static void sPrintEselectValueSet(const PkgInvocation& inv, const String& module)
+{
+	PkgEselectState st = sLoadEselectState(inv);
+	String *slot = sEselectSlot(st, module);
+	if(!slot) {
+		Cout() << "module not yet backed by a stored selection: " << module << "\n";
+		Cout() << "stored repository-local selections currently cover compiler, linker, target, and provider\n";
+		return;
+	}
+	*slot = inv.target;
+	sStoreEselectState(inv, st);
+	Cout() << module << " set to " << inv.target << "\n";
+}
+
+static const String *sEselectSlot(const PkgEselectState& st, const String& module)
+{
+	if(module == "compiler") return &st.compiler;
+	if(module == "linker") return &st.linker;
+	if(module == "target") return &st.target;
+	if(module == "provider") return &st.provider;
+	return nullptr;
+}
+
+static String *sEselectSlot(PkgEselectState& st, const String& module)
+{
+	if(module == "compiler") return &st.compiler;
+	if(module == "linker") return &st.linker;
+	if(module == "target") return &st.target;
+	if(module == "provider") return &st.provider;
+	return nullptr;
+}
+
 static void sPrintHelp(bool color)
 {
 	Cout()
@@ -1234,13 +1367,14 @@ static void sPrintInfo(const PkgRepository& repo, const PkgInvocation& inv)
 	Cout() << "Package.target: " << repo.paths.package_target << "\n";
 	Cout() << "Eselect file: " << repo.paths.eselect << "\n";
 	Cout() << "World entries: " << world.GetCount() << "\n";
-	String active_target = !inv.target.IsEmpty() ? inv.target : (state.target.IsEmpty() ? String("native") : state.target);
+	String active_target = !inv.target.IsEmpty() ? inv.target : (!eselect.target.IsEmpty() ? eselect.target : (state.target.IsEmpty() ? String("native") : state.target));
 	const PkgTargetProfile& active_profile = sDefaultTargetProfile(active_target);
 	Cout() << "Active target: " << active_target << "\n";
 	Cout() << "Active target thread model: " << active_profile.thread_model << "\n";
 	Cout() << "Active target reason: " << sTargetThreadReason(active_profile) << "\n";
 	Cout() << "Active target compiler: " << active_profile.compiler << "\n";
 	Cout() << "Active target toolchain: " << active_profile.toolchain << "\n";
+	Cout() << "Selected target: " << (eselect.target.IsEmpty() ? String("[none]") : eselect.target) << "\n";
 	Cout() << "Active toolchain: " << (state.toolchain.IsEmpty() ? String("[none]") : state.toolchain) << "\n";
 	Cout() << "Selected compiler: " << (eselect.compiler.IsEmpty() ? String("[none]") : eselect.compiler) << "\n";
 	Cout() << "Selected linker: " << (eselect.linker.IsEmpty() ? String("[none]") : eselect.linker) << "\n";
@@ -1330,11 +1464,9 @@ static void sPrintTargetCommand(const PkgInvocation& inv)
 	else if(inv.subcommand == "explain")
 		sExplainTarget(inv.target);
 	else if(inv.subcommand == "set") {
-		RealizePath(FindPkgConfigPaths(PkgRepoRoot()).ai_dir);
-		PkgEselectState st;
-		LoadFromJsonFile(st, FindPkgConfigPaths(PkgRepoRoot()).eselect);
+		PkgEselectState st = sLoadEselectState(inv);
 		st.target = inv.target;
-		StoreAsJsonFile(st, FindPkgConfigPaths(PkgRepoRoot()).eselect, true);
+		sStoreEselectState(inv, st);
 		Cout() << "target set to " << inv.target << "\n";
 	}
 	else
@@ -1343,24 +1475,58 @@ static void sPrintTargetCommand(const PkgInvocation& inv)
 
 static void sPrintEselectCommand(const PkgInvocation& inv)
 {
-	Cout() << "Usage: pkg eselect <global options> <module name> <module options>\n\n";
-	Cout() << "Built-in modules:\n";
-	Cout() << "  help\n  usage\n  version\n\n";
-	Cout() << "Extra modules:\n";
-	Cout() << "  compiler\n  linker\n  binutils\n  visualstudio\n  vcpkg\n  msys2\n  emscripten\n  target\n  profile\n  provider\n  repository\n  news\n";
-	if(inv.module == "compiler" && inv.subcommand == "set") {
-		PkgEselectState st;
-		LoadFromJsonFile(st, FindPkgConfigPaths(PkgRepoRoot()).eselect);
-		st.compiler = inv.target;
-		StoreAsJsonFile(st, FindPkgConfigPaths(PkgRepoRoot()).eselect, true);
-		Cout() << "compiler set to " << inv.target << "\n";
+	if(inv.module.IsEmpty() || inv.module == "help") {
+		sPrintEselectModules(inv);
+		return;
 	}
-	else if(inv.module == "target" && inv.subcommand == "set") {
-		PkgInvocation t;
-		t.subcommand = "set";
-		t.target = inv.target;
-		sPrintTargetCommand(t);
+	if(inv.module == "usage") {
+		sPrintEselectModules(inv);
+		return;
 	}
+	if(inv.module == "version") {
+		Cout() << "pkg eselect 0.1\n";
+		Cout() << "Repository root: " << sEselectRoot(inv) << "\n";
+		Cout() << "Sysroot: " << (inv.sysroot.IsEmpty() ? String("[none]") : inv.sysroot) << "\n";
+		return;
+	}
+	if(inv.module == "modules" && inv.subcommand == "list") {
+		Cout() << "Modules available in this repository-local selector:\n";
+		Cout() << "Built-in modules:\n";
+		for(const char *m : sEselectBuiltins)
+			Cout() << "  " << m << "\n";
+		Cout() << "Extra modules:\n";
+		for(const char *m : sEselectModules)
+			Cout() << "  " << m << "\n";
+		Cout() << "Repository root: " << sEselectRoot(inv) << "\n";
+		Cout() << "Sysroot: " << (inv.sysroot.IsEmpty() ? String("[none]") : inv.sysroot) << "\n";
+		return;
+	}
+	if(inv.subcommand == "list") {
+		sPrintEselectValueList(inv.module);
+		return;
+	}
+	if(inv.subcommand == "show") {
+		PkgEselectState st = sLoadEselectState(inv);
+		sPrintEselectValueShow(st, inv.module);
+		return;
+	}
+	if(inv.subcommand == "set") {
+		if(inv.module == "target") {
+			PkgInvocation t;
+			t.subcommand = "set";
+			t.target = inv.target;
+			t.root = inv.root;
+			t.sysroot = inv.sysroot;
+			sPrintTargetCommand(t);
+			return;
+		}
+		sPrintEselectValueSet(inv, inv.module);
+		return;
+	}
+	Cout() << "unknown eselect module command: " << inv.module;
+	if(!inv.subcommand.IsEmpty())
+		Cout() << ' ' << inv.subcommand;
+	Cout() << "\n";
 }
 
 static void sAuditAcceptFlags(const PkgInvocation& inv, const PkgRepository& repo)

@@ -9,6 +9,7 @@ The original `uppsrc/ide` package is being split to support independent console 
   - `uppsrc/ide`: A minimal shim/shell package. Build flags determine if the GUI or Console version is used.
   - `uppsrc/ide/Ctrl`: The main IDE GUI implementation.
   - `uppsrc/ide/Core` (or similar): The IDE console implementation.
+  - `uppsrc/pkg` reuses `uppsrc/ide/Core` for headless package, workspace, and build graph behavior.
 
 ## 1. State and Mapping Data
 Synchronization relies on two JSON files:

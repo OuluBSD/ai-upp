@@ -1,4 +1,14 @@
-#ifdef PLATFORM_WIN32
+#ifdef _WIN32
+#pragma comment(lib, "mfplat.lib")
+#pragma comment(lib, "mfuuid.lib")
+#pragma comment(lib, "mfreadwrite.lib")
+#pragma comment(lib, "mf.lib")
+#ifndef FAR
+#define FAR
+#endif
+#ifndef NEAR
+#define NEAR
+#endif
 #define _WINSOCKAPI_
 #include <winsock2.h>
 #include <ws2tcpip.h>
@@ -7,7 +17,47 @@
 #include <mfidl.h>
 #include <mfreadwrite.h>
 #include <mferror.h>
-#include <wrl/client.h>
+
+namespace Microsoft {
+namespace WRL {
+
+template <typename T>
+class ComPtr {
+	T* ptr = nullptr;
+public:
+	ComPtr() {}
+	ComPtr(T* p) : ptr(p) { if (ptr) ptr->AddRef(); }
+	ComPtr(const ComPtr& other) : ptr(other.ptr) { if (ptr) ptr->AddRef(); }
+	~ComPtr() { if (ptr) ptr->Release(); }
+	
+	T* Get() const { return ptr; }
+	T* operator->() const { return ptr; }
+	T** operator&() { if (ptr) { ptr->Release(); ptr = nullptr; } return &ptr; }
+	T** GetAddressOf() { return &ptr; }
+	T* const* GetAddressOf() const { return &ptr; }
+	
+	void Attach(T* p) { if (ptr) ptr->Release(); ptr = p; }
+	T* Detach() { T* temp = ptr; ptr = nullptr; return temp; }
+	
+	void Reset() { if (ptr) { ptr->Release(); ptr = nullptr; } }
+	
+	operator bool() const { return ptr != nullptr; }
+	ComPtr& operator=(const ComPtr& other) {
+		if (this != &other) {
+			if (ptr) ptr->Release();
+			ptr = other.ptr;
+			if (ptr) ptr->AddRef();
+		}
+		return *this;
+	}
+	ComPtr& operator=(T* p) {
+		Attach(p);
+		return *this;
+	}
+};
+
+}
+}
 #endif
 
 #include <Core/Core.h>

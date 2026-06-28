@@ -83,6 +83,10 @@ void Game::initHand()
 	currentHandID++;
 	raiseBlinds();
 	for(auto& player : *seatsList) {
+		bool should_be_active = player->isSessionActive() &&
+		                       player->getMyID() < startQuantityPlayers &&
+		                       player->getMyCash() > 0;
+		player->setMyActiveStatus(should_be_active);
 		player->setMyAction(PLAYER_ACTION_NONE);
 		player->setMySetNull();
 		player->setMyRoundStartCash(player->getMyCash());

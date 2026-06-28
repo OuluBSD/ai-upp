@@ -1,0 +1,219 @@
+[CmdletBinding()]
+param(
+    [string]$Source,
+    [string]$Output,
+    [ValidateSet('x86', 'x64')]
+    [string]$Arch = 'x86'
+)
+
+Set-StrictMode -Version Latest
+$ErrorActionPreference = 'Stop'
+
+function Get-VswherePath {
+    $candidates = @(
+        (Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio\Installer\vswhere.exe'),
+        (Join-Path $env:ProgramFiles 'Microsoft Visual Studio\Installer\vswhere.exe')
+    )
+
+    foreach ($candidate in $candidates) {
+        if ($candidate -and (Test-Path -LiteralPath $candidate)) {
+            return $candidate
+        }
+    }
+
+    return $null
+}
+
+function Get-InstallRootFromDevCmd {
+    param([string]$Path)
+
+    $current = Split-Path -Parent $Path
+    if (-not $current) {
+        return $null
+    }
+
+    $current = Split-Path -Parent $current
+    if (-not $current) {
+        return $null
+    }
+
+    return Split-Path -Parent $current
+}
+
+function Get-VisualStudioInstalls {
+    $installs = New-Object System.Collections.Generic.List[object]
+    $seen = @{}
+
+    $vswhere = Get-VswherePath
+    if ($vswhere) {
+        $json = & $vswhere -all -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -format json 2>$null
+        if ($LASTEXITCODE -eq 0 -and $json) {
+            $items = $json | ConvertFrom-Json
+            foreach ($item in $items) {
+                if ($item.installationPath -and -not $seen.ContainsKey($item.installationPath)) {
+                    $seen[$item.installationPath] = $true
+                    $installs.Add([pscustomobject]@{
+                        Path = $item.installationPath
+                        Version = if ($item.installationVersion) { [version]$item.installationVersion } else { [version]'0.0' }
+                        Source = 'vswhere'
+                    })
+                }
+            }
+        }
+    }
+
+    foreach ($root in @($env:ProgramFiles, ${env:ProgramFiles(x86)}) | Where-Object { $_ }) {
+        $msvcRoot = Join-Path $root 'Microsoft Visual Studio'
+        if (-not (Test-Path -LiteralPath $msvcRoot)) {
+            continue
+        }
+
+        $devCmds = Get-ChildItem -Path $msvcRoot -Recurse -Filter 'VsDevCmd.bat' -File -ErrorAction SilentlyContinue
+        foreach ($devCmd in $devCmds) {
+            $installPath = Get-InstallRootFromDevCmd -Path $devCmd.FullName
+            if (-not $installPath -or $seen.ContainsKey($installPath)) {
+                continue
+            }
+
+            $seen[$installPath] = $true
+            $versionName = Split-Path -Leaf (Split-Path -Parent $installPath)
+            $installs.Add([pscustomobject]@{
+                Path = $installPath
+                Version = [version](($versionName -replace '[^\d.]', '') + '.0')
+                Source = 'filesystem'
+            })
+        }
+
+        $vcvarsalls = Get-ChildItem -Path $msvcRoot -Recurse -Filter 'vcvarsall.bat' -File -ErrorAction SilentlyContinue
+        foreach ($vcvars in $vcvarsalls) {
+            $installPath = Split-Path -Parent (Split-Path -Parent (Split-Path -Parent (Split-Path -Parent $vcvars.FullName)))
+            if (-not $installPath -or $seen.ContainsKey($installPath)) {
+                continue
+            }
+
+            $seen[$installPath] = $true
+            $versionName = Split-Path -Leaf (Split-Path -Parent $installPath)
+            $installs.Add([pscustomobject]@{
+                Path = $installPath
+                Version = [version](($versionName -replace '[^\d.]', '') + '.0')
+                Source = 'filesystem'
+            })
+        }
+    }
+
+    return $installs | Sort-Object Version -Descending
+}
+
+function Get-DevCmdPath {
+    param([string]$InstallPath)
+
+    $vsDevCmd = Join-Path $InstallPath 'Common7\Tools\VsDevCmd.bat'
+    if (Test-Path -LiteralPath $vsDevCmd) {
+        return @{ Path = $vsDevCmd; Kind = 'VsDevCmd' }
+    }
+
+    $vcVarsAll = Join-Path $InstallPath 'VC\Auxiliary\Build\vcvarsall.bat'
+    if (Test-Path -LiteralPath $vcVarsAll) {
+        return @{ Path = $vcVarsAll; Kind = 'VcVarsAll' }
+    }
+
+    return $null
+}
+
+function Invoke-Compiler {
+    param(
+        [string]$DevCmd,
+        [string]$DevCmdKind,
+        [string]$Arch,
+        [string]$SourcePath,
+        [string]$TempDir,
+        [string]$OutputPath
+    )
+
+    $tempSource = Join-Path $TempDir 'main.cpp'
+    Copy-Item -LiteralPath $SourcePath -Destination $tempSource -Force
+
+    $compileArgs = @(
+        '/nologo',
+        '/EHsc',
+        '/std:c++17',
+        '/O2',
+        '/bigobj',
+        '/D_ATL_XP_TARGETING',
+        '/D_CRT_SECURE_NO_WARNINGS',
+        '/Fe:' + ('"' + $OutputPath + '"'),
+        'main.cpp'
+    )
+
+    $cl = 'cl ' + ($compileArgs -join ' ')
+
+    if ($DevCmdKind -eq 'VsDevCmd') {
+        $command = 'call "' + $DevCmd + '" -no_logo -arch=' + $Arch + ' -host_arch=' + $Arch + ' && ' + $cl
+    }
+    else {
+        $command = 'call "' + $DevCmd + '" ' + $Arch + ' && ' + $cl
+    }
+
+    & cmd.exe /d /s /c ('cd /d "' + $TempDir + '" && ' + $command)
+    if ($LASTEXITCODE -ne 0) {
+        throw "Build failed with exit code $LASTEXITCODE"
+    }
+}
+
+$repoRoot = Split-Path (Split-Path $PSScriptRoot -Parent) -Parent
+$Source = if ($Source) { $Source } else { Join-Path $PSScriptRoot 'main.cpp' }
+$Output = if ($Output) { $Output } else { Join-Path (Join-Path $repoRoot 'bin') 'build.exe' }
+
+if (-not (Test-Path -LiteralPath $Source)) {
+    throw "Source file not found: $Source"
+}
+
+$outputDir = Split-Path -Parent $Output
+if ($outputDir -and -not (Test-Path -LiteralPath $outputDir)) {
+    New-Item -ItemType Directory -Path $outputDir | Out-Null
+}
+
+$installs = Get-VisualStudioInstalls
+if (-not @($installs).Count) {
+    throw 'No Visual Studio installation with C++ tools was found.'
+}
+
+$tempRoot = Join-Path ([System.IO.Path]::GetTempPath()) ('ai-upp-build-' + [Guid]::NewGuid().ToString('N'))
+New-Item -ItemType Directory -Path $tempRoot | Out-Null
+
+try {
+    $built = $false
+    foreach ($install in $installs) {
+        $devCmdInfo = Get-DevCmdPath -InstallPath $install.Path
+        if (-not $devCmdInfo) {
+            continue
+        }
+
+        Write-Host "Using Visual Studio $($install.Version) from $($install.Source): $($install.Path)"
+        Write-Host "Using architecture: $Arch"
+
+        Invoke-Compiler `
+            -DevCmd $devCmdInfo.Path `
+            -DevCmdKind $devCmdInfo.Kind `
+            -Arch $Arch `
+            -SourcePath $Source `
+            -TempDir $tempRoot `
+            -OutputPath $Output
+
+        $built = $true
+        break
+    }
+
+    if (-not $built) {
+        throw 'No usable Visual Studio command prompt script was found.'
+    }
+
+    Write-Host "Bootstrapping umk via $Output --bootstrap"
+    & $Output --bootstrap
+    if ($LASTEXITCODE -ne 0) {
+        throw "Bootstrap umk failed with exit code $LASTEXITCODE"
+    }
+}
+finally {
+    Remove-Item -LiteralPath $tempRoot -Recurse -Force -ErrorAction SilentlyContinue
+}

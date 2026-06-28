@@ -148,6 +148,7 @@ script/build.py --bootstrap
 Notes:
 * The bootstrap build is intended for Posix hosts and only builds `umk`.
 * The Makefile already encodes the include/library paths and flags; no `.bm` files are required.
+* On Windows, run `stdsrc/build/bootstrap.ps1`. It builds `bin/build.exe` first and then runs `bin/build.exe --bootstrap` to produce `bin/umk.exe`.
 
 ## Telemetry & Analytics v1
 

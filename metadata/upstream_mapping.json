@@ -1,7 +1,8 @@
 {
   "description": "Mapping from upstream ultimatepp/ultimatepp monolithic IDE sources to the split headless/Core and GUI packages used here.",
   "notes": [
-    "pkg reuses uppsrc/ide/Core for headless package, workspace, and build graph behavior."
+    "pkg reuses uppsrc/ide/Core for headless package, workspace, and build graph behavior.",
+    "Keep the headless core split in sync with pkg because pkg depends on ide/Core as its canonical parser and build-graph layer."
   ],
   "files": {
     "uppsrc/ide/main.cpp": {
@@ -28,11 +29,59 @@
         }
       ]
     },
+    "uppsrc/ide/ide.upp": {
+      "destinations": [
+        {
+          "file": "uppsrc/ide/ide.upp",
+          "semantic": "Shim package manifest that selects the GUI or console split"
+        }
+      ]
+    },
     "uppsrc/ide/Core/Core.cpp": {
       "destinations": [
         {
           "file": "uppsrc/ide/Core/Core.cpp",
           "semantic": "Headless package/workspace/build graph implementation"
+        }
+      ]
+    },
+    "uppsrc/ide/Core/Core.h": {
+      "destinations": [
+        {
+          "file": "uppsrc/ide/Core/Core.h",
+          "semantic": "Shared headless declarations for package/workspace parsing and build graph helpers"
+        }
+      ]
+    },
+    "uppsrc/ide/Core/Package.cpp": {
+      "destinations": [
+        {
+          "file": "uppsrc/ide/Core/Package.cpp",
+          "semantic": "Package manifest parsing, acceptflags, and source-file scan logic for the headless core"
+        }
+      ]
+    },
+    "uppsrc/ide/Core/Workspace.cpp": {
+      "destinations": [
+        {
+          "file": "uppsrc/ide/Core/Workspace.cpp",
+          "semantic": "Workspace loading, package expansion, and dependency traversal for the headless core"
+        }
+      ]
+    },
+    "uppsrc/ide/Core/main_console.cpp": {
+      "destinations": [
+        {
+          "file": "uppsrc/ide/Core/main_console.cpp",
+          "semantic": "Console-only entrypoint for the headless IDE shell"
+        }
+      ]
+    },
+    "uppsrc/ide/MainCtrl/ide.cpp": {
+      "destinations": [
+        {
+          "file": "uppsrc/ide/MainCtrl/ide.cpp",
+          "semantic": "GUI application bootstrap and IDE session startup"
         }
       ]
     }

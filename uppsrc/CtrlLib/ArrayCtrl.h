@@ -197,8 +197,9 @@ private:
 		bool          heading:1;
 		Color         paper;
 		Vector<Value> line;
+		int           original_index;
 
-		Line() { select = false; enabled = true; visible = true; heading = false; paper = Null; }
+		Line() { select = false; enabled = true; visible = true; heading = false; paper = Null; original_index = INT_MAX; }
 	};
 	
 	static int StdValueCompare(const Value& a, const Value& b) { return Upp::StdValueCompare(a, b); }
@@ -273,6 +274,7 @@ private:
 	
 	bool  isdrag:1;
 	bool  selclick:1;
+	bool  columnsortthreestate:1;
 
 	Image cursor_override;
 
@@ -588,6 +590,8 @@ public:
 	void       DoColumnSort();
 	int        GetSortColumn() const                   { return sortcolumn; }
 	bool       IsSortDescending() const                { return sortcolumndescending; }
+	ArrayCtrl& ColumnSortThreeState(bool b = true)     { columnsortthreestate = b; return *this; }
+	bool       IsColumnSortThreeState() const          { return columnsortthreestate; }
 
 	bool       IsInsert() const                        { return insertmode; }
 

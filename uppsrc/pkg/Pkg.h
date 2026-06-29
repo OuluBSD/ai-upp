@@ -46,6 +46,44 @@ struct PkgUsePolicy : Moveable<PkgUsePolicy> {
 	void Jsonize(JsonIO& jio);
 };
 
+enum PkgUppScope {
+	PKG_UPP_GLOBAL,
+	PKG_UPP_ACCEPTED,
+	PKG_UPP_MAIN_ONLY,
+};
+
+struct PkgUseTransition : Moveable<PkgUseTransition> {
+	String flag;
+	String marker;
+	String reason;
+};
+
+struct PkgUseModel : Moveable<PkgUseModel> {
+	Vector<String> requested;
+	Vector<String> declared;
+	Vector<String> defaults;
+	Vector<String> forced;
+	Vector<String> masked;
+	Vector<String> selected;
+	Vector<String> disabled;
+	Vector<String> effective;
+	Vector<PkgUseTransition> transitions;
+};
+
+struct PkgUppFlag : Moveable<PkgUppFlag> {
+	String name;
+	int scope = PKG_UPP_GLOBAL;
+	String reason;
+};
+
+struct PkgUppProjection : Moveable<PkgUppProjection> {
+	Vector<PkgUppFlag> flags;
+	Vector<String> global;
+	Vector<String> accepted;
+	Vector<String> main_only;
+	Vector<String> transitions;
+};
+
 struct PkgTargetProfile : Moveable<PkgTargetProfile> {
 	String name;
 	String host_platform;
@@ -155,10 +193,13 @@ struct PkgPlan : Moveable<PkgPlan> {
 	String target;
 	bool color = false;
 	bool ask = false;
+	bool verbose = false;
 	bool pretend = false;
 	bool update = false;
 	bool deep = false;
 	bool newuse = false;
+	PkgUseModel use;
+	PkgUppProjection upp;
 	Vector<String> selected_use;
 	Vector<String> disabled_use;
 	Vector<String> defaulted_use;

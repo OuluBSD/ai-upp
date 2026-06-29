@@ -244,6 +244,70 @@ static void TestChangeDetect()
 }
 
 // ---------------------------------------------------------------------------
+// Test: Session storage
+
+static void TestSessionStorage()
+{
+	Cout() << "\n=== Session storage ===\n";
+
+	AppLog log;
+	log.SetForwardToUppLog(false);
+
+	String root = AppendFileName(GetTempPath(), "vsm_session_test");
+	// Remove leftover from previous run
+	if(DirectoryExists(root))
+		DeleteFolderDeep(root);
+
+	VsmSessionStore store;
+	store.SetLog(&log);
+
+	// Create
+	if(!store.Create(root, "test-session-001", 640, 480)) {
+		Fail("SessionStore Create");
+		return;
+	}
+	Cout() << "Create: OK\n";
+
+	// Allocate assets
+	VsmAssetRef f0 = store.AllocateFrame(0);
+	VsmAssetRef f1 = store.AllocateFrame(1);
+	VsmAssetRef cr = store.AllocateCrop("rgn-0001");
+	if(f0.IsEmpty() || f1.IsEmpty() || cr.IsEmpty()) {
+		Fail("AllocateFrame/Crop returned empty ref");
+		return;
+	}
+	Cout() << "AllocateFrame(0): " << f0.relative_path << " OK\n";
+	Cout() << "AllocateCrop: " << cr.relative_path << " OK\n";
+
+	// Resolve
+	String abs = store.Resolve(f0);
+	if(!FileExists(abs)) {
+		Fail("Placeholder file not created");
+		return;
+	}
+	Cout() << "Resolve + placeholder exists: OK\n";
+
+	// Save manifest
+	if(!store.SaveManifest()) { Fail("SaveManifest"); return; }
+
+	// Manifest round-trip: open fresh store
+	VsmSessionStore store2;
+	store2.SetLog(&log);
+	if(!store2.Open(root)) { Fail("SessionStore Open"); return; }
+
+	const VsmSessionManifest& m = store2.GetManifest();
+	if(m.session_id != "test-session-001")  { Fail("manifest session_id"); return; }
+	if(m.frame_width != 640)                { Fail("manifest frame_width"); return; }
+	if(m.frames.GetCount() != 2)            { Fail("manifest frames count"); return; }
+	if(m.crops.GetCount() != 1)             { Fail("manifest crops count"); return; }
+	Cout() << "Manifest round-trip: session_id=" << m.session_id
+	       << " frames=" << m.frames.GetCount() << " crops=" << m.crops.GetCount() << " OK\n";
+
+	// Cleanup
+	DeleteFolderDeep(root);
+}
+
+// ---------------------------------------------------------------------------
 
 CONSOLE_APP_MAIN
 {
@@ -254,6 +318,7 @@ CONSOLE_APP_MAIN
 	TestChangeDetect();
 	TestGroundTruth();
 	TestReplay();
+	TestSessionStorage();
 
 	if(GetExitCode() == 0)
 		Cout() << "\nAll VisualStateModel checks passed.\n";

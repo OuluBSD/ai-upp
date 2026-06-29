@@ -99,6 +99,9 @@ void MainWindow::InitDockers()
 	pipeline_dock_.Title("Pipeline Editor").SizeHint(Size(280, 220));
 	Register(pipeline_dock_);
 
+	template_dock_.Title("Template Rules").SizeHint(Size(300, 260));
+	Register(template_dock_);
+
 	timeline_dock_.WhenStep   = [=] { OnStep(); };
 	timeline_dock_.WhenRunAll = [=] { OnRunAll(); };
 	timeline_dock_.WhenReset  = [=] { OnResetReplay(); };
@@ -113,6 +116,7 @@ void MainWindow::OnResetDockLayout()
 	DockRight(session_dock_);
 	DockLeft(annotation_dock_);
 	DockLeft(pipeline_dock_);
+	DockLeft(template_dock_);
 	DockBottom(timeline_dock_);
 	Log("layout: reset to default");
 }
@@ -364,6 +368,20 @@ void MainWindow::LoadSampleAnnotation()
 		current_pipeline_.steps.Add(s2);
 	}
 	pipeline_dock_.SetPipeline(&current_pipeline_);
+
+	// Seed a sample template rule
+	if(template_rules_.IsEmpty()) {
+		VsmTemplateRule& r = template_rules_.Add();
+		r.rule_id       = "rule-001";
+		r.annotation_id = "ann-001";
+		r.mode          = VSM_TM_PRESENCE;
+		r.requirement   = VSM_TMR_OPTIONAL;
+		r.threshold     = 0.8;
+		r.pipeline_id   = current_pipeline_.id;
+		VsmTemplateCandidate& c = r.candidates.Add();
+		c.asset_id = "asset-sample"; c.label = "Sample";
+	}
+	template_dock_.SetRules(&template_rules_);
 }
 
 void MainWindow::OnAnnotationChanged()

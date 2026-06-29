@@ -20,4 +20,6 @@ file
 	Annotation.h,
 	Annotation.cpp,
 	Preprocess.h,
-	Preprocess.cpp;
+	Preprocess.cpp,
+	TemplateMatch.h,
+	TemplateMatch.cpp;

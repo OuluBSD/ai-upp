@@ -43,12 +43,14 @@ private:
 	SessionInfoPanel      session_dock_;
 	AnnotationEditorPanel annotation_dock_;
 	PipelineEditorPanel   pipeline_dock_;
+	TemplateRulePanel     template_dock_;
 
-	// ---- Session storage + annotation layer + pipeline
-	VsmSessionStore        session_store_;
-	VsmAnnotationLayer     annotation_layer_;
-	String                 annotation_path_;
-	VsmPreprocessPipeline  current_pipeline_;
+	// ---- Session storage + annotation layer + pipeline + template rules
+	VsmSessionStore           session_store_;
+	VsmAnnotationLayer        annotation_layer_;
+	String                    annotation_path_;
+	VsmPreprocessPipeline     current_pipeline_;
+	Vector<VsmTemplateRule>   template_rules_;
 
 	// ---- AppRegistry + state
 	AppRegistry registry_;

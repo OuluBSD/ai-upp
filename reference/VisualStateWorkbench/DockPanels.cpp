@@ -61,6 +61,89 @@ void ReplayTimelinePanel::SetProgress(int pos, int total)
 }
 
 // ---------------------------------------------------------------------------
+// TemplateRulePanel
+
+TemplateRulePanel::TemplateRulePanel()
+{
+	rules_list_.AddColumn("Rule ID");
+	rules_list_.AddColumn("Mode", 60);
+	rules_list_.AddColumn("Thr.", 50);
+	results_list_.AddColumn("Rule");
+	results_list_.AddColumn("Matched", 55);
+	results_list_.AddColumn("Score", 55);
+	results_list_.AddColumn("Label");
+
+	add_btn_.SetLabel("+ Rule");
+	remove_btn_.SetLabel("Remove");
+	mode_lbl_.SetLabel("Mode:");
+	req_lbl_.SetLabel("Req:");
+
+	mode_drop_.Add(0, "Presence");
+	mode_drop_.Add(1, "Multi-opt");
+	mode_drop_.SetIndex(0);
+
+	req_drop_.Add(0, "Optional");
+	req_drop_.Add(1, "Required");
+	req_drop_.SetIndex(0);
+
+	add_btn_.WhenAction    = [=] { OnAdd(); };
+	remove_btn_.WhenAction = [=] { OnRemove(); };
+
+	Add(rules_list_.HSizePos(4,4).TopPos(4, 80));
+	Add(mode_lbl_.LeftPos(4,34).TopPos(88,20));
+	Add(mode_drop_.LeftPos(42,80).TopPos(88,20));
+	Add(req_lbl_.LeftPos(126,28).TopPos(88,20));
+	Add(req_drop_.LeftPos(158,80).TopPos(88,20));
+	Add(add_btn_.LeftPos(4,60).TopPos(114,22));
+	Add(remove_btn_.LeftPos(68,60).TopPos(114,22));
+	Add(results_list_.HSizePos(4,4).TopPos(142,100));
+}
+
+void TemplateRulePanel::SetRules(Vector<VsmTemplateRule>* rules)
+{
+	rules_ = rules;
+	RebuildRules();
+}
+
+void TemplateRulePanel::AddMatchResult(const VsmTemplateMatchResult& res)
+{
+	results_list_.Add(res.rule_id,
+	                  res.matched ? "YES" : "no",
+	                  FormatDouble(res.score, 3),
+	                  res.matched_label.IsEmpty() ? "—" : res.matched_label);
+}
+
+void TemplateRulePanel::RebuildRules()
+{
+	rules_list_.Clear();
+	if(!rules_) return;
+	for(const VsmTemplateRule& r : *rules_)
+		rules_list_.Add(r.rule_id,
+		                r.mode == VSM_TM_PRESENCE ? "presence" : "multi",
+		                FormatDouble(r.threshold, 2));
+}
+
+void TemplateRulePanel::OnAdd()
+{
+	if(!rules_) return;
+	VsmTemplateRule& r = rules_->Add();
+	r.rule_id     = Format("rule-%06d", (int)rules_->GetCount());
+	r.mode        = (int)mode_drop_.GetData();
+	r.requirement = (int)req_drop_.GetData();
+	r.threshold   = 0.8;
+	RebuildRules();
+}
+
+void TemplateRulePanel::OnRemove()
+{
+	if(!rules_) return;
+	int row = rules_list_.GetCursor();
+	if(row >= 0 && row < rules_->GetCount())
+		rules_->Remove(row);
+	RebuildRules();
+}
+
+// ---------------------------------------------------------------------------
 // PipelineEditorPanel
 
 PipelineEditorPanel::PipelineEditorPanel()

@@ -37,6 +37,32 @@ private:
 };
 
 // ---------------------------------------------------------------------------
+// TemplateRulePanel — display/edit template rules and show match results
+
+class TemplateRulePanel : public DockableCtrl {
+public:
+	typedef TemplateRulePanel CLASSNAME;
+
+	TemplateRulePanel();
+
+	void SetRules(Vector<VsmTemplateRule>* rules);
+	void AddMatchResult(const VsmTemplateMatchResult& res);
+
+private:
+	Vector<VsmTemplateRule>* rules_ = nullptr;
+
+	ArrayCtrl rules_list_;
+	ArrayCtrl results_list_;
+	Button    add_btn_, remove_btn_;
+	Label     mode_lbl_, req_lbl_;
+	DropList  mode_drop_, req_drop_;
+
+	void OnAdd();
+	void OnRemove();
+	void RebuildRules();
+};
+
+// ---------------------------------------------------------------------------
 // PipelineEditorPanel — edit preprocessing pipeline metadata
 
 class PipelineEditorPanel : public DockableCtrl {

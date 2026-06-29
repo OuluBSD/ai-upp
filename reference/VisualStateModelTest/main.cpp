@@ -244,6 +244,65 @@ static void TestChangeDetect()
 }
 
 // ---------------------------------------------------------------------------
+// Test: Template matching
+
+static void TestTemplateMatch()
+{
+	Cout() << "\n=== Template matching ===\n";
+
+	AppLog log;
+	log.SetForwardToUppLog(false);
+
+	// Build two distinct fingerprints
+	VsmFingerprint32 fp_a, fp_b;
+	memset(fp_a.data, 50,  sizeof(fp_a.data));
+	memset(fp_b.data, 200, sizeof(fp_b.data));
+
+	VsmTemplateMatcher matcher;
+	matcher.SetLog(&log);
+	matcher.AddSyntheticAsset("asset-a", fp_a);
+	matcher.AddSyntheticAsset("asset-b", fp_b);
+
+	// Build a rule — presence mode, threshold 0.9
+	VsmTemplateRule rule;
+	rule.rule_id       = "rule-001";
+	rule.annotation_id = "ann-001";
+	rule.mode          = VSM_TM_PRESENCE;
+	rule.threshold     = 0.9;
+	rule.requirement   = VSM_TMR_OPTIONAL;
+	VsmTemplateCandidate& ca = rule.candidates.Add();
+	ca.asset_id = "asset-a"; ca.label = "LightGray";
+	VsmTemplateCandidate& cb = rule.candidates.Add();
+	cb.asset_id = "asset-b"; cb.label = "DarkGray";
+
+	// Region image that matches fp_a exactly (luma~50)
+	VsmFrameImage img;
+	FillSolidRGBA(img, 32, 32, 50, 50, 50);
+
+	VsmTemplateMatchResult res = matcher.Match(img, rule);
+	Cout() << "Match: matched=" << (res.matched?"yes":"no")
+	       << " score=" << res.score
+	       << " label=" << res.matched_label << "\n";
+	if(!res.matched) { Fail("Expected match for identical image"); return; }
+	Cout() << "Presence match: OK\n";
+
+	// Required-no-match failure: empty candidates
+	VsmTemplateRule rule_empty;
+	rule_empty.rule_id     = "rule-002";
+	rule_empty.requirement = VSM_TMR_REQUIRED_ONE;
+	VsmTemplateMatchResult res2 = matcher.Match(img, rule_empty);
+	if(!res2.is_required_failure) { Fail("Expected required_failure for empty candidates"); return; }
+	Cout() << "Required-failure: OK\n";
+
+	// Round-trip
+	String json = StoreAsJson(rule);
+	VsmTemplateRule rule2;
+	LoadFromJson(rule2, json);
+	if(rule2.candidates.GetCount() != 2) { Fail("Rule round-trip"); return; }
+	Cout() << "Rule round-trip: OK\n";
+}
+
+// ---------------------------------------------------------------------------
 // Test: Preprocessing pipeline
 
 static void TestPreprocess()
@@ -430,6 +489,7 @@ CONSOLE_APP_MAIN
 	TestChangeDetect();
 	TestGroundTruth();
 	TestReplay();
+	TestTemplateMatch();
 	TestPreprocess();
 	TestAnnotation();
 	TestSessionStorage();

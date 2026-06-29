@@ -183,6 +183,42 @@ PkgConfigPaths FindPkgConfigPaths(const String& root);
 String PkgRepoRoot();
 bool   IsGlobalAuditFlag(const String& flag);
 
+// Lightweight CLI skeleton kept for plan/package batching.
+struct CliOptions {
+	bool ask = false;
+	bool pretend = false;
+	bool verbose = false;
+	bool update = false;
+	bool deep = false;
+	bool newuse = false;
+	bool changed_use = false;
+
+	String color = "auto";
+	int jobs = 0;
+	String target;
+	String provider;
+
+	bool help = false;
+	bool version = false;
+	bool info = false;
+	bool depclean = false;
+	bool list_sets = false;
+	bool search = false;
+	bool sync = false;
+	bool metadata = false;
+	bool audit_acceptflags = false;
+	bool eselect = false;
+
+	String search_query;
+	Vector<String> atoms;
+	Vector<String> eselect_args;
+};
+
+void PrintHelp();
+void PrintVersion();
+void PrintInfo();
+bool ParseCommandLine(const Vector<String>& args, CliOptions& opts, String& error);
+
 END_UPP_NAMESPACE
 
 #endif

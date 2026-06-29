@@ -1,0 +1,11 @@
+description "AppRegistry usage example — Core-only persistence demo\377";
+
+uses
+	Core;
+
+file
+	main.cpp,
+	README.md;
+
+mainconfig
+	"" = "";

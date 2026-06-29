@@ -17,5 +17,6 @@ using namespace Upp;
 #include "TemplateMatch.h"
 #include "OcrLayer.h"
 #include "ModelRuntime.h"
+#include "PipelineRunner.h"
 
 #endif

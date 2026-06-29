@@ -287,10 +287,12 @@ void MainWindow::RefreshAfterStep()
 
 void MainWindow::UpdateToolBar(Bar& bar)
 {
-	bar.Add("Step",    CtrlImg::right_arrow(), [=] { OnStep(); });
-	bar.Add("Run All", CtrlImg::go_forward(),  [=] { OnRunAll(); });
+	bar.Add("Step",         CtrlImg::right_arrow(), [=] { OnStep(); });
+	bar.Add("Run All",      CtrlImg::go_forward(),  [=] { OnRunAll(); });
 	bar.Separator();
-	bar.Add("Reset",   CtrlImg::undo(),        [=] { OnResetReplay(); });
+	bar.Add("Reset",        CtrlImg::undo(),        [=] { OnResetReplay(); });
+	bar.Separator();
+	bar.Add("Run Pipeline", CtrlImg::go_forward(),  [=] { OnRunPipeline(); });
 }
 
 // ---------------------------------------------------------------------------
@@ -433,6 +435,54 @@ void MainWindow::OnAnnotationChanged()
 }
 
 // ---------------------------------------------------------------------------
+
+// ---------------------------------------------------------------------------
+// Pipeline runner
+
+void MainWindow::OnRunPipeline()
+{
+	const VsmSession& session = replay_.GetSession();
+	if(session.session_id.IsEmpty()) {
+		Log("pipeline: no session loaded");
+		return;
+	}
+
+	Log("pipeline: starting run…");
+
+	VsmObservationPipeline pipe;
+	pipe.SetLog(&log_);
+	pipe.SetSession(&session);
+	if(session_store_.IsOpen())
+		pipe.SetSessionStore(&session_store_);
+	pipe.SetAnnotationLayer(&annotation_layer_);
+	pipe.SetPreprocessPipeline(&current_pipeline_);
+	pipe.SetTemplateRules(&template_rules_);
+	pipe.SetOcrRules(&ocr_rules_);
+	pipe.SetModelRuntime(&model_runtime_);
+
+	VsmTemplateMatcher matcher;
+	matcher.SetLog(&log_);
+	pipe.SetTemplateMatcher(&matcher);
+
+	VsmPipelineRunSummary summary = pipe.Run();
+
+	// Show summary in log
+	Log(Format("pipeline: done — obs=%d transitions=%d divergences=%d",
+	           summary.observations_made, summary.transitions, summary.divergences));
+
+	if(!summary.success) {
+		Log("pipeline: run failed");
+		return;
+	}
+
+	// Save outputs to session store if open
+	if(session_store_.IsOpen())
+		pipe.SaveOutputs(session_store_.GetPaths().root, summary.run_id);
+
+	// Refresh model state panel
+	model_dock_.SetRuntime(&model_runtime_);
+	model_dock_.Refresh();
+}
 
 void MainWindow::RebuildRegionsList()
 {

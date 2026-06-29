@@ -11,6 +11,8 @@ void MainWindow::MenuFile(Bar& bar)
 {
 	bar.Add("Load Sample Session", [=] { LoadSampleSession(); });
 	bar.Separator();
+	bar.Add("Run Pipeline",        [=] { OnRunPipeline(); });
+	bar.Separator();
 	bar.Add("Exit", [=] { Close(); });
 }
 

@@ -556,6 +556,112 @@ static void TestAnnotation()
 }
 
 // ---------------------------------------------------------------------------
+// Test: Observation pipeline runner
+
+static void TestPipelineRunner()
+{
+	Cout() << "\n=== Observation pipeline runner ===\n";
+
+	AppLog log;
+	log.SetForwardToUppLog(false);
+
+	// Build session from sample JSON
+	VsmSession session;
+	VsmGroundTruthLoader loader;
+	loader.SetLog(&log);
+	String sample = VsmMakeSampleJson();
+	String tmpJson = AppendFileName(GetTempPath(), "vsm_pipe_test.json");
+	SaveFile(tmpJson, sample);
+	if(!loader.Load(tmpJson, session)) { Fail("PipelineRunner: load session"); return; }
+	FileDelete(tmpJson);
+
+	// Set up annotation layer matching sample region
+	VsmAnnotationLayer ann;
+	ann.schema = 1; ann.session_id = session.session_id;
+	VsmRegionAnnotation& a = ann.annotations.Add();
+	a.id = "ann-001"; a.name = "Login"; a.x = 0; a.y = 0; a.w = 320; a.h = 240;
+
+	// Set up preprocessing pipeline
+	VsmPreprocessPipeline pipeline;
+	pipeline.id = "pipe-001"; pipeline.name = "Test";
+	VsmPreprocessStep gs; gs.type = VSM_PREP_GRAYSCALE;
+	VsmPreprocessStep n32; n32.type = VSM_PREP_NORMALIZE_32;
+	pipeline.steps.Add(gs); pipeline.steps.Add(n32);
+
+	// Template matcher with synthetic asset
+	VsmFingerprint32 fp; memset(fp.data, 128, sizeof(fp.data));
+	VsmTemplateMatcher matcher; matcher.SetLog(&log);
+	matcher.AddSyntheticAsset("asset-sample", fp);
+
+	Vector<VsmTemplateRule> tmpl_rules;
+	VsmTemplateRule& tr = tmpl_rules.Add();
+	tr.rule_id = "rule-001"; tr.annotation_id = "ann-001";
+	tr.mode = VSM_TM_PRESENCE; tr.threshold = 0.5; tr.requirement = VSM_TMR_OPTIONAL;
+	VsmTemplateCandidate& tc = tr.candidates.Add();
+	tc.asset_id = "asset-sample"; tc.label = "SampleRegion";
+
+	// OCR: fake engine returns "Login"
+	VsmFakeOcrEngine fake_ocr("Login", 0.90);
+	Vector<VsmOcrRule> ocr_rules;
+	VsmOcrRule& ocr_r = ocr_rules.Add();
+	ocr_r.rule_id = "ocr-001"; ocr_r.annotation_id = "ann-001";
+	ocr_r.expectation.mode = VSM_EXPECT_EXACT;
+	ocr_r.expectation.expected_text = "Login";
+	ocr_r.confidence_threshold = 0.5;
+
+	// Model runtime: one rule
+	VsmModelRuntime model_rt;
+	model_rt.SetLog(&log);
+	VsmModelRule mr;
+	mr.rule_id = "mr-001"; mr.type = VSM_MR_SET_PROP_FROM_OCR;
+	mr.object_id = "app-screen"; mr.property_key = "screen";
+	mr.source_rule_id = "ocr-001";
+	model_rt.AddRule(mr);
+
+	// Wire up pipeline
+	VsmObservationPipeline pipe;
+	pipe.SetLog(&log);
+	pipe.SetSession(&session);
+	pipe.SetAnnotationLayer(&ann);
+	pipe.SetPreprocessPipeline(&pipeline);
+	pipe.SetTemplateRules(&tmpl_rules);
+	pipe.SetTemplateMatcher(&matcher);
+	pipe.SetOcrRules(&ocr_rules);
+	pipe.SetOcrEngine(&fake_ocr);
+	pipe.SetModelRuntime(&model_rt);
+
+	VsmPipelineRunSummary summary = pipe.Run();
+
+	if(!summary.success) { Fail("PipelineRunner: Run() not success"); return; }
+	Cout() << "Run: OK\n";
+	Cout() << "Frames processed: " << summary.frames_processed << "\n";
+	Cout() << "Observations: " << summary.observations_made << "\n";
+	Cout() << "Transitions: " << summary.transitions << "\n";
+
+	if(summary.observations_made == 0)
+		{ Fail("Expected at least 1 observation"); return; }
+	Cout() << "Observations > 0: OK\n";
+
+	if(summary.transitions == 0)
+		{ Fail("Expected at least 1 model transition"); return; }
+	Cout() << "Transitions > 0: OK\n";
+
+	// Save outputs to temp dir
+	String root = AppendFileName(GetTempPath(), "vsm_pipe_out");
+	if(DirectoryExists(root)) DeleteFolderDeep(root);
+	RealizeDirectory(root);
+
+	if(!pipe.SaveOutputs(root, summary.run_id))
+		{ Fail("SaveOutputs failed"); return; }
+	String obs_path = AppendFileName(AppendFileName(AppendFileName(root, "runs"),
+	                                                 summary.run_id), "observations.json");
+	if(!FileExists(obs_path)) { Fail("observations.json not created"); return; }
+	Cout() << "SaveOutputs: OK\n";
+
+	DeleteFolderDeep(root);
+}
+
+// ---------------------------------------------------------------------------
 // Test: Image buffer (headless pixel buffer, .vsm save/load)
 
 static void TestImageAssets()
@@ -712,6 +818,7 @@ CONSOLE_APP_MAIN
 	TestReplay();
 	TestModelRuntime();
 	TestOcrLayer();
+	TestPipelineRunner();
 	TestTemplateMatch();
 	TestPreprocess();
 	TestAnnotation();

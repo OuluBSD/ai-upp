@@ -57,6 +57,11 @@ void PkgUsePolicy::Jsonize(JsonIO& jio)
 	jio("maps_to", maps_to);
 }
 
+void PkgUppFlag::Jsonize(JsonIO& jio)
+{
+	jio("name", name)("scope", scope)("reason", reason);
+}
+
 void PkgTargetProfile::Jsonize(JsonIO& jio)
 {
 	jio("name", name)("host_platform", host_platform)("build_platform", build_platform)
@@ -64,9 +69,18 @@ void PkgTargetProfile::Jsonize(JsonIO& jio)
 	   ("architecture", architecture)("toolchain", toolchain)("sysroot", sysroot)
 	   ("thread_model", thread_model)("compiler", compiler)("linker", linker)
 	   ("sdk", sdk)("summary", summary);
+	jio("default_use", default_use);
 	jio("forced_use", forced_use);
 	jio("masked_use", masked_use);
 	jio("provider_preferences", provider_preferences);
+	jio("upp_add", upp_add);
+	jio("notes", notes);
+	jio("warnings", warnings);
+}
+
+void PkgProviderPreference::Jsonize(JsonIO& jio)
+{
+	jio("capability", capability)("provider_id", provider_id)("reason", reason)("priority", priority);
 }
 
 void PkgStateRecord::Jsonize(JsonIO& jio)
@@ -535,6 +549,23 @@ static const PkgUsePolicy* sFindPolicy(const String& name)
 	return nullptr;
 }
 
+static void sAddTargetUpp(PkgTargetProfile& p, const String& name, int scope, const String& reason)
+{
+	PkgUppFlag& f = p.upp_add.Add();
+	f.name = name;
+	f.scope = scope;
+	f.reason = reason;
+}
+
+static void sAddTargetProviderPreference(PkgTargetProfile& p, const String& capability, const String& provider_id, const String& reason, int priority = 100)
+{
+	PkgProviderPreference& pref = p.provider_preferences.Add();
+	pref.capability = capability;
+	pref.provider_id = provider_id;
+	pref.reason = reason;
+	pref.priority = priority;
+}
+
 static Vector<PkgTargetProfile> sTargets()
 {
 	Vector<PkgTargetProfile> v;
@@ -570,6 +601,21 @@ static Vector<PkgTargetProfile> sTargets()
 	}
 	{
 		PkgTargetProfile& p = v.Add();
+		p.name = "native-msvc";
+		p.host_platform = "host";
+		p.build_platform = "host";
+		p.target_platform = "native";
+		p.runtime_environment = "desktop";
+		p.architecture = "native";
+		p.toolchain = "msvc";
+		p.sysroot = "vcvars";
+		p.thread_model = "mt";
+		p.compiler = "msvc";
+		p.linker = "link";
+		p.summary = "Native MSVC target";
+	}
+	{
+		PkgTargetProfile& p = v.Add();
 		p.name = "native-gcc";
 		p.host_platform = "host";
 		p.build_platform = "host";
@@ -582,21 +628,6 @@ static Vector<PkgTargetProfile> sTargets()
 		p.compiler = "gcc";
 		p.linker = "ld";
 		p.summary = "Native gcc target";
-	}
-	{
-		PkgTargetProfile& p = v.Add();
-		p.name = "windows-msvc";
-		p.host_platform = "windows";
-		p.build_platform = "windows";
-		p.target_platform = "windows";
-		p.runtime_environment = "desktop";
-		p.architecture = "x64";
-		p.toolchain = "msvc";
-		p.sysroot = "vcvars";
-		p.thread_model = "mt";
-		p.compiler = "msvc";
-		p.linker = "link";
-		p.summary = "Windows MSVC target";
 	}
 	{
 		PkgTargetProfile& p = v.Add();
@@ -627,10 +658,19 @@ static Vector<PkgTargetProfile> sTargets()
 		p.compiler = "emcc";
 		p.linker = "emcc";
 		p.summary = "Browser wasm target";
+		p.default_use.Add("st");
 		p.forced_use.Add("st");
+		p.forced_use.Add("virtualgui");
+		p.masked_use.Add("nativegui");
 		p.masked_use.Add("gtk");
-		p.masked_use.Add("gui");
-		p.provider_preferences.Add("upp-plugin");
+		p.masked_use.Add("x11");
+		sAddTargetUpp(p, "ST", PKG_UPP_GLOBAL, "wasm browser thread model");
+		sAddTargetUpp(p, "GUI", PKG_UPP_GLOBAL, "wasm browser gui runtime");
+		sAddTargetUpp(p, "SDL2GL", PKG_UPP_GLOBAL, "wasm browser gui runtime");
+		sAddTargetUpp(p, "VIRTUALGUI", PKG_UPP_ACCEPTED, "wasm browser gui runtime");
+		sAddTargetProviderPreference(p, "virtual/sdl2", "emscripten-sdl2", "browser sdl2 runtime");
+		sAddTargetProviderPreference(p, "virtual/opengl", "webgl", "browser opengl runtime");
+		sAddTargetProviderPreference(p, "virtual/gui-runtime", "virtualgui-sdl2gl", "browser gui runtime");
 	}
 	{
 		PkgTargetProfile& p = v.Add();
@@ -646,7 +686,13 @@ static Vector<PkgTargetProfile> sTargets()
 		p.compiler = "emcc";
 		p.linker = "emcc";
 		p.summary = "Node wasm target";
+		p.default_use.Add("st");
 		p.forced_use.Add("st");
+		p.masked_use.Add("nativegui");
+		p.masked_use.Add("gtk");
+		p.masked_use.Add("x11");
+		sAddTargetUpp(p, "ST", PKG_UPP_GLOBAL, "wasm node thread model");
+		sAddTargetProviderPreference(p, "virtual/sdl2", "emscripten-sdl2", "node wasm sdl2 runtime");
 	}
 	{
 		PkgTargetProfile& p = v.Add();
@@ -663,6 +709,8 @@ static Vector<PkgTargetProfile> sTargets()
 		p.linker = "ld";
 		p.summary = "Linux framebuffer target";
 		p.masked_use.Add("gui");
+		p.masked_use.Add("nativegui");
+		p.masked_use.Add("x11");
 	}
 	{
 		PkgTargetProfile& p = v.Add();
@@ -678,8 +726,12 @@ static Vector<PkgTargetProfile> sTargets()
 		p.compiler = "gcc";
 		p.linker = "ld";
 		p.summary = "Retro x86 target";
+		p.default_use.Add("st");
 		p.forced_use.Add("st");
 		p.masked_use.Add("gui");
+		p.masked_use.Add("nativegui");
+		p.masked_use.Add("x11");
+		sAddTargetUpp(p, "ST", PKG_UPP_GLOBAL, "retro thread model");
 	}
 	{
 		PkgTargetProfile& p = v.Add();
@@ -915,6 +967,8 @@ static Vector<PkgProvider> sProviders()
 		p.targets.Add("macos");
 		p.uses_add.Add("rainbow/SDL2GL");
 		p.uses_add.Add("rainbow/VirtualGui");
+		p.targets.Add("wasm-browser");
+		p.targets.Add("wasm-node");
 		sAddProviderFlag(p, "GUI", PKG_UPP_GLOBAL, "virtualgui provider");
 		sAddProviderFlag(p, "SDL2GL", PKG_UPP_GLOBAL, "virtualgui provider");
 		sAddProviderFlag(p, "VIRTUALGUI", PKG_UPP_ACCEPTED, "virtualgui provider");
@@ -980,6 +1034,26 @@ static int sProviderPreferenceRank(const PkgProvider& p, const String& pref)
 	return 50;
 }
 
+static const PkgProviderPreference* sFindTargetProviderPreference(const PkgTargetProfile *tp, const String& capability)
+{
+	if(!tp)
+		return nullptr;
+	for(const PkgProviderPreference& pref : tp->provider_preferences) {
+		if(pref.capability.IsEmpty() || pref.capability == "*" || pref.capability == capability)
+			return &pref;
+	}
+	return nullptr;
+}
+
+static bool sProviderMatchesTargetPreference(const PkgProvider& p, const PkgProviderPreference& pref)
+{
+	if(!pref.provider_id.IsEmpty()) {
+		String want = ToLower(pref.provider_id);
+		return ToLower(p.id) == want || ToLower(p.provider) == want || ToLower(p.kind) == want;
+	}
+	return true;
+}
+
 static String sProviderProbeStatus(const PkgProvider& p, const PkgRepository& repo)
 {
 	if(p.manual)
@@ -1041,7 +1115,7 @@ static String sCapabilityTitle(const String& capability)
 	return GetFileName(capability);
 }
 
-static int sProviderSelectionScore(const PkgProvider& p, const PkgRepository& repo, const String& pref)
+static int sProviderSelectionScore(const PkgProvider& p, const PkgRepository& repo, const PkgTargetProfile *tp, const String& pref, const String& capability)
 {
 	String want = ToLower(TrimBoth(pref));
 	String kind = ToLower(p.kind);
@@ -1077,6 +1151,9 @@ static int sProviderSelectionScore(const PkgProvider& p, const PkgRepository& re
 		else
 			score += 50;
 	}
+	const PkgProviderPreference* pref_match = sFindTargetProviderPreference(tp, capability);
+	if(pref_match && sProviderMatchesTargetPreference(p, *pref_match))
+		score -= 80 + pref_match->priority / 10;
 	if(p.kind == "upp-plugin" && !repo.HasPackage(p.provider))
 		score += 1000;
 	if(p.manual)
@@ -1107,12 +1184,12 @@ static PkgProviderResolution sMakeResolution(const PkgProvider& p, const PkgRepo
 	return r;
 }
 
-static const PkgProvider* sSelectProviderCandidate(const Vector<PkgProvider>& candidates, const PkgRepository& repo, const String& pref)
+static const PkgProvider* sSelectProviderCandidate(const Vector<PkgProvider>& candidates, const PkgRepository& repo, const PkgTargetProfile *tp, const String& pref, const String& capability)
 {
 	const PkgProvider* best = nullptr;
 	int best_score = INT_MAX;
 	for(const PkgProvider& p : candidates) {
-		int score = sProviderSelectionScore(p, repo, pref);
+		int score = sProviderSelectionScore(p, repo, tp, pref, capability);
 		if(!best || score < best_score || (score == best_score && (p.priority > best->priority || (p.priority == best->priority && p.id < best->id)))) {
 			best = &p;
 			best_score = score;
@@ -1137,7 +1214,7 @@ static Vector<PkgVirtualCapability> sProviderCapabilities()
 	return pick(v);
 }
 
-static void sBuildProviderPlan(PkgProviderPlan& plan, const PkgRepository& repo, const String& target, const Vector<String>& virtuals, const String& provider_pref)
+static void sBuildProviderPlan(PkgProviderPlan& plan, const PkgRepository& repo, const PkgTargetProfile *tp, const String& target, const Vector<String>& virtuals, const String& provider_pref)
 {
 	plan.capabilities.Clear();
 	plan.resolutions.Clear();
@@ -1167,7 +1244,7 @@ static void sBuildProviderPlan(PkgProviderPlan& plan, const PkgRepository& repo,
 		Vector<PkgProvider> candidates = sProvidersFor(capability, target);
 		for(const PkgProvider& p : candidates)
 			cap->provider_ids.Add(p.id);
-		const PkgProvider* selected = sSelectProviderCandidate(candidates, repo, provider_pref);
+		const PkgProvider* selected = sSelectProviderCandidate(candidates, repo, tp, provider_pref, capability);
 		if(selected) {
 			PkgProviderResolution r = sMakeResolution(*selected, repo, capability, true);
 			PkgProviderResolution& q = plan.resolutions.Add();
@@ -1265,11 +1342,19 @@ static String sFormatUseList(const Vector<String>& v)
 
 static String sFormatUseModel(const PkgUseModel& use)
 {
-	String s = sFormatUseRequest(use);
-	if(!s.IsEmpty())
-		return s;
-	s = sFormatUseList(use.effective);
-	return s;
+	Vector<String> expr;
+	for(const String& s : use.selected)
+		sAddUnique(expr, s);
+	for(const String& s : use.defaults)
+		if(!sIsSelected(use.disabled, s))
+			sAddUnique(expr, s);
+	for(const String& s : use.forced)
+		sAddUnique(expr, s);
+	for(const String& s : use.disabled)
+		expr.Add(String("-") + s);
+	if(expr.IsEmpty())
+		return sFormatUseList(use.effective);
+	return sJoin(expr, " ");
 }
 
 static String sFormatUppFlag(const PkgUppFlag& flag)
@@ -1330,6 +1415,27 @@ static void sAddProjection(PkgUppProjection& proj, int scope, const String& name
 	flag.reason = reason;
 	String spell = sFormatUppFlag(flag);
 	sAddUnique(scope == PKG_UPP_ACCEPTED ? proj.accepted : scope == PKG_UPP_MAIN_ONLY ? proj.main_only : proj.global, spell);
+}
+
+static bool sHasProjectionFlag(const PkgUppProjection& proj, int scope, const String& name)
+{
+	for(const PkgUppFlag& f : proj.flags)
+		if(f.scope == scope && f.name == name)
+			return true;
+	return false;
+}
+
+static void sAddProjectionUnique(PkgUppProjection& proj, int scope, const String& name, const String& reason)
+{
+	if(sHasProjectionFlag(proj, scope, name))
+		return;
+	sAddProjection(proj, scope, name, reason);
+}
+
+static void sApplyUppAdditions(PkgUppProjection& proj, const Vector<PkgUppFlag>& add)
+{
+	for(const PkgUppFlag& f : add)
+		sAddProjectionUnique(proj, f.scope, f.name, f.reason);
 }
 
 static String sMacroName(const String& name)
@@ -1522,6 +1628,7 @@ bool ParsePkgArgs(const Vector<String>& args, PkgInvocation& inv, String& error)
 			else if(a == "--info") inv.info = true, inv.command = PKG_CMD_INFO;
 			else if(a == "--metadata") inv.metadata = true, inv.command = PKG_CMD_METADATA;
 			else if(a == "--list-sets") inv.list_sets = true, inv.command = PKG_CMD_LIST_SETS;
+			else if(a == "--targets") inv.targets = true, inv.command = PKG_CMD_TARGETS;
 			else if(a == "--providers") inv.providers = true, inv.command = PKG_CMD_PROVIDERS;
 			else if(a == "--pretend") inv.pretend = true;
 			else if(a == "--ask") inv.ask = true;
@@ -1607,6 +1714,7 @@ bool ParsePkgArgs(const Vector<String>& args, PkgInvocation& inv, String& error)
 			else if(cmd == "info") inv.command = PKG_CMD_INFO;
 			else if(cmd == "metadata") inv.command = PKG_CMD_METADATA;
 			else if(cmd == "list-sets") inv.command = PKG_CMD_LIST_SETS;
+			else if(cmd == "targets") inv.command = PKG_CMD_TARGETS;
 			else if(cmd == "providers") inv.command = PKG_CMD_PROVIDERS;
 			else if(cmd == "explain-use") inv.command = PKG_CMD_EXPLAIN_USE;
 			else if(cmd == "explain-target") inv.command = PKG_CMD_EXPLAIN_TARGET;
@@ -1620,6 +1728,8 @@ bool ParsePkgArgs(const Vector<String>& args, PkgInvocation& inv, String& error)
 		}
 		else if(inv.list_sets)
 			inv.command = PKG_CMD_LIST_SETS;
+		else if(inv.targets)
+			inv.command = PKG_CMD_TARGETS;
 		else if(inv.metadata)
 			inv.command = PKG_CMD_METADATA;
 		else if(inv.info)
@@ -1639,7 +1749,7 @@ bool ParsePkgArgs(const Vector<String>& args, PkgInvocation& inv, String& error)
 	if(positional.GetCount()) {
 		int start = 0;
 		if(positional[0] == "help" || positional[0] == "version" || positional[0] == "info" ||
-		   positional[0] == "metadata" || positional[0] == "list-sets" || positional[0] == "providers" || positional[0] == "explain-use" || positional[0] == "explain-target" || positional[0] == "deps" ||
+		   positional[0] == "metadata" || positional[0] == "list-sets" || positional[0] == "targets" || positional[0] == "providers" || positional[0] == "explain-use" || positional[0] == "explain-target" || positional[0] == "deps" ||
 		   positional[0] == "target" || positional[0] == "eselect" || positional[0] == "audit-acceptflags" ||
 		   positional[0] == "resume" || positional[0] == "search")
 			start = 1;
@@ -1729,6 +1839,33 @@ static bool sUseColor(const PkgInvocation& inv)
 static String sFmtList(const Vector<String>& v)
 {
 	return v.GetCount() ? sJoin(v, " ") : String("[none]");
+}
+
+static String sFmtProviderPreference(const PkgProviderPreference& p)
+{
+	String s;
+	if(!p.capability.IsEmpty())
+		s << p.capability << " -> ";
+	s << (p.provider_id.IsEmpty() ? String("[any]") : p.provider_id);
+	if(!p.reason.IsEmpty())
+		s << " (" << p.reason << ")";
+	return s;
+}
+
+static String sFmtProviderPreferences(const Vector<PkgProviderPreference>& v)
+{
+	Vector<String> out;
+	for(const PkgProviderPreference& p : v)
+		out.Add(sFmtProviderPreference(p));
+	return sFmtList(out);
+}
+
+static String sFmtUppFlagList(const Vector<PkgUppFlag>& v)
+{
+	Vector<String> out;
+	for(const PkgUppFlag& f : v)
+		out.Add(f.scope == PKG_UPP_ACCEPTED ? "." + f.name : f.scope == PKG_UPP_MAIN_ONLY ? "!" + f.name : f.name);
+	return sFmtList(out);
 }
 
 static void sFlushConsole()
@@ -1842,6 +1979,8 @@ static void sPrintHelp(bool color)
 		<< "  --info, info\n"
 		<< "  --metadata, metadata\n"
 		<< "  --list-sets\n"
+		<< "  --targets\n"
+		<< "  targets\n"
 		<< "  --providers [capability]\n"
 		<< "  --provider <portable|system|...>\n"
 		<< "  -s, --search <query>\n"
@@ -1928,6 +2067,7 @@ static void sBuildUseModel(PkgUseModel& use, const PkgPackage *pkg, const Vector
 	use.defaults.Clear();
 	use.forced.Clear();
 	use.masked.Clear();
+	use.conflicts.Clear();
 	use.selected.Clear();
 	use.disabled.Clear();
 	use.effective.Clear();
@@ -1957,12 +2097,20 @@ static void sBuildUseModel(PkgUseModel& use, const PkgPackage *pkg, const Vector
 		sAddUnique(use.forced, tp.forced_use[i]);
 	for(int i = 0; i < tp.masked_use.GetCount(); i++)
 		sAddUnique(use.masked, tp.masked_use[i]);
+	for(int i = 0; i < tp.default_use.GetCount(); i++)
+		sAddUnique(use.defaults, tp.default_use[i]);
 
 	sTokenizeUseArgs(use.requested, use.selected, use.disabled);
 	for(const String& s : use.forced)
 		sAddUnique(use.selected, s);
 	for(const String& s : use.masked)
 		sAddUnique(use.disabled, s);
+	for(const String& s : use.forced)
+		if(sIsSelected(use.disabled, s))
+			sAddUnique(use.conflicts, s);
+	for(const String& s : use.selected)
+		if(sIsSelected(use.masked, s))
+			sAddUnique(use.conflicts, s);
 
 	const Vector<PkgUsePolicy> policies = sUsePolicies();
 	for(const PkgUsePolicy& p : policies)
@@ -2011,7 +2159,6 @@ static void sBuildUseModel(PkgUseModel& use, const PkgPackage *pkg, const Vector
 	}
 	for(int i = 0; i < effective.GetCount(); i++)
 		use.effective.Add(effective[i]);
-
 }
 
 static void sPolicyFlags(const Vector<String>& use_args, const String& target, Vector<String>& selected, Vector<String>& disabled, Vector<String>& defaulted, Vector<String>& effective,
@@ -2116,17 +2263,33 @@ static void sPrintTargetInfo(const String& name)
 	Cout() << "compiler: " << t->compiler << "\n";
 	Cout() << "linker: " << t->linker << "\n";
 	Cout() << "sdk: " << (t->sdk.IsEmpty() ? String("[none]") : t->sdk) << "\n";
+	Cout() << "default_use: " << sFmtList(t->default_use) << "\n";
 	Cout() << "forced_use: " << sFmtList(t->forced_use) << "\n";
 	Cout() << "masked_use: " << sFmtList(t->masked_use) << "\n";
-	Cout() << "provider_preferences: " << sFmtList(t->provider_preferences) << "\n";
+	Cout() << "provider_preferences: " << sFmtProviderPreferences(t->provider_preferences) << "\n";
+	Cout() << "upp_add: " << sFmtUppFlagList(t->upp_add) << "\n";
+	Cout() << "notes: " << sFmtList(t->notes) << "\n";
+	Cout() << "warnings: " << sFmtList(t->warnings) << "\n";
 	Cout() << "summary: " << t->summary << "\n";
 }
 
 static void sListTargets()
 {
 	Vector<PkgTargetProfile> targets = sTargets();
-	for(const PkgTargetProfile& t : targets)
+	for(const PkgTargetProfile& t : targets) {
 		Cout() << t.name << " [" << t.thread_model << "] - " << t.summary << "\n";
+		Cout() << "  arch: " << (t.architecture.IsEmpty() ? String("[none]") : t.architecture)
+		     << ", platform: " << (t.target_platform.IsEmpty() ? String("[none]") : t.target_platform)
+		     << ", runtime: " << (t.runtime_environment.IsEmpty() ? String("[none]") : t.runtime_environment)
+		     << ", toolchain: " << (t.toolchain.IsEmpty() ? String("[none]") : t.toolchain) << "\n";
+		if(!t.default_use.IsEmpty() || !t.forced_use.IsEmpty() || !t.masked_use.IsEmpty())
+			Cout() << "  USE: default=" << sFmtList(t.default_use) << ", forced=" << sFmtList(t.forced_use)
+			     << ", masked=" << sFmtList(t.masked_use) << "\n";
+		if(!t.provider_preferences.IsEmpty())
+			Cout() << "  providers: " << sFmtProviderPreferences(t.provider_preferences) << "\n";
+		if(!t.upp_add.IsEmpty())
+			Cout() << "  UPP: " << sFmtUppFlagList(t.upp_add) << "\n";
+	}
 }
 
 static void sExplainTarget(const String& name)
@@ -2147,9 +2310,13 @@ static void sExplainTarget(const String& name)
 	Cout() << "Compiler: " << (t->compiler.IsEmpty() ? String("[none]") : t->compiler) << "\n";
 	Cout() << "Toolchain: " << (t->toolchain.IsEmpty() ? String("[none]") : t->toolchain) << "\n";
 	Cout() << "Sysroot: " << (t->sysroot.IsEmpty() ? String("[none]") : t->sysroot) << "\n";
+	Cout() << "Default USE: " << sFmtList(t->default_use) << "\n";
 	Cout() << "Forced USE: " << sFmtList(t->forced_use) << "\n";
 	Cout() << "Masked USE: " << sFmtList(t->masked_use) << "\n";
-	Cout() << "Provider preferences: " << sFmtList(t->provider_preferences) << "\n";
+	Cout() << "Provider preferences: " << sFmtProviderPreferences(t->provider_preferences) << "\n";
+	Cout() << "UPP additions: " << sFmtUppFlagList(t->upp_add) << "\n";
+	Cout() << "Notes: " << sFmtList(t->notes) << "\n";
+	Cout() << "Warnings: " << sFmtList(t->warnings) << "\n";
 	Cout() << "Summary: " << t->summary << "\n";
 }
 
@@ -2172,10 +2339,16 @@ static void sPrintDeps(const PkgInvocation& inv, const PkgRepository& repo)
 	Vector<String> virtuals;
 	if(sIsSelected(use.effective, "sqlite"))
 		virtuals.Add("virtual/sqlite");
-	if(sIsSelected(use.effective, "st") || sIsSelected(use.effective, "gtk") || sIsSelected(use.effective, "virtualgui"))
+	bool gui_runtime = sIsSelected(use.effective, "st") || sIsSelected(use.effective, "gtk") || sIsSelected(use.effective, "virtualgui");
+	bool browser_gui = tp.runtime_environment == "browser" || tp.toolchain == "emcc" || sIsSelected(use.effective, "virtualgui");
+	if(gui_runtime)
 		virtuals.Add("virtual/gui-runtime");
+	if(browser_gui) {
+		virtuals.Add("virtual/sdl2");
+		virtuals.Add("virtual/opengl");
+	}
 	PkgProviderPlan provider_plan;
-	sBuildProviderPlan(provider_plan, repo, inv.target, virtuals, inv.provider);
+	sBuildProviderPlan(provider_plan, repo, &tp, inv.target, virtuals, inv.provider);
 	Cout() << "Dependencies for " << inv.atom << "\n";
 	Cout() << "Target: " << sTargetNameText(inv.target) << " (" << tp.thread_model << ")\n";
 	Cout() << "Virtual requirements:\n";
@@ -2247,6 +2420,7 @@ static void sPrintProvidersCommand(const PkgInvocation& inv, const PkgRepository
 		}
 		Cout() << "\nSelection rules:\n";
 		Cout() << "  explicit provider preference wins if available\n";
+		Cout() << "  target-specific provider preferences come next\n";
 		Cout() << "  otherwise prefer upp-plugin/bundled providers\n";
 		Cout() << "  then target/platform providers\n";
 		Cout() << "  missing/manual providers are reported, not installed\n";
@@ -2256,7 +2430,7 @@ static void sPrintProvidersCommand(const PkgInvocation& inv, const PkgRepository
 	Vector<String> virtuals;
 	virtuals.Add(query);
 	PkgProviderPlan plan;
-	sBuildProviderPlan(plan, repo, target, virtuals, inv.provider);
+	sBuildProviderPlan(plan, repo, &sDefaultTargetProfile(target), target, virtuals, inv.provider);
 	const PkgProviderResolution* res = sFindProviderResolution(plan, query);
 	if(!res) {
 		Cout() << "Capability: " << query << "\n";
@@ -2615,8 +2789,10 @@ static PkgPlan sBuildPlan(const PkgInvocation& inv, const PkgRepository& repo, c
 	plan.newuse = inv.newuse;
 	plan.changed_use = inv.changed_use;
 	const PkgPackage *root_pkg = inv.atom.IsEmpty() ? nullptr : repo.Find(inv.atom);
+	const PkgTargetProfile& tp = sDefaultTargetProfile(inv.target);
 	sBuildUseModel(plan.use, root_pkg, inv.use_args, inv.target);
 	sProjectUpp(plan.upp, plan.use);
+	sApplyUppAdditions(plan.upp, tp.upp_add);
 	plan.selected_use.Clear();
 	plan.disabled_use.Clear();
 	plan.defaulted_use.Clear();
@@ -2624,6 +2800,7 @@ static PkgPlan sBuildPlan(const PkgInvocation& inv, const PkgRepository& repo, c
 	plan.target_forced.Clear();
 	plan.target_masked.Clear();
 	plan.uppflags.Clear();
+	plan.warnings.Clear();
 	for(const String& s : plan.use.selected)
 		plan.selected_use.Add(s);
 	for(const String& s : plan.use.disabled)
@@ -2636,17 +2813,45 @@ static PkgPlan sBuildPlan(const PkgInvocation& inv, const PkgRepository& repo, c
 		plan.target_forced.Add(s);
 	for(const String& s : plan.use.masked)
 		plan.target_masked.Add(s);
-	for(const String& s : Split(sFormatUppProjection(plan.upp), CharFilterWhitespace))
-		plan.uppflags.Add(s);
-
+	for(const String& s : plan.use.conflicts) {
+		String msg;
+		if(FindIndex(plan.target_masked, s) >= 0)
+			msg = String("masked by target: ") + s;
+		else if(FindIndex(plan.target_forced, s) >= 0)
+			msg = String("target-forced flag disabled: ") + s;
+		else
+			msg = String("target USE conflict: ") + s;
+		if(FindIndex(plan.warnings, msg) < 0)
+			plan.warnings.Add(msg);
+	}
 	if(sIsSelected(plan.effective_use, "sqlite") && FindIndex(plan.virtuals, "virtual/sqlite") < 0)
 		plan.virtuals.Add("virtual/sqlite");
-	if((sIsSelected(plan.effective_use, "st") || sIsSelected(plan.effective_use, "gtk") || sIsSelected(plan.effective_use, "virtualgui")) && FindIndex(plan.virtuals, "virtual/gui-runtime") < 0)
+	bool gui_runtime = sIsSelected(plan.effective_use, "st") || sIsSelected(plan.effective_use, "gtk") || sIsSelected(plan.effective_use, "virtualgui");
+	bool browser_gui = tp.runtime_environment == "browser" || tp.toolchain == "emcc" || sIsSelected(plan.effective_use, "virtualgui");
+	if(gui_runtime && FindIndex(plan.virtuals, "virtual/gui-runtime") < 0)
 		plan.virtuals.Add("virtual/gui-runtime");
-	sBuildProviderPlan(plan.provider_plan, repo, plan.target, plan.virtuals, inv.provider);
+	if(browser_gui) {
+		if(FindIndex(plan.virtuals, "virtual/sdl2") < 0)
+			plan.virtuals.Add("virtual/sdl2");
+		if(FindIndex(plan.virtuals, "virtual/opengl") < 0)
+			plan.virtuals.Add("virtual/opengl");
+	}
+	sBuildProviderPlan(plan.provider_plan, repo, &tp, plan.target, plan.virtuals, inv.provider);
 	for(const PkgProviderResolution& r : plan.provider_plan.resolutions)
 		if(!r.external_package.IsEmpty() && FindIndex(plan.providers, r.external_package) < 0)
 			plan.providers.Add(r.external_package);
+	for(const String& s : plan.provider_plan.warnings)
+		if(FindIndex(plan.warnings, s) < 0)
+			plan.warnings.Add(s);
+	sApplyUppAdditions(plan.upp, plan.provider_plan.upp_additions);
+	for(const String& s : Split(sFormatUppProjection(plan.upp), CharFilterWhitespace))
+		plan.uppflags.Add(s);
+	for(const String& s : tp.warnings)
+		if(FindIndex(plan.warnings, s) < 0)
+			plan.warnings.Add(s);
+	for(const String& s : tp.notes)
+		if(FindIndex(plan.warnings, s) < 0)
+			plan.warnings.Add(s);
 
 	Index<String> seen;
 	if(!inv.atom.IsEmpty())
@@ -2710,11 +2915,32 @@ static PkgPlan sPrintPlan(const PkgInvocation& inv, const PkgRepository& repo, b
 	PkgState state;
 	LoadFromJsonFile(state, repo.paths.state);
 	PkgPlan plan = sBuildPlan(inv, repo, state, color);
+	const PkgTargetProfile& tp = sDefaultTargetProfile(plan.target);
 
 	Cout() << "These are the packages that would be built, in order:\n\n";
 	Cout() << "Calculating dependencies... done!\n";
 	Cout() << "Dependency resolution took " << FormatDouble(plan.dependency_seconds, 2) << " s (backtrack: "
 	     << plan.backtrack << '/' << plan.backtrack_limit << ").\n\n";
+
+	if(plan.verbose) {
+		Cout() << "Target:\n";
+		Cout() << "  name: " << sTargetNameText(plan.target) << "\n";
+		Cout() << "  arch: " << (tp.architecture.IsEmpty() ? String("[none]") : tp.architecture) << "\n";
+		Cout() << "  platform: " << (tp.target_platform.IsEmpty() ? String("[none]") : tp.target_platform) << "\n";
+		Cout() << "  runtime: " << (tp.runtime_environment.IsEmpty() ? String("[none]") : tp.runtime_environment) << "\n";
+		Cout() << "  toolchain: " << (tp.toolchain.IsEmpty() ? String("[none]") : tp.toolchain) << "\n";
+		Cout() << "  thread model: " << tp.thread_model << "\n";
+		Cout() << "  forced USE: " << sFmtList(tp.forced_use) << "\n";
+		Cout() << "  masked USE: " << sFmtList(tp.masked_use) << "\n";
+		Cout() << "  default USE: " << sFmtList(tp.default_use) << "\n";
+		Cout() << "  provider preferences: " << sFmtProviderPreferences(tp.provider_preferences) << "\n";
+		Cout() << "  UPP additions: " << sFmtUppFlagList(tp.upp_add) << "\n";
+		if(!tp.warnings.IsEmpty())
+			Cout() << "  warnings: " << sFmtList(tp.warnings) << "\n";
+		if(!tp.notes.IsEmpty())
+			Cout() << "  notes: " << sFmtList(tp.notes) << "\n";
+		Cout() << "\n";
+	}
 
 	if(plan.items.IsEmpty())
 		Cout() << "[ no packages selected ]\n\n";
@@ -2726,6 +2952,8 @@ static PkgPlan sPrintPlan(const PkgInvocation& inv, const PkgRepository& repo, b
 	Cout() << "Effective USE: " << sFmtList(plan.effective_use) << "\n";
 	Cout() << "TARGET: " << sTargetNameText(plan.target) << "\n";
 	Cout() << "UPPFLAGS: " << sFormatUppProjection(plan.upp) << "\n";
+	if(!plan.warnings.IsEmpty())
+		Cout() << "Warnings: " << sFmtList(plan.warnings) << "\n";
 	Cout() << "Providers:\n";
 	if(plan.provider_plan.resolutions.IsEmpty())
 		Cout() << "  [none]\n";
@@ -2948,6 +3176,11 @@ int RunPkg(const Vector<String>& args)
 
 	if(inv.command == PKG_CMD_LIST_SETS) {
 		sPrintSets(repo);
+		sFlushConsole();
+		return 0;
+	}
+	if(inv.command == PKG_CMD_TARGETS) {
+		sListTargets();
 		sFlushConsole();
 		return 0;
 	}

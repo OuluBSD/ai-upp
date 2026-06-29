@@ -103,6 +103,9 @@ private:
 	// ---- Annotation
 	void LoadSampleAnnotation();
 	void OnAnnotationChanged();
+
+	// ---- Pipeline runner
+	void OnRunPipeline();
 };
 
 #endif

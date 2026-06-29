@@ -106,6 +106,11 @@ private:
 
 	// ---- Pipeline runner
 	void OnRunPipeline();
+
+	// ---- Overlay toggles
+	void LoadOverlayState();
+	void SaveOverlayState();
+	void OnToggleOverlay(int which);
 };
 
 #endif

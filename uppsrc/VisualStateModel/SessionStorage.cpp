@@ -156,6 +156,88 @@ VsmAssetRef VsmSessionStore::AllocateCrop(const String& region_id)
 	return ref;
 }
 
+VsmAssetRef VsmSessionStore::SaveFrameImage(int frame_index, const VsmImageBuffer& img)
+{
+	String filename = Format("frames/%08d.vsm", frame_index);
+	String abs_path = AppendFileName(paths_.root, filename);
+	if(!VsmImageAsset::Save(abs_path, img)) {
+		LogError(log_, "VsmSession", "Cannot write frame image: " + abs_path);
+		VsmAssetRef bad; return bad;
+	}
+	// Update or create manifest entry
+	bool found = false;
+	for(VsmFrameAsset& fa : manifest_.frames) {
+		if(fa.frame_index == frame_index) {
+			fa.relative_path = filename;
+			fa.format        = "vsm";
+			found            = true;
+			break;
+		}
+	}
+	if(!found) {
+		VsmFrameAsset& fa = manifest_.frames.Add();
+		fa.frame_index    = frame_index;
+		fa.relative_path  = filename;
+		fa.format         = "vsm";
+	}
+	manifest_.image_format = "vsm";
+	VsmAssetRef ref;
+	ref.relative_path = filename;
+	ref.asset_type    = "frame";
+	return ref;
+}
+
+bool VsmSessionStore::LoadFrameImage(int frame_index, VsmImageBuffer& out) const
+{
+	for(const VsmFrameAsset& fa : manifest_.frames) {
+		if(fa.frame_index == frame_index && fa.format == "vsm") {
+			String abs = AppendFileName(paths_.root, fa.relative_path);
+			return VsmImageAsset::Load(abs, out);
+		}
+	}
+	return false;
+}
+
+VsmAssetRef VsmSessionStore::SaveCropImage(const String& region_id, const VsmImageBuffer& img)
+{
+	String filename = "crops/" + region_id + ".vsm";
+	String abs_path = AppendFileName(paths_.root, filename);
+	if(!VsmImageAsset::Save(abs_path, img)) {
+		LogError(log_, "VsmSession", "Cannot write crop image: " + abs_path);
+		VsmAssetRef bad; return bad;
+	}
+	bool found = false;
+	for(VsmCropAsset& ca : manifest_.crops) {
+		if(ca.region_id == region_id) {
+			ca.relative_path = filename;
+			ca.format        = "vsm";
+			found            = true;
+			break;
+		}
+	}
+	if(!found) {
+		VsmCropAsset& ca  = manifest_.crops.Add();
+		ca.region_id      = region_id;
+		ca.relative_path  = filename;
+		ca.format         = "vsm";
+	}
+	VsmAssetRef ref;
+	ref.relative_path = filename;
+	ref.asset_type    = "crop";
+	return ref;
+}
+
+bool VsmSessionStore::LoadCropImage(const String& region_id, VsmImageBuffer& out) const
+{
+	for(const VsmCropAsset& ca : manifest_.crops) {
+		if(ca.region_id == region_id && ca.format == "vsm") {
+			String abs = AppendFileName(paths_.root, ca.relative_path);
+			return VsmImageAsset::Load(abs, out);
+		}
+	}
+	return false;
+}
+
 String VsmSessionStore::Resolve(const VsmAssetRef& ref) const
 {
 	if(ref.IsEmpty()) return String();

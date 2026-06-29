@@ -6,7 +6,7 @@
 
 NAMESPACE_UPP
 
-#define LAYOUTFILE <CardEngine/LobbyWindow.lay>
+#define LAYOUTFILE <TexasHoldem/LobbyWindow.lay>
 #include <CtrlCore/lay.h>
 
 class LobbyWindow : public WithLobbyWindowLayout<TopWindow> {

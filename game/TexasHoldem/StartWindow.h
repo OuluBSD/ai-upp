@@ -6,7 +6,7 @@
 
 NAMESPACE_UPP
 
-#define LAYOUTFILE <CardEngine/StartWindow.lay>
+#define LAYOUTFILE <TexasHoldem/StartWindow.lay>
 #include <CtrlCore/lay.h>
 
 class StartWindow : public WithStartWindowLayout<TopWindow> {

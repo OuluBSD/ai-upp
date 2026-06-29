@@ -6,7 +6,7 @@
 
 NAMESPACE_UPP
 
-#define LAYOUTFILE <CardEngine/SettingsWindow.lay>
+#define LAYOUTFILE <TexasHoldem/SettingsWindow.lay>
 #include <CtrlCore/lay.h>
 
 class SettingsWindow : public WithSettingsWindowLayout<TopWindow> {

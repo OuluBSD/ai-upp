@@ -10,6 +10,7 @@
 #define NEAR
 #endif
 #define _WINSOCKAPI_
+#define CY win32_CY_
 #include <winsock2.h>
 #include <ws2tcpip.h>
 #include <windows.h>
@@ -17,6 +18,7 @@
 #include <mfidl.h>
 #include <mfreadwrite.h>
 #include <mferror.h>
+#undef CY
 
 namespace Microsoft {
 namespace WRL {

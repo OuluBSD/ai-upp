@@ -1,0 +1,27 @@
+description "DockingTemplate2 - Full-featured docking GUI template\377";
+
+uses
+	Core,
+	CtrlLib,
+	Docking;
+
+file
+	main.cpp,
+	MainWindow.h,
+	MainWindow.cpp,
+	MenuSetup.cpp,
+	ToolBarSetup.cpp,
+	EditMode.h,
+	EditMode.cpp,
+	DockViews.h,
+	DockViews.cpp,
+	DebugTab.h,
+	DebugTab.cpp,
+	AppState.h,
+	README.md;
+
+mainconfig
+	"" = "GUI",
+	"" = "GUI X11",
+	"" = "GUI USEMALLOC",
+	"" = "GUI X11 USEMALLOC";

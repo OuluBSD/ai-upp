@@ -423,6 +423,8 @@ class YamlIO;
 
 #include "BinUndoRedo.h"
 
+#include "AppRegistry.h"
+
 #include "Inet.h"
 #include "Daemon.h"
 

@@ -135,6 +135,45 @@ struct PkgConfigPaths {
 	String eselect;
 };
 
+struct PkgPlanItem : Moveable<PkgPlanItem> {
+	char status = 'N';
+	String atom;
+	String use;
+	String target;
+	String uppflags;
+	String provider;
+	String reason;
+	String repository;
+	String description;
+	bool interactive = false;
+	bool blocker = false;
+	bool resolved = false;
+};
+
+struct PkgPlan : Moveable<PkgPlan> {
+	String atom;
+	String target;
+	bool color = false;
+	bool ask = false;
+	bool pretend = false;
+	bool update = false;
+	bool deep = false;
+	bool newuse = false;
+	Vector<String> selected_use;
+	Vector<String> disabled_use;
+	Vector<String> defaulted_use;
+	Vector<String> effective_use;
+	Vector<String> target_forced;
+	Vector<String> target_masked;
+	Vector<String> uppflags;
+	Vector<String> providers;
+	Vector<String> virtuals;
+	Vector<PkgPlanItem> items;
+	int backtrack = 0;
+	int backtrack_limit = 20;
+	double dependency_seconds = 0.0;
+};
+
 struct PkgRepository {
 	String root;
 	PkgConfigPaths paths;

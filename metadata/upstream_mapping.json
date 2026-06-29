@@ -1,10 +1,26 @@
 {
-  "description": "Mapping from upstream ultimatepp/ultimatepp monolithic IDE sources to the split headless/Core and GUI packages used here.",
+  "description": "Semantic mapping from upstream ultimatepp/ultimatepp monolithic IDE sources to the split local tree.",
   "notes": [
-    "pkg reuses uppsrc/ide/Core for headless package, workspace, and build graph behavior.",
-    "Keep the headless core split in sync with pkg because pkg depends on ide/Core as its canonical parser and build-graph layer."
+    "pkg reuses uppsrc/ide/Core for headless package, workspace, build graph, and acceptflags-aware metadata behavior.",
+    "Mappings are intentionally broad and semantic; they should be updated whenever files move between the shim, Core, and GUI packages."
   ],
   "files": {
+    "uppsrc/ide/*": {
+      "destinations": [
+        {
+          "file": "uppsrc/ide/*",
+          "semantic": "Shim/shell package glue and manifest-level entrypoints"
+        },
+        {
+          "file": "uppsrc/ide/Core/*",
+          "semantic": "Shared headless IDE logic, including package/workspace/build metadata and console helpers"
+        },
+        {
+          "file": "uppsrc/ide/MainCtrl/*",
+          "semantic": "GUI controller, editor, and IDE user-interface implementation"
+        }
+      ]
+    },
     "uppsrc/ide/main.cpp": {
       "destinations": [
         {
@@ -37,23 +53,7 @@
         }
       ]
     },
-    "uppsrc/ide/Core/Core.cpp": {
-      "destinations": [
-        {
-          "file": "uppsrc/ide/Core/Core.cpp",
-          "semantic": "Headless package/workspace/build graph implementation"
-        }
-      ]
-    },
-    "uppsrc/ide/Core/Core.h": {
-      "destinations": [
-        {
-          "file": "uppsrc/ide/Core/Core.h",
-          "semantic": "Shared headless declarations for package/workspace parsing and build graph helpers"
-        }
-      ]
-    },
-    "uppsrc/ide/Core/Package.cpp": {
+    "uppsrc/ide/Package.cpp": {
       "destinations": [
         {
           "file": "uppsrc/ide/Core/Package.cpp",
@@ -61,7 +61,7 @@
         }
       ]
     },
-    "uppsrc/ide/Core/Workspace.cpp": {
+    "uppsrc/ide/Workspace.cpp": {
       "destinations": [
         {
           "file": "uppsrc/ide/Core/Workspace.cpp",
@@ -69,19 +69,111 @@
         }
       ]
     },
-    "uppsrc/ide/Core/main_console.cpp": {
+    "uppsrc/ide/Builder.cpp": {
       "destinations": [
         {
-          "file": "uppsrc/ide/Core/main_console.cpp",
-          "semantic": "Console-only entrypoint for the headless IDE shell"
+          "file": "uppsrc/ide/Core/Builder.cpp",
+          "semantic": "Build graph construction, builder dispatch, and shared headless build behavior"
         }
       ]
     },
-    "uppsrc/ide/MainCtrl/ide.cpp": {
+    "uppsrc/ide/Assembly.cpp": {
       "destinations": [
         {
-          "file": "uppsrc/ide/MainCtrl/ide.cpp",
-          "semantic": "GUI application bootstrap and IDE session startup"
+          "file": "uppsrc/ide/Core/Assembly.cpp",
+          "semantic": "Nest/assembly discovery and package directory resolution"
+        }
+      ]
+    },
+    "uppsrc/ide/Cache.cpp": {
+      "destinations": [
+        {
+          "file": "uppsrc/ide/Core/Cache.cpp",
+          "semantic": "Package and build cache management"
+        }
+      ]
+    },
+    "uppsrc/ide/BinObj.cpp": {
+      "destinations": [
+        {
+          "file": "uppsrc/ide/Core/BinObj.cpp",
+          "semantic": "Binary object handling for the headless build path"
+        }
+      ]
+    },
+    "uppsrc/ide/Signature.cpp": {
+      "destinations": [
+        {
+          "file": "uppsrc/ide/Core/Signature.cpp",
+          "semantic": "Signature tracking and change detection for packages"
+        }
+      ]
+    },
+    "uppsrc/ide/PPinfo.cpp": {
+      "destinations": [
+        {
+          "file": "uppsrc/ide/Core/PPinfo.cpp",
+          "semantic": "Preprocessor information and package metadata plumbing"
+        }
+      ]
+    },
+    "uppsrc/ide/Host.h": {
+      "destinations": [
+        {
+          "file": "uppsrc/ide/Core/Host.h",
+          "semantic": "Host/platform abstraction shared by headless IDE logic"
+        }
+      ]
+    },
+    "uppsrc/ide/Host.cpp": {
+      "destinations": [
+        {
+          "file": "uppsrc/ide/Core/Host.cpp",
+          "semantic": "Host/platform abstraction implementation"
+        }
+      ]
+    },
+    "uppsrc/ide/Logger.h": {
+      "destinations": [
+        {
+          "file": "uppsrc/ide/Core/Logger.h",
+          "semantic": "Headless logging helpers used by shared IDE logic"
+        }
+      ]
+    },
+    "uppsrc/ide/Logger.cpp": {
+      "destinations": [
+        {
+          "file": "uppsrc/ide/Core/Logger.cpp",
+          "semantic": "Headless logging helpers used by shared IDE logic"
+        }
+      ]
+    },
+    "uppsrc/ide/Util.cpp": {
+      "destinations": [
+        {
+          "file": "uppsrc/ide/Core/Util.cpp",
+          "semantic": "Shared helper utilities for headless IDE logic"
+        }
+      ]
+    },
+    "uppsrc/ide/Common.cpp": {
+      "destinations": [
+        {
+          "file": "uppsrc/ide/Core/Common.cpp",
+          "semantic": "Common headless IDE helpers"
+        }
+      ]
+    },
+    "uppsrc/pkg/*": {
+      "destinations": [
+        {
+          "file": "uppsrc/pkg/*",
+          "semantic": "Headless pkg CLI and plan output"
+        },
+        {
+          "file": "uppsrc/ide/Core/*",
+          "semantic": "Shared package/workspace/build metadata path reused by pkg"
         }
       ]
     }

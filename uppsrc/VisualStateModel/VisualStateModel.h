@@ -7,6 +7,7 @@ using namespace Upp;
 
 #include "Types.h"
 #include "RegionMemory.h"
+#include "ChangeDetect.h"
 #include "GroundTruth.h"
 #include "Replay.h"
 

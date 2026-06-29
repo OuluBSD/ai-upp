@@ -163,6 +163,87 @@ static void TestReplay()
 }
 
 // ---------------------------------------------------------------------------
+// Test: Change detection
+
+static void FillSolidRGBA(VsmFrameImage& img, int w, int h,
+                           byte r, byte g, byte b)
+{
+	img.Set(w, h, nullptr);
+	for(int i = 0; i < w * h * 4; i += 4) {
+		img.data[i + 0] = r;
+		img.data[i + 1] = g;
+		img.data[i + 2] = b;
+		img.data[i + 3] = 255;
+	}
+}
+
+static void FillRect(VsmFrameImage& img, int rx, int ry, int rw, int rh,
+                     byte r, byte g, byte b)
+{
+	for(int y = ry; y < ry + rh; y++) {
+		for(int x = rx; x < rx + rw; x++) {
+			byte* p = img.data + (y * img.width + x) * 4;
+			p[0] = r; p[1] = g; p[2] = b; p[3] = 255;
+		}
+	}
+}
+
+static void TestChangeDetect()
+{
+	Cout() << "\n=== Change detection ===\n";
+
+	// Frame A: all gray (128)
+	VsmFrameImage frameA;
+	FillSolidRGBA(frameA, 320, 240, 128, 128, 128);
+
+	// Frame B: gray with one white rectangle changed at (50,60,100,80)
+	VsmFrameImage frameB;
+	FillSolidRGBA(frameB, 320, 240, 128, 128, 128);
+	FillRect(frameB, 50, 60, 100, 80, 255, 255, 255);
+
+	VsmChangeDetectParams params;
+	params.pixel_threshold = 30;
+
+	Vector<VsmChangedRect> changes = VsmDetectChanges(frameA, frameB, params);
+	if(changes.IsEmpty()) {
+		Fail("DetectChanges: no changes found");
+		return;
+	}
+	Cout() << "Detected " << changes.GetCount() << " changed region(s)\n";
+	Cout() << "First region: (" << changes[0].x << "," << changes[0].y
+	       << ") " << changes[0].w << "x" << changes[0].h
+	       << " score=" << changes[0].score << "\n";
+	if(changes[0].score < 0.1)
+		Fail("DetectChanges: score too low");
+	else
+		Cout() << "DetectChanges: OK\n";
+
+	// Test VsmCompareFrames
+	VsmChangeEvent ev = VsmCompareFrames(frameA, frameB, 1, "2026-01-15T14:23:00.033Z");
+	if(ev.frame != 1 || ev.regions.IsEmpty())
+		Fail("VsmCompareFrames: unexpected result");
+	else
+		Cout() << "VsmCompareFrames: OK\n";
+
+	// Identical frames → no changes
+	Vector<VsmChangedRect> nochanges = VsmDetectChanges(frameA, frameA, params);
+	if(!nochanges.IsEmpty())
+		Fail("Identical frames should produce no changes");
+	else
+		Cout() << "Identical frames: no changes OK\n";
+
+	// Fingerprint extraction from a changed region
+	VsmFingerprint32 fp;
+	bool ok = VsmRegionMemory::ExtractFingerprint(frameB, 50, 60, 100, 80, fp);
+	if(!ok)
+		Fail("ExtractFingerprint failed");
+	else {
+		String hash = fp.ComputeHash();
+		Cout() << "Fingerprint hash: " << hash << " OK\n";
+	}
+}
+
+// ---------------------------------------------------------------------------
 
 CONSOLE_APP_MAIN
 {
@@ -170,6 +251,7 @@ CONSOLE_APP_MAIN
 
 	TestTypes();
 	TestRegionMemory();
+	TestChangeDetect();
 	TestGroundTruth();
 	TestReplay();
 

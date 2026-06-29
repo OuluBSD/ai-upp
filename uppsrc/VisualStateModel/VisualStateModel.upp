@@ -9,6 +9,8 @@ file
 	Types.cpp,
 	RegionMemory.h,
 	RegionMemory.cpp,
+	ChangeDetect.h,
+	ChangeDetect.cpp,
 	GroundTruth.h,
 	GroundTruth.cpp,
 	Replay.h,

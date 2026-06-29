@@ -16,4 +16,6 @@ file
 	Replay.h,
 	Replay.cpp,
 	SessionStorage.h,
-	SessionStorage.cpp;
+	SessionStorage.cpp,
+	Annotation.h,
+	Annotation.cpp;

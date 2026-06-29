@@ -11,5 +11,6 @@ using namespace Upp;
 #include "GroundTruth.h"
 #include "Replay.h"
 #include "SessionStorage.h"
+#include "Annotation.h"
 
 #endif

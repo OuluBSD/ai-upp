@@ -38,12 +38,15 @@ private:
 	DebugLog    debug_tab_;        // "Debug" tab
 
 	// ---- Dock panels (DockableCtrl subclasses)
-	RegionPropsPanel    props_dock_;
-	ReplayTimelinePanel timeline_dock_;
-	SessionInfoPanel    session_dock_;
+	RegionPropsPanel      props_dock_;
+	ReplayTimelinePanel   timeline_dock_;
+	SessionInfoPanel      session_dock_;
+	AnnotationEditorPanel annotation_dock_;
 
-	// ---- Session storage
-	VsmSessionStore     session_store_;
+	// ---- Session storage + annotation layer
+	VsmSessionStore       session_store_;
+	VsmAnnotationLayer    annotation_layer_;
+	String                annotation_path_;
 
 	// ---- AppRegistry + state
 	AppRegistry registry_;
@@ -88,6 +91,10 @@ private:
 	// ---- Region selection
 	void OnRegionSelected(const String& id);
 	void OnRegionListSel();
+
+	// ---- Annotation
+	void LoadSampleAnnotation();
+	void OnAnnotationChanged();
 };
 
 #endif

@@ -61,6 +61,131 @@ void ReplayTimelinePanel::SetProgress(int pos, int total)
 }
 
 // ---------------------------------------------------------------------------
+// AnnotationEditorPanel
+
+AnnotationEditorPanel::AnnotationEditorPanel()
+{
+	list_.AddColumn("ID", 100);
+	list_.AddColumn("Name");
+	list_.AddColumn("Parent", 80);
+	list_.WhenSel = [=] { OnSel(); };
+
+	name_lbl_.SetLabel("Name:");
+	parent_lbl_.SetLabel("Parent:");
+	rect_lbl_.SetLabel("Rect x/y/w/h:");
+
+	create_btn_.SetLabel("New");
+	delete_btn_.SetLabel("Delete");
+	save_btn_.SetLabel("Apply");
+
+	create_btn_.WhenAction = [=] { OnCreate(); };
+	delete_btn_.WhenAction = [=] { OnDelete(); };
+	save_btn_.WhenAction   = [=] { OnSave(); };
+
+	// List
+	Add(list_.HSizePos(4,4).TopPos(4,120));
+
+	// Fields
+	Add(name_lbl_.LeftPos(4,40).TopPos(130,20));
+	Add(name_edit_.HSizePos(48,4).TopPos(130,20));
+	Add(parent_lbl_.LeftPos(4,44).TopPos(156,20));
+	Add(parent_edit_.HSizePos(52,4).TopPos(156,20));
+	Add(rect_lbl_.HSizePos(4,4).TopPos(182,20));
+	Add(x_edit_.LeftPos(4,36).TopPos(206,20));
+	Add(y_edit_.LeftPos(44,36).TopPos(206,20));
+	Add(w_edit_.LeftPos(84,36).TopPos(206,20));
+	Add(h_edit_.LeftPos(124,36).TopPos(206,20));
+
+	// Buttons
+	Add(create_btn_.LeftPos(4,60).BottomPos(4,24));
+	Add(delete_btn_.LeftPos(68,60).BottomPos(4,24));
+	Add(save_btn_.RightPos(4,60).BottomPos(4,24));
+}
+
+void AnnotationEditorPanel::SetLayer(VsmAnnotationLayer* layer)
+{
+	layer_ = layer;
+	RebuildList();
+}
+
+void AnnotationEditorPanel::RebuildList()
+{
+	list_.Clear();
+	if(!layer_) return;
+	for(const VsmRegionAnnotation& a : layer_->annotations)
+		list_.Add(a.id, a.name, a.parent_id.IsEmpty() ? "—" : a.parent_id);
+}
+
+void AnnotationEditorPanel::OnSel()
+{
+	if(!layer_) return;
+	int row = list_.GetCursor();
+	if(row < 0 || row >= layer_->annotations.GetCount()) {
+		FillFields(nullptr);
+		return;
+	}
+	FillFields(&layer_->annotations[row]);
+}
+
+void AnnotationEditorPanel::FillFields(const VsmRegionAnnotation* a)
+{
+	if(!a) {
+		name_edit_.Clear();
+		parent_edit_.Clear();
+		x_edit_ = 0; y_edit_ = 0; w_edit_ = 100; h_edit_ = 40;
+		return;
+	}
+	name_edit_.SetData(a->name);
+	parent_edit_.SetData(a->parent_id);
+	x_edit_ = a->x; y_edit_ = a->y; w_edit_ = a->w; h_edit_ = a->h;
+}
+
+void AnnotationEditorPanel::ApplyFields()
+{
+	if(!layer_) return;
+	int row = list_.GetCursor();
+	if(row < 0 || row >= layer_->annotations.GetCount()) return;
+	VsmRegionAnnotation& a = layer_->annotations[row];
+	a.name      = name_edit_.GetData().ToString();
+	a.parent_id = parent_edit_.GetData().ToString();
+	a.x = (int)x_edit_.GetData();
+	a.y = (int)y_edit_.GetData();
+	a.w = (int)w_edit_.GetData();
+	a.h = (int)h_edit_.GetData();
+}
+
+void AnnotationEditorPanel::OnCreate()
+{
+	if(!layer_) return;
+	VsmRegionAnnotation& a = layer_->annotations.Add();
+	a.id   = Format("ann-%06d", (int)layer_->annotations.GetCount());
+	a.name = "New Annotation";
+	a.x = 0; a.y = 0; a.w = 100; a.h = 40;
+	RebuildList();
+	list_.SetCursor(layer_->annotations.GetCount() - 1);
+	FillFields(&layer_->annotations.Top());
+	WhenLayerChanged();
+}
+
+void AnnotationEditorPanel::OnDelete()
+{
+	if(!layer_) return;
+	int row = list_.GetCursor();
+	if(row < 0 || row >= layer_->annotations.GetCount()) return;
+	layer_->annotations.Remove(row);
+	RebuildList();
+	FillFields(nullptr);
+	WhenLayerChanged();
+}
+
+void AnnotationEditorPanel::OnSave()
+{
+	ApplyFields();
+	RebuildList();
+	WhenLayerChanged();
+}
+
+// ---------------------------------------------------------------------------
 // SessionInfoPanel
 
 SessionInfoPanel::SessionInfoPanel()

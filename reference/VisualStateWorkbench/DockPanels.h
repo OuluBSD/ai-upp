@@ -37,6 +37,40 @@ private:
 };
 
 // ---------------------------------------------------------------------------
+// AnnotationEditorPanel — create/edit/delete region annotations
+
+class AnnotationEditorPanel : public DockableCtrl {
+public:
+	typedef AnnotationEditorPanel CLASSNAME;
+
+	AnnotationEditorPanel();
+
+	// Called when the workbench loads/saves annotation layer
+	void SetLayer(VsmAnnotationLayer* layer);
+
+	Event<> WhenLayerChanged;
+
+private:
+	VsmAnnotationLayer* layer_  = nullptr;
+
+	ArrayCtrl list_;
+	Button    create_btn_, delete_btn_, save_btn_;
+	EditString name_edit_;
+	Label      name_lbl_, parent_lbl_;
+	EditString parent_edit_;
+	Label      rect_lbl_;
+	EditInt    x_edit_, y_edit_, w_edit_, h_edit_;
+
+	void OnCreate();
+	void OnDelete();
+	void OnSave();
+	void OnSel();
+	void RebuildList();
+	void FillFields(const VsmRegionAnnotation* a);
+	void ApplyFields();
+};
+
+// ---------------------------------------------------------------------------
 // SessionInfoPanel — shows VsmSessionManifest fields
 
 class SessionInfoPanel : public DockableCtrl {

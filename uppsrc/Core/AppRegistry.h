@@ -14,12 +14,12 @@ public:
 	AppRegistry& Vendor(const String& id)   { vendor_ = id; return *this; }
 	AppRegistry& AppId(const String& id)    { app_id_ = id; return *this; }
 	AppRegistry& Profile(const String& id)  { profile_ = id; return *this; }
-	AppRegistry& SetLog(AppLog* log)        { log_sink_ = log; return *this; }
+	AppRegistry& SetLog(AppLog* log)        { log_.SetSink(log); return *this; }
 
 	String GetVendor()     const { return vendor_; }
 	String GetAppId()      const { return app_id_; }
 	String GetProfile()    const { return profile_; }
-	AppLog* GetLogSink()   const { return log_sink_; }
+	AppLog* GetLogSink()   const { return log_.GetSink(); }
 
 	String GetConfigDir() const;
 	String GetStateDir()  const;
@@ -55,17 +55,16 @@ public:
 
 	String GetBlobPath(const String& key) const;
 
-	const Vector<String>& GetLog() const { return log_; }
+	const Vector<String>& GetLog() const { return log_.GetLog(); }
 	void ClearLog()                       { log_.Clear(); }
 
 private:
 	String  vendor_   = "AiUpp";
 	String  app_id_;
 	String  profile_  = "default";
-	AppLog* log_sink_ = nullptr;
 
 	VectorMap<String, Value> values_;
-	mutable Vector<String>   log_;
+	mutable CoreLog          log_;
 
 	static const int64 kInlineThreshold = 64 * 1024;
 

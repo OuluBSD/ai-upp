@@ -19,7 +19,7 @@ public:
 	void DockInit() override;
 	void Close() override;
 
-	void Log(const String& msg) { log_.Add(APPLOG_LEVEL_INFO, "App", msg); }
+	void Log(const String& msg) { LogInfo(log_, "App", msg); }
 
 private:
 	// ---- Structured log (owned here; wired to debug_tab_ in DockInit)

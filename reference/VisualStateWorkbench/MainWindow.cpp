@@ -105,6 +105,9 @@ void MainWindow::InitDockers()
 	ocr_dock_.Title("OCR Rules").SizeHint(Size(300, 260));
 	Register(ocr_dock_);
 
+	model_dock_.Title("Model State").SizeHint(Size(380, 300));
+	Register(model_dock_);
+
 	timeline_dock_.WhenStep   = [=] { OnStep(); };
 	timeline_dock_.WhenRunAll = [=] { OnRunAll(); };
 	timeline_dock_.WhenReset  = [=] { OnResetReplay(); };
@@ -121,6 +124,7 @@ void MainWindow::OnResetDockLayout()
 	DockLeft(pipeline_dock_);
 	DockLeft(template_dock_);
 	DockLeft(ocr_dock_);
+	DockLeft(model_dock_);
 	DockBottom(timeline_dock_);
 	Log("layout: reset to default");
 }
@@ -398,6 +402,20 @@ void MainWindow::LoadSampleAnnotation()
 		r.confidence_threshold      = 0.5;
 	}
 	ocr_dock_.SetRules(&ocr_rules_);
+
+	// Seed a model rule that reads from the OCR rule above
+	model_runtime_.Reset();
+	model_runtime_.SetLog(&log_);
+	{
+		VsmModelRule mr;
+		mr.rule_id        = "mr-001";
+		mr.type           = VSM_MR_SET_PROP_FROM_OCR;
+		mr.object_id      = "app-screen";
+		mr.property_key   = "screen";
+		mr.source_rule_id = "ocr-001";
+		model_runtime_.AddRule(mr);
+	}
+	model_dock_.SetRuntime(&model_runtime_);
 }
 
 void MainWindow::OnAnnotationChanged()

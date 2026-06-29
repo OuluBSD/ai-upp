@@ -61,6 +61,95 @@ void ReplayTimelinePanel::SetProgress(int pos, int total)
 }
 
 // ---------------------------------------------------------------------------
+// ModelStatePanel
+
+ModelStatePanel::ModelStatePanel()
+{
+	objects_list_.AddColumn("ID");
+	objects_list_.AddColumn("Type", 70);
+	objects_list_.AddColumn("Active", 45);
+
+	props_list_.AddColumn("Key");
+	props_list_.AddColumn("Value");
+
+	transitions_list_.AddColumn("Object");
+	transitions_list_.AddColumn("Property", 70);
+	transitions_list_.AddColumn("→ Value");
+	transitions_list_.AddColumn("Event", 80);
+
+	divergences_list_.AddColumn("Message");
+	divergences_list_.AddColumn("Severity", 60);
+
+	run_sample_btn_.SetLabel("Run Sample Events");
+
+	objects_area_.Add(objects_list_.HSizePos(0,0).TopPos(0,120));
+	objects_area_.Add(props_list_.HSizePos(0,0).TopPos(124,100));
+
+	transitions_area_.Add(transitions_list_.SizePos());
+	divergences_area_.Add(divergences_list_.SizePos());
+
+	tabs_.Add(objects_area_.SizePos(), "Objects");
+	tabs_.Add(transitions_area_.SizePos(), "Transitions");
+	tabs_.Add(divergences_area_.SizePos(), "Divergences");
+
+	Add(tabs_.HSizePos(4,4).TopPos(4,240));
+	Add(run_sample_btn_.HSizePos(4,4).BottomPos(4,24));
+
+	run_sample_btn_.WhenAction = [=] { OnRunSample(); };
+}
+
+void ModelStatePanel::SetRuntime(VsmModelRuntime* rt)
+{
+	rt_ = rt;
+	Refresh();
+}
+
+void ModelStatePanel::Refresh()
+{
+	objects_list_.Clear();
+	props_list_.Clear();
+	transitions_list_.Clear();
+	divergences_list_.Clear();
+	if(!rt_) return;
+
+	const VsmModelState& st = rt_->GetState();
+	for(const VsmModelObject& obj : st.objects) {
+		objects_list_.Add(obj.id, obj.type, obj.active ? "yes" : "no");
+		if(objects_list_.GetCursor() < 0 && &obj == &st.objects[0]) {
+			for(const VsmModelProperty& p : obj.properties)
+				props_list_.Add(p.key, p.value_json);
+		}
+	}
+	for(const VsmModelTransition& t : rt_->GetHistory())
+		transitions_list_.Add(t.object_id, t.property_key, t.to_value, t.trigger_event_type);
+	for(const VsmDivergence& d : rt_->GetDivergences())
+		divergences_list_.Add(d.message, d.severity);
+}
+
+void ModelStatePanel::OnRunSample()
+{
+	if(!rt_) return;
+	rt_->Reset();
+
+	// Inject two events from seed rules
+	VsmModelEvent ev1;
+	ev1.type           = "ocr_result";
+	ev1.source_rule_id = "ocr-001";
+	ev1.data_json      = "\"Login\"";
+	ev1.ts             = "2026-01-15T14:23:00.000Z";
+	rt_->ApplyEvent(ev1);
+
+	VsmModelEvent ev2;
+	ev2.type           = "ocr_result";
+	ev2.source_rule_id = "ocr-001";
+	ev2.data_json      = "\"Dashboard\"";
+	ev2.ts             = "2026-01-15T14:23:05.000Z";
+	rt_->ApplyEvent(ev2);
+
+	Refresh();
+}
+
+// ---------------------------------------------------------------------------
 // OcrRulePanel
 
 OcrRulePanel::OcrRulePanel()

@@ -56,6 +56,7 @@ void MainWindow::DockInit()
 	if(!LoadUserLayout())
 		Log("layout: using default");
 	loaded_ = true;
+	LoadOverlayState();
 
 	replay_.SetLog(&log_);
 	LoadSampleSession();
@@ -293,6 +294,47 @@ void MainWindow::UpdateToolBar(Bar& bar)
 	bar.Add("Reset",        CtrlImg::undo(),        [=] { OnResetReplay(); });
 	bar.Separator();
 	bar.Add("Run Pipeline", CtrlImg::go_forward(),  [=] { OnRunPipeline(); });
+	bar.Separator();
+	bar.Add("Regions",     [=] { OnToggleOverlay(0); }).Check(frame_canvas_.ShowRegions());
+	bar.Add("Annotations", [=] { OnToggleOverlay(1); }).Check(frame_canvas_.ShowAnnotations());
+	bar.Add("Template",    [=] { OnToggleOverlay(2); }).Check(frame_canvas_.ShowTemplate());
+	bar.Add("OCR",         [=] { OnToggleOverlay(3); }).Check(frame_canvas_.ShowOcr());
+}
+
+// ---------------------------------------------------------------------------
+// Overlay toggles
+
+void MainWindow::LoadOverlayState()
+{
+	bool r = (bool)registry_.Get("overlay.regions",     true);
+	bool a = (bool)registry_.Get("overlay.annotations", true);
+	bool t = (bool)registry_.Get("overlay.template",    true);
+	bool o = (bool)registry_.Get("overlay.ocr",         true);
+	frame_canvas_.SetShowRegions(r);
+	frame_canvas_.SetShowAnnotations(a);
+	frame_canvas_.SetShowTemplate(t);
+	frame_canvas_.SetShowOcr(o);
+}
+
+void MainWindow::SaveOverlayState()
+{
+	registry_.Set("overlay.regions",     (bool)frame_canvas_.ShowRegions());
+	registry_.Set("overlay.annotations", (bool)frame_canvas_.ShowAnnotations());
+	registry_.Set("overlay.template",    (bool)frame_canvas_.ShowTemplate());
+	registry_.Set("overlay.ocr",         (bool)frame_canvas_.ShowOcr());
+}
+
+void MainWindow::OnToggleOverlay(int which)
+{
+	switch(which) {
+	case 0: frame_canvas_.SetShowRegions    (!frame_canvas_.ShowRegions());     break;
+	case 1: frame_canvas_.SetShowAnnotations(!frame_canvas_.ShowAnnotations());  break;
+	case 2: frame_canvas_.SetShowTemplate   (!frame_canvas_.ShowTemplate());    break;
+	case 3: frame_canvas_.SetShowOcr        (!frame_canvas_.ShowOcr());         break;
+	}
+	SaveOverlayState();
+	toolbar_.Set(THISBACK(UpdateToolBar));
+	Log(Format("overlay[%d] = %s", which, frame_canvas_.ShowRegions() ? "on" : "off"));
 }
 
 // ---------------------------------------------------------------------------
@@ -366,6 +408,7 @@ void MainWindow::LoadSampleAnnotation()
 	}
 
 	annotation_dock_.SetLayer(&annotation_layer_);
+	frame_canvas_.SetAnnotationLayer(&annotation_layer_);
 	Log(Format("annotations: loaded %d annotation(s)", annotation_layer_.annotations.GetCount()));
 
 	// Seed a default pipeline for the workbench

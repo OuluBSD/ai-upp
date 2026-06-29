@@ -187,7 +187,7 @@ All builds: MSVS26x64 debug shared blitz, `-m 7 -j12`.
 
 ---
 
-## Test suite (10 suites, all pass)
+## Test suite (11 suites, all pass)
 
 ```
 Types round-trip          OK

@@ -2655,6 +2655,10 @@ void ArrayCtrl::ColumnSort(int column, int (*compare)(const Value& a, const Valu
 
 void ArrayCtrl::SetSortColumn(int ii, bool desc)
 {
+	if(columnsortthreestate && sortcolumn == -1) {
+		for(int i = 0; i < array.GetCount(); i++)
+			array[i].original_index = i;
+	}
 	sortcolumn = ii;
 	sortcolumndescending = desc;
 	DoColumnSort();
@@ -2662,11 +2666,31 @@ void ArrayCtrl::SetSortColumn(int ii, bool desc)
 
 void ArrayCtrl::ToggleSortColumn(int ii)
 {
-	if(sortcolumn == ii)
-		sortcolumndescending = !sortcolumndescending;
+	if(columnsortthreestate) {
+		if(sortcolumn == -1) {
+			for(int i = 0; i < array.GetCount(); i++)
+				array[i].original_index = i;
+		}
+		if(sortcolumn == ii) {
+			if(!sortcolumndescending)
+				sortcolumndescending = true;
+			else {
+				sortcolumn = -1;
+				sortcolumndescending = false;
+			}
+		}
+		else {
+			sortcolumn = ii;
+			sortcolumndescending = false;
+		}
+	}
 	else {
-		sortcolumn = ii;
-		sortcolumndescending = false;
+		if(sortcolumn == ii)
+			sortcolumndescending = !sortcolumndescending;
+		else {
+			sortcolumn = ii;
+			sortcolumndescending = false;
+		}
 	}
 	DoColumnSort();
 }
@@ -2674,6 +2698,15 @@ void ArrayCtrl::ToggleSortColumn(int ii)
 void ArrayCtrl::DoColumnSort()
 {
 	if(sortcolumn < 0) {
+		if(columnsortthreestate) {
+			for(int i = 0; i < header.GetCount(); i++)
+				header.Tab(i).SetRightImage(Image());
+			Sort([this](int i, int j) {
+				return array[i].original_index < array[j].original_index;
+			});
+			WhenColumnSorted();
+			return;
+		}
 		sortcolumndescending = false;
 		for(int i = 0; i < column.GetCount(); i++)
 			if(column[i].order || column[i].cmp) {
@@ -2830,6 +2863,7 @@ void ArrayCtrl::Reset() {
 	focussetcursor = true;
 	sortcolumn = -1;
 	allsorting = false;
+	columnsortthreestate = false;
 	acceptingrow = 0;
 	columnsortfindkey = false;
 	spanwidecells = false;

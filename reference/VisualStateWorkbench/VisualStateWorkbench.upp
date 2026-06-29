@@ -1,0 +1,27 @@
+description "VisualStateModel workbench GUI\377";
+
+uses
+	Core,
+	CtrlLib,
+	Docking,
+	VisualStateModel;
+
+file
+	main.cpp,
+	MainWindow.h,
+	MainWindow.cpp,
+	MenuSetup.cpp,
+	ToolBarSetup.cpp,
+	AppState.h,
+	FrameCanvas.h,
+	FrameCanvas.cpp,
+	DebugTab.h,
+	DebugTab.cpp,
+	DockPanels.h,
+	DockPanels.cpp;
+
+mainconfig
+	"" = "GUI",
+	"" = "GUI X11",
+	"" = "GUI USEMALLOC",
+	"" = "GUI X11 USEMALLOC";

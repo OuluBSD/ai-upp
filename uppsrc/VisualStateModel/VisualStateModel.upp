@@ -28,4 +28,6 @@ file
 	OcrLayer.h,
 	OcrLayer.cpp,
 	ModelRuntime.h,
-	ModelRuntime.cpp;
+	ModelRuntime.cpp,
+	PipelineRunner.h,
+	PipelineRunner.cpp;

@@ -29,6 +29,7 @@ file
 	GpuPreprocess.cpp,
 	D3D11Interop.cpp,
 	RecognitionData.h,
+	RecognitionData.cpp,
 	Scripting.h,
 	Scripting.cpp,
 	ConfigFile.h,

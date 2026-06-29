@@ -1,6 +1,10 @@
 #ifndef _CtrlLib_GuiAutomation_h_
 #define _CtrlLib_GuiAutomation_h_
 
+#ifdef _MSC_VER
+#pragma warning(disable: 4250)
+#endif
+
 #include <CtrlLib/Bar.h>
 #include <Vfs/Core/Automation.h>
 

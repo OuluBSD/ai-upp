@@ -84,7 +84,7 @@ void HeadlessLog(String s) {
 	Cout() << "SCRIPT: " << s << "\n";
 }
 
-int RunHeadlessCardEngine(const ScreenGameCliOptions& opt) {
+int RunHeadlessTexasHoldem(const ScreenGameCliOptions& opt) {
 	Cout() << "--- Starting Headless TexasHoldem Engine ---" << "\n";
 	
 	auto engineLog = std::make_unique<EngineLog>(nullptr);

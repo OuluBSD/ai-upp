@@ -10,5 +10,6 @@ using namespace Upp;
 #include "ChangeDetect.h"
 #include "GroundTruth.h"
 #include "Replay.h"
+#include "SessionStorage.h"
 
 #endif

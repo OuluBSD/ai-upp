@@ -88,6 +88,9 @@ void MainWindow::InitDockers()
 	timeline_dock_.Title("Replay Timeline").SizeHint(Size(400, 64));
 	Register(timeline_dock_);
 
+	session_dock_.Title("Session Info").SizeHint(Size(260, 160));
+	Register(session_dock_);
+
 	timeline_dock_.WhenStep   = [=] { OnStep(); };
 	timeline_dock_.WhenRunAll = [=] { OnRunAll(); };
 	timeline_dock_.WhenReset  = [=] { OnResetReplay(); };
@@ -99,6 +102,7 @@ void MainWindow::OnResetDockLayout()
 		DockWindow::Close(*dc);
 
 	DockRight(props_dock_);
+	DockRight(session_dock_);
 	DockBottom(timeline_dock_);
 	Log("layout: reset to default");
 }
@@ -205,6 +209,18 @@ void MainWindow::LoadSampleSession()
 		FileDelete(tmp);
 		Log("session: failed to load sample");
 	}
+
+	// Create a sample session store to show manifest
+	String store_root = AppendFileName(GetTempPath(), "vsm_wb_store");
+	session_store_.SetLog(&log_);
+	if(!session_store_.IsOpen()) {
+		if(DirectoryExists(store_root))
+			session_store_.Open(store_root);
+		else
+			session_store_.Create(store_root, "wb-sample-001", 320, 240, "synthetic");
+		if(session_store_.IsOpen())
+			session_dock_.SetManifest(session_store_.GetManifest());
+	}
 }
 
 void MainWindow::OnStep()
@@ -302,8 +318,9 @@ void MainWindow::RebuildRegionsList()
 {
 	regions_list_.Clear();
 	for(const VsmRegionNode& rn : replay_.GetSession().regions) {
+		String rect = Format("(%d,%d) ", rn.x, rn.y) + IntStr(rn.w) + "x" + IntStr(rn.h);
 		regions_list_.Add(rn.id, rn.frame,
 		                  rn.action.IsEmpty() ? "—" : rn.action,
-		                  Format("(%d,%d) %dx%d", rn.x, rn.y, rn.w, rn.h));
+		                  rect);
 	}
 }

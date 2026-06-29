@@ -40,6 +40,10 @@ private:
 	// ---- Dock panels (DockableCtrl subclasses)
 	RegionPropsPanel    props_dock_;
 	ReplayTimelinePanel timeline_dock_;
+	SessionInfoPanel    session_dock_;
+
+	// ---- Session storage
+	VsmSessionStore     session_store_;
 
 	// ---- AppRegistry + state
 	AppRegistry registry_;

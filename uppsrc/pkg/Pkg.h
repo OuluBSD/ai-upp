@@ -212,6 +212,11 @@ struct PkgEselectState : Moveable<PkgEselectState> {
 	String linker;
 	String target;
 	String provider;
+	String profile;
+	String repository;
+	String vcpkg_root;
+	String vcpkg_triplet;
+	String emscripten_profile;
 
 	void Jsonize(JsonIO& jio);
 };
@@ -298,6 +303,14 @@ struct PkgInvocation {
 	String provider_query;
 	String target;
 	String provider;
+	String compiler;
+	String linker;
+	String profile;
+	String repository;
+	String vcpkg_root;
+	String vcpkg_triplet;
+	String emscripten_profile;
+	String value;
 	String module;
 	String subcommand;
 	String root;
@@ -315,6 +328,7 @@ struct PkgInvocation {
 	bool oneshot = false;
 	bool plan = false;
 	bool metadata = false;
+	bool brief = false;
 	bool list_sets = false;
 	bool targets = false;
 	bool providers = false;

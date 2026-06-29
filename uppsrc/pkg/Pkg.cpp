@@ -104,6 +104,9 @@ void PkgState::Jsonize(JsonIO& jio)
 void PkgEselectState::Jsonize(JsonIO& jio)
 {
 	jio("compiler", compiler)("linker", linker)("target", target)("provider", provider);
+	jio("profile", profile)("repository", repository);
+	jio("vcpkg_root", vcpkg_root)("vcpkg_triplet", vcpkg_triplet);
+	jio("emscripten_profile", emscripten_profile);
 }
 
 static String sTrimPath(const String& path);
@@ -120,13 +123,22 @@ static String sEselectPath(const PkgInvocation& inv)
 static PkgEselectState sLoadEselectState(const PkgInvocation& inv)
 {
 	PkgEselectState st;
-	LoadFromJsonFile(st, sEselectPath(inv));
+	String path = sEselectPath(inv);
+	if(FileExists(path))
+		LoadFromJsonFile(st, path);
+	else {
+		String legacy = AppendFileName(sEselectRoot(inv), "eselect.json");
+		if(FileExists(legacy))
+			LoadFromJsonFile(st, legacy);
+	}
 	return st;
 }
 
 static void sStoreEselectState(const PkgInvocation& inv, const PkgEselectState& st)
 {
-	StoreAsJsonFile(st, sEselectPath(inv), true);
+	String path = sEselectPath(inv);
+	RealizeDirectory(GetFileFolder(path));
+	StoreAsJsonFile(st, path, true);
 }
 
 static const char * const sEselectBuiltins[] = {
@@ -230,7 +242,7 @@ PkgConfigPaths FindPkgConfigPaths(const String& root)
 	p.package_provider = AppendFileName(p.ai_dir, "package.provider");
 	p.package_target = AppendFileName(p.ai_dir, "package.target");
 	p.state = AppendFileName(p.ai_dir, "state.json");
-	p.eselect = AppendFileName(root, "eselect.json");
+	p.eselect = AppendFileName(p.ai_dir, "eselect.json");
 	return p;
 }
 
@@ -1630,6 +1642,7 @@ bool ParsePkgArgs(const Vector<String>& args, PkgInvocation& inv, String& error)
 			else if(a == "--list-sets") inv.list_sets = true, inv.command = PKG_CMD_LIST_SETS;
 			else if(a == "--targets") inv.targets = true, inv.command = PKG_CMD_TARGETS;
 			else if(a == "--providers") inv.providers = true, inv.command = PKG_CMD_PROVIDERS;
+			else if(a == "--brief") inv.brief = true;
 			else if(a == "--pretend") inv.pretend = true;
 			else if(a == "--ask") inv.ask = true;
 			else if(a == "--verbose") inv.verbose = true;
@@ -1659,6 +1672,9 @@ bool ParsePkgArgs(const Vector<String>& args, PkgInvocation& inv, String& error)
 			}
 			else if(a == "--target" || a.StartsWith("--target=")) {
 				inv.target = a == "--target" ? (i + 1 < args.GetCount() ? args[++i] : String()) : sOptValue(a);
+			}
+			else if(a == "--profile" || a.StartsWith("--profile=")) {
+				inv.profile = a == "--profile" ? (i + 1 < args.GetCount() ? args[++i] : String()) : sOptValue(a);
 			}
 			else if(a == "--root" || a.StartsWith("--root=")) {
 				inv.root = a == "--root" ? (i + 1 < args.GetCount() ? args[++i] : String()) : sOptValue(a);
@@ -1771,7 +1787,9 @@ bool ParsePkgArgs(const Vector<String>& args, PkgInvocation& inv, String& error)
 			if(rest.GetCount() > 1)
 				inv.subcommand = rest[1];
 			if(rest.GetCount() > 2)
-				inv.target = rest[2];
+				inv.value = rest[2];
+			for(int i = 3; i < rest.GetCount(); i++)
+				inv.extra.Add(rest[i]);
 		}
 		else if(inv.command == PKG_CMD_EXPLAIN_TARGET) {
 			if(rest.GetCount())
@@ -1874,6 +1892,9 @@ static void sFlushConsole()
 	Cerr().Flush();
 }
 
+static String sResolveEselectTarget(const PkgInvocation& inv, const PkgEselectState& st);
+static void sPrintTargetInfo(const String& name);
+
 static void sPrintEselectModules(const PkgInvocation& inv)
 {
 	Cout() << "Usage: pkg eselect <global options> <module name> <module options>\n\n";
@@ -1881,7 +1902,8 @@ static void sPrintEselectModules(const PkgInvocation& inv)
 	Cout() << "  --brief\n";
 	Cout() << "  --colour=<yes|no|auto>\n";
 	Cout() << "  --root=<path>\n";
-	Cout() << "  --sysroot=<path>\n\n";
+	Cout() << "  --sysroot=<path>\n";
+	Cout() << "  --profile=<name>\n\n";
 	Cout() << "Built-in modules:\n";
 	for(const char *m : sEselectBuiltins)
 		Cout() << "  " << m << "\n";
@@ -1892,35 +1914,127 @@ static void sPrintEselectModules(const PkgInvocation& inv)
 	Cout() << "Sysroot: " << (inv.sysroot.IsEmpty() ? String("[none]") : inv.sysroot) << "\n";
 }
 
-static void sPrintEselectValueList(const String& module)
+static void sPrintEselectValueList(const PkgInvocation& inv, const PkgRepository& repo, const String& module)
 {
+	PkgEselectState st = sLoadEselectState(inv);
 	if(module == "compiler") {
 		Cout() << "Available compiler selectors:\n";
-		Cout() << "  auto\n  clang\n  gcc\n  msvc\n  mingw\n  emcc\n";
+		if(inv.brief)
+			Cout() << "  auto clang gcc msvc emcc\n";
+		else
+			Cout() << "  auto\n  clang\n  gcc\n  msvc\n  emcc\n";
 		return;
 	}
 	if(module == "linker") {
 		Cout() << "Available linker selectors:\n";
-		Cout() << "  auto\n  ld\n  lld\n  link\n  emcc\n";
+		if(inv.brief)
+			Cout() << "  auto ld lld link emcc\n";
+		else
+			Cout() << "  auto\n  ld\n  lld\n  link\n  emcc\n";
 		return;
 	}
 	if(module == "target") {
 		Vector<PkgTargetProfile> targets = sTargets();
-		for(const PkgTargetProfile& t : targets)
-			Cout() << t.name << " [" << t.thread_model << "] - " << t.summary << "\n";
+		String active_target = sResolveEselectTarget(inv, st);
+		for(const PkgTargetProfile& t : targets) {
+			String mark = t.name == active_target ? String(" *") : String();
+			if(inv.brief)
+				Cout() << t.name << mark << "\n";
+			else
+				Cout() << t.name << mark << " [" << t.thread_model << "] - " << t.summary << "\n";
+		}
 		return;
 	}
 	if(module == "provider") {
-		Cout() << "Available provider selectors:\n";
-		Cout() << "  auto\n  system\n  repository\n  plugin\n";
+		Cout() << "Provider policies:\n";
+		Cout() << "  auto\n  portable\n  system\n  vcpkg\n";
+		Cout() << "\nProvider catalog:\n";
+		Cout() << "  virtual/sqlite\n  virtual/ssl\n  virtual/sdl2\n  virtual/opengl\n  virtual/gui-runtime\n";
+		Cout() << "\nBuilt-in providers:\n";
+		Cout() << "  upp-plugin-sqlite3\n  system-sqlite\n  vcpkg-sqlite3\n  upp-plugin-ssl\n  system-ssl\n  system-sdl2\n  vcpkg-sdl2\n  msys2-sdl2\n  emscripten-sdl2\n  system-opengl\n  webgl\n  virtualgui-sdl2gl\n";
+		return;
+	}
+	if(module == "profile") {
+		Cout() << "Available profiles:\n";
+		for(const PkgTargetProfile& t : sTargets())
+			Cout() << "  " << t.name << "\n";
+		return;
+	}
+	if(module == "vcpkg") {
+		Cout() << "Vcpkg configuration:\n";
+		Cout() << "  root: " << (st.vcpkg_root.IsEmpty() ? String("[none]") : st.vcpkg_root) << "\n";
+		Cout() << "  triplet: " << (st.vcpkg_triplet.IsEmpty() ? String("[none]") : st.vcpkg_triplet) << "\n";
+		Cout() << "\nKnown triplets:\n";
+		Cout() << "  auto\n  x64-windows\n  x64-windows-static\n  x64-linux\n  x64-osx\n";
+		return;
+	}
+	if(module == "emscripten") {
+		Cout() << "Emscripten configuration:\n";
+		Cout() << "  profile: " << (st.emscripten_profile.IsEmpty() ? String("[none]") : st.emscripten_profile) << "\n";
+		Cout() << "\nKnown profiles:\n";
+		Cout() << "  auto\n  sdk-3.1\n  sdk-3.1.61\n  upstream\n";
+		return;
+	}
+	if(module == "repository") {
+		Cout() << "Repository preference: " << (st.repository.IsEmpty() ? String("[none]") : st.repository) << "\n";
+		Cout() << "\nKnown repositories:\n";
+		if(repo.nests.IsEmpty()) {
+			Cout() << "  uppsrc\n  reference\n  stdsrc\n";
+		}
+		else {
+			for(const String& nest : repo.nests)
+				Cout() << "  " << nest << "\n";
+		}
+		return;
+	}
+	if(module == "news") {
+		Cout() << "No news items.\n";
 		return;
 	}
 	Cout() << "Module " << module << " is recognized but has no selector list yet.\n";
 }
 
-static void sPrintEselectValueShow(const PkgEselectState& st, const String& module)
+static void sPrintEselectValueShow(const PkgInvocation& inv, const PkgRepository& repo, const String& module)
 {
+	(void)repo;
+	PkgEselectState st = sLoadEselectState(inv);
 	const String *slot = sEselectSlot(st, module);
+	if(module == "target") {
+		String target = sResolveEselectTarget(inv, st);
+		Cout() << "target: " << target << "\n";
+		sPrintTargetInfo(target);
+		return;
+	}
+	if(module == "compiler") {
+		Cout() << "compiler: " << (st.compiler.IsEmpty() ? String("[none]") : st.compiler) << "\n";
+		Cout() << "selected target: " << sResolveEselectTarget(inv, st) << "\n";
+		return;
+	}
+	if(module == "linker") {
+		Cout() << "linker: " << (st.linker.IsEmpty() ? String("[none]") : st.linker) << "\n";
+		return;
+	}
+	if(module == "provider") {
+		Cout() << "provider: " << (st.provider.IsEmpty() ? String("[none]") : st.provider) << "\n";
+		return;
+	}
+	if(module == "profile") {
+		Cout() << "profile: " << (st.profile.IsEmpty() ? String("[none]") : st.profile) << "\n";
+		return;
+	}
+	if(module == "repository") {
+		Cout() << "repository: " << (st.repository.IsEmpty() ? String("[none]") : st.repository) << "\n";
+		return;
+	}
+	if(module == "vcpkg") {
+		Cout() << "vcpkg root: " << (st.vcpkg_root.IsEmpty() ? String("[none]") : st.vcpkg_root) << "\n";
+		Cout() << "vcpkg triplet: " << (st.vcpkg_triplet.IsEmpty() ? String("[none]") : st.vcpkg_triplet) << "\n";
+		return;
+	}
+	if(module == "emscripten") {
+		Cout() << "emscripten profile: " << (st.emscripten_profile.IsEmpty() ? String("[none]") : st.emscripten_profile) << "\n";
+		return;
+	}
 	if(!slot || slot->IsEmpty())
 		Cout() << module << ": [none]\n";
 	else
@@ -1931,14 +2045,48 @@ static void sPrintEselectValueSet(const PkgInvocation& inv, const String& module
 {
 	PkgEselectState st = sLoadEselectState(inv);
 	String *slot = sEselectSlot(st, module);
-	if(!slot) {
-		Cout() << "module not yet backed by a stored selection: " << module << "\n";
-		Cout() << "stored repository-local selections currently cover compiler, linker, target, and provider\n";
+	String value = inv.value;
+	if(module == "vcpkg") {
+		String key = ToLower(TrimBoth(inv.value));
+		if(key == "root") {
+			st.vcpkg_root = inv.extra.GetCount() ? inv.extra[0] : String();
+			sStoreEselectState(inv, st);
+			Cout() << "vcpkg root set to " << (st.vcpkg_root.IsEmpty() ? String("[none]") : st.vcpkg_root) << "\n";
+			return;
+		}
+		if(key == "triplet") {
+			st.vcpkg_triplet = inv.extra.GetCount() ? inv.extra[0] : String();
+			sStoreEselectState(inv, st);
+			Cout() << "vcpkg triplet set to " << (st.vcpkg_triplet.IsEmpty() ? String("[none]") : st.vcpkg_triplet) << "\n";
+			return;
+		}
+		if(value.IsEmpty() && inv.extra.GetCount())
+			value = inv.extra[0];
+		st.vcpkg_triplet = value;
+		sStoreEselectState(inv, st);
+		Cout() << "vcpkg triplet set to " << value << "\n";
 		return;
 	}
-	*slot = inv.target;
+	if(module == "emscripten") {
+		if(value.IsEmpty() && inv.extra.GetCount())
+			value = inv.extra[0];
+		st.emscripten_profile = value;
+		sStoreEselectState(inv, st);
+		Cout() << "emscripten profile set to " << value << "\n";
+		return;
+	}
+	if(module == "news") {
+		Cout() << "news is read-only\n";
+		return;
+	}
+	if(!slot) {
+		Cout() << "module not yet backed by a stored selection: " << module << "\n";
+		Cout() << "stored repository-local selections currently cover compiler, linker, target, provider, profile, repository, vcpkg, and emscripten\n";
+		return;
+	}
+	*slot = value;
 	sStoreEselectState(inv, st);
-	Cout() << module << " set to " << inv.target << "\n";
+	Cout() << module << " set to " << value << "\n";
 }
 
 static const String *sEselectSlot(const PkgEselectState& st, const String& module)
@@ -1947,6 +2095,8 @@ static const String *sEselectSlot(const PkgEselectState& st, const String& modul
 	if(module == "linker") return &st.linker;
 	if(module == "target") return &st.target;
 	if(module == "provider") return &st.provider;
+	if(module == "profile") return &st.profile;
+	if(module == "repository") return &st.repository;
 	return nullptr;
 }
 
@@ -1956,6 +2106,8 @@ static String *sEselectSlot(PkgEselectState& st, const String& module)
 	if(module == "linker") return &st.linker;
 	if(module == "target") return &st.target;
 	if(module == "provider") return &st.provider;
+	if(module == "profile") return &st.profile;
+	if(module == "repository") return &st.repository;
 	return nullptr;
 }
 
@@ -2241,6 +2393,60 @@ static Vector<String> sTargetEffectiveFlags(const String& target)
 	for(const String& s : tp.forced_use)
 		flags.Add(s);
 	return flags;
+}
+
+static String sCompilerDefaultTarget(const String& compiler)
+{
+	String c = ToLower(TrimBoth(compiler));
+	if(c == "clang")
+		return "native-clang";
+	if(c == "gcc")
+		return "native-gcc";
+	if(c == "msvc")
+		return "native-msvc";
+	if(c == "emcc")
+		return "wasm-browser";
+	if(c == "mingw")
+		return "windows-mingw";
+	return String();
+}
+
+static String sResolveEselectTarget(const PkgInvocation& inv, const PkgEselectState& st)
+{
+	if(!inv.target.IsEmpty())
+		return inv.target;
+	if(!inv.profile.IsEmpty())
+		return inv.profile;
+	if(!st.target.IsEmpty())
+		return st.target;
+	if(!st.profile.IsEmpty())
+		return st.profile;
+	String from_compiler = sCompilerDefaultTarget(!inv.compiler.IsEmpty() ? inv.compiler : st.compiler);
+	if(!from_compiler.IsEmpty())
+		return from_compiler;
+	return "native";
+}
+
+static void sApplyEselectDefaults(PkgInvocation& inv, const PkgEselectState& st)
+{
+	if(inv.compiler.IsEmpty())
+		inv.compiler = st.compiler;
+	if(inv.linker.IsEmpty())
+		inv.linker = st.linker;
+	if(inv.provider.IsEmpty())
+		inv.provider = st.provider;
+	if(inv.profile.IsEmpty())
+		inv.profile = st.profile;
+	if(inv.repository.IsEmpty())
+		inv.repository = st.repository;
+	if(inv.vcpkg_root.IsEmpty())
+		inv.vcpkg_root = st.vcpkg_root;
+	if(inv.vcpkg_triplet.IsEmpty())
+		inv.vcpkg_triplet = st.vcpkg_triplet;
+	if(inv.emscripten_profile.IsEmpty())
+		inv.emscripten_profile = st.emscripten_profile;
+	if(inv.target.IsEmpty())
+		inv.target = sResolveEselectTarget(inv, st);
 }
 
 static void sPrintTargetInfo(const String& name)
@@ -2538,7 +2744,7 @@ static void sPrintInfo(const PkgRepository& repo, const PkgInvocation& inv)
 	Cout() << "Package.target: " << repo.paths.package_target << "\n";
 	Cout() << "Eselect file: " << repo.paths.eselect << "\n";
 	Cout() << "World entries: " << world.GetCount() << "\n";
-	String active_target = !inv.target.IsEmpty() ? inv.target : (!eselect.target.IsEmpty() ? eselect.target : (state.target.IsEmpty() ? String("native") : state.target));
+	String active_target = !inv.target.IsEmpty() ? inv.target : (state.target.IsEmpty() ? String("native") : state.target);
 	const PkgTargetProfile& active_profile = sDefaultTargetProfile(active_target);
 	Cout() << "Active target: " << active_target << "\n";
 	Cout() << "Active target thread model: " << active_profile.thread_model << "\n";
@@ -2546,10 +2752,15 @@ static void sPrintInfo(const PkgRepository& repo, const PkgInvocation& inv)
 	Cout() << "Active target compiler: " << active_profile.compiler << "\n";
 	Cout() << "Active target toolchain: " << active_profile.toolchain << "\n";
 	Cout() << "Selected target: " << (eselect.target.IsEmpty() ? String("[none]") : eselect.target) << "\n";
+	Cout() << "Selected profile: " << (eselect.profile.IsEmpty() ? String("[none]") : eselect.profile) << "\n";
+	Cout() << "Selected repository: " << (eselect.repository.IsEmpty() ? String("[none]") : eselect.repository) << "\n";
 	Cout() << "Active toolchain: " << (state.toolchain.IsEmpty() ? String("[none]") : state.toolchain) << "\n";
 	Cout() << "Selected compiler: " << (eselect.compiler.IsEmpty() ? String("[none]") : eselect.compiler) << "\n";
 	Cout() << "Selected linker: " << (eselect.linker.IsEmpty() ? String("[none]") : eselect.linker) << "\n";
 	Cout() << "Selected provider: " << (eselect.provider.IsEmpty() ? String("[none]") : eselect.provider) << "\n";
+	Cout() << "Selected vcpkg root: " << (eselect.vcpkg_root.IsEmpty() ? String("[none]") : eselect.vcpkg_root) << "\n";
+	Cout() << "Selected vcpkg triplet: " << (eselect.vcpkg_triplet.IsEmpty() ? String("[none]") : eselect.vcpkg_triplet) << "\n";
+	Cout() << "Selected emscripten profile: " << (eselect.emscripten_profile.IsEmpty() ? String("[none]") : eselect.emscripten_profile) << "\n";
 }
 
 static void sPrintResumeState(const PkgState& state)
@@ -3003,7 +3214,7 @@ static void sPrintTargetCommand(const PkgInvocation& inv)
 		Cout() << "unknown target subcommand: " << inv.subcommand << "\n";
 }
 
-static void sPrintEselectCommand(const PkgInvocation& inv)
+static void sPrintEselectCommand(const PkgInvocation& inv, const PkgRepository& repo)
 {
 	if(inv.module.IsEmpty() || inv.module == "help") {
 		sPrintEselectModules(inv);
@@ -3031,20 +3242,23 @@ static void sPrintEselectCommand(const PkgInvocation& inv)
 		Cout() << "Sysroot: " << (inv.sysroot.IsEmpty() ? String("[none]") : inv.sysroot) << "\n";
 		return;
 	}
+	if(inv.module == "news" && (inv.subcommand.IsEmpty() || inv.subcommand == "list" || inv.subcommand == "show")) {
+		Cout() << "No news items.\n";
+		return;
+	}
 	if(inv.subcommand == "list") {
-		sPrintEselectValueList(inv.module);
+		sPrintEselectValueList(inv, repo, inv.module);
 		return;
 	}
 	if(inv.subcommand == "show") {
-		PkgEselectState st = sLoadEselectState(inv);
-		sPrintEselectValueShow(st, inv.module);
+		sPrintEselectValueShow(inv, repo, inv.module);
 		return;
 	}
 	if(inv.subcommand == "set") {
 		if(inv.module == "target") {
 			PkgInvocation t;
 			t.subcommand = "set";
-			t.target = inv.target;
+			t.target = inv.value;
 			t.root = inv.root;
 			t.sysroot = inv.sysroot;
 			sPrintTargetCommand(t);
@@ -3165,6 +3379,11 @@ int RunPkg(const Vector<String>& args)
 		return 0;
 	}
 
+	if(inv.command != PKG_CMD_ESELECT) {
+		PkgEselectState eselect = sLoadEselectState(inv);
+		sApplyEselectDefaults(inv, eselect);
+	}
+
 	bool need_repo = inv.command == PKG_CMD_INFO || inv.command == PKG_CMD_METADATA || inv.command == PKG_CMD_LIST_SETS ||
 	                 inv.command == PKG_CMD_PROVIDERS || inv.command == PKG_CMD_SEARCH || inv.command == PKG_CMD_EXPLAIN_USE ||
 	                 inv.command == PKG_CMD_EXPLAIN_TARGET || inv.command == PKG_CMD_DEPS || inv.command == PKG_CMD_PLAN ||
@@ -3210,7 +3429,7 @@ int RunPkg(const Vector<String>& args)
 		return 0;
 	}
 	if(inv.command == PKG_CMD_ESELECT) {
-		sPrintEselectCommand(inv);
+		sPrintEselectCommand(inv, repo);
 		sFlushConsole();
 		return 0;
 	}

@@ -78,9 +78,7 @@ String AppRegistry::BlobDirPath() const
 
 void AppRegistry::LogMsg(const String& msg, int level) const
 {
-	log_.Add(String("[AppRegistry] ") + msg);
-	if(log_sink_)
-		log_sink_->Add(level, "AppRegistry", msg);
+	log_.Add(level, "AppRegistry", msg);
 }
 
 // ---------------------------------------------------------------------------

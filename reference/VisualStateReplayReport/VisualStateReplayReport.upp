@@ -1,0 +1,12 @@
+description "VisualStateModel replay debug report generator\377";
+
+uses
+	VisualStateModel;
+
+file
+	main.cpp,
+	ReportWriter.h,
+	ReportWriter.cpp;
+
+mainconfig
+	"" = "";

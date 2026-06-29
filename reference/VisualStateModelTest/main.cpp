@@ -556,6 +556,75 @@ static void TestAnnotation()
 }
 
 // ---------------------------------------------------------------------------
+// Test: Pipeline cache
+
+static void TestPipelineCache()
+{
+	Cout() << "\n=== Pipeline cache ===\n";
+
+	AppLog log;
+	log.SetForwardToUppLog(false);
+
+	String cache_dir = AppendFileName(GetTempPath(), "vsm_cache_test");
+	if(DirectoryExists(cache_dir)) DeleteFolderDeep(cache_dir);
+
+	VsmPipelineCache cache;
+	cache.SetLog(&log);
+
+	if(!cache.Open(cache_dir)) { Fail("Cache Open"); return; }
+	if(!cache.IsOpen()) { Fail("Cache IsOpen"); return; }
+	Cout() << "Cache open: OK\n";
+
+	// Build two keys
+	VsmCacheKey k1;
+	k1.asset_id = "frames/00000000.vsm"; k1.pipeline_id = "pipe-001";
+	k1.rule_id  = "rule-001";            k1.rule_type   = "fingerprint";
+
+	VsmCacheKey k2;
+	k2.asset_id = "frames/00000001.vsm"; k2.pipeline_id = "pipe-001";
+	k2.rule_id  = "rule-001";            k2.rule_type   = "fingerprint";
+
+	// Verify different keys produce different hashes
+	if(k1.Compute() == k2.Compute()) { Fail("Different keys produced same hash"); return; }
+	Cout() << "Key hashing: OK\n";
+
+	// Miss on empty cache
+	String out;
+	if(cache.Get(k1, out)) { Fail("Expected miss on empty cache"); return; }
+	if(cache.GetMisses() != 1) { Fail("Miss counter"); return; }
+	Cout() << "Miss on empty: OK\n";
+
+	// Put then hit
+	cache.Put(k1, "{\"score\":0.95}");
+	if(!cache.Get(k1, out)) { Fail("Expected hit after Put"); return; }
+	if(out != "{\"score\":0.95}") { Fail("Hit data mismatch"); return; }
+	if(cache.GetHits() != 1) { Fail("Hit counter"); return; }
+	Cout() << "Put/Get: OK (hits=" << cache.GetHits() << " misses=" << cache.GetMisses() << ")\n";
+
+	// k2 still misses
+	cache.ResetStats();
+	if(cache.Get(k2, out)) { Fail("k2 should miss"); return; }
+	Cout() << "Distinct key miss: OK\n";
+
+	// Save and reload
+	if(!cache.Save()) { Fail("Cache Save"); return; }
+	VsmPipelineCache cache2;
+	cache2.SetLog(&log);
+	if(!cache2.Open(cache_dir)) { Fail("Cache2 Open"); return; }
+	String out2;
+	if(!cache2.Get(k1, out2)) { Fail("Cache2: expected hit after reload"); return; }
+	if(out2 != "{\"score\":0.95}") { Fail("Cache2: data mismatch after reload"); return; }
+	Cout() << "Save/reload: OK\n";
+
+	// Clear
+	if(!cache2.Clear()) { Fail("Cache Clear"); return; }
+	if(cache2.GetCount() != 0) { Fail("Count != 0 after clear"); return; }
+	Cout() << "Clear: OK\n";
+
+	DeleteFolderDeep(cache_dir);
+}
+
+// ---------------------------------------------------------------------------
 // Test: Observation pipeline runner
 
 static void TestPipelineRunner()
@@ -818,6 +887,7 @@ CONSOLE_APP_MAIN
 	TestReplay();
 	TestModelRuntime();
 	TestOcrLayer();
+	TestPipelineCache();
 	TestPipelineRunner();
 	TestTemplateMatch();
 	TestPreprocess();

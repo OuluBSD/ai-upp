@@ -107,6 +107,10 @@ private:
 	// ---- Pipeline runner
 	void OnRunPipeline();
 
+	// ---- Cache
+	VsmPipelineCache pipeline_cache_;
+	void OnClearCache();
+
 	// ---- Overlay toggles
 	void LoadOverlayState();
 	void SaveOverlayState();

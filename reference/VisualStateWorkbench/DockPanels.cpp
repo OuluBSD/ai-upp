@@ -61,6 +61,108 @@ void ReplayTimelinePanel::SetProgress(int pos, int total)
 }
 
 // ---------------------------------------------------------------------------
+// PipelineEditorPanel
+
+PipelineEditorPanel::PipelineEditorPanel()
+{
+	steps_list_.AddColumn("Step");
+	steps_list_.AddColumn("Params");
+
+	add_gray_btn_.SetLabel("Gray");
+	add_inv_btn_.SetLabel("Invert");
+	add_thresh_btn_.SetLabel("Thresh");
+	add_norm_btn_.SetLabel("Norm32");
+	remove_btn_.SetLabel("Remove");
+	run_btn_.SetLabel("Run");
+	result_lbl_.SetLabel("—");
+
+	add_gray_btn_.WhenAction  = [=] { OnAdd(VSM_PREP_GRAYSCALE); };
+	add_inv_btn_.WhenAction   = [=] { OnAdd(VSM_PREP_INVERT); };
+	add_thresh_btn_.WhenAction= [=] { OnAdd(VSM_PREP_THRESHOLD); };
+	add_norm_btn_.WhenAction  = [=] { OnAdd(VSM_PREP_NORMALIZE_32); };
+	remove_btn_.WhenAction    = [=] { OnRemove(); };
+	run_btn_.WhenAction       = [=] { OnRun(); };
+
+	Add(steps_list_.HSizePos(4,4).TopPos(4, 100));
+	Add(add_gray_btn_.LeftPos(4,44).TopPos(108,22));
+	Add(add_inv_btn_.LeftPos(52,44).TopPos(108,22));
+	Add(add_thresh_btn_.LeftPos(100,50).TopPos(108,22));
+	Add(add_norm_btn_.LeftPos(154,50).TopPos(108,22));
+	Add(remove_btn_.LeftPos(4,60).TopPos(134,22));
+	Add(run_btn_.RightPos(4,50).TopPos(134,22));
+	Add(result_lbl_.HSizePos(4,4).TopPos(162,40));
+}
+
+const char* PipelineEditorPanel::StepName(int type)
+{
+	switch(type) {
+	case VSM_PREP_GRAYSCALE:    return "Grayscale";
+	case VSM_PREP_INVERT:       return "Invert";
+	case VSM_PREP_THRESHOLD:    return "Threshold";
+	case VSM_PREP_NORMALIZE_32: return "Normalize32";
+	case VSM_PREP_OTSU:         return "Otsu (deferred)";
+	case VSM_PREP_EDGE_DETECT:  return "EdgeDetect (deferred)";
+	}
+	return "Unknown";
+}
+
+void PipelineEditorPanel::SetPipeline(VsmPreprocessPipeline* pipeline)
+{
+	pipeline_ = pipeline;
+	RebuildList();
+}
+
+void PipelineEditorPanel::RebuildList()
+{
+	steps_list_.Clear();
+	if(!pipeline_) return;
+	for(const VsmPreprocessStep& s : pipeline_->steps)
+		steps_list_.Add(StepName(s.type),
+		                Format("thr=%d tw=%d th=%d", s.params.threshold_value,
+		                       s.params.target_w, s.params.target_h));
+}
+
+void PipelineEditorPanel::OnAdd(int type)
+{
+	if(!pipeline_) return;
+	VsmPreprocessStep s; s.type = type;
+	pipeline_->steps.Add(s);
+	RebuildList();
+	WhenPipelineChanged();
+}
+
+void PipelineEditorPanel::OnRemove()
+{
+	if(!pipeline_) return;
+	int row = steps_list_.GetCursor();
+	if(row < 0 || row >= pipeline_->steps.GetCount()) return;
+	pipeline_->steps.Remove(row);
+	RebuildList();
+	WhenPipelineChanged();
+}
+
+void PipelineEditorPanel::OnRun()
+{
+	if(!pipeline_) { result_lbl_.SetLabel("No pipeline"); return; }
+
+	// Run on a synthetic 32x32 gray image
+	VsmFrameImage img;
+	img.Set(32, 32, nullptr);
+	for(int i = 0; i < 32*32*4; i += 4) {
+		img.data[i]=img.data[i+1]=img.data[i+2]=(byte)(i/4 % 256);
+		img.data[i+3]=255;
+	}
+	VsmPreprocessExecutor exec;
+	VsmFrameImage out;
+	VsmPreprocessResultRef res = exec.Execute(img, *pipeline_, out);
+	String msg = Format("steps=%d warnings=%d output=%dx%d",
+	                     res.steps_run, res.warnings.GetCount(),
+	                     out.width, out.height);
+	result_lbl_.SetLabel(msg);
+	WhenPipelineChanged();
+}
+
+// ---------------------------------------------------------------------------
 // AnnotationEditorPanel
 
 AnnotationEditorPanel::AnnotationEditorPanel()

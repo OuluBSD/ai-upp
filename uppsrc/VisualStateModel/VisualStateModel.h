@@ -12,5 +12,6 @@ using namespace Upp;
 #include "Replay.h"
 #include "SessionStorage.h"
 #include "Annotation.h"
+#include "Preprocess.h"
 
 #endif

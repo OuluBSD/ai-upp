@@ -244,6 +244,59 @@ static void TestChangeDetect()
 }
 
 // ---------------------------------------------------------------------------
+// Test: Preprocessing pipeline
+
+static void TestPreprocess()
+{
+	Cout() << "\n=== Preprocessing pipeline ===\n";
+
+	AppLog log;
+	log.SetForwardToUppLog(false);
+
+	// Build a solid gray 64x64 image
+	VsmFrameImage img;
+	FillSolidRGBA(img, 64, 64, 180, 90, 60);
+
+	// Pipeline: grayscale → invert → threshold → normalize 32x32
+	VsmPreprocessPipeline pipeline;
+	pipeline.id   = "pipe-001";
+	pipeline.name = "Test pipeline";
+
+	VsmPreprocessStep s1; s1.type = VSM_PREP_GRAYSCALE;
+	VsmPreprocessStep s2; s2.type = VSM_PREP_INVERT;
+	VsmPreprocessStep s3; s3.type = VSM_PREP_THRESHOLD; s3.params.threshold_value = 128;
+	VsmPreprocessStep s4; s4.type = VSM_PREP_NORMALIZE_32;
+	VsmPreprocessStep s5; s5.type = VSM_PREP_OTSU;       // deferred
+	pipeline.steps.Add(s1);
+	pipeline.steps.Add(s2);
+	pipeline.steps.Add(s3);
+	pipeline.steps.Add(s4);
+	pipeline.steps.Add(s5);
+
+	VsmPreprocessExecutor exec;
+	exec.SetLog(&log);
+	VsmFrameImage out;
+	VsmPreprocessResultRef result = exec.Execute(img, pipeline, out);
+
+	if(!result.success) { Fail("Preprocess Execute failed"); return; }
+	Cout() << "Execute: " << result.steps_run << " steps run OK\n";
+	if(result.warnings.IsEmpty()) { Fail("Expected warning for Otsu step"); return; }
+	Cout() << "Deferred step warning: OK\n";
+	if(out.width != 32 || out.height != 32) { Fail("Normalize output size wrong"); return; }
+	Cout() << "Normalize 32x32: OK\n";
+
+	// Round-trip
+	String json = StoreAsJson(pipeline);
+	VsmPreprocessPipeline p2;
+	LoadFromJson(p2, json);
+	if(p2.steps.GetCount() != pipeline.steps.GetCount()) {
+		Fail("Pipeline round-trip step count");
+		return;
+	}
+	Cout() << "Pipeline round-trip: OK\n";
+}
+
+// ---------------------------------------------------------------------------
 // Test: Annotation layer
 
 static void TestAnnotation()
@@ -377,6 +430,7 @@ CONSOLE_APP_MAIN
 	TestChangeDetect();
 	TestGroundTruth();
 	TestReplay();
+	TestPreprocess();
 	TestAnnotation();
 	TestSessionStorage();
 

@@ -37,6 +37,29 @@ private:
 };
 
 // ---------------------------------------------------------------------------
+// ModelStatePanel — displays VsmModelRuntime state, transitions, divergences
+
+class ModelStatePanel : public DockableCtrl {
+public:
+	typedef ModelStatePanel CLASSNAME;
+
+	ModelStatePanel();
+
+	void SetRuntime(VsmModelRuntime* rt);
+	void Refresh();
+
+private:
+	VsmModelRuntime* rt_ = nullptr;
+
+	TabCtrl     tabs_;
+	ParentCtrl  objects_area_, transitions_area_, divergences_area_;
+	ArrayCtrl   objects_list_, props_list_, transitions_list_, divergences_list_;
+	Button      run_sample_btn_;
+
+	void OnRunSample();
+};
+
+// ---------------------------------------------------------------------------
 // OcrRulePanel — display OCR rules and results
 
 class OcrRulePanel : public DockableCtrl {

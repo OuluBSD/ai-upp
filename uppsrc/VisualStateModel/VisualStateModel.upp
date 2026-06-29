@@ -24,4 +24,6 @@ file
 	TemplateMatch.h,
 	TemplateMatch.cpp,
 	OcrLayer.h,
-	OcrLayer.cpp;
+	OcrLayer.cpp,
+	ModelRuntime.h,
+	ModelRuntime.cpp;

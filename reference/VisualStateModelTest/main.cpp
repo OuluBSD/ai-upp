@@ -244,6 +244,82 @@ static void TestChangeDetect()
 }
 
 // ---------------------------------------------------------------------------
+// Test: Application model runtime
+
+static void TestModelRuntime()
+{
+	Cout() << "\n=== Application model runtime ===\n";
+
+	AppLog log;
+	log.SetForwardToUppLog(false);
+
+	VsmModelRuntime rt;
+	rt.SetLog(&log);
+
+	// Rule 1: set 'screen' property from OCR result of rule 'ocr-001'
+	VsmModelRule r1;
+	r1.rule_id        = "mr-001";
+	r1.type           = VSM_MR_SET_PROP_FROM_OCR;
+	r1.object_id      = "app-screen";
+	r1.property_key   = "screen";
+	r1.source_rule_id = "ocr-001";
+	rt.AddRule(r1);
+
+	// Rule 2: validate 'screen' == "Login" (should pass)
+	VsmModelRule r2;
+	r2.rule_id        = "mr-002";
+	r2.type           = VSM_MR_VALIDATE_PROP;
+	r2.object_id      = "app-screen";
+	r2.property_key   = "screen";
+	r2.expected_value = "\"Login\"";
+	r2.source_rule_id = "ocr-001";
+	rt.AddRule(r2);
+
+	// Event 1: OCR sees "Login" → set + validate (should succeed)
+	VsmModelEvent ev1;
+	ev1.type           = "ocr_result";
+	ev1.source_rule_id = "ocr-001";
+	ev1.data_json      = "\"Login\"";
+	ev1.ts             = "2026-01-15T14:23:00.000Z";
+
+	VsmModelRuntimeResult res1 = rt.ApplyEvent(ev1);
+	if(res1.transitions.IsEmpty()) { Fail("Expected transition from ocr_result"); return; }
+	Cout() << "Transition: " << res1.transitions[0].property_key
+	       << " = " << res1.transitions[0].to_value << " OK\n";
+	if(!res1.divergences.IsEmpty()) { Fail("No divergence expected for matching value"); return; }
+	Cout() << "ValidateProp match: OK\n";
+
+	// Event 2: OCR sees "Dashboard" → set property, then validate expects "Login" → divergence
+	VsmModelRule r3 = r2;
+	r3.rule_id        = "mr-003";
+	r3.expected_value = "\"Login\""; // still expects Login
+	rt.AddRule(r3);
+
+	VsmModelEvent ev2;
+	ev2.type           = "ocr_result";
+	ev2.source_rule_id = "ocr-001";
+	ev2.data_json      = "\"Dashboard\"";
+	ev2.ts             = "2026-01-15T14:23:01.000Z";
+
+	VsmModelRuntimeResult res2 = rt.ApplyEvent(ev2);
+	// r2 validates "Login" == "Dashboard" → divergence; r3 same
+	bool found_div = !res2.divergences.IsEmpty() || !rt.GetDivergences().IsEmpty();
+	if(!found_div) { Fail("Expected divergence when property doesn't match"); return; }
+	Cout() << "ValidateProp divergence: " << rt.GetDivergences().Top().message << " OK\n";
+
+	// History check
+	if(rt.GetHistory().GetCount() < 2) { Fail("Expected at least 2 history entries"); return; }
+	Cout() << "History entries: " << rt.GetHistory().GetCount() << " OK\n";
+
+	// Rule round-trip
+	String json = StoreAsJson(r1);
+	VsmModelRule r1_rt;
+	LoadFromJson(r1_rt, json);
+	if(r1_rt.rule_id != r1.rule_id) { Fail("ModelRule round-trip"); return; }
+	Cout() << "ModelRule round-trip: OK\n";
+}
+
+// ---------------------------------------------------------------------------
 // Test: OCR observation layer
 
 static void TestOcrLayer()
@@ -554,6 +630,7 @@ CONSOLE_APP_MAIN
 	TestChangeDetect();
 	TestGroundTruth();
 	TestReplay();
+	TestModelRuntime();
 	TestOcrLayer();
 	TestTemplateMatch();
 	TestPreprocess();

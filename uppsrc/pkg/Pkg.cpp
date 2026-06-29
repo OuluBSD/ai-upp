@@ -439,6 +439,21 @@ static Vector<PkgUsePolicy> sUsePolicies()
 		m.upp_flag = "GTK";
 		m.scope = "accepted";
 	}
+	{
+		PkgUsePolicy& p = v.Add();
+		p.name = "virtualgui";
+		p.description = "Enable the VirtualGui transport";
+		p.default_on = false;
+		PkgUseMap& m0 = p.maps_to.Add();
+		m0.upp_flag = "GUI";
+		m0.scope = "global";
+		PkgUseMap& m1 = p.maps_to.Add();
+		m1.upp_flag = "SDL2GL";
+		m1.scope = "global";
+		PkgUseMap& m2 = p.maps_to.Add();
+		m2.upp_flag = "VIRTUALGUI";
+		m2.scope = "accepted";
+	}
 	return pick(v);
 }
 
@@ -718,6 +733,106 @@ static String sUppFlagSpelling(const String& name, bool accepted)
 	return accepted ? "." + name : name;
 }
 
+static void sAddUnique(Vector<String>& dst, const String& s)
+{
+	if(!s.IsEmpty() && FindIndex(dst, s) < 0)
+		dst.Add(s);
+}
+
+static void sAppendUseExpr(Vector<String>& out, const Vector<String>& selected, const Vector<String>& disabled)
+{
+	for(const String& s : selected)
+		out.Add(s);
+	for(const String& s : disabled)
+		out.Add(String("-") + s);
+}
+
+static String sFormatUseRequest(const PkgUseModel& use)
+{
+	if(!use.requested.IsEmpty())
+		return sJoin(use.requested, " ");
+	Vector<String> expr;
+	for(const String& s : use.selected)
+		expr.Add(s);
+	for(const String& s : use.disabled)
+		expr.Add(String("-") + s);
+	return sJoin(expr, " ");
+}
+
+static String sFormatUseList(const Vector<String>& v)
+{
+	return v.IsEmpty() ? String("[none]") : sJoin(v, " ");
+}
+
+static String sFormatUseModel(const PkgUseModel& use)
+{
+	String s = sFormatUseRequest(use);
+	if(!s.IsEmpty())
+		return s;
+	s = sFormatUseList(use.effective);
+	return s;
+}
+
+static String sFormatUppFlag(const PkgUppFlag& flag)
+{
+	switch(flag.scope) {
+	case PKG_UPP_ACCEPTED: return "." + flag.name;
+	case PKG_UPP_MAIN_ONLY: return "!" + flag.name;
+	default:                return flag.name;
+	}
+}
+
+static int sUppGlobalRank(const String& s)
+{
+	if(s == "GUI")
+		return 0;
+	if(s == "ST")
+		return 1;
+	if(s == "SDL2GL")
+		return 2;
+	return 100 + ToUpper(s)[0];
+}
+
+static String sFormatUppProjection(const PkgUppProjection& proj)
+{
+	Vector<String> out;
+	Vector<String> global;
+	for(const String& s : proj.global)
+		global.Add(s);
+	Sort(global, [](const String& a, const String& b) {
+		int ra = sUppGlobalRank(a);
+		int rb = sUppGlobalRank(b);
+		if(ra != rb)
+			return ra < rb;
+		return a < b;
+	});
+	for(const String& s : global)
+		out.Add(s);
+	Vector<String> accepted;
+	for(const String& s : proj.accepted)
+		accepted.Add(s);
+	Sort(accepted, [](const String& a, const String& b) { return a < b; });
+	for(const String& s : accepted)
+		out.Add(s);
+	Vector<String> main_only;
+	for(const String& s : proj.main_only)
+		main_only.Add(s);
+	Sort(main_only, [](const String& a, const String& b) { return a < b; });
+	for(const String& s : main_only)
+		out.Add(s);
+	return out.IsEmpty() ? String("[none]") : sJoin(out, " ");
+}
+
+static void sAddProjection(PkgUppProjection& proj, int scope, const String& name, const String& reason)
+{
+	PkgUppFlag& flag = proj.flags.Add();
+	flag.name = name;
+	flag.scope = scope;
+	flag.reason = reason;
+	String spell = sFormatUppFlag(flag);
+	sAddUnique(scope == PKG_UPP_ACCEPTED ? proj.accepted : scope == PKG_UPP_MAIN_ONLY ? proj.main_only : proj.global, spell);
+}
+
 static String sMacroName(const String& name)
 {
 	return "flag" + name;
@@ -924,6 +1039,16 @@ bool ParsePkgArgs(const Vector<String>& args, PkgInvocation& inv, String& error)
 					return false;
 				}
 			}
+			continue;
+		}
+		if(a.StartsWith("USE=")) {
+			Vector<String> flags = Split(a.Mid(4), CharFilterWhitespace);
+			for(const String& f : flags)
+				inv.use_args.Add(f);
+			continue;
+		}
+		if(a.StartsWith("UPPFLAGS=")) {
+			inv.extra.Add(a);
 			continue;
 		}
 		positional.Add(a);
@@ -1225,59 +1350,143 @@ static void sTokenizeUseArgs(const Vector<String>& use_args, Vector<String>& sel
 	}
 }
 
+static void sProjectUpp(PkgUppProjection& proj, const PkgUseModel& use);
+static void sUseModelApplyPolicy(PkgUseModel& use, const PkgUsePolicy& p, bool default_on)
+{
+	if(default_on)
+		sAddUnique(use.defaults, p.name);
+}
+
+static void sBuildUseModel(PkgUseModel& use, const PkgPackage *pkg, const Vector<String>& use_args, const String& target)
+{
+	const PkgTargetProfile& tp = sDefaultTargetProfile(target);
+	use.requested.Clear();
+	use.declared.Clear();
+	use.defaults.Clear();
+	use.forced.Clear();
+	use.masked.Clear();
+	use.selected.Clear();
+	use.disabled.Clear();
+	use.effective.Clear();
+	use.transitions.Clear();
+	for(const String& s : use_args)
+		use.requested.Add(s);
+
+	Index<String> declared;
+	if(pkg)
+		for(const String& s : pkg->accepts)
+			if(declared.Find(s) < 0)
+				declared.Add(s);
+	for(const PkgUsePolicy& p : sUsePolicies())
+		if(declared.Find(p.name) < 0)
+			declared.Add(p.name);
+	for(const String& a : use.requested) {
+		String token = a;
+		if(token.StartsWith("+") || token.StartsWith("-"))
+			token = token.Mid(1);
+		if(!token.IsEmpty() && declared.Find(token) < 0)
+			declared.Add(token);
+	}
+	for(int i = 0; i < declared.GetCount(); i++)
+		use.declared.Add(declared[i]);
+
+	for(int i = 0; i < tp.forced_use.GetCount(); i++)
+		sAddUnique(use.forced, tp.forced_use[i]);
+	for(int i = 0; i < tp.masked_use.GetCount(); i++)
+		sAddUnique(use.masked, tp.masked_use[i]);
+
+	sTokenizeUseArgs(use.requested, use.selected, use.disabled);
+	for(const String& s : use.forced)
+		sAddUnique(use.selected, s);
+	for(const String& s : use.masked)
+		sAddUnique(use.disabled, s);
+
+	const Vector<PkgUsePolicy> policies = sUsePolicies();
+	for(const PkgUsePolicy& p : policies)
+		sUseModelApplyPolicy(use, p, p.default_on);
+
+	for(const String& s : use.selected) {
+		PkgUseTransition& tr = use.transitions.Add();
+		tr.flag = s;
+		tr.marker = "+";
+		tr.reason = "selected";
+	}
+	for(const String& s : use.defaults)
+		if(!sIsSelected(use.selected, s) && !sIsSelected(use.disabled, s)) {
+			PkgUseTransition& tr = use.transitions.Add();
+			tr.flag = s;
+			tr.marker = "+";
+			tr.reason = "default";
+		}
+	for(const String& s : use.forced) {
+		PkgUseTransition& tr = use.transitions.Add();
+		tr.flag = s;
+		tr.marker = "+";
+		tr.reason = "forced";
+	}
+	for(const String& s : use.masked) {
+		PkgUseTransition& tr = use.transitions.Add();
+		tr.flag = s;
+		tr.marker = "-";
+		tr.reason = "masked";
+	}
+
+	Index<String> effective;
+	for(const String& s : use.selected)
+		if(effective.Find(s) < 0)
+			effective.Add(s);
+	for(const String& s : use.defaults)
+		if(!sIsSelected(use.disabled, s) && effective.Find(s) < 0)
+			effective.Add(s);
+	for(const String& s : use.forced)
+		if(effective.Find(s) < 0)
+			effective.Add(s);
+	for(const String& s : use.masked) {
+		int q = effective.Find(s);
+		if(q >= 0)
+			effective.Remove(q);
+	}
+	for(int i = 0; i < effective.GetCount(); i++)
+		use.effective.Add(effective[i]);
+
+}
+
 static void sPolicyFlags(const Vector<String>& use_args, const String& target, Vector<String>& selected, Vector<String>& disabled, Vector<String>& defaulted, Vector<String>& effective,
                          Vector<String>* target_forced_out = nullptr, Vector<String>* target_masked_out = nullptr)
 {
-	Vector<String> target_forced;
-	Vector<String> target_masked;
-	const PkgTargetProfile& tp = sDefaultTargetProfile(target);
-	selected = Vector<String>();
-	disabled = Vector<String>();
-	defaulted = Vector<String>();
-	for(int i = 0; i < tp.forced_use.GetCount(); i++)
-		target_forced.Add(tp.forced_use[i]);
-	for(int i = 0; i < tp.masked_use.GetCount(); i++)
-		target_masked.Add(tp.masked_use[i]);
-	if(target_forced_out)
-		*target_forced_out = pick(target_forced);
-	if(target_masked_out)
-		*target_masked_out = pick(target_masked);
-	sTokenizeUseArgs(use_args, selected, disabled);
-	for(const String& f : target_forced)
-		selected.Add(f);
-	for(const String& f : target_masked)
-		disabled.Add(f);
-	const Vector<PkgUsePolicy> policies = sUsePolicies();
-	for(const PkgUsePolicy& p : policies) {
-		bool forced = sIsSelected(target_forced, p.name);
-		bool masked = sIsSelected(target_masked, p.name) || sIsSelected(disabled, p.name);
-		if(forced) {
-			effective.Add(p.name);
-			continue;
-		}
-		if(masked)
-			continue;
-		bool sel = sIsSelected(selected, p.name);
-		if(sel)
-			effective.Add(p.name);
-		else if(p.default_on)
-			defaulted.Add(p.name);
+	PkgUseModel use;
+	sBuildUseModel(use, nullptr, use_args, target);
+	selected.Clear();
+	disabled.Clear();
+	defaulted.Clear();
+	effective.Clear();
+	for(const String& s : use.selected)
+		selected.Add(s);
+	for(const String& s : use.disabled)
+		disabled.Add(s);
+	for(const String& s : use.defaults)
+		defaulted.Add(s);
+	for(const String& s : use.effective)
+		effective.Add(s);
+	if(target_forced_out) {
+		target_forced_out->Clear();
+		for(const String& s : use.forced)
+			target_forced_out->Add(s);
 	}
-	for(const PkgUsePolicy& p : policies)
-		if(sIsSelected(defaulted, p.name) && !sIsSelected(effective, p.name))
-			effective.Add(p.name);
+	if(target_masked_out) {
+		target_masked_out->Clear();
+		for(const String& s : use.masked)
+			target_masked_out->Add(s);
+	}
 }
 
 static void sExplainUse(const PkgInvocation& inv, const PkgRepository& repo)
 {
-	(void)repo;
-	Vector<String> selected;
-	Vector<String> disabled;
-	Vector<String> defaulted;
-	Vector<String> effective;
-	Vector<String> target_forced;
-	Vector<String> target_masked;
-	sPolicyFlags(inv.use_args, inv.target, selected, disabled, defaulted, effective, &target_forced, &target_masked);
+	const PkgPackage *pkg = inv.atom.IsEmpty() ? nullptr : repo.Find(inv.atom);
+	PkgUseModel use;
+	sBuildUseModel(use, pkg, inv.use_args, inv.target);
+	PkgUppProjection upp;
+	sProjectUpp(upp, use);
 	const PkgTargetProfile& tp = sDefaultTargetProfile(inv.target);
 
 	Cout() << "Use policy for " << (inv.atom.IsEmpty() ? String("[unknown atom]") : inv.atom) << "\n";
@@ -1285,60 +1494,28 @@ static void sExplainUse(const PkgInvocation& inv, const PkgRepository& repo)
 	Cout() << "Thread model: " << tp.thread_model << "\n";
 	Cout() << "Thread model reason: " << sTargetThreadReason(tp) << "\n";
 	Cout() << "Target platform: " << (tp.target_platform.IsEmpty() ? String("[none]") : tp.target_platform) << "\n";
-	Cout() << "Runtime environment: " << (tp.runtime_environment.IsEmpty() ? String("[none]") : tp.runtime_environment) << "\n\n";
+	Cout() << "Runtime environment: " << (tp.runtime_environment.IsEmpty() ? String("[none]") : tp.runtime_environment) << "\n";
+	Cout() << "USE: " << sFormatUseModel(use) << "\n";
+	Cout() << "Effective USE: " << sFormatUseList(use.effective) << "\n";
+	Cout() << "Declared USE: " << sFormatUseList(use.declared) << "\n";
+	Cout() << "Defaults: " << sFormatUseList(use.defaults) << "\n";
+	Cout() << "Forced: " << sFormatUseList(use.forced) << "\n";
+	Cout() << "Masked: " << sFormatUseList(use.masked) << "\n\n";
 
-	Cout() << "Target forced USE:\n";
-	if(target_forced.IsEmpty())
+	Cout() << "USE transitions:\n";
+	if(use.transitions.IsEmpty())
 		Cout() << "  [none]\n";
 	else
-		for(const String& s : target_forced)
-			Cout() << "  +" << s << "\n";
-	Cout() << "Target masked USE:\n";
-	if(target_masked.IsEmpty())
-		Cout() << "  [none]\n";
-	else
-		for(const String& s : target_masked)
-			Cout() << "  -" << s << "\n";
-
-	Cout() << "Selected USE:\n";
-	for(const String& s : selected)
-		Cout() << "  +" << s << "\n";
-	Cout() << "Defaulted USE:\n";
-	if(defaulted.IsEmpty())
-		Cout() << "  [none]\n";
-	else
-		for(const String& s : defaulted)
-			Cout() << "  " << s << "\n";
-	Cout() << "Disabled USE:\n";
-	if(disabled.IsEmpty())
-		Cout() << "  [none]\n";
-	else
-		for(const String& s : disabled)
-			Cout() << "  -" << s << "\n";
+		for(const PkgUseTransition& tr : use.transitions)
+			Cout() << "  " << tr.marker << tr.flag << " (" << tr.reason << ")\n";
 
 	Cout() << "\nMapped U++ flags:\n";
-	Index<String> macros;
-	Vector<String> uppflags;
-	for(const String& s : effective) {
-		const PkgUsePolicy* p = sFindPolicy(s);
-		if(!p)
-			continue;
-		for(const PkgUseMap& m : p->maps_to) {
-			String spelling = sUppFlagSpelling(m.upp_flag, m.scope == "accepted");
-			Cout() << "  " << p->name << " -> " << spelling << " (scope: " << m.scope << ")\n";
-			macros.Add(sMacroName(m.upp_flag));
-			uppflags.Add(spelling);
-		}
-	}
-	if(macros.IsEmpty())
+	if(upp.flags.IsEmpty())
 		Cout() << "  [none]\n";
-	else {
-		Vector<String> macro_list;
-		for(int i = 0; i < macros.GetCount(); i++)
-			macro_list.Add(macros[i]);
-		Cout() << "\nC++ macros:\n  " << sJoin(macro_list, ", ") << "\n";
-	}
-	Cout() << "\numk spelling: " << (uppflags.IsEmpty() ? String("[none]") : sJoin(uppflags, " ")) << "\n\n";
+	else
+		for(const PkgUppFlag& flag : upp.flags)
+			Cout() << "  " << sFormatUppFlag(flag) << " (" << (flag.scope == PKG_UPP_ACCEPTED ? "accepted" : flag.scope == PKG_UPP_MAIN_ONLY ? "main-only" : "global") << ")\n";
+	Cout() << "\nUPPFLAGS: " << sFormatUppProjection(upp) << "\n\n";
 }
 
 static String sTargetThreadModel(const String& target)
@@ -1425,18 +1602,18 @@ static String sResolveProvider(const String& capability, const PkgRepository& re
 
 static void sPrintDeps(const PkgInvocation& inv, const PkgRepository& repo)
 {
-	Vector<String> selected;
-	Vector<String> disabled;
-	Vector<String> defaulted;
-	Vector<String> effective;
-	sPolicyFlags(inv.use_args, inv.target, selected, disabled, defaulted, effective);
+	const PkgPackage *pkg = inv.atom.IsEmpty() ? nullptr : repo.Find(inv.atom);
+	PkgUseModel use;
+	PkgUppProjection upp;
+	sBuildUseModel(use, pkg, inv.use_args, inv.target);
+	sProjectUpp(upp, use);
 	const PkgTargetProfile& tp = sDefaultTargetProfile(inv.target);
 	Vector<String> virtuals;
-	if(sIsSelected(effective, "sqlite"))
+	if(sIsSelected(use.effective, "sqlite"))
 		virtuals.Add("virtual/sqlite");
-	if(sIsSelected(effective, "st"))
+	if(sIsSelected(use.effective, "st"))
 		virtuals.Add("virtual/gui-runtime");
-	if(sIsSelected(effective, "gtk"))
+	if(sIsSelected(use.effective, "gtk"))
 		virtuals.Add("virtual/gui-runtime");
 
 	Cout() << "Dependencies for " << inv.atom << "\n";
@@ -1468,19 +1645,11 @@ static void sPrintDeps(const PkgInvocation& inv, const PkgRepository& repo)
 			Cout() << "  " << p << "\n";
 
 	Cout() << "\nU++ flag additions:\n";
-	Vector<String> uppflags;
-	for(const String& s : effective) {
-		const PkgUsePolicy* p = sFindPolicy(s);
-		if(!p)
-			continue;
-		for(const PkgUseMap& m : p->maps_to)
-			uppflags.Add(sUppFlagSpelling(m.upp_flag, m.scope == "accepted"));
-	}
-	if(uppflags.IsEmpty())
+	if(upp.flags.IsEmpty())
 		Cout() << "  [none]\n";
 	else
-		for(const String& f : uppflags)
-			Cout() << "  " << f << "\n";
+		for(const PkgUppFlag& flag : upp.flags)
+			Cout() << "  " << sFormatUppFlag(flag) << "\n";
 
 	bool need_system = false;
 	for(const String& v : virtuals) {
@@ -1614,23 +1783,44 @@ static void sWriteState(const PkgRepository& repo, const PkgInvocation& inv, con
 	StoreAsJsonFile(state, repo.paths.state, true);
 }
 
-static Vector<String> sPlanUppFlags(const Vector<String>& effective)
+static int sUppScopeFromText(const String& scope)
 {
-	Vector<String> uppflags;
+	String s = ToLower(TrimBoth(scope));
+	if(s == "accepted" || s == "accept" || s == "dot")
+		return PKG_UPP_ACCEPTED;
+	if(s == "main" || s == "main-only" || s == "main_only")
+		return PKG_UPP_MAIN_ONLY;
+	return PKG_UPP_GLOBAL;
+}
+
+static void sProjectUpp(PkgUppProjection& proj, const PkgUseModel& use)
+{
+	proj.flags.Clear();
+	proj.global.Clear();
+	proj.accepted.Clear();
+	proj.main_only.Clear();
+	proj.transitions.Clear();
 	Index<String> seen;
-	for(const String& s : effective) {
+	for(const String& s : use.effective) {
 		const PkgUsePolicy* p = sFindPolicy(s);
-		if(!p)
-			continue;
-		for(const PkgUseMap& m : p->maps_to) {
-			String spell = sUppFlagSpelling(m.upp_flag, m.scope == "accepted");
-			if(seen.Find(spell) < 0) {
+		if(p) {
+			for(const PkgUseMap& m : p->maps_to) {
+				int scope = sUppScopeFromText(m.scope);
+				String spell = sUppFlagSpelling(m.upp_flag, scope == PKG_UPP_ACCEPTED);
+				if(seen.Find(spell) >= 0)
+					continue;
 				seen.Add(spell);
-				uppflags.Add(spell);
+				sAddProjection(proj, scope, m.upp_flag, p->name);
 			}
+			continue;
+		}
+		String raw = ToUpper(s);
+		String spell = raw;
+		if(seen.Find(spell) < 0) {
+			seen.Add(spell);
+			sAddProjection(proj, PKG_UPP_ACCEPTED, raw, "implicit projection");
 		}
 	}
-	return pick(uppflags);
 }
 
 static void sPlanAddItem(PkgPlan& plan, char base_status, const String& atom, const PkgPackage* pkg, const String& reason, const String& provider, bool blocker, bool resolved, int depth)
@@ -1643,8 +1833,8 @@ static void sPlanAddItem(PkgPlan& plan, char base_status, const String& atom, co
 	item.resolved = resolved;
 	item.interactive = plan.ask && depth == 0;
 	item.target = sTargetNameText(plan.target);
-	item.use = sJoin(plan.effective_use, " ");
-	item.uppflags = sJoin(plan.uppflags, " ");
+	item.use = sFormatUseModel(plan.use);
+	item.uppflags = sFormatUppProjection(plan.upp);
 	item.reason = reason;
 	if(item.interactive) {
 		String note = sPlanStatusText(base_status);
@@ -1734,12 +1924,35 @@ static PkgPlan sBuildPlan(const PkgInvocation& inv, const PkgRepository& repo, c
 	plan.target = inv.target;
 	plan.color = color;
 	plan.ask = inv.ask;
+	plan.verbose = inv.verbose;
 	plan.pretend = inv.pretend;
 	plan.update = inv.update;
 	plan.deep = inv.deep;
 	plan.newuse = inv.newuse;
-	sPolicyFlags(inv.use_args, inv.target, plan.selected_use, plan.disabled_use, plan.defaulted_use, plan.effective_use, &plan.target_forced, &plan.target_masked);
-	plan.uppflags = sPlanUppFlags(plan.effective_use);
+	const PkgPackage *root_pkg = inv.atom.IsEmpty() ? nullptr : repo.Find(inv.atom);
+	sBuildUseModel(plan.use, root_pkg, inv.use_args, inv.target);
+	sProjectUpp(plan.upp, plan.use);
+	plan.selected_use.Clear();
+	plan.disabled_use.Clear();
+	plan.defaulted_use.Clear();
+	plan.effective_use.Clear();
+	plan.target_forced.Clear();
+	plan.target_masked.Clear();
+	plan.uppflags.Clear();
+	for(const String& s : plan.use.selected)
+		plan.selected_use.Add(s);
+	for(const String& s : plan.use.disabled)
+		plan.disabled_use.Add(s);
+	for(const String& s : plan.use.defaults)
+		plan.defaulted_use.Add(s);
+	for(const String& s : plan.use.effective)
+		plan.effective_use.Add(s);
+	for(const String& s : plan.use.forced)
+		plan.target_forced.Add(s);
+	for(const String& s : plan.use.masked)
+		plan.target_masked.Add(s);
+	for(const String& s : Split(sFormatUppProjection(plan.upp), CharFilterWhitespace))
+		plan.uppflags.Add(s);
 
 	if(sIsSelected(plan.effective_use, "sqlite") && FindIndex(plan.virtuals, "virtual/sqlite") < 0)
 		plan.virtuals.Add("virtual/sqlite");
@@ -1785,6 +1998,22 @@ static void sPrintPlanItem(const PkgPlan& plan, const PkgPlanItem& item)
 		Cout() << "  " << sAnsi("90", "repository:", plan.color) << ' ' << item.repository << "\n";
 	if(!item.description.IsEmpty())
 		Cout() << "  " << sAnsi("90", "description:", plan.color) << ' ' << item.description << "\n";
+	if(plan.verbose) {
+		Cout() << "  " << sAnsi("90", "declared USE:", plan.color) << ' ' << sFormatUseList(plan.use.declared) << "\n";
+		Cout() << "  " << sAnsi("90", "selected USE:", plan.color) << ' ' << sFormatUseList(plan.use.selected) << "\n";
+		Cout() << "  " << sAnsi("90", "default USE:", plan.color) << ' ' << sFormatUseList(plan.use.defaults) << "\n";
+		Cout() << "  " << sAnsi("90", "forced USE:", plan.color) << ' ' << sFormatUseList(plan.use.forced) << "\n";
+		Cout() << "  " << sAnsi("90", "masked USE:", plan.color) << ' ' << sFormatUseList(plan.use.masked) << "\n";
+		Cout() << "  " << sAnsi("90", "effective USE:", plan.color) << ' ' << sFormatUseList(plan.use.effective) << "\n";
+		if(!plan.use.transitions.IsEmpty()) {
+			Cout() << "  " << sAnsi("90", "USE transitions:", plan.color) << '\n';
+			for(const PkgUseTransition& tr : plan.use.transitions)
+				Cout() << "    " << tr.marker << tr.flag << " (" << tr.reason << ")\n";
+		}
+		Cout() << "  " << sAnsi("90", "UPP global:", plan.color) << ' ' << sFormatUseList(plan.upp.global) << "\n";
+		Cout() << "  " << sAnsi("90", "UPP accepted:", plan.color) << ' ' << sFormatUseList(plan.upp.accepted) << "\n";
+		Cout() << "  " << sAnsi("90", "UPP main-only:", plan.color) << ' ' << sFormatUseList(plan.upp.main_only) << "\n";
+	}
 	Cout() << "\n";
 }
 
@@ -1805,9 +2034,10 @@ static void sPrintPlan(const PkgInvocation& inv, const PkgRepository& repo, bool
 		for(const PkgPlanItem& item : plan.items)
 			sPrintPlanItem(plan, item);
 
-	Cout() << "USE flags: " << sFmtList(plan.effective_use) << "\n";
+	Cout() << "USE: " << sFormatUseModel(plan.use) << "\n";
+	Cout() << "Effective USE: " << sFmtList(plan.effective_use) << "\n";
 	Cout() << "TARGET: " << sTargetNameText(plan.target) << "\n";
-	Cout() << "UPPFLAGS: " << sFmtList(plan.uppflags) << "\n";
+	Cout() << "UPPFLAGS: " << sFormatUppProjection(plan.upp) << "\n";
 	if(!plan.providers.IsEmpty())
 		Cout() << "Providers: " << sFmtList(plan.providers) << "\n";
 	if(!plan.virtuals.IsEmpty())

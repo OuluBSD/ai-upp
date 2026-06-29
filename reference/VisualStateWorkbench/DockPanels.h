@@ -37,6 +37,34 @@ private:
 };
 
 // ---------------------------------------------------------------------------
+// PipelineEditorPanel — edit preprocessing pipeline metadata
+
+class PipelineEditorPanel : public DockableCtrl {
+public:
+	typedef PipelineEditorPanel CLASSNAME;
+
+	PipelineEditorPanel();
+
+	void SetPipeline(VsmPreprocessPipeline* pipeline);
+
+	Event<> WhenPipelineChanged;
+
+private:
+	VsmPreprocessPipeline* pipeline_ = nullptr;
+
+	ArrayCtrl steps_list_;
+	Button    add_gray_btn_, add_inv_btn_, add_thresh_btn_, add_norm_btn_, remove_btn_, run_btn_;
+	Label     result_lbl_;
+
+	void OnAdd(int type);
+	void OnRemove();
+	void OnRun();
+	void RebuildList();
+
+	static const char* StepName(int type);
+};
+
+// ---------------------------------------------------------------------------
 // AnnotationEditorPanel — create/edit/delete region annotations
 
 class AnnotationEditorPanel : public DockableCtrl {

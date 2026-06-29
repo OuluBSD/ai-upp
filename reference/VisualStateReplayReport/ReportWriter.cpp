@@ -100,11 +100,12 @@ bool VsmReportWriter::WriteIndex(const VsmSession& session, const String& out_di
 		md << "| ID | Frame | Action | Rect | Fingerprint |\n"
 		      "|-----|-------|--------|------|-------------|\n";
 		for(const VsmRegionNode& rn : session.regions) {
-			md << Format("| `%s` | %d | %s | (%d,%d) %dx%d | `%s` |\n",
+			String rect = Format("(%d,%d) ", rn.x, rn.y) + IntStr(rn.w) + "x" + IntStr(rn.h);
+			String fp   = rn.fingerprint.hash.IsEmpty() ? "—" : rn.fingerprint.hash;
+			md << Format("| `%s` | %d | %s | %s | `%s` |\n",
 			             rn.id, rn.frame,
 			             rn.action.IsEmpty() ? "—" : rn.action,
-			             rn.x, rn.y, rn.w, rn.h,
-			             rn.fingerprint.hash.IsEmpty() ? "—" : rn.fingerprint.hash);
+			             rect, fp);
 		}
 		md << "\n";
 	}

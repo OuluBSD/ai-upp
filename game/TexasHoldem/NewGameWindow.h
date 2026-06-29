@@ -6,7 +6,7 @@
 
 NAMESPACE_UPP
 
-#define LAYOUTFILE <CardEngine/NewGameWindow.lay>
+#define LAYOUTFILE <TexasHoldem/NewGameWindow.lay>
 #include <CtrlCore/lay.h>
 
 class NewGameWindow : public WithNewGameWindowLayout<TopWindow> {

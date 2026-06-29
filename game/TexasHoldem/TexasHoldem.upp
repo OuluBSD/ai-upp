@@ -1,4 +1,4 @@
-description "CardEngine engine ported from PokerTH\377B128,0,0";
+description "TexasHoldem engine ported from PokerTH\377B128,0,0";
 
 uses
 	Core,
@@ -87,8 +87,8 @@ file
 	RunLocalGame.h,
 	RunLocalGame.cpp,
 	Main.cpp,
-	CardEngine.t,
-	CardEngine_.icpp,
+	TexasHoldem.t,
+	TexasHoldem_.icpp,
 	GameTable.lay,
 	GameTable.h,
 	GameTable.cpp,

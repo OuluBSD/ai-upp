@@ -12,7 +12,7 @@ void MainWindow::ToolBarTab1(Bar& bar)
 void MainWindow::ToolBarTab2(Bar& bar)
 {
 	bool edit = (mode_.GetMode() == ModeManager::MODE_EDIT);
-	bar.Add(edit, "Process", CtrlImg::forward(), [=] { Log("Tab2: Process"); });
+	bar.Add(edit, "Process", CtrlImg::go_forward(), [=] { Log("Tab2: Process"); });
 	bar.Separator();
 	bar.Add("Reset", CtrlImg::undo(), [=] { Log("Tab2: Reset"); });
 }

@@ -19,9 +19,12 @@ public:
 	void DockInit() override;
 	void Close() override;
 
-	void Log(const String& msg) { debug_tab_.Log(msg); }
+	void Log(const String& msg) { log_.Add(APPLOG_LEVEL_INFO, "App", msg); }
 
 private:
+	// ---- Structured log (owned here; wired to debug_tab_ in DockInit)
+	AppLog log_;
+
 	// ---- Frames
 	MenuBar menu_;
 	ToolBar toolbar_;
@@ -61,7 +64,7 @@ private:
 	void InitRegistry();
 
 	// ---- Tab/toolbar coordination
-	void UpdateToolBar();
+	void UpdateToolBar(Bar& bar);
 	void OnMainTabChanged();
 
 	// ---- Per-tab toolbar builders (also used by Edit menu for mirroring)

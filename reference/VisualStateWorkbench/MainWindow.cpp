@@ -102,6 +102,9 @@ void MainWindow::InitDockers()
 	template_dock_.Title("Template Rules").SizeHint(Size(300, 260));
 	Register(template_dock_);
 
+	ocr_dock_.Title("OCR Rules").SizeHint(Size(300, 260));
+	Register(ocr_dock_);
+
 	timeline_dock_.WhenStep   = [=] { OnStep(); };
 	timeline_dock_.WhenRunAll = [=] { OnRunAll(); };
 	timeline_dock_.WhenReset  = [=] { OnResetReplay(); };
@@ -117,6 +120,7 @@ void MainWindow::OnResetDockLayout()
 	DockLeft(annotation_dock_);
 	DockLeft(pipeline_dock_);
 	DockLeft(template_dock_);
+	DockLeft(ocr_dock_);
 	DockBottom(timeline_dock_);
 	Log("layout: reset to default");
 }
@@ -382,6 +386,18 @@ void MainWindow::LoadSampleAnnotation()
 		c.asset_id = "asset-sample"; c.label = "Sample";
 	}
 	template_dock_.SetRules(&template_rules_);
+
+	// Seed a sample OCR rule
+	if(ocr_rules_.IsEmpty()) {
+		VsmOcrRule& r               = ocr_rules_.Add();
+		r.rule_id                   = "ocr-001";
+		r.annotation_id             = "ann-001";
+		r.pipeline_id               = current_pipeline_.id;
+		r.expectation.mode          = VSM_EXPECT_EXACT;
+		r.expectation.expected_text = "Login";
+		r.confidence_threshold      = 0.5;
+	}
+	ocr_dock_.SetRules(&ocr_rules_);
 }
 
 void MainWindow::OnAnnotationChanged()

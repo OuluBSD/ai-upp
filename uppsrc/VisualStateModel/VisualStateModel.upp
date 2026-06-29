@@ -22,4 +22,6 @@ file
 	Preprocess.h,
 	Preprocess.cpp,
 	TemplateMatch.h,
-	TemplateMatch.cpp;
+	TemplateMatch.cpp,
+	OcrLayer.h,
+	OcrLayer.cpp;

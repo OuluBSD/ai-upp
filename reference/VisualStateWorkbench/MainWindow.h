@@ -44,13 +44,15 @@ private:
 	AnnotationEditorPanel annotation_dock_;
 	PipelineEditorPanel   pipeline_dock_;
 	TemplateRulePanel     template_dock_;
+	OcrRulePanel          ocr_dock_;
 
-	// ---- Session storage + annotation layer + pipeline + template rules
+	// ---- Session storage + annotation layer + pipeline + template rules + OCR
 	VsmSessionStore           session_store_;
 	VsmAnnotationLayer        annotation_layer_;
 	String                    annotation_path_;
 	VsmPreprocessPipeline     current_pipeline_;
 	Vector<VsmTemplateRule>   template_rules_;
+	Vector<VsmOcrRule>        ocr_rules_;
 
 	// ---- AppRegistry + state
 	AppRegistry registry_;

@@ -1,0 +1,10 @@
+description "VisualStateModel end-to-end sample — CLI demo\377";
+
+uses
+	VisualStateModel;
+
+file
+	main.cpp;
+
+mainconfig
+	"" = "";

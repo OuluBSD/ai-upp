@@ -9,7 +9,8 @@ void MainWindow::MainMenu(Bar& bar)
 
 void MainWindow::MenuFile(Bar& bar)
 {
-	bar.Add("Load Sample Session", [=] { LoadSampleSession(); });
+	bar.Add("Load Sample Session",   [=] { LoadSampleSession(); });
+	bar.Add("Load E2E Sample Session", [=] { OnLoadE2ESample(); });
 	bar.Separator();
 	bar.Add("Run Pipeline",        [=] { OnRunPipeline(); });
 	bar.Add("Clear Pipeline Cache",[=] { OnClearCache(); });

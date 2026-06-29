@@ -75,7 +75,9 @@ void PkgStateRecord::Jsonize(JsonIO& jio)
 	   ("artifact_path", artifact_path)("timestamp", timestamp);
 	jio("selected_use", selected_use);
 	jio("declared_use", declared_use);
-	jio("effective_flags", effective_flags);
+	jio("effective_use", effective_use);
+	jio("effective_uppflags", effective_uppflags);
+	jio("accepted_flags", accepted_flags);
 	jio("providers", providers);
 }
 
@@ -206,6 +208,9 @@ PkgConfigPaths FindPkgConfigPaths(const String& root)
 	PkgConfigPaths p;
 	p.root = root;
 	p.ai_dir = AppendFileName(root, ".ai-upp");
+	p.sets_dir = AppendFileName(p.ai_dir, "sets");
+	p.system_set = AppendFileName(p.sets_dir, "system");
+	p.toolchain_set = AppendFileName(p.sets_dir, "toolchain");
 	p.world = AppendFileName(p.ai_dir, "world");
 	p.package_use = AppendFileName(p.ai_dir, "package.use");
 	p.package_provider = AppendFileName(p.ai_dir, "package.provider");
@@ -357,12 +362,76 @@ static int sSearchScore(const PkgPackage& p, const String& query)
 	return 1000;
 }
 
-static bool sStateHasAtom(const PkgState& state, const String& atom)
+static const PkgStateRecord* sFindStateRecord(const PkgState& state, const String& atom)
 {
-	for(const PkgStateRecord& rec : state.records)
-		if(rec.atom == atom)
-			return true;
-	return false;
+	for(int i = state.records.GetCount() - 1; i >= 0; --i)
+		if(state.records[i].atom == atom)
+			return &state.records[i];
+	return nullptr;
+}
+
+static String sFormatUppProjection(const PkgUppProjection& proj);
+static const PkgTargetProfile& sDefaultTargetProfile(const String& target);
+static String sTargetNameText(const String& target);
+
+static bool sSameStringList(const Vector<String>& a, const Vector<String>& b)
+{
+	if(a.GetCount() != b.GetCount())
+		return false;
+	for(int i = 0; i < a.GetCount(); i++)
+		if(a[i] != b[i])
+			return false;
+	return true;
+}
+
+static Vector<String> sSplitSpelling(const String& s)
+{
+	Vector<String> v = Split(s, CharFilterWhitespace);
+	return pick(v);
+}
+
+static Vector<String> sPlanUppFlags(const PkgUppProjection& upp)
+{
+	Vector<String> out;
+	for(const String& s : sSplitSpelling(sFormatUppProjection(upp)))
+		out.Add(s);
+	return pick(out);
+}
+
+static bool sRecordMatchesNewUse(const PkgStateRecord& rec, const PkgPlan& plan, const PkgPackage *pkg)
+{
+	Vector<String> accepted;
+	if(pkg)
+		for(const String& s : pkg->accepts)
+			accepted.Add(s);
+	if(!sSameStringList(rec.declared_use, plan.use.declared))
+		return false;
+	if(!sSameStringList(rec.effective_use, plan.use.effective))
+		return false;
+	if(!sSameStringList(rec.effective_uppflags, sPlanUppFlags(plan.upp)))
+		return false;
+	if(!sSameStringList(rec.providers, plan.providers))
+		return false;
+	if(!sSameStringList(rec.accepted_flags, accepted))
+		return false;
+	if(rec.target != sTargetNameText(plan.target))
+		return false;
+	if(rec.toolchain != sDefaultTargetProfile(plan.target).toolchain)
+		return false;
+	return true;
+}
+
+static bool sRecordMatchesChangedUse(const PkgStateRecord& rec, const PkgPlan& plan)
+{
+	if(!sSameStringList(rec.effective_use, plan.use.effective))
+		return false;
+	if(!sSameStringList(rec.effective_uppflags, sPlanUppFlags(plan.upp)))
+		return false;
+	if(!sSameStringList(rec.providers, plan.providers))
+		return false;
+	if(rec.target != sTargetNameText(plan.target))
+		return false;
+	return true;
 }
 
 static String sPlanStatusText(char status)
@@ -911,6 +980,46 @@ static Vector<String> sReadWorld(const PkgConfigPaths& paths)
 	return pick(v);
 }
 
+static Vector<String> sReadSetFile(const String& path)
+{
+	Vector<String> v;
+	String txt = LoadFile(path);
+	Vector<String> lines = Split(txt, '\n');
+	for(String line : lines) {
+		line = TrimBoth(line);
+		if(line.IsEmpty() || line.StartsWith("#"))
+			continue;
+		v.Add(line);
+	}
+	return pick(v);
+}
+
+static Vector<String> sBuiltInSet(const String& name)
+{
+	Vector<String> v;
+	if(name == "system") {
+		v.Add("build");
+		v.Add("umk");
+		v.Add("pkg");
+	}
+	else if(name == "toolchain") {
+		v.Add("Core");
+		v.Add("pkg");
+	}
+	else if(name == "world") {
+		v.Add("pkg");
+	}
+	return pick(v);
+}
+
+static Vector<String> sLoadSet(const PkgConfigPaths& paths, const String& name, const String& path)
+{
+	Vector<String> v = sReadSetFile(path);
+	if(v.IsEmpty())
+		v = sBuiltInSet(name);
+	return pick(v);
+}
+
 static void sWriteWorld(const PkgConfigPaths& paths, const Vector<String>& world)
 {
 	RealizePath(paths.ai_dir);
@@ -922,7 +1031,7 @@ static void sWriteWorld(const PkgConfigPaths& paths, const Vector<String>& world
 
 static void sAddWorld(const PkgConfigPaths& paths, const String& atom)
 {
-	Vector<String> world = sReadWorld(paths);
+	Vector<String> world = sLoadSet(paths, "world", paths.world);
 	if(FindIndex(world, atom) < 0) {
 		world.Add(atom);
 		sWriteWorld(paths, world);
@@ -989,6 +1098,7 @@ bool ParsePkgArgs(const Vector<String>& args, PkgInvocation& inv, String& error)
 			else if(a == "--update") inv.update = true;
 			else if(a == "--deep") inv.deep = true;
 			else if(a == "--newuse") inv.newuse = true;
+			else if(a == "--changed-use") inv.changed_use = true;
 			else if(a == "--resume") inv.resume = true;
 			else if(a == "--oneshot") inv.oneshot = true;
 			else if(a == "--plan") inv.plan = true;
@@ -1030,6 +1140,7 @@ bool ParsePkgArgs(const Vector<String>& args, PkgInvocation& inv, String& error)
 				case 'u': inv.update = true; break;
 				case 'D': inv.deep = true; break;
 				case 'N': inv.newuse = true; break;
+				case 'U': inv.changed_use = true; break;
 				case 'p': inv.pretend = true; inv.plan = true; break;
 				case 's': inv.command = PKG_CMD_SEARCH; break;
 				default:
@@ -1082,7 +1193,7 @@ bool ParsePkgArgs(const Vector<String>& args, PkgInvocation& inv, String& error)
 			inv.command = PKG_CMD_SEARCH;
 		else if(inv.resume)
 			inv.command = PKG_CMD_RESUME;
-		else if(inv.ask || inv.verbose || inv.update || inv.deep || inv.newuse || inv.pretend)
+		else if(inv.ask || inv.verbose || inv.update || inv.deep || inv.newuse || inv.changed_use || inv.pretend)
 			inv.command = PKG_CMD_PLAN;
 		else
 			inv.command = PKG_CMD_HELP;
@@ -1278,6 +1389,7 @@ static void sPrintHelp(bool color)
 		<< "  -u, --update         update selected packages to the best available revision\n"
 		<< "  -D, --deep           resolve the full dependency graph\n"
 		<< "  -N, --newuse         include packages whose USE metadata changed\n"
+		<< "  -U, --changed-use    rebuild only if effective USE or projection changed\n"
 		<< "  -p, --pretend        print a plan without changing anything\n"
 		<< "      --color <y|n|auto>\n"
 		<< "      --colour <yes|no|auto>\n\n"
@@ -1307,11 +1419,17 @@ static void sPrintVersion()
 
 static void sPrintSets(const PkgRepository& repo)
 {
-	Vector<String> world = sReadWorld(repo.paths);
+	Vector<String> world = sLoadSet(repo.paths, "world", repo.paths.world);
+	Vector<String> system = sLoadSet(repo.paths, "system", repo.paths.system_set);
+	Vector<String> toolchain = sLoadSet(repo.paths, "toolchain", repo.paths.toolchain_set);
 	Cout() << "Built-in sets:\n";
-	Cout() << "  @system    bootstrap essentials: build, umk, pkg\n";
-	Cout() << "  @world     user-selected top-level packages (" << world.GetCount() << " entries)\n";
-	Cout() << "  @toolchain selected compiler/linker/sdk/tool profiles\n";
+	Cout() << "  @world      [" << world.GetCount() << "] " << sFmtList(world) << "\n";
+	Cout() << "  @system     [" << system.GetCount() << "] " << sFmtList(system) << "\n";
+	Cout() << "  @toolchain  [" << toolchain.GetCount() << "] " << sFmtList(toolchain) << "\n";
+	Cout() << "\nSet sources:\n";
+	Cout() << "  world: " << (FileExists(repo.paths.world) ? repo.paths.world : String("[built-in default]")) << "\n";
+	Cout() << "  system: " << (FileExists(repo.paths.system_set) ? repo.paths.system_set : String("[built-in default]")) << "\n";
+	Cout() << "  toolchain: " << (FileExists(repo.paths.toolchain_set) ? repo.paths.toolchain_set : String("[built-in default]")) << "\n";
 }
 
 static const PkgTargetProfile& sDefaultTargetProfile(const String& target)
@@ -1712,7 +1830,7 @@ static void sPrintMetadata(const PkgRepository& repo)
 
 static void sPrintInfo(const PkgRepository& repo, const PkgInvocation& inv)
 {
-	Vector<String> world = sReadWorld(repo.paths);
+	Vector<String> world = sLoadSet(repo.paths, "world", repo.paths.world);
 	PkgState state;
 	LoadFromJsonFile(state, repo.paths.state);
 	PkgEselectState eselect;
@@ -1754,32 +1872,47 @@ static void sPrintResumeState(const PkgState& state)
 	Cout() << "  build_status: " << (rec.build_status.IsEmpty() ? String("[none]") : rec.build_status) << "\n";
 	Cout() << "  artifact_path: " << (rec.artifact_path.IsEmpty() ? String("[none]") : rec.artifact_path) << "\n";
 	Cout() << "  selected_use: " << sFmtList(rec.selected_use) << "\n";
-	Cout() << "  effective_flags: " << sFmtList(rec.effective_flags) << "\n";
+	Cout() << "  declared_use: " << sFmtList(rec.declared_use) << "\n";
+	Cout() << "  effective_use: " << sFmtList(rec.effective_use) << "\n";
+	Cout() << "  effective_uppflags: " << sFmtList(rec.effective_uppflags) << "\n";
+	Cout() << "  accepted_flags: " << sFmtList(rec.accepted_flags) << "\n";
 	Cout() << "  providers: " << sFmtList(rec.providers) << "\n";
 	Cout() << "  timestamp: " << Format(rec.timestamp) << "\n";
 }
 
-static void sWriteState(const PkgRepository& repo, const PkgInvocation& inv, const Vector<String>& selected, const Vector<String>& effective, const Vector<String>& providers)
+static void sWriteState(const PkgRepository& repo, const PkgPlan& plan)
 {
 	PkgState state;
 	LoadFromJsonFile(state, repo.paths.state);
-	state.target = inv.target;
+	state.target = sTargetNameText(plan.target);
 	if(state.toolchain.IsEmpty())
-		state.toolchain = "native";
-	PkgStateRecord& rec = state.records.Add();
-	rec.atom = inv.atom;
-	rec.target = inv.target;
-	rec.toolchain = state.toolchain;
-	rec.build_status = inv.pretend ? "pretend" : "mock";
-	rec.artifact_path = repo.root + "/bin/build.exe";
-	rec.timestamp = GetSysTime();
-	for(const String& s : selected)
-		rec.selected_use.Add(s);
-	for(const String& s : effective)
-		rec.effective_flags.Add(s);
-	for(const String& s : providers)
-		rec.providers.Add(s);
-	RealizePath(repo.paths.ai_dir);
+		state.toolchain = sDefaultTargetProfile(plan.target).toolchain;
+	if(plan.items.IsEmpty())
+		return;
+
+	RealizeDirectory(repo.paths.ai_dir);
+	for(const PkgPlanItem& item : plan.items) {
+		PkgStateRecord& rec = state.records.Add();
+		rec.atom = item.atom;
+		rec.target = state.target;
+		rec.toolchain = state.toolchain;
+		rec.build_status = plan.pretend ? "pretend" : "planned";
+		rec.artifact_path = repo.root + "/bin/build.exe";
+		rec.timestamp = GetSysTime();
+		for(const String& s : plan.use.requested)
+			rec.selected_use.Add(s);
+		for(const String& s : plan.use.declared)
+			rec.declared_use.Add(s);
+		for(const String& s : plan.use.effective)
+			rec.effective_use.Add(s);
+		for(const String& s : sPlanUppFlags(plan.upp))
+			rec.effective_uppflags.Add(s);
+		for(const String& s : plan.providers)
+			rec.providers.Add(s);
+		if(const PkgPackage* p = repo.Find(item.atom))
+			for(const String& s : p->accepts)
+				rec.accepted_flags.Add(s);
+	}
 	StoreAsJsonFile(state, repo.paths.state, true);
 }
 
@@ -1846,24 +1979,37 @@ static void sPlanAddItem(PkgPlan& plan, char base_status, const String& atom, co
 	}
 }
 
-static void sPlanWalkAtom(PkgPlan& plan, const PkgRepository& repo, const PkgState& state, const String& atom, const String& reason, Index<String>& seen, int depth)
+static bool sShouldSkipPlannedAtom(const PkgInvocation& inv, const PkgPlan& plan, const PkgRepository& repo, const PkgState& state, const String& atom)
+{
+	const PkgStateRecord* rec = sFindStateRecord(state, atom);
+	if(!rec)
+		return false;
+	const PkgPackage* pkg = repo.Find(atom);
+	if(inv.newuse)
+		return sRecordMatchesNewUse(*rec, plan, pkg);
+	if(inv.changed_use)
+		return sRecordMatchesChangedUse(*rec, plan);
+	return false;
+}
+
+static void sPlanWalkAtom(PkgPlan& plan, const PkgInvocation& inv, const PkgRepository& repo, const PkgState& state, const String& atom, const String& reason, Index<String>& seen, int depth)
 {
 	String key = ToLower(TrimBoth(atom));
 	if(key.IsEmpty())
 		return;
 
-	if(atom == "@world") {
-		Vector<String> world = sReadWorld(repo.paths);
+	if(atom == "@world" || atom == "world") {
+		Vector<String> world = sLoadSet(repo.paths, "world", repo.paths.world);
 		if(world.IsEmpty()) {
 			sPlanAddItem(plan, 'F', atom, nullptr, reason.IsEmpty() ? String("world file is empty") : reason, String(), false, false, depth);
 			return;
 		}
 		for(const String& w : world)
-			sPlanWalkAtom(plan, repo, state, w, "member of @world", seen, depth);
+			sPlanWalkAtom(plan, inv, repo, state, w, "member of @world", seen, depth);
 		return;
 	}
 
-	if(atom == "@system" || atom == "@toolchain") {
+	if(atom == "@system" || atom == "system" || atom == "@toolchain" || atom == "toolchain") {
 		sPlanAddItem(plan, 'N', atom, nullptr, reason.IsEmpty() ? String("synthetic set") : reason, String(), false, false, depth);
 		return;
 	}
@@ -1877,7 +2023,7 @@ static void sPlanWalkAtom(PkgPlan& plan, const PkgRepository& repo, const PkgSta
 		const PkgPackage* provider_pkg = repo.Find(provider);
 		sPlanAddItem(plan, provider_pkg ? 'b' : 'B', provider, provider_pkg, reason.IsEmpty() ? String("provider for ") + atom : reason, atom, false, provider_pkg != nullptr, depth);
 		if(provider_pkg && plan.deep)
-			sPlanWalkAtom(plan, repo, state, provider_pkg->atom, String("provider for ") + atom, seen, depth + 1);
+			sPlanWalkAtom(plan, inv, repo, state, provider_pkg->atom, String("provider for ") + atom, seen, depth + 1);
 		return;
 	}
 
@@ -1902,7 +2048,10 @@ static void sPlanWalkAtom(PkgPlan& plan, const PkgRepository& repo, const PkgSta
 	}
 	seen.Add(key);
 
-	char status = sStateHasAtom(state, atom) ? (plan.update ? 'U' : 'R') : 'N';
+	if(sShouldSkipPlannedAtom(inv, plan, repo, state, atom))
+		return;
+
+	char status = sFindStateRecord(state, atom) ? (plan.update ? 'U' : 'R') : 'N';
 	String msg = reason;
 	if(msg.IsEmpty())
 		msg = status == 'N' ? "new package" : (status == 'U' ? "update requested" : "rebuild requested");
@@ -1913,7 +2062,7 @@ static void sPlanWalkAtom(PkgPlan& plan, const PkgRepository& repo, const PkgSta
 
 	for(const String& dep : pkg->uses) {
 		String dep_reason = String("dependency of ") + atom;
-		sPlanWalkAtom(plan, repo, state, dep, dep_reason, seen, depth + 1);
+		sPlanWalkAtom(plan, inv, repo, state, dep, dep_reason, seen, depth + 1);
 	}
 }
 
@@ -1929,6 +2078,7 @@ static PkgPlan sBuildPlan(const PkgInvocation& inv, const PkgRepository& repo, c
 	plan.update = inv.update;
 	plan.deep = inv.deep;
 	plan.newuse = inv.newuse;
+	plan.changed_use = inv.changed_use;
 	const PkgPackage *root_pkg = inv.atom.IsEmpty() ? nullptr : repo.Find(inv.atom);
 	sBuildUseModel(plan.use, root_pkg, inv.use_args, inv.target);
 	sProjectUpp(plan.upp, plan.use);
@@ -1966,9 +2116,9 @@ static PkgPlan sBuildPlan(const PkgInvocation& inv, const PkgRepository& repo, c
 
 	Index<String> seen;
 	if(!inv.atom.IsEmpty())
-		sPlanWalkAtom(plan, repo, state, inv.atom, String(), seen, 0);
+		sPlanWalkAtom(plan, inv, repo, state, inv.atom, String(), seen, 0);
 	else if(inv.command == PKG_CMD_PLAN && inv.ask)
-		sPlanWalkAtom(plan, repo, state, "@world", String(), seen, 0);
+		sPlanWalkAtom(plan, inv, repo, state, "@world", String(), seen, 0);
 
 	plan.backtrack = 0;
 	plan.dependency_seconds = 0.00;
@@ -2017,7 +2167,7 @@ static void sPrintPlanItem(const PkgPlan& plan, const PkgPlanItem& item)
 	Cout() << "\n";
 }
 
-static void sPrintPlan(const PkgInvocation& inv, const PkgRepository& repo, bool color)
+static PkgPlan sPrintPlan(const PkgInvocation& inv, const PkgRepository& repo, bool color)
 {
 	PkgState state;
 	LoadFromJsonFile(state, repo.paths.state);
@@ -2043,6 +2193,8 @@ static void sPrintPlan(const PkgInvocation& inv, const PkgRepository& repo, bool
 	if(!plan.virtuals.IsEmpty())
 		Cout() << "Virtual requirements: " << sFmtList(plan.virtuals) << "\n";
 	Cout() << "Total packages: " << plan.items.GetCount() << "\n";
+
+	return plan;
 }
 
 static void sPrintTargetCommand(const PkgInvocation& inv)
@@ -2280,7 +2432,7 @@ int RunPkg(const Vector<String>& args)
 		return 0;
 	}
 	if(inv.command == PKG_CMD_PLAN) {
-		sPrintPlan(inv, repo, color);
+		PkgPlan plan = sPrintPlan(inv, repo, color);
 		if(inv.ask) {
 			if(!sPromptYesNo()) {
 				Cout() << "Aborted.\n";
@@ -2289,6 +2441,7 @@ int RunPkg(const Vector<String>& args)
 			}
 			Cout() << "Continuing.\n";
 		}
+		sWriteState(repo, plan);
 		if(inv.install && !inv.pretend) {
 			Cout() << "system package installation is not implemented yet\n";
 			sFlushConsole();

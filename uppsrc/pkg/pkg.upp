@@ -6,9 +6,9 @@ uses
 file
 	AGENTS.md,
 	Pkg.h,
+	Cli.cpp,
 	Pkg.cpp,
 	main.cpp;
 
 mainconfig
 	"" = "";
-

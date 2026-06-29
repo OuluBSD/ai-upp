@@ -21,12 +21,29 @@ static bool CheckFailed(const char* label)
 	return false;
 }
 
+static void PrintLog(const AppLog& log)
+{
+	static const char* kLevelName[] = { "TRACE", "DEBUG", "INFO ", "WARN ", "ERROR" };
+	Cout() << "=== Structured log (" << log.GetRecords().GetCount() << " records) ===\n";
+	for(const AppLogRecord& r : log.GetRecords()) {
+		int lv = clamp(r.level, 0, 4);
+		String loc = r.file.IsEmpty() ? String() : " (" + r.file + ":" + IntStr(r.line) + ")";
+		Cout() << Format("[%02d:%02d:%02d][%s][%s] %s%s\n",
+		                 r.time.hour, r.time.minute, r.time.second,
+		                 kLevelName[lv], r.channel, r.message, loc);
+	}
+	Cout() << "\n";
+}
+
 CONSOLE_APP_MAIN
 {
 	StdLogSetup(LOG_COUT | LOG_FILE);
 
+	AppLog app_log;
+	app_log.SetForwardToUppLog(false);  // avoid double-printing in console example
+
 	AppRegistry reg;
-	reg.Vendor("AiUpp").AppId("AppRegistry").Profile("default");
+	reg.Vendor("AiUpp").AppId("AppRegistry").Profile("default").SetLog(&app_log);
 
 	// ---- Print directories --------------------------------------------------
 	Cout() << "=== Directories ===\n";
@@ -41,10 +58,9 @@ CONSOLE_APP_MAIN
 	reg.Set("sample.bool",   true);
 
 	if(!reg.Save()) CheckFailed("Save scalars");
-	reg.ClearLog();
 
 	AppRegistry reg2;
-	reg2.Vendor("AiUpp").AppId("AppRegistry").Profile("default");
+	reg2.Vendor("AiUpp").AppId("AppRegistry").Profile("default").SetLog(&app_log);
 	if(!reg2.Load()) CheckFailed("Load registry");
 
 	if(String(reg2.Get("sample.string")) != "hello")
@@ -65,10 +81,9 @@ CONSOLE_APP_MAIN
 
 	reg.SaveJson("app.state", st);
 	reg.Save();
-	reg.ClearLog();
 
 	AppRegistry reg3;
-	reg3.Vendor("AiUpp").AppId("AppRegistry").Profile("default");
+	reg3.Vendor("AiUpp").AppId("AppRegistry").Profile("default").SetLog(&app_log);
 	reg3.Load();
 
 	SampleState st2;
@@ -84,10 +99,9 @@ CONSOLE_APP_MAIN
 	String small_data = "small binary payload";
 	reg.SaveBlob("sample.small", small_data, AppRegistry::BLOB_INLINE_BASE64);
 	reg.Save();
-	reg.ClearLog();
 
 	AppRegistry reg4;
-	reg4.Vendor("AiUpp").AppId("AppRegistry").Profile("default");
+	reg4.Vendor("AiUpp").AppId("AppRegistry").Profile("default").SetLog(&app_log);
 	reg4.Load();
 
 	String loaded_small;
@@ -97,14 +111,13 @@ CONSOLE_APP_MAIN
 
 	// ---- External blob (large) ----------------------------------------------
 	Cout() << "=== External blob ===\n";
-	String large_data(80 * 1024, 'X');  // 80 KiB, exceeds inline threshold
+	String large_data('X', 80 * 1024);  // 80 KiB, exceeds inline threshold
 	reg.SaveBlob("sample.large", large_data, AppRegistry::BLOB_EXTERNAL_FILE);
 	reg.Save();
 	Cout() << "External blob path: " << reg.GetBlobPath("sample.large") << "\n";
-	reg.ClearLog();
 
 	AppRegistry reg5;
-	reg5.Vendor("AiUpp").AppId("AppRegistry").Profile("default");
+	reg5.Vendor("AiUpp").AppId("AppRegistry").Profile("default").SetLog(&app_log);
 	reg5.Load();
 
 	String loaded_large;
@@ -116,12 +129,12 @@ CONSOLE_APP_MAIN
 	Cout() << "=== Auto-mode blob ===\n";
 	String auto_small = "auto small";
 	reg.SaveBlob("sample.auto_small", auto_small);   // BLOB_AUTO -> inline
-	String auto_large(100 * 1024, 'Y');              // 100 KiB -> external
+	String auto_large('Y', 100 * 1024);              // 100 KiB -> external
 	reg.SaveBlob("sample.auto_large", auto_large);
 	reg.Save();
 
 	AppRegistry reg6;
-	reg6.Vendor("AiUpp").AppId("AppRegistry").Profile("default");
+	reg6.Vendor("AiUpp").AppId("AppRegistry").Profile("default").SetLog(&app_log);
 	reg6.Load();
 
 	String out_as, out_al;
@@ -131,11 +144,9 @@ CONSOLE_APP_MAIN
 	if(out_al != auto_large) CheckFailed("auto_large round-trip");
 	Cout() << "Auto-mode blob: OK\n\n";
 
-	// ---- Print log ----------------------------------------------------------
-	Cout() << "=== Registry log ===\n";
-	for(const String& line : reg6.GetLog())
-		Cout() << line << "\n";
+	// ---- Print structured log -----------------------------------------------
+	PrintLog(app_log);
 
 	if(GetExitCode() == 0)
-		Cout() << "\nAll checks passed.\n";
+		Cout() << "All checks passed.\n";
 }

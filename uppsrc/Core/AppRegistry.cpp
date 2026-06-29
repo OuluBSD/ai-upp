@@ -76,9 +76,11 @@ String AppRegistry::BlobDirPath() const
 	return AppendFileName(GetStateDir(), "blob");
 }
 
-void AppRegistry::LogMsg(const String& msg) const
+void AppRegistry::LogMsg(const String& msg, int level) const
 {
 	log_.Add(String("[AppRegistry] ") + msg);
+	if(log_sink_)
+		log_sink_->Add(level, "AppRegistry", msg);
 }
 
 // ---------------------------------------------------------------------------
@@ -95,7 +97,7 @@ bool AppRegistry::Load()
 	}
 	Value v = ParseJSON(s);
 	if(v.IsError()) {
-		LogMsg("Load: JSON parse error, using defaults");
+		LogMsg("Load: JSON parse error, using defaults", APPLOG_LEVEL_ERROR);
 		return false;
 	}
 	ValueMap vm(v);
@@ -115,7 +117,10 @@ bool AppRegistry::Save() const
 	for(int i = 0; i < values_.GetCount(); i++)
 		vm.Add(values_.GetKey(i), values_[i]);
 	bool ok = SaveFile(path, AsJSON(Value(vm), true));
-	LogMsg(ok ? String("Save: OK -> ") + path : String("Save: FAILED -> ") + path);
+	if(ok)
+		LogMsg(String("Save: OK -> ") + path);
+	else
+		LogMsg(String("Save: FAILED -> ") + path, APPLOG_LEVEL_ERROR);
 	return ok;
 }
 
@@ -157,7 +162,7 @@ bool AppRegistry::SaveBlob(const String& key, const String& data, BlobMode mode)
 		Set(String("blobfile:") + key, path);
 		LogMsg(String("SaveBlob: external key=") + key + " path=" + path);
 	} else {
-		LogMsg(String("SaveBlob: FAILED external key=") + key + " path=" + path);
+		LogMsg(String("SaveBlob: FAILED external key=") + key + " path=" + path, APPLOG_LEVEL_ERROR);
 	}
 	return ok;
 }
@@ -175,13 +180,13 @@ bool AppRegistry::LoadBlob(const String& key, String& out) const
 		String path = String(v);
 		out = LoadFile(path);
 		if(out.IsVoid()) {
-			LogMsg(String("LoadBlob: missing file key=") + key + " path=" + path);
+			LogMsg(String("LoadBlob: missing file key=") + key + " path=" + path, APPLOG_LEVEL_ERROR);
 			return false;
 		}
 		LogMsg(String("LoadBlob: external key=") + key);
 		return true;
 	}
-	LogMsg(String("LoadBlob: not found key=") + key);
+	LogMsg(String("LoadBlob: not found key=") + key, APPLOG_LEVEL_WARNING);
 	return false;
 }
 

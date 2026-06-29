@@ -40,10 +40,13 @@ MainWindow::MainWindow()
 
 void MainWindow::DockInit()
 {
+	// Wire log view first so all DockInit events appear in the Debug tab
+	log_.WhenRecord = [=](const AppLogRecord& r) { debug_tab_.AddRecord(r); };
+
 	InitDockers();            // 1. idempotent registration + cursor wiring
 	OnResetDockLayout();      // 2. close all + apply C++ default positions
 	CacheDefaultLayout();     // 3. snapshot default in memory
-	InitRegistry();           // 4a. init AppRegistry, load registry file
+	InitRegistry();           // 4a. init AppRegistry (attaches log_), load registry file
 	LoadAppState();           // 4b. restore active tab and mode
 	if(!LoadUserLayout())     // 4c. try to load saved dock layout blob
 		Log("layout: using C++ default");
@@ -152,7 +155,7 @@ static String sTabLayoutKey(int tab)
 
 void MainWindow::InitRegistry()
 {
-	registry_.Vendor("AiUpp").AppId("DockingTemplate2").Profile("default");
+	registry_.Vendor("AiUpp").AppId("DockingTemplate2").Profile("default").SetLog(&log_);
 	registry_.Load();
 	Log("registry: loaded");
 }
@@ -224,13 +227,12 @@ void MainWindow::SaveAppState()
 // ---------------------------------------------------------------------------
 // Toolbar
 
-void MainWindow::UpdateToolBar()
+void MainWindow::UpdateToolBar(Bar& bar)
 {
 	int tab = main_tabs_.Get();
-	if(tab == 0)      toolbar_.Set([=](Bar& bar) { ToolBarTab1(bar); });
-	else if(tab == 1) toolbar_.Set([=](Bar& bar) { ToolBarTab2(bar); });
-	else              toolbar_.Set([=](Bar& bar) { ToolBarTabDebug(bar); });
-	Log(Format("toolbar: tab %d refreshed", tab));
+	if(tab == 0)      ToolBarTab1(bar);
+	else if(tab == 1) ToolBarTab2(bar);
+	else              ToolBarTabDebug(bar);
 }
 
 void MainWindow::OnMainTabChanged()
@@ -245,6 +247,7 @@ void MainWindow::OnMainTabChanged()
 	if(!LoadUserLayout())
 		SetDefaultLayout();
 	toolbar_.Set(THISBACK(UpdateToolBar));
+	Log(Format("toolbar: tab %d refreshed", next));
 }
 
 // ---------------------------------------------------------------------------

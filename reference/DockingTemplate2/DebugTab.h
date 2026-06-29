@@ -6,12 +6,14 @@ public:
 	typedef DebugLog CLASSNAME;
 
 	DebugLog();
-	void Log(const String& msg);
+	void AddRecord(const AppLogRecord& r);
 	void Clear();
 
 private:
-	TextCtrl text_;
-	Button   clear_btn_;
+	ArrayCtrl list_;
+	Button    clear_btn_;
+
+	static Color LevelColor(int level);
 };
 
 #endif

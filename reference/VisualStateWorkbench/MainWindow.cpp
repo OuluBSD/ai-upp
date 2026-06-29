@@ -485,6 +485,27 @@ void MainWindow::OnAnnotationChanged()
 // ---------------------------------------------------------------------------
 
 // ---------------------------------------------------------------------------
+// E2E sample session loader
+
+void MainWindow::OnLoadE2ESample()
+{
+	// The E2E sample writes to GetTempPath()/vsm_e2e_sample
+	String root = AppendFileName(GetTempPath(), "vsm_e2e_sample");
+	if(!DirectoryExists(root)) {
+		Log("e2e: run VisualStateEndToEndSample.exe first to generate the session");
+		return;
+	}
+	Log("e2e: opening session from " + root);
+	session_store_.SetLog(&log_);
+	if(!session_store_.Open(root)) {
+		Log("e2e: failed to open session store");
+		return;
+	}
+	session_dock_.SetManifest(session_store_.GetManifest());
+	Log("e2e: session opened — " + session_store_.GetManifest().session_id);
+}
+
+// ---------------------------------------------------------------------------
 // Cache
 
 void MainWindow::OnClearCache()

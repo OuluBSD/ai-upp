@@ -106,6 +106,7 @@ private:
 
 	// ---- Pipeline runner
 	void OnRunPipeline();
+	void OnLoadE2ESample();
 
 	// ---- Cache
 	VsmPipelineCache pipeline_cache_;

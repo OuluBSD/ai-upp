@@ -15,5 +15,6 @@ using namespace Upp;
 #include "Preprocess.h"
 #include "TemplateMatch.h"
 #include "OcrLayer.h"
+#include "ModelRuntime.h"
 
 #endif

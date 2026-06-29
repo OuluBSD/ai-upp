@@ -244,6 +244,65 @@ static void TestChangeDetect()
 }
 
 // ---------------------------------------------------------------------------
+// Test: Annotation layer
+
+static void TestAnnotation()
+{
+	Cout() << "\n=== Annotation layer ===\n";
+
+	VsmAnnotationLayer layer;
+	layer.schema     = 1;
+	layer.session_id = "test-session-001";
+
+	// Add a valid annotation
+	VsmRegionAnnotation& a = layer.annotations.Add();
+	a.id   = "ann-001";
+	a.name = "Login Button";
+	a.x = 10; a.y = 20; a.w = 80; a.h = 40;
+	VsmAnchorPoint& ap = a.anchors.Add();
+	ap.name = "center"; ap.x = 40; ap.y = 20;
+
+	// Add child
+	VsmRegionAnnotation& b = layer.annotations.Add();
+	b.id        = "ann-002";
+	b.parent_id = "ann-001";
+	b.name      = "Button Label";
+	b.x = 5; b.y = 10; b.w = 70; b.h = 20;
+	b.relative_to_parent = true;
+
+	// Validate clean layer
+	auto errs = layer.Validate();
+	if(!errs.IsEmpty()) {
+		Fail("Validate clean layer: unexpected errors");
+		return;
+	}
+	Cout() << "Validate clean layer: OK\n";
+
+	// Save and reload
+	String path = AppendFileName(GetTempPath(), "vsm_test_annotations.json");
+	if(!layer.Save(path)) { Fail("Save annotations"); return; }
+	VsmAnnotationLayer layer2;
+	if(!layer2.Load(path)) { Fail("Load annotations"); return; }
+	FileDelete(path);
+	if(layer2.annotations.GetCount() != 2) { Fail("Load count"); return; }
+	if(layer2.annotations[0].name != "Login Button") { Fail("Load name"); return; }
+	Cout() << "Annotation round-trip: count=" << layer2.annotations.GetCount() << " OK\n";
+
+	// Missing parent error
+	VsmRegionAnnotation& c = layer2.annotations.Add();
+	c.id        = "ann-003";
+	c.parent_id = "non-existent-parent";
+	c.name      = "Orphan";
+	c.x = 1; c.y = 1; c.w = 10; c.h = 10;
+	auto errs2 = layer2.Validate();
+	bool found_missing = false;
+	for(const auto& e : errs2)
+		if(e.message.Find("Parent not found") >= 0) found_missing = true;
+	if(!found_missing) { Fail("Validate missing parent"); return; }
+	Cout() << "Validate missing parent: OK\n";
+}
+
+// ---------------------------------------------------------------------------
 // Test: Session storage
 
 static void TestSessionStorage()
@@ -318,6 +377,7 @@ CONSOLE_APP_MAIN
 	TestChangeDetect();
 	TestGroundTruth();
 	TestReplay();
+	TestAnnotation();
 	TestSessionStorage();
 
 	if(GetExitCode() == 0)

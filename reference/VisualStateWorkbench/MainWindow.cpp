@@ -61,6 +61,7 @@ void MainWindow::DockInit()
 	LoadSampleSession();
 
 	Log("registry config: " + registry_.GetConfigDir());
+	LoadSampleAnnotation();
 }
 
 // ---------------------------------------------------------------------------
@@ -91,6 +92,10 @@ void MainWindow::InitDockers()
 	session_dock_.Title("Session Info").SizeHint(Size(260, 160));
 	Register(session_dock_);
 
+	annotation_dock_.Title("Annotation Editor").SizeHint(Size(300, 280));
+	Register(annotation_dock_);
+	annotation_dock_.WhenLayerChanged = [=] { OnAnnotationChanged(); };
+
 	timeline_dock_.WhenStep   = [=] { OnStep(); };
 	timeline_dock_.WhenRunAll = [=] { OnRunAll(); };
 	timeline_dock_.WhenReset  = [=] { OnResetReplay(); };
@@ -103,6 +108,7 @@ void MainWindow::OnResetDockLayout()
 
 	DockRight(props_dock_);
 	DockRight(session_dock_);
+	DockLeft(annotation_dock_);
 	DockBottom(timeline_dock_);
 	Log("layout: reset to default");
 }
@@ -313,6 +319,53 @@ void MainWindow::OnRegionListSel()
 	props_dock_.SetRegion(rn.id, &rn);
 	Log(Format("region list selected: %s", rn.id));
 }
+
+// ---------------------------------------------------------------------------
+// Annotation
+
+void MainWindow::LoadSampleAnnotation()
+{
+	annotation_layer_ = VsmAnnotationLayer();
+	annotation_layer_.schema     = 1;
+	annotation_layer_.session_id = "wb-sample-001";
+
+	// Seed with one annotation based on the sample session region
+	VsmRegionAnnotation& a = annotation_layer_.annotations.Add();
+	a.id   = "ann-001";
+	a.name = "Login Button";
+	a.x = 10; a.y = 20; a.w = 80; a.h = 40;
+	a.linked_region_ids.Add("rgn-0001");
+
+	// Save to session annotations dir if store is open
+	if(session_store_.IsOpen()) {
+		annotation_path_ = AppendFileName(
+		    session_store_.GetPaths().annotations_dir, "annotations.json");
+		// Load existing if present; otherwise save the seed
+		if(FileExists(annotation_path_))
+			annotation_layer_.Load(annotation_path_);
+		else
+			annotation_layer_.Save(annotation_path_);
+	}
+
+	annotation_dock_.SetLayer(&annotation_layer_);
+	Log(Format("annotations: loaded %d annotation(s)", annotation_layer_.annotations.GetCount()));
+}
+
+void MainWindow::OnAnnotationChanged()
+{
+	// Validate
+	auto errs = annotation_layer_.Validate();
+	for(const auto& e : errs)
+		LogWarn(log_, "Annotation", "Validation: " + e.annotation_id + ": " + e.message);
+	if(errs.IsEmpty())
+		Log("annotations: validation OK");
+
+	// Persist
+	if(!annotation_path_.IsEmpty())
+		annotation_layer_.Save(annotation_path_);
+}
+
+// ---------------------------------------------------------------------------
 
 void MainWindow::RebuildRegionsList()
 {

@@ -18,5 +18,6 @@ using namespace Upp;
 #include "OcrLayer.h"
 #include "ModelRuntime.h"
 #include "PipelineRunner.h"
+#include "PipelineCache.h"
 
 #endif

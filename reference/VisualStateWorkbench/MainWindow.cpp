@@ -61,6 +61,11 @@ void MainWindow::DockInit()
 	replay_.SetLog(&log_);
 	LoadSampleSession();
 
+	// Open pipeline cache in temp cache directory
+	String cache_dir = AppendFileName(GetTempPath(), "vsm_wb_cache");
+	pipeline_cache_.SetLog(&log_);
+	pipeline_cache_.Open(cache_dir);
+
 	Log("registry config: " + registry_.GetConfigDir());
 	LoadSampleAnnotation();
 }
@@ -480,6 +485,15 @@ void MainWindow::OnAnnotationChanged()
 // ---------------------------------------------------------------------------
 
 // ---------------------------------------------------------------------------
+// Cache
+
+void MainWindow::OnClearCache()
+{
+	pipeline_cache_.Clear();
+	Log(Format("cache: cleared (was %d entries)", 0));
+}
+
+// ---------------------------------------------------------------------------
 // Pipeline runner
 
 void MainWindow::OnRunPipeline()
@@ -509,9 +523,11 @@ void MainWindow::OnRunPipeline()
 
 	VsmPipelineRunSummary summary = pipe.Run();
 
-	// Show summary in log
-	Log(Format("pipeline: done — obs=%d transitions=%d divergences=%d",
-	           summary.observations_made, summary.transitions, summary.divergences));
+	// Show summary + cache stats in log
+	Log(Format("pipeline: done — obs=%d transitions=%d divergences=%d  cache hits=%d misses=%d",
+	           summary.observations_made, summary.transitions, summary.divergences,
+	           pipeline_cache_.GetHits(), pipeline_cache_.GetMisses()));
+	pipeline_cache_.ResetStats();
 
 	if(!summary.success) {
 		Log("pipeline: run failed");

@@ -18,6 +18,7 @@ enum PkgCommandKind {
 	PKG_CMD_INFO,
 	PKG_CMD_METADATA,
 	PKG_CMD_LIST_SETS,
+	PKG_CMD_PROVIDERS,
 	PKG_CMD_SEARCH,
 	PKG_CMD_PLAN,
 	PKG_CMD_DEPS,
@@ -107,13 +108,47 @@ struct PkgTargetProfile : Moveable<PkgTargetProfile> {
 
 struct PkgProvider : Moveable<PkgProvider> {
 	String capability;
+	String id;
 	String kind;
 	String provider;
 	String details;
 	int priority = 0;
 	bool system_install = false;
-	Vector<String> upp_flags;
-	Vector<String> uses;
+	Vector<String> targets;
+	Vector<String> uses_add;
+	Vector<PkgUppFlag> upp_add;
+	String probe_status;
+	bool manual = false;
+};
+
+struct PkgVirtualCapability : Moveable<PkgVirtualCapability> {
+	String capability;
+	String description;
+	Vector<String> provider_ids;
+};
+
+struct PkgProviderResolution : Moveable<PkgProviderResolution> {
+	String capability;
+	String provider_id;
+	String provider_kind;
+	String provider;
+	String external_package;
+	String details;
+	String probe_status;
+	int priority = 0;
+	bool selected = false;
+	bool manual = false;
+	Vector<String> targets;
+	Vector<String> uses_add;
+	Vector<PkgUppFlag> upp_add;
+};
+
+struct PkgProviderPlan : Moveable<PkgProviderPlan> {
+	Vector<PkgVirtualCapability> capabilities;
+	Vector<PkgProviderResolution> resolutions;
+	Vector<String> uses_additions;
+	Vector<PkgUppFlag> upp_additions;
+	Vector<String> warnings;
 };
 
 struct PkgPackage : Moveable<PkgPackage> {
@@ -185,6 +220,9 @@ struct PkgPlanItem : Moveable<PkgPlanItem> {
 	String target;
 	String uppflags;
 	String provider;
+	String provider_kind;
+	String provider_package;
+	String provider_status;
 	String reason;
 	String repository;
 	String description;
@@ -215,6 +253,7 @@ struct PkgPlan : Moveable<PkgPlan> {
 	Vector<String> uppflags;
 	Vector<String> providers;
 	Vector<String> virtuals;
+	PkgProviderPlan provider_plan;
 	Vector<PkgPlanItem> items;
 	int backtrack = 0;
 	int backtrack_limit = 20;
@@ -238,7 +277,9 @@ struct PkgInvocation {
 	PkgColorMode color = PKG_COLOR_AUTO;
 	String atom;
 	String query;
+	String provider_query;
 	String target;
+	String provider;
 	String module;
 	String subcommand;
 	String root;
@@ -257,6 +298,7 @@ struct PkgInvocation {
 	bool plan = false;
 	bool metadata = false;
 	bool list_sets = false;
+	bool providers = false;
 	bool info = false;
 	bool search = false;
 	bool install = false;

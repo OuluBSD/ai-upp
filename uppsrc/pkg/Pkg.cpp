@@ -723,73 +723,503 @@ static const PkgTargetProfile* sFindTarget(const String& name)
 	return nullptr;
 }
 
+static void sAddProviderFlag(PkgProvider& p, const String& name, int scope, const String& reason)
+{
+	PkgUppFlag& f = p.upp_add.Add();
+	f.name = name;
+	f.scope = scope;
+	f.reason = reason;
+}
+
 static Vector<PkgProvider> sProviders()
 {
 	Vector<PkgProvider> v;
 	{
 		PkgProvider& p = v.Add();
 		p.capability = "virtual/sqlite";
+		p.id = "upp-plugin-sqlite3";
 		p.kind = "upp-plugin";
 		p.provider = "plugin/sqlite3";
 		p.details = "Repository-local sqlite3 plugin";
 		p.priority = 100;
+		p.targets.Add("native");
+		p.targets.Add("windows");
+		p.targets.Add("linux");
+		p.targets.Add("macos");
+		p.uses_add.Add("plugin/sqlite3");
+		sAddProviderFlag(p, "SQLITE", PKG_UPP_ACCEPTED, "sqlite provider");
+	}
+	{
+		PkgProvider& p = v.Add();
+		p.capability = "virtual/sqlite";
+		p.id = "system-sqlite";
+		p.kind = "system";
+		p.provider = "sqlite3";
+		p.details = "System SQLite package";
+		p.priority = 80;
+		p.targets.Add("native");
+		p.targets.Add("windows");
+		p.targets.Add("linux");
+		p.targets.Add("macos");
+		sAddProviderFlag(p, "SQLITE", PKG_UPP_ACCEPTED, "system sqlite provider");
+	}
+	{
+		PkgProvider& p = v.Add();
+		p.capability = "virtual/sqlite";
+		p.id = "vcpkg-sqlite3";
+		p.kind = "vcpkg";
+		p.provider = "sqlite3";
+		p.details = "vcpkg sqlite3 package";
+		p.priority = 60;
+		p.targets.Add("windows");
+		sAddProviderFlag(p, "SQLITE", PKG_UPP_ACCEPTED, "vcpkg sqlite provider");
 	}
 	{
 		PkgProvider& p = v.Add();
 		p.capability = "virtual/ssl";
+		p.id = "upp-plugin-core-ssl";
 		p.kind = "upp-plugin";
 		p.provider = "Core/SSL";
 		p.details = "Core SSL package";
-		p.priority = 90;
+		p.priority = 100;
+		p.targets.Add("native");
+		p.targets.Add("windows");
+		p.targets.Add("linux");
+		p.targets.Add("macos");
+		p.uses_add.Add("Core/SSL");
+		sAddProviderFlag(p, "SSL", PKG_UPP_ACCEPTED, "ssl provider");
+	}
+	{
+		PkgProvider& p = v.Add();
+		p.capability = "virtual/ssl";
+		p.id = "system-ssl";
+		p.kind = "system";
+		p.provider = "openssl";
+		p.details = "System OpenSSL package";
+		p.priority = 75;
+		p.targets.Add("native");
+		p.targets.Add("windows");
+		p.targets.Add("linux");
+		p.targets.Add("macos");
+		sAddProviderFlag(p, "SSL", PKG_UPP_ACCEPTED, "system ssl provider");
 	}
 	{
 		PkgProvider& p = v.Add();
 		p.capability = "virtual/sdl2";
+		p.id = "system-sdl2";
 		p.kind = "system";
 		p.provider = "SDL2";
 		p.details = "System SDL2 package";
-		p.priority = 10;
-		p.system_install = true;
+		p.priority = 70;
+		p.targets.Add("native");
+		p.targets.Add("windows");
+		p.targets.Add("linux");
+		p.targets.Add("macos");
+		sAddProviderFlag(p, "SDL2", PKG_UPP_GLOBAL, "system sdl2 provider");
+	}
+	{
+		PkgProvider& p = v.Add();
+		p.capability = "virtual/sdl2";
+		p.id = "vcpkg-sdl2";
+		p.kind = "vcpkg";
+		p.provider = "SDL2";
+		p.details = "vcpkg SDL2 package";
+		p.priority = 60;
+		p.targets.Add("windows");
+		sAddProviderFlag(p, "SDL2", PKG_UPP_GLOBAL, "vcpkg sdl2 provider");
+	}
+	{
+		PkgProvider& p = v.Add();
+		p.capability = "virtual/sdl2";
+		p.id = "msys2-sdl2";
+		p.kind = "msys2";
+		p.provider = "mingw-w64-sdl2";
+		p.details = "MSYS2 SDL2 package";
+		p.priority = 50;
+		p.targets.Add("windows");
+		sAddProviderFlag(p, "SDL2", PKG_UPP_GLOBAL, "msys2 sdl2 provider");
+	}
+	{
+		PkgProvider& p = v.Add();
+		p.capability = "virtual/sdl2";
+		p.id = "emscripten-sdl2";
+		p.kind = "emscripten";
+		p.provider = "SDL2";
+		p.details = "Emscripten SDL2 package";
+		p.priority = 40;
+		p.targets.Add("wasm-browser");
+		p.targets.Add("wasm-node");
+		sAddProviderFlag(p, "SDL2", PKG_UPP_GLOBAL, "emscripten sdl2 provider");
 	}
 	{
 		PkgProvider& p = v.Add();
 		p.capability = "virtual/opengl";
-		p.kind = "upp-plugin";
-		p.provider = "GLDraw";
-		p.details = "Repository-local GLDraw package";
-		p.priority = 80;
+		p.id = "system-opengl";
+		p.kind = "system";
+		p.provider = "opengl32";
+		p.details = "System OpenGL runtime";
+		p.priority = 70;
+		p.targets.Add("native");
+		p.targets.Add("windows");
+		p.targets.Add("linux");
+		p.targets.Add("macos");
+		sAddProviderFlag(p, "GUI", PKG_UPP_GLOBAL, "system opengl provider");
+	}
+	{
+		PkgProvider& p = v.Add();
+		p.capability = "virtual/opengl";
+		p.id = "webgl";
+		p.kind = "web";
+		p.provider = "WebGL";
+		p.details = "Browser WebGL runtime";
+		p.priority = 60;
+		p.targets.Add("wasm-browser");
+		sAddProviderFlag(p, "GUI", PKG_UPP_GLOBAL, "webgl provider");
+	}
+	{
+		PkgProvider& p = v.Add();
+		p.capability = "virtual/opengl";
+		p.id = "angle-manual";
+		p.kind = "manual";
+		p.provider = "ANGLE";
+		p.details = "Manual ANGLE setup";
+		p.priority = 10;
+		p.manual = true;
+		sAddProviderFlag(p, "GUI", PKG_UPP_GLOBAL, "angle provider");
 	}
 	{
 		PkgProvider& p = v.Add();
 		p.capability = "virtual/gui-runtime";
+		p.id = "native-gui";
 		p.kind = "system";
 		p.provider = "desktop-gui";
 		p.details = "Host GUI runtime";
-		p.priority = 5;
-		p.system_install = true;
+		p.priority = 70;
+		p.targets.Add("native");
+		p.targets.Add("windows");
+		p.targets.Add("linux");
+		p.targets.Add("macos");
+		sAddProviderFlag(p, "GUI", PKG_UPP_GLOBAL, "native gui runtime");
+	}
+	{
+		PkgProvider& p = v.Add();
+		p.capability = "virtual/gui-runtime";
+		p.id = "virtualgui-sdl2gl";
+		p.kind = "upp-plugin";
+		p.provider = "rainbow/SDL2GL";
+		p.details = "VirtualGui over SDL2GL";
+		p.priority = 100;
+		p.targets.Add("native");
+		p.targets.Add("windows");
+		p.targets.Add("linux");
+		p.targets.Add("macos");
+		p.uses_add.Add("rainbow/SDL2GL");
+		p.uses_add.Add("rainbow/VirtualGui");
+		sAddProviderFlag(p, "GUI", PKG_UPP_GLOBAL, "virtualgui provider");
+		sAddProviderFlag(p, "SDL2GL", PKG_UPP_GLOBAL, "virtualgui provider");
+		sAddProviderFlag(p, "VIRTUALGUI", PKG_UPP_ACCEPTED, "virtualgui provider");
+	}
+	{
+		PkgProvider& p = v.Add();
+		p.capability = "virtual/gui-runtime";
+		p.id = "framebuffer";
+		p.kind = "system";
+		p.provider = "framebuffer";
+		p.details = "Framebuffer runtime";
+		p.priority = 50;
+		p.targets.Add("linux");
+		p.targets.Add("native");
+		sAddProviderFlag(p, "GUI", PKG_UPP_GLOBAL, "framebuffer provider");
 	}
 	return pick(v);
 }
 
-static Vector<PkgProvider> sProvidersFor(const String& capability)
+static bool sProviderTargetMatch(const PkgProvider& p, const String& target)
+{
+	if(p.targets.IsEmpty())
+		return true;
+	String t = ToLower(target.IsEmpty() ? String("native") : target);
+	for(const String& s : p.targets)
+		if(ToLower(s) == t)
+			return true;
+	return false;
+}
+
+static int sProviderPreferenceRank(const PkgProvider& p, const String& pref)
+{
+	String want = ToLower(pref);
+	String kind = ToLower(p.kind);
+	if(want == "system") {
+		if(kind == "system")
+			return 0;
+		if(kind == "upp-plugin")
+			return 20;
+		if(kind == "vcpkg" || kind == "msys2" || kind == "web")
+			return 30;
+		return 40;
+	}
+	if(want == "portable") {
+		if(kind == "upp-plugin")
+			return 0;
+		if(kind == "vcpkg" || kind == "msys2" || kind == "web")
+			return 10;
+		if(kind == "system")
+			return 30;
+		return 40;
+	}
+	if(!want.IsEmpty() && (ToLower(p.id) == want || kind == want || ToLower(p.provider) == want))
+		return 0;
+	if(kind == "upp-plugin")
+		return 0;
+	if(kind == "vcpkg" || kind == "msys2" || kind == "web")
+		return 10;
+	if(kind == "system")
+		return 20;
+	if(kind == "manual")
+		return 90;
+	return 50;
+}
+
+static String sProviderProbeStatus(const PkgProvider& p, const PkgRepository& repo)
+{
+	if(p.manual)
+		return "manual";
+	if(p.kind == "upp-plugin")
+		return repo.HasPackage(p.provider) ? "available" : "missing";
+	if(p.kind == "manual")
+		return "manual";
+	if(p.kind == "system" || p.kind == "vcpkg" || p.kind == "msys2" || p.kind == "web" || p.kind == "emscripten" || p.kind == "freebsd" || p.kind == "debian" || p.kind == "macos")
+		return "unknown";
+	return "unknown";
+}
+
+static Vector<PkgProvider> sProvidersFor(const String& capability, const String& target = Null)
 {
 	Vector<PkgProvider> all = sProviders();
 	Vector<PkgProvider> out;
 	for(const PkgProvider& p : all)
-		if(p.capability == capability) {
+		if(p.capability == capability && sProviderTargetMatch(p, target)) {
 			PkgProvider& q = out.Add();
 			q.capability = p.capability;
+			q.id = p.id;
 			q.kind = p.kind;
 			q.provider = p.provider;
 			q.details = p.details;
 			q.priority = p.priority;
 			q.system_install = p.system_install;
-			for(const String& s : p.upp_flags)
-				q.upp_flags.Add(s);
-			for(const String& s : p.uses)
-				q.uses.Add(s);
+			q.manual = p.manual;
+			q.probe_status = sProviderProbeStatus(p, PkgRepository());
+			for(const String& s : p.targets)
+				q.targets.Add(s);
+			for(const String& s : p.uses_add)
+				q.uses_add.Add(s);
+			for(const PkgUppFlag& f : p.upp_add)
+				q.upp_add.Add(f);
 		}
+	Sort(out, [&](const PkgProvider& a, const PkgProvider& b) {
+		if(a.priority != b.priority)
+			return a.priority > b.priority;
+		if(a.kind != b.kind)
+			return a.kind < b.kind;
+		return a.id < b.id;
+	});
 	return pick(out);
+}
+
+static String sCapabilityTitle(const String& capability)
+{
+	if(capability == "virtual/sqlite")
+		return "SQLite";
+	if(capability == "virtual/ssl")
+		return "SSL";
+	if(capability == "virtual/sdl2")
+		return "SDL2";
+	if(capability == "virtual/opengl")
+		return "OpenGL";
+	if(capability == "virtual/gui-runtime")
+		return "GUI runtime";
+	return GetFileName(capability);
+}
+
+static int sProviderSelectionScore(const PkgProvider& p, const PkgRepository& repo, const String& pref)
+{
+	String want = ToLower(TrimBoth(pref));
+	String kind = ToLower(p.kind);
+	int score = 0;
+	if(want == "system") {
+		if(kind == "system")
+			score += 0;
+		else if(kind == "upp-plugin")
+			score += 100;
+		else
+			score += 40;
+	}
+	else if(want == "portable") {
+		if(kind == "upp-plugin")
+			score += 0;
+		else if(kind == "vcpkg" || kind == "msys2" || kind == "web" || kind == "emscripten")
+			score += 20;
+		else
+			score += 60;
+	}
+	else if(!want.IsEmpty() && (ToLower(p.id) == want || kind == want || ToLower(p.provider) == want)) {
+		score += 0;
+	}
+	else {
+		if(kind == "upp-plugin")
+			score += 0;
+		else if(kind == "vcpkg" || kind == "msys2" || kind == "web" || kind == "emscripten")
+			score += 20;
+		else if(kind == "system")
+			score += 40;
+		else if(kind == "manual")
+			score += 90;
+		else
+			score += 50;
+	}
+	if(p.kind == "upp-plugin" && !repo.HasPackage(p.provider))
+		score += 1000;
+	if(p.manual)
+		score += 500;
+	score -= p.priority / 10;
+	return score;
+}
+
+static PkgProviderResolution sMakeResolution(const PkgProvider& p, const PkgRepository& repo, const String& capability, bool selected)
+{
+	PkgProviderResolution r;
+	r.capability = capability;
+	r.provider_id = p.id;
+	r.provider_kind = p.kind;
+	r.provider = p.provider;
+	r.external_package = p.provider;
+	r.details = p.details;
+	r.probe_status = sProviderProbeStatus(p, repo);
+	r.priority = p.priority;
+	r.selected = selected;
+	r.manual = p.manual;
+	for(const String& s : p.targets)
+		r.targets.Add(s);
+	for(const String& s : p.uses_add)
+		r.uses_add.Add(s);
+	for(const PkgUppFlag& f : p.upp_add)
+		r.upp_add.Add(f);
+	return r;
+}
+
+static const PkgProvider* sSelectProviderCandidate(const Vector<PkgProvider>& candidates, const PkgRepository& repo, const String& pref)
+{
+	const PkgProvider* best = nullptr;
+	int best_score = INT_MAX;
+	for(const PkgProvider& p : candidates) {
+		int score = sProviderSelectionScore(p, repo, pref);
+		if(!best || score < best_score || (score == best_score && (p.priority > best->priority || (p.priority == best->priority && p.id < best->id)))) {
+			best = &p;
+			best_score = score;
+		}
+	}
+	return best;
+}
+
+static Vector<PkgVirtualCapability> sProviderCapabilities()
+{
+	Vector<PkgVirtualCapability> v;
+	auto add = [&](const String& capability, const String& description) {
+		PkgVirtualCapability& c = v.Add();
+		c.capability = capability;
+		c.description = description;
+	};
+	add("virtual/sqlite", "SQLite backend");
+	add("virtual/ssl", "SSL backend");
+	add("virtual/sdl2", "SDL2 backend");
+	add("virtual/opengl", "OpenGL backend");
+	add("virtual/gui-runtime", "GUI runtime");
+	return pick(v);
+}
+
+static void sBuildProviderPlan(PkgProviderPlan& plan, const PkgRepository& repo, const String& target, const Vector<String>& virtuals, const String& provider_pref)
+{
+	plan.capabilities.Clear();
+	plan.resolutions.Clear();
+	plan.uses_additions.Clear();
+	plan.upp_additions.Clear();
+	plan.warnings.Clear();
+	for(const PkgVirtualCapability& c : sProviderCapabilities()) {
+		PkgVirtualCapability& q = plan.capabilities.Add();
+		q.capability = c.capability;
+		q.description = c.description;
+		for(const String& s : c.provider_ids)
+			q.provider_ids.Add(s);
+	}
+	for(const String& capability : virtuals) {
+		PkgVirtualCapability* cap = nullptr;
+		for(PkgVirtualCapability& c : plan.capabilities)
+			if(c.capability == capability) {
+				cap = &c;
+				break;
+			}
+		if(!cap) {
+			PkgVirtualCapability& c = plan.capabilities.Add();
+			c.capability = capability;
+			c.description = sCapabilityTitle(capability);
+			cap = &c;
+		}
+		Vector<PkgProvider> candidates = sProvidersFor(capability, target);
+		for(const PkgProvider& p : candidates)
+			cap->provider_ids.Add(p.id);
+		const PkgProvider* selected = sSelectProviderCandidate(candidates, repo, provider_pref);
+		if(selected) {
+			PkgProviderResolution r = sMakeResolution(*selected, repo, capability, true);
+			PkgProviderResolution& q = plan.resolutions.Add();
+			q.capability = r.capability;
+			q.provider_id = r.provider_id;
+			q.provider_kind = r.provider_kind;
+			q.provider = r.provider;
+			q.external_package = r.external_package;
+			q.details = r.details;
+			q.probe_status = r.probe_status;
+			q.priority = r.priority;
+			q.selected = r.selected;
+			q.manual = r.manual;
+			for(const String& s : r.targets)
+				q.targets.Add(s);
+			for(const String& s : r.uses_add)
+				q.uses_add.Add(s);
+			for(const PkgUppFlag& f : r.upp_add)
+				q.upp_add.Add(f);
+			if(r.selected) {
+				for(const String& s : r.uses_add)
+					if(FindIndex(plan.uses_additions, s) < 0)
+						plan.uses_additions.Add(s);
+				for(const PkgUppFlag& f : r.upp_add)
+					plan.upp_additions.Add(f);
+			}
+		}
+		else {
+			PkgProviderResolution r;
+			r.capability = capability;
+			r.provider_id = "manual";
+			r.provider_kind = "manual";
+			r.provider = capability;
+			r.external_package = Null;
+			r.details = "no provider selected";
+			r.probe_status = "missing";
+			r.manual = true;
+			PkgProviderResolution& q = plan.resolutions.Add();
+			q.capability = r.capability;
+			q.provider_id = r.provider_id;
+			q.provider_kind = r.provider_kind;
+			q.provider = r.provider;
+			q.external_package = r.external_package;
+			q.details = r.details;
+			q.probe_status = r.probe_status;
+			q.priority = r.priority;
+			q.selected = r.selected;
+			q.manual = r.manual;
+			if(FindIndex(plan.warnings, capability + ": no provider available") < 0)
+				plan.warnings.Add(capability + ": no provider available");
+		}
+	}
 }
 
 static bool sIsSelected(const Vector<String>& v, const String& s)
@@ -1092,6 +1522,7 @@ bool ParsePkgArgs(const Vector<String>& args, PkgInvocation& inv, String& error)
 			else if(a == "--info") inv.info = true, inv.command = PKG_CMD_INFO;
 			else if(a == "--metadata") inv.metadata = true, inv.command = PKG_CMD_METADATA;
 			else if(a == "--list-sets") inv.list_sets = true, inv.command = PKG_CMD_LIST_SETS;
+			else if(a == "--providers") inv.providers = true, inv.command = PKG_CMD_PROVIDERS;
 			else if(a == "--pretend") inv.pretend = true;
 			else if(a == "--ask") inv.ask = true;
 			else if(a == "--verbose") inv.verbose = true;
@@ -1127,6 +1558,9 @@ bool ParsePkgArgs(const Vector<String>& args, PkgInvocation& inv, String& error)
 			}
 			else if(a == "--sysroot" || a.StartsWith("--sysroot=")) {
 				inv.sysroot = a == "--sysroot" ? (i + 1 < args.GetCount() ? args[++i] : String()) : sOptValue(a);
+			}
+			else if(a == "--provider" || a.StartsWith("--provider=")) {
+				inv.provider = a == "--provider" ? (i + 1 < args.GetCount() ? args[++i] : String()) : sOptValue(a);
 			}
 			else
 				inv.extra.Add(a);
@@ -1173,6 +1607,7 @@ bool ParsePkgArgs(const Vector<String>& args, PkgInvocation& inv, String& error)
 			else if(cmd == "info") inv.command = PKG_CMD_INFO;
 			else if(cmd == "metadata") inv.command = PKG_CMD_METADATA;
 			else if(cmd == "list-sets") inv.command = PKG_CMD_LIST_SETS;
+			else if(cmd == "providers") inv.command = PKG_CMD_PROVIDERS;
 			else if(cmd == "explain-use") inv.command = PKG_CMD_EXPLAIN_USE;
 			else if(cmd == "explain-target") inv.command = PKG_CMD_EXPLAIN_TARGET;
 			else if(cmd == "deps") inv.command = PKG_CMD_DEPS;
@@ -1189,10 +1624,12 @@ bool ParsePkgArgs(const Vector<String>& args, PkgInvocation& inv, String& error)
 			inv.command = PKG_CMD_METADATA;
 		else if(inv.info)
 			inv.command = PKG_CMD_INFO;
-		else if(inv.search)
-			inv.command = PKG_CMD_SEARCH;
-		else if(inv.resume)
-			inv.command = PKG_CMD_RESUME;
+			else if(inv.search)
+				inv.command = PKG_CMD_SEARCH;
+			else if(inv.providers)
+				inv.command = PKG_CMD_PROVIDERS;
+			else if(inv.resume)
+				inv.command = PKG_CMD_RESUME;
 		else if(inv.ask || inv.verbose || inv.update || inv.deep || inv.newuse || inv.changed_use || inv.pretend)
 			inv.command = PKG_CMD_PLAN;
 		else
@@ -1202,7 +1639,7 @@ bool ParsePkgArgs(const Vector<String>& args, PkgInvocation& inv, String& error)
 	if(positional.GetCount()) {
 		int start = 0;
 		if(positional[0] == "help" || positional[0] == "version" || positional[0] == "info" ||
-		   positional[0] == "metadata" || positional[0] == "list-sets" || positional[0] == "explain-use" || positional[0] == "explain-target" || positional[0] == "deps" ||
+		   positional[0] == "metadata" || positional[0] == "list-sets" || positional[0] == "providers" || positional[0] == "explain-use" || positional[0] == "explain-target" || positional[0] == "deps" ||
 		   positional[0] == "target" || positional[0] == "eselect" || positional[0] == "audit-acceptflags" ||
 		   positional[0] == "resume" || positional[0] == "search")
 			start = 1;
@@ -1242,6 +1679,12 @@ bool ParsePkgArgs(const Vector<String>& args, PkgInvocation& inv, String& error)
 		        inv.command == PKG_CMD_HELP || inv.command == PKG_CMD_AUDIT_ACCEPTFLAGS) {
 			if(rest.GetCount())
 				inv.atom = rest[0];
+			for(int i = 1; i < rest.GetCount(); i++)
+				inv.extra.Add(rest[i]);
+		}
+		else if(inv.command == PKG_CMD_PROVIDERS) {
+			if(rest.GetCount())
+				inv.provider_query = rest[0];
 			for(int i = 1; i < rest.GetCount(); i++)
 				inv.extra.Add(rest[i]);
 		}
@@ -1399,6 +1842,8 @@ static void sPrintHelp(bool color)
 		<< "  --info, info\n"
 		<< "  --metadata, metadata\n"
 		<< "  --list-sets\n"
+		<< "  --providers [capability]\n"
+		<< "  --provider <portable|system|...>\n"
 		<< "  -s, --search <query>\n"
 		<< "  deps <atom> [USE flags...] --plan\n"
 		<< "  explain-use <atom> [USE flags...]\n"
@@ -1708,14 +2153,12 @@ static void sExplainTarget(const String& name)
 	Cout() << "Summary: " << t->summary << "\n";
 }
 
-static String sResolveProvider(const String& capability, const PkgRepository& repo)
+static const PkgProviderResolution* sFindProviderResolution(const PkgProviderPlan& plan, const String& capability)
 {
-	Vector<PkgProvider> providers = sProvidersFor(capability);
-	for(const PkgProvider& p : providers) {
-		if(p.kind == "upp-plugin" && repo.HasPackage(p.provider))
-			return p.provider;
-	}
-	return providers.GetCount() ? providers[0].provider : Null;
+	for(const PkgProviderResolution& r : plan.resolutions)
+		if(r.capability == capability)
+			return &r;
+	return nullptr;
 }
 
 static void sPrintDeps(const PkgInvocation& inv, const PkgRepository& repo)
@@ -1729,11 +2172,10 @@ static void sPrintDeps(const PkgInvocation& inv, const PkgRepository& repo)
 	Vector<String> virtuals;
 	if(sIsSelected(use.effective, "sqlite"))
 		virtuals.Add("virtual/sqlite");
-	if(sIsSelected(use.effective, "st"))
+	if(sIsSelected(use.effective, "st") || sIsSelected(use.effective, "gtk") || sIsSelected(use.effective, "virtualgui"))
 		virtuals.Add("virtual/gui-runtime");
-	if(sIsSelected(use.effective, "gtk"))
-		virtuals.Add("virtual/gui-runtime");
-
+	PkgProviderPlan provider_plan;
+	sBuildProviderPlan(provider_plan, repo, inv.target, virtuals, inv.provider);
 	Cout() << "Dependencies for " << inv.atom << "\n";
 	Cout() << "Target: " << sTargetNameText(inv.target) << " (" << tp.thread_model << ")\n";
 	Cout() << "Virtual requirements:\n";
@@ -1743,40 +2185,119 @@ static void sPrintDeps(const PkgInvocation& inv, const PkgRepository& repo)
 		for(const String& v : virtuals)
 			Cout() << "  " << v << "\n";
 
-	Cout() << "\nSelected providers:\n";
-	Vector<String> providers;
-	for(const String& v : virtuals) {
-		String provider = sResolveProvider(v, repo);
-		if(!provider.IsEmpty()) {
-			providers.Add(provider);
-			Cout() << "  " << v << " -> " << provider << "\n";
-		}
-	}
-	if(providers.IsEmpty())
-		Cout() << "  [none]\n";
-
-	Cout() << "\nU++ uses additions:\n";
-	if(providers.IsEmpty())
+	Cout() << "\nProvider resolution:\n";
+	if(provider_plan.resolutions.IsEmpty())
 		Cout() << "  [none]\n";
 	else
-		for(const String& p : providers)
+		for(const PkgProviderResolution& r : provider_plan.resolutions) {
+			Cout() << "  " << r.capability << " -> " << (r.provider_id.IsEmpty() ? String("[none]") : r.provider_id)
+			     << " [" << r.probe_status << "]\n";
+			if(!r.external_package.IsEmpty())
+				Cout() << "    package: " << r.external_package << "\n";
+			if(!r.uses_add.IsEmpty())
+				Cout() << "    U++ uses: " << sFmtList(r.uses_add) << "\n";
+			if(!r.upp_add.IsEmpty()) {
+				Vector<String> flags;
+				for(const PkgUppFlag& f : r.upp_add)
+					flags.Add(sFormatUppFlag(f));
+				Cout() << "    UPP flags: " << sFmtList(flags) << "\n";
+			}
+		}
+
+	Cout() << "\nU++ uses additions:\n";
+	if(provider_plan.uses_additions.IsEmpty())
+		Cout() << "  [none]\n";
+	else
+		for(const String& p : provider_plan.uses_additions)
 			Cout() << "  " << p << "\n";
 
 	Cout() << "\nU++ flag additions:\n";
-	if(upp.flags.IsEmpty())
+	if(provider_plan.upp_additions.IsEmpty())
 		Cout() << "  [none]\n";
 	else
-		for(const PkgUppFlag& flag : upp.flags)
+		for(const PkgUppFlag& flag : provider_plan.upp_additions)
 			Cout() << "  " << sFormatUppFlag(flag) << "\n";
 
 	bool need_system = false;
-	for(const String& v : virtuals) {
-		Vector<PkgProvider> choices = sProvidersFor(v);
-		for(const PkgProvider& p : choices)
-			if(p.kind == "system")
-				need_system = true;
-	}
+	for(const PkgProviderResolution& r : provider_plan.resolutions)
+		if(r.provider_kind == "system")
+			need_system = true;
 	Cout() << "\nSystem installation required: " << (need_system ? "yes" : "no") << "\n";
+}
+
+static void sPrintProvidersCommand(const PkgInvocation& inv, const PkgRepository& repo)
+{
+	String target = inv.target.IsEmpty() ? String("native") : inv.target;
+	String query = inv.provider_query;
+	if(!query.IsEmpty() && !query.StartsWith("virtual/"))
+		query = String("virtual/") + query;
+	if(query.IsEmpty()) {
+		Cout() << "Provider catalog:\n";
+		Vector<PkgVirtualCapability> caps = sProviderCapabilities();
+		for(const PkgVirtualCapability& cap : caps) {
+			Cout() << "  " << cap.capability << " - " << cap.description << "\n";
+			Vector<PkgProvider> candidates = sProvidersFor(cap.capability, target);
+			for(const PkgProvider& p : candidates) {
+				String status = sProviderProbeStatus(p, repo);
+				Cout() << "    " << p.id << " [" << p.kind << "; " << status << "]";
+				if(!p.provider.IsEmpty())
+					Cout() << " -> " << p.provider;
+				Cout() << "\n";
+			}
+		}
+		Cout() << "\nSelection rules:\n";
+		Cout() << "  explicit provider preference wins if available\n";
+		Cout() << "  otherwise prefer upp-plugin/bundled providers\n";
+		Cout() << "  then target/platform providers\n";
+		Cout() << "  missing/manual providers are reported, not installed\n";
+		return;
+	}
+
+	Vector<String> virtuals;
+	virtuals.Add(query);
+	PkgProviderPlan plan;
+	sBuildProviderPlan(plan, repo, target, virtuals, inv.provider);
+	const PkgProviderResolution* res = sFindProviderResolution(plan, query);
+	if(!res) {
+		Cout() << "Capability: " << query << "\n";
+		Cout() << "  [no provider available]\n";
+		return;
+	}
+
+	Cout() << "Capability: " << res->capability << "\n";
+	Cout() << "Selected provider: " << (res->provider_id.IsEmpty() ? String("[none]") : res->provider_id)
+	     << " [" << res->probe_status << "]\n";
+	if(!res->external_package.IsEmpty())
+		Cout() << "External package: " << res->external_package << "\n";
+	if(!res->uses_add.IsEmpty())
+		Cout() << "U++ uses: " << sFmtList(res->uses_add) << "\n";
+	if(!res->upp_add.IsEmpty()) {
+		Vector<String> flags;
+		for(const PkgUppFlag& f : res->upp_add)
+			flags.Add(sFormatUppFlag(f));
+		Cout() << "U++ flags: " << sFmtList(flags) << "\n";
+	}
+	Cout() << "\nCandidates:\n";
+	Vector<PkgProvider> candidates = sProvidersFor(query, target);
+	if(candidates.IsEmpty())
+		Cout() << "  [none]\n";
+	else
+		for(const PkgProvider& p : candidates) {
+			Cout() << "  " << p.id << " [" << p.kind << "; " << sProviderProbeStatus(p, repo) << "]";
+			if(!p.provider.IsEmpty())
+				Cout() << " -> " << p.provider;
+			if(!p.details.IsEmpty())
+				Cout() << " - " << p.details;
+			Cout() << "\n";
+			if(!p.uses_add.IsEmpty())
+				Cout() << "    U++ uses: " << sFmtList(p.uses_add) << "\n";
+			if(!p.upp_add.IsEmpty()) {
+				Vector<String> flags;
+				for(const PkgUppFlag& f : p.upp_add)
+					flags.Add(sFormatUppFlag(f));
+				Cout() << "    UPP flags: " << sFmtList(flags) << "\n";
+			}
+		}
 }
 
 static void sPrintSearch(const PkgRepository& repo, const String& query, bool color)
@@ -2015,13 +2536,22 @@ static void sPlanWalkAtom(PkgPlan& plan, const PkgInvocation& inv, const PkgRepo
 	}
 
 	if(atom.StartsWith("virtual/")) {
-		String provider = sResolveProvider(atom, repo);
-		if(provider.IsEmpty()) {
-			sPlanAddItem(plan, 'B', atom, nullptr, reason.IsEmpty() ? String("no provider available") : reason, String(), true, false, depth);
+		const PkgProviderResolution* res = sFindProviderResolution(plan.provider_plan, atom);
+		if(!res) {
+			sPlanAddItem(plan, 'F', atom, nullptr, reason.IsEmpty() ? String("no provider available") : reason, "manual", true, false, depth);
+			PkgPlanItem& item = plan.items.Top();
+			item.provider_kind = "manual";
+			item.provider_status = "missing";
 			return;
 		}
-		const PkgPackage* provider_pkg = repo.Find(provider);
-		sPlanAddItem(plan, provider_pkg ? 'b' : 'B', provider, provider_pkg, reason.IsEmpty() ? String("provider for ") + atom : reason, atom, false, provider_pkg != nullptr, depth);
+		const PkgPackage* provider_pkg = res->external_package.IsEmpty() ? nullptr : repo.Find(res->external_package);
+		char status = res->provider_kind == "manual" || res->probe_status == "missing" || res->external_package.IsEmpty() ? 'F' : 'N';
+		sPlanAddItem(plan, status, atom, provider_pkg, reason.IsEmpty() ? String("provider for ") + atom : reason,
+		             res->provider_id, false, provider_pkg != nullptr, depth);
+		PkgPlanItem& item = plan.items.Top();
+		item.provider_kind = res->provider_kind;
+		item.provider_package = res->external_package;
+		item.provider_status = res->probe_status;
 		if(provider_pkg && plan.deep)
 			sPlanWalkAtom(plan, inv, repo, state, provider_pkg->atom, String("provider for ") + atom, seen, depth + 1);
 		return;
@@ -2029,12 +2559,17 @@ static void sPlanWalkAtom(PkgPlan& plan, const PkgInvocation& inv, const PkgRepo
 
 	const PkgPackage* pkg = repo.Find(atom);
 	if(!pkg) {
-		String provider = sResolveProvider(atom, repo);
-		if(provider.IsEmpty() && !atom.StartsWith("virtual/"))
-			provider = sResolveProvider(String("virtual/") + atom, repo);
-		if(!provider.IsEmpty()) {
-			const PkgPackage* provider_pkg = repo.Find(provider);
-			sPlanAddItem(plan, provider_pkg ? 'b' : 'B', provider, provider_pkg, reason.IsEmpty() ? String("provider for ") + atom : reason, atom, false, provider_pkg != nullptr, depth);
+		String cap = atom.StartsWith("virtual/") ? atom : String("virtual/") + atom;
+		const PkgProviderResolution* res = sFindProviderResolution(plan.provider_plan, cap);
+		if(res) {
+			const PkgPackage* provider_pkg = res->external_package.IsEmpty() ? nullptr : repo.Find(res->external_package);
+			char status = res->provider_kind == "manual" || res->probe_status == "missing" || res->external_package.IsEmpty() ? 'F' : 'N';
+			sPlanAddItem(plan, status, cap, provider_pkg, reason.IsEmpty() ? String("provider for ") + atom : reason,
+			             res->provider_id, false, provider_pkg != nullptr, depth);
+			PkgPlanItem& item = plan.items.Top();
+			item.provider_kind = res->provider_kind;
+			item.provider_package = res->external_package;
+			item.provider_status = res->probe_status;
 		}
 		else
 			sPlanAddItem(plan, 'F', atom, nullptr, reason.IsEmpty() ? String("package metadata not found") : reason, String(), false, false, depth);
@@ -2106,13 +2641,12 @@ static PkgPlan sBuildPlan(const PkgInvocation& inv, const PkgRepository& repo, c
 
 	if(sIsSelected(plan.effective_use, "sqlite") && FindIndex(plan.virtuals, "virtual/sqlite") < 0)
 		plan.virtuals.Add("virtual/sqlite");
-	if((sIsSelected(plan.effective_use, "st") || sIsSelected(plan.effective_use, "gtk")) && FindIndex(plan.virtuals, "virtual/gui-runtime") < 0)
+	if((sIsSelected(plan.effective_use, "st") || sIsSelected(plan.effective_use, "gtk") || sIsSelected(plan.effective_use, "virtualgui")) && FindIndex(plan.virtuals, "virtual/gui-runtime") < 0)
 		plan.virtuals.Add("virtual/gui-runtime");
-	for(const String& v : plan.virtuals) {
-		String provider = sResolveProvider(v, repo);
-		if(!provider.IsEmpty() && FindIndex(plan.providers, provider) < 0)
-			plan.providers.Add(provider);
-	}
+	sBuildProviderPlan(plan.provider_plan, repo, plan.target, plan.virtuals, inv.provider);
+	for(const PkgProviderResolution& r : plan.provider_plan.resolutions)
+		if(!r.external_package.IsEmpty() && FindIndex(plan.providers, r.external_package) < 0)
+			plan.providers.Add(r.external_package);
 
 	Index<String> seen;
 	if(!inv.atom.IsEmpty())
@@ -2141,7 +2675,11 @@ static void sPrintPlanItem(const PkgPlan& plan, const PkgPlanItem& item)
 		Cout() << ' ' << sAnsi("33", upp, plan.color);
 	Cout() << "\n";
 	if(!item.provider.IsEmpty())
-		Cout() << "  " << sAnsi("34", "provider:", plan.color) << ' ' << item.provider << "\n";
+		Cout() << "  " << sAnsi("34", "provider:", plan.color) << ' ' << item.provider
+		     << (item.provider_kind.IsEmpty() ? String() : String(" [") + item.provider_kind + "]")
+		     << (item.provider_status.IsEmpty() ? String() : String(" [") + item.provider_status + "]") << "\n";
+	if(!item.provider_package.IsEmpty())
+		Cout() << "  " << sAnsi("34", "package:", plan.color) << ' ' << item.provider_package << "\n";
 	if(!item.reason.IsEmpty())
 		Cout() << "  " << sAnsi("90", "reason:", plan.color) << ' ' << item.reason << "\n";
 	if(!item.repository.IsEmpty())
@@ -2188,10 +2726,32 @@ static PkgPlan sPrintPlan(const PkgInvocation& inv, const PkgRepository& repo, b
 	Cout() << "Effective USE: " << sFmtList(plan.effective_use) << "\n";
 	Cout() << "TARGET: " << sTargetNameText(plan.target) << "\n";
 	Cout() << "UPPFLAGS: " << sFormatUppProjection(plan.upp) << "\n";
+	Cout() << "Providers:\n";
+	if(plan.provider_plan.resolutions.IsEmpty())
+		Cout() << "  [none]\n";
+	else
+		for(const PkgProviderResolution& r : plan.provider_plan.resolutions) {
+			Cout() << "  " << r.capability << " -> " << (r.provider_id.IsEmpty() ? String("[none]") : r.provider_id)
+			     << " [" << r.probe_status << "]";
+			if(!r.external_package.IsEmpty())
+				Cout() << " -> " << r.external_package;
+			Cout() << "\n";
+		}
+	if(!plan.provider_plan.uses_additions.IsEmpty()) {
+		Cout() << "Provider U++ uses: " << sFmtList(plan.provider_plan.uses_additions) << "\n";
+	}
+	if(!plan.provider_plan.upp_additions.IsEmpty()) {
+		Vector<String> flags;
+		for(const PkgUppFlag& f : plan.provider_plan.upp_additions)
+			flags.Add(sFormatUppFlag(f));
+		Cout() << "Provider UPP flags: " << sFmtList(flags) << "\n";
+	}
 	if(!plan.providers.IsEmpty())
 		Cout() << "Providers: " << sFmtList(plan.providers) << "\n";
 	if(!plan.virtuals.IsEmpty())
 		Cout() << "Virtual requirements: " << sFmtList(plan.virtuals) << "\n";
+	if(!plan.provider_plan.warnings.IsEmpty())
+		Cout() << "Provider warnings: " << sFmtList(plan.provider_plan.warnings) << "\n";
 	Cout() << "Total packages: " << plan.items.GetCount() << "\n";
 
 	return plan;
@@ -2378,7 +2938,7 @@ int RunPkg(const Vector<String>& args)
 	}
 
 	bool need_repo = inv.command == PKG_CMD_INFO || inv.command == PKG_CMD_METADATA || inv.command == PKG_CMD_LIST_SETS ||
-	                 inv.command == PKG_CMD_SEARCH || inv.command == PKG_CMD_EXPLAIN_USE ||
+	                 inv.command == PKG_CMD_PROVIDERS || inv.command == PKG_CMD_SEARCH || inv.command == PKG_CMD_EXPLAIN_USE ||
 	                 inv.command == PKG_CMD_EXPLAIN_TARGET || inv.command == PKG_CMD_DEPS || inv.command == PKG_CMD_PLAN ||
 	                 inv.command == PKG_CMD_AUDIT_ACCEPTFLAGS || inv.command == PKG_CMD_ESELECT ||
 	                 inv.command == PKG_CMD_TARGET;
@@ -2393,6 +2953,11 @@ int RunPkg(const Vector<String>& args)
 	}
 	if(inv.command == PKG_CMD_INFO) {
 		sPrintInfo(repo, inv);
+		sFlushConsole();
+		return 0;
+	}
+	if(inv.command == PKG_CMD_PROVIDERS) {
+		sPrintProvidersCommand(inv, repo);
 		sFlushConsole();
 		return 0;
 	}

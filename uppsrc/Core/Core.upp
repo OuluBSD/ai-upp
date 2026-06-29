@@ -103,6 +103,8 @@ file
 	BinUndoRedo.cpp,
 	AppLog.h,
 	AppLog.cpp,
+	CoreLog.h,
+	CoreLog.cpp,
 	AppRegistry.h,
 	AppRegistry.cpp,
 	Containers readonly separator,

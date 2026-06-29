@@ -61,6 +61,111 @@ void ReplayTimelinePanel::SetProgress(int pos, int total)
 }
 
 // ---------------------------------------------------------------------------
+// OcrRulePanel
+
+OcrRulePanel::OcrRulePanel()
+{
+	rules_list_.AddColumn("Rule");
+	rules_list_.AddColumn("Expected");
+	results_list_.AddColumn("Rule");
+	results_list_.AddColumn("Text");
+	results_list_.AddColumn("Conf.", 45);
+	results_list_.AddColumn("Status", 60);
+
+	expected_lbl_.SetLabel("Expected text:");
+	status_lbl_.SetLabel("—");
+	add_btn_.SetLabel("+ Rule");
+	remove_btn_.SetLabel("Remove");
+	run_btn_.SetLabel("Run (Fake)");
+
+	add_btn_.WhenAction    = [=] { OnAdd(); };
+	remove_btn_.WhenAction = [=] { OnRemove(); };
+	run_btn_.WhenAction    = [=] { OnRun(); };
+
+	Add(rules_list_.HSizePos(4,4).TopPos(4, 80));
+	Add(expected_lbl_.LeftPos(4,90).TopPos(88,20));
+	Add(expected_edit_.HSizePos(98,4).TopPos(88,20));
+	Add(add_btn_.LeftPos(4,60).TopPos(114,22));
+	Add(remove_btn_.LeftPos(68,60).TopPos(114,22));
+	Add(run_btn_.RightPos(4,80).TopPos(114,22));
+	Add(results_list_.HSizePos(4,4).TopPos(142,100));
+	Add(status_lbl_.HSizePos(4,4).BottomPos(4,20));
+}
+
+void OcrRulePanel::SetRules(Vector<VsmOcrRule>* rules)
+{
+	rules_ = rules;
+	RebuildRules();
+}
+
+void OcrRulePanel::AddResult(const VsmOcrResult& result, const VsmOcrComparison& cmp)
+{
+	static const char* kSev[] = {"OK","WARN","ERROR"};
+	int sev = max(0, min(2, cmp.severity));
+	results_list_.Add(result.rule_id, result.text,
+	                  FormatDouble(result.confidence, 2), kSev[sev]);
+	status_lbl_.SetLabel("Last: " + cmp.message);
+}
+
+void OcrRulePanel::ClearResults()
+{
+	results_list_.Clear();
+	status_lbl_.SetLabel("—");
+}
+
+void OcrRulePanel::RebuildRules()
+{
+	rules_list_.Clear();
+	if(!rules_) return;
+	for(const VsmOcrRule& r : *rules_)
+		rules_list_.Add(r.rule_id, r.expectation.expected_text);
+}
+
+void OcrRulePanel::OnAdd()
+{
+	if(!rules_) return;
+	VsmOcrRule& r         = rules_->Add();
+	r.rule_id             = Format("ocr-%06d", (int)rules_->GetCount());
+	r.expectation.mode    = VSM_EXPECT_EXACT;
+	r.expectation.expected_text = expected_edit_.GetData().ToString();
+	r.confidence_threshold = 0.5;
+	RebuildRules();
+}
+
+void OcrRulePanel::OnRemove()
+{
+	if(!rules_) return;
+	int row = rules_list_.GetCursor();
+	if(row >= 0 && row < rules_->GetCount())
+		rules_->Remove(row);
+	RebuildRules();
+}
+
+void OcrRulePanel::OnRun()
+{
+	if(!rules_ || rules_->IsEmpty()) { status_lbl_.SetLabel("No rules"); return; }
+	int row = rules_list_.GetCursor();
+	if(row < 0) row = 0;
+	const VsmOcrRule& rule = (*rules_)[row];
+
+	VsmFakeOcrEngine fake(rule.expectation.expected_text);
+	VsmOcrExecutor exec;
+	exec.SetEngine(&fake);
+
+	VsmOcrRequest req;
+	req.rule_id   = rule.rule_id;
+	req.region_id = rule.annotation_id;
+	req.status    = VSM_OCR_PENDING;
+
+	VsmFrameImage img;
+	img.Set(32, 32, nullptr);
+
+	VsmOcrResult res   = exec.RunRequest(img, req);
+	VsmOcrComparison c = exec.Compare(res, rule);
+	AddResult(res, c);
+}
+
+// ---------------------------------------------------------------------------
 // TemplateRulePanel
 
 TemplateRulePanel::TemplateRulePanel()

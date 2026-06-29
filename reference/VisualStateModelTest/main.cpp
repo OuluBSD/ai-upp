@@ -244,6 +244,71 @@ static void TestChangeDetect()
 }
 
 // ---------------------------------------------------------------------------
+// Test: OCR observation layer
+
+static void TestOcrLayer()
+{
+	Cout() << "\n=== OCR observation layer ===\n";
+
+	AppLog log;
+	log.SetForwardToUppLog(false);
+
+	VsmFakeOcrEngine fake("Login Button", 0.97);
+	VsmOcrEngineInfo info = fake.GetInfo();
+	if(info.name != "FakeOCR" || !info.available) { Fail("FakeOcrEngine GetInfo"); return; }
+	Cout() << "FakeOcrEngine: " << info.name << " available=" << info.available << " OK\n";
+
+	VsmOcrExecutor exec;
+	exec.SetLog(&log);
+	exec.SetEngine(&fake);
+
+	VsmOcrRequest req;
+	req.rule_id   = "ocr-001";
+	req.region_id = "rgn-0001";
+	req.frame     = 1;
+	req.status    = VSM_OCR_PENDING;
+
+	VsmFrameImage img;
+	FillSolidRGBA(img, 32, 32, 200, 200, 200);
+
+	VsmOcrResult result = exec.RunRequest(img, req);
+	if(result.text != "Login Button") { Fail("RunRequest text mismatch"); return; }
+	Cout() << "RunRequest: text='" << result.text << "' confidence=" << result.confidence << " OK\n";
+
+	// Exact match OK
+	VsmOcrRule rule;
+	rule.rule_id                  = "ocr-001";
+	rule.expectation.mode         = VSM_EXPECT_EXACT;
+	rule.expectation.expected_text= "Login Button";
+	rule.confidence_threshold     = 0.5;
+	VsmOcrComparison cmp = exec.Compare(result, rule);
+	if(cmp.severity != VSM_OCR_OK) { Fail("Compare exact match"); return; }
+	Cout() << "Compare exact match: OK\n";
+
+	// Contains mode
+	VsmOcrRule rule2 = rule;
+	rule2.expectation.mode         = VSM_EXPECT_CONTAINS;
+	rule2.expectation.expected_text= "Login";
+	VsmOcrComparison cmp2 = exec.Compare(result, rule2);
+	if(cmp2.severity != VSM_OCR_OK) { Fail("Compare contains"); return; }
+	Cout() << "Compare contains: OK\n";
+
+	// Mismatch
+	VsmOcrRule rule3 = rule;
+	rule3.expectation.expected_text = "Dashboard";
+	VsmOcrComparison cmp3 = exec.Compare(result, rule3);
+	if(cmp3.severity != VSM_OCR_WARNING) { Fail("Expected warning for mismatch"); return; }
+	Cout() << "Compare mismatch → warning: OK\n";
+
+	// Round-trip
+	String json = StoreAsJson(rule);
+	VsmOcrRule rule_rt;
+	LoadFromJson(rule_rt, json);
+	if(rule_rt.rule_id != rule.rule_id) { Fail("OcrRule round-trip"); return; }
+	Cout() << "OcrRule round-trip: OK\n";
+}
+
+// ---------------------------------------------------------------------------
 // Test: Template matching
 
 static void TestTemplateMatch()
@@ -489,6 +554,7 @@ CONSOLE_APP_MAIN
 	TestChangeDetect();
 	TestGroundTruth();
 	TestReplay();
+	TestOcrLayer();
 	TestTemplateMatch();
 	TestPreprocess();
 	TestAnnotation();

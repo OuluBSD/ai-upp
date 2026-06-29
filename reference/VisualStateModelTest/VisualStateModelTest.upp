@@ -1,0 +1,10 @@
+description "VisualStateModel headless smoke test\377";
+
+uses
+	VisualStateModel;
+
+file
+	main.cpp;
+
+mainconfig
+	"" = "";

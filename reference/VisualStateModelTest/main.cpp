@@ -556,6 +556,86 @@ static void TestAnnotation()
 }
 
 // ---------------------------------------------------------------------------
+// Test: Image buffer (headless pixel buffer, .vsm save/load)
+
+static void TestImageAssets()
+{
+	Cout() << "\n=== Image buffer ===\n";
+
+	// Solid gray
+	VsmImageBuffer gray = VsmImageBuffer::MakeSolid(16, 16, 128, 1);
+	if(gray.width != 16 || gray.height != 16 || gray.channels != 1)
+		{ Fail("MakeSolid dimensions"); return; }
+	if(gray.Get(0, 0) != 128 || gray.Get(15, 15) != 128)
+		{ Fail("MakeSolid pixel value"); return; }
+	Cout() << "MakeSolid: OK\n";
+
+	// Gradient
+	VsmImageBuffer grad = VsmImageBuffer::MakeGradient(32, 8);
+	if(grad.Get(0, 0) != 0 || grad.Get(31, 0) != 255)
+		{ Fail("MakeGradient edge values"); return; }
+	Cout() << "MakeGradient: OK\n";
+
+	// Checkerboard
+	VsmImageBuffer cb = VsmImageBuffer::MakeCheckerboard(16, 16, 4);
+	if(cb.Get(0, 0) != 255 || cb.Get(4, 0) != 0)
+		{ Fail("MakeCheckerboard cells"); return; }
+	Cout() << "MakeCheckerboard: OK\n";
+
+	// Save / Load round-trip
+	String path = AppendFileName(GetTempPath(), "vsm_test_img.vsm");
+	if(!gray.Save(path)) { Fail("VsmImageBuffer::Save"); return; }
+
+	VsmImageBuffer loaded;
+	if(!loaded.Load(path)) { Fail("VsmImageBuffer::Load"); return; }
+	FileDelete(path);
+
+	if(loaded.width != 16 || loaded.height != 16 || loaded.channels != 1)
+		{ Fail("Load dimensions mismatch"); return; }
+	if(loaded.Get(7, 7) != 128)
+		{ Fail("Load pixel value mismatch"); return; }
+	Cout() << "Save/Load round-trip: " << loaded.Info() << " OK\n";
+
+	// Session store image I/O
+	String root = AppendFileName(GetTempPath(), "vsm_img_session_test");
+	if(DirectoryExists(root)) DeleteFolderDeep(root);
+
+	AppLog log;
+	log.SetForwardToUppLog(false);
+	VsmSessionStore store;
+	store.SetLog(&log);
+	if(!store.Create(root, "img-test-001", 32, 32)) { Fail("store Create for images"); return; }
+
+	VsmImageBuffer frame0 = VsmImageBuffer::MakeSolid(32, 32, 200, 1);
+	VsmAssetRef fr = store.SaveFrameImage(0, frame0);
+	if(fr.IsEmpty()) { Fail("SaveFrameImage returned empty ref"); return; }
+	if(fr.relative_path.Find(".vsm") < 0) { Fail("SaveFrameImage wrong extension"); return; }
+	Cout() << "SaveFrameImage: " << fr.relative_path << " OK\n";
+
+	VsmImageBuffer frame_loaded;
+	if(!store.LoadFrameImage(0, frame_loaded)) { Fail("LoadFrameImage failed"); return; }
+	if(frame_loaded.Get(0, 0) != 200) { Fail("LoadFrameImage pixel value"); return; }
+	Cout() << "LoadFrameImage: " << frame_loaded.Info() << " OK\n";
+
+	VsmImageBuffer crop0 = VsmImageBuffer::MakeSolid(8, 8, 100, 1);
+	VsmAssetRef cr = store.SaveCropImage("rgn-0001", crop0);
+	if(cr.IsEmpty()) { Fail("SaveCropImage returned empty ref"); return; }
+
+	VsmImageBuffer crop_loaded;
+	if(!store.LoadCropImage("rgn-0001", crop_loaded)) { Fail("LoadCropImage failed"); return; }
+	if(crop_loaded.Get(0, 0) != 100) { Fail("LoadCropImage pixel value"); return; }
+	Cout() << "SaveCropImage/LoadCropImage: OK\n";
+
+	// Manifest records .vsm format
+	if(!store.SaveManifest()) { Fail("SaveManifest after image"); return; }
+	const VsmSessionManifest& m = store.GetManifest();
+	if(m.image_format != "vsm") { Fail("Manifest image_format not updated"); return; }
+	Cout() << "Manifest image_format: " << m.image_format << " OK\n";
+
+	DeleteFolderDeep(root);
+}
+
+// ---------------------------------------------------------------------------
 // Test: Session storage
 
 static void TestSessionStorage()
@@ -635,6 +715,7 @@ CONSOLE_APP_MAIN
 	TestTemplateMatch();
 	TestPreprocess();
 	TestAnnotation();
+	TestImageAssets();
 	TestSessionStorage();
 
 	if(GetExitCode() == 0)

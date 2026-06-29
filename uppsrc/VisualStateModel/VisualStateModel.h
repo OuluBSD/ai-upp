@@ -10,6 +10,7 @@ using namespace Upp;
 #include "ChangeDetect.h"
 #include "GroundTruth.h"
 #include "Replay.h"
+#include "ImageBuffer.h"
 #include "SessionStorage.h"
 #include "Annotation.h"
 #include "Preprocess.h"

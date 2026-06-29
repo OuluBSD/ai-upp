@@ -1,7 +1,50 @@
 #include "Pkg.h"
 #include <cstdio>
 
+#define Cout() PkgOut()
+#define Cerr() PkgErr()
+
 namespace Upp {
+
+struct PkgConsole {
+	PkgConsole(FILE *f) : file(f) {}
+
+	~PkgConsole()
+	{
+		Flush();
+	}
+
+	template <class T>
+	PkgConsole& operator<<(const T& v)
+	{
+		buffer << v;
+		return *this;
+	}
+
+	void Flush()
+	{
+		String s = buffer;
+		if(!s.IsEmpty()) {
+			fwrite(~s, 1, s.GetCount(), file);
+			fflush(file);
+			buffer.Clear();
+		}
+	}
+
+private:
+	String buffer;
+	FILE *file;
+};
+
+static PkgConsole PkgOut()
+{
+	return PkgConsole(stdout);
+}
+
+static PkgConsole PkgErr()
+{
+	return PkgConsole(stderr);
+}
 
 void PkgUseMap::Jsonize(JsonIO& jio)
 {
@@ -286,6 +329,32 @@ Vector<const PkgPackage*> PkgRepository::Search(const String& query) const
 			found.Add(&p);
 	}
 	return pick(found);
+}
+
+static int sSearchScore(const PkgPackage& p, const String& query)
+{
+	String q = ToLower(TrimBoth(query));
+	String atom = ToLower(p.atom);
+	String name = ToLower(p.name);
+	String path = ToLower(UnixPath(NormalizePath(p.path)));
+	String desc = ToLower(p.description);
+	String nest = ToLower(p.nest);
+
+	if(q.IsEmpty())
+		return 1000;
+	if(q == atom || q == name || q == GetFileName(path))
+		return 0;
+	if(path.EndsWith(q) || atom.EndsWith(q) || name.EndsWith(q))
+		return 1;
+	if(atom.Find(q) >= 0 || name.Find(q) >= 0)
+		return 2;
+	if(path.Find(q) >= 0)
+		return 3;
+	if(desc.Find(q) >= 0)
+		return 4;
+	if(nest.Find(q) >= 0)
+		return 5;
+	return 1000;
 }
 
 bool PkgRepository::HasPackage(const String& atom) const
@@ -745,7 +814,7 @@ static bool sIsOption(const String& s)
 bool ParsePkgArgs(const Vector<String>& args, PkgInvocation& inv, String& error)
 {
 	Vector<String> positional;
-	for(int i = 1; i < args.GetCount(); i++) {
+	for(int i = 0; i < args.GetCount(); i++) {
 		String a = args[i];
 		if(a == "--")
 			continue;
@@ -937,6 +1006,12 @@ static bool sUseColor(const PkgInvocation& inv)
 static String sFmtList(const Vector<String>& v)
 {
 	return v.GetCount() ? sJoin(v, " ") : String("[none]");
+}
+
+static void sFlushConsole()
+{
+	Cout().Flush();
+	Cerr().Flush();
 }
 
 static void sPrintEselectModules(const PkgInvocation& inv)
@@ -1373,13 +1448,34 @@ static void sPrintDeps(const PkgInvocation& inv, const PkgRepository& repo)
 	Cout() << "\nSystem installation required: " << (need_system ? "yes" : "no") << "\n";
 }
 
-static void sPrintSearch(const PkgRepository& repo, const String& query)
+static void sPrintSearch(const PkgRepository& repo, const String& query, bool color)
 {
 	Vector<const PkgPackage*> found = repo.Search(query);
+	Sort(found, [&](const PkgPackage* a, const PkgPackage* b) {
+		int sa = sSearchScore(*a, query);
+		int sb = sSearchScore(*b, query);
+		if(sa != sb)
+			return sa < sb;
+		if(a->name != b->name)
+			return a->name < b->name;
+		if(a->nest != b->nest)
+			return a->nest < b->nest;
+		return a->path < b->path;
+	});
+
 	Cout() << "[ Results for search key : " << query << " ]\n";
+	if(found.IsEmpty()) {
+		Cout() << "No packages found.\n";
+		Cout() << "[ Packages found : 0 ]\n";
+		return;
+	}
+
 	Cout() << "Searching...\n\n";
 	for(const PkgPackage* p : found) {
-		Cout() << "*  " << p->name << "\n";
+		String title = p->name;
+		if(!p->atom.IsEmpty() && p->atom != p->name)
+			title << " (" << p->atom << ")";
+		Cout() << "*  " << sAnsi("36;1", title, color) << "\n";
 		Cout() << "      Latest version available: 0\n";
 		Cout() << "      Latest version installed: [ Not Installed ]\n";
 		Cout() << "      Homepage:      [ none ]\n";
@@ -1695,10 +1791,12 @@ int RunPkg(const Vector<String>& args)
 
 	if(inv.command == PKG_CMD_HELP) {
 		sPrintHelp(color);
+		sFlushConsole();
 		return 0;
 	}
 	if(inv.command == PKG_CMD_VERSION) {
 		sPrintVersion();
+		sFlushConsole();
 		return 0;
 	}
 
@@ -1713,38 +1811,47 @@ int RunPkg(const Vector<String>& args)
 
 	if(inv.command == PKG_CMD_LIST_SETS) {
 		sPrintSets(repo);
+		sFlushConsole();
 		return 0;
 	}
 	if(inv.command == PKG_CMD_INFO) {
 		sPrintInfo(repo, inv);
+		sFlushConsole();
 		return 0;
 	}
 	if(inv.command == PKG_CMD_METADATA) {
 		sPrintMetadata(repo);
+		sFlushConsole();
 		return 0;
 	}
 	if(inv.command == PKG_CMD_SEARCH) {
-		sPrintSearch(repo, inv.query);
+		sPrintSearch(repo, inv.query, color);
+		sFlushConsole();
 		return 0;
 	}
 	if(inv.command == PKG_CMD_TARGET) {
 		sPrintTargetCommand(inv);
+		sFlushConsole();
 		return 0;
 	}
 	if(inv.command == PKG_CMD_ESELECT) {
 		sPrintEselectCommand(inv);
+		sFlushConsole();
 		return 0;
 	}
 	if(inv.command == PKG_CMD_EXPLAIN_USE) {
 		sExplainUse(inv, repo);
+		sFlushConsole();
 		return 0;
 	}
 	if(inv.command == PKG_CMD_EXPLAIN_TARGET) {
 		sExplainTarget(inv.target);
+		sFlushConsole();
 		return 0;
 	}
 	if(inv.command == PKG_CMD_DEPS) {
 		sPrintDeps(inv, repo);
+		sFlushConsole();
 		return 0;
 	}
 	if(inv.command == PKG_CMD_PLAN) {
@@ -1752,13 +1859,16 @@ int RunPkg(const Vector<String>& args)
 			return 0;
 		if(inv.install) {
 			Cout() << "system package installation is not implemented yet\n";
+			sFlushConsole();
 			return 1;
 		}
 		sPrintPlan(inv, repo, color);
+		sFlushConsole();
 		return 0;
 	}
 	if(inv.command == PKG_CMD_AUDIT_ACCEPTFLAGS) {
 		sAuditAcceptFlags(inv, repo);
+		sFlushConsole();
 		return 0;
 	}
 	if(inv.command == PKG_CMD_RESUME) {
@@ -1767,10 +1877,12 @@ int RunPkg(const Vector<String>& args)
 		sPrintResumeState(state);
 		if(inv.pretend)
 			Cout() << "pretend mode active\n";
+		sFlushConsole();
 		return 0;
 	}
 
 	Cerr() << "not implemented yet\n";
+	sFlushConsole();
 	return 1;
 }
 

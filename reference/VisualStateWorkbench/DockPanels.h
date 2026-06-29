@@ -36,4 +36,19 @@ private:
 	Label  progress_lbl_;
 };
 
+// ---------------------------------------------------------------------------
+// SessionInfoPanel — shows VsmSessionManifest fields
+
+class SessionInfoPanel : public DockableCtrl {
+public:
+	typedef SessionInfoPanel CLASSNAME;
+
+	SessionInfoPanel();
+	void SetManifest(const VsmSessionManifest& m);
+	void Clear();
+
+private:
+	Label id_lbl_, source_lbl_, size_lbl_, created_lbl_, format_lbl_, assets_lbl_;
+};
+
 #endif

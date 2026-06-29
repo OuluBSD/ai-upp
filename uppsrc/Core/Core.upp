@@ -101,6 +101,8 @@ file
 	LocalProcess.cpp,
 	BinUndoRedo.h,
 	BinUndoRedo.cpp,
+	AppLog.h,
+	AppLog.cpp,
 	AppRegistry.h,
 	AppRegistry.cpp,
 	Containers readonly separator,

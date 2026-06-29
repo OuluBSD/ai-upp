@@ -14,10 +14,12 @@ public:
 	AppRegistry& Vendor(const String& id)   { vendor_ = id; return *this; }
 	AppRegistry& AppId(const String& id)    { app_id_ = id; return *this; }
 	AppRegistry& Profile(const String& id)  { profile_ = id; return *this; }
+	AppRegistry& SetLog(AppLog* log)        { log_sink_ = log; return *this; }
 
-	String GetVendor()  const { return vendor_; }
-	String GetAppId()   const { return app_id_; }
-	String GetProfile() const { return profile_; }
+	String GetVendor()     const { return vendor_; }
+	String GetAppId()      const { return app_id_; }
+	String GetProfile()    const { return profile_; }
+	AppLog* GetLogSink()   const { return log_sink_; }
 
 	String GetConfigDir() const;
 	String GetStateDir()  const;
@@ -32,7 +34,10 @@ public:
 	template <class T>
 	bool LoadJson(const String& key, T& obj) {
 		String s = Get(key, Null);
-		if(IsNull(s)) { LogMsg("LoadJson: key not found: " + key); return false; }
+		if(IsNull(s)) {
+			LogMsg("LoadJson: key not found: " + key, APPLOG_LEVEL_WARNING);
+			return false;
+		}
 		LoadFromJson(obj, s);
 		LogMsg("LoadJson: loaded key: " + key);
 		return true;
@@ -54,9 +59,10 @@ public:
 	void ClearLog()                       { log_.Clear(); }
 
 private:
-	String vendor_  = "AiUpp";
-	String app_id_;
-	String profile_ = "default";
+	String  vendor_   = "AiUpp";
+	String  app_id_;
+	String  profile_  = "default";
+	AppLog* log_sink_ = nullptr;
 
 	VectorMap<String, Value> values_;
 	mutable Vector<String>   log_;
@@ -64,11 +70,10 @@ private:
 	static const int64 kInlineThreshold = 64 * 1024;
 
 	String RegistryPath()   const;
-	String StateDirForKey(const String& key) const;
 	String BlobDirPath()    const;
 	String SafeKey(const String& key) const;
 
-	void LogMsg(const String& msg) const;
+	void LogMsg(const String& msg, int level = APPLOG_LEVEL_INFO) const;
 };
 
 #endif

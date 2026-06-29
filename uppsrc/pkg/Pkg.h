@@ -138,7 +138,9 @@ struct PkgStateRecord : Moveable<PkgStateRecord> {
 	String artifact_path;
 	Vector<String> selected_use;
 	Vector<String> declared_use;
-	Vector<String> effective_flags;
+	Vector<String> effective_use;
+	Vector<String> effective_uppflags;
+	Vector<String> accepted_flags;
 	Vector<String> providers;
 	Time timestamp;
 
@@ -165,6 +167,9 @@ struct PkgEselectState : Moveable<PkgEselectState> {
 struct PkgConfigPaths {
 	String root;
 	String ai_dir;
+	String sets_dir;
+	String system_set;
+	String toolchain_set;
 	String world;
 	String package_use;
 	String package_provider;
@@ -198,6 +203,7 @@ struct PkgPlan : Moveable<PkgPlan> {
 	bool update = false;
 	bool deep = false;
 	bool newuse = false;
+	bool changed_use = false;
 	PkgUseModel use;
 	PkgUppProjection upp;
 	Vector<String> selected_use;
@@ -244,6 +250,7 @@ struct PkgInvocation {
 	bool update = false;
 	bool deep = false;
 	bool newuse = false;
+	bool changed_use = false;
 	bool pretend = false;
 	bool resume = false;
 	bool oneshot = false;

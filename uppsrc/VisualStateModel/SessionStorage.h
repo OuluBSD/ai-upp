@@ -76,6 +76,12 @@ public:
 	VsmAssetRef AllocateCrop(const String& region_id);
 	String      Resolve(const VsmAssetRef& ref) const;
 
+	// Image asset I/O (stores .vsm binary; updates manifest format to "vsm")
+	VsmAssetRef     SaveFrameImage(int frame_index, const VsmImageBuffer& img);
+	bool            LoadFrameImage(int frame_index, VsmImageBuffer& out) const;
+	VsmAssetRef     SaveCropImage(const String& region_id, const VsmImageBuffer& img);
+	bool            LoadCropImage(const String& region_id, VsmImageBuffer& out) const;
+
 	bool SaveManifest();
 	bool LoadManifest();
 

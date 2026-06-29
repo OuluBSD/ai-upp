@@ -1460,7 +1460,9 @@ bool IsGlobalAuditFlag(const String& flag)
 	static const char *skip[] = {
 		"GUI", "DEBUG", "RELEASE", "POSIX", "WIN32", "LINUX",
 		"MSC", "GCC", "CLANG", "BLITZ", "MAIN", "X11", "COCOA",
-		"FREEBSD", "MACOS", "ANDROID", "MINGW", "MSVC"
+		"FREEBSD", "MACOS", "ANDROID", "MINGW", "MSVC",
+		"ST", "MT", "USEMALLOC", "SHARED", "STATIC", "NDEBUG",
+		"DEBUG_RT", "RELEASE_RT"
 	};
 	for(const char *s : skip)
 		if(flag == s)
@@ -1511,6 +1513,256 @@ static void sPrintAcceptFlagsPatch(const PkgRepository& repo, const PkgPackage& 
 	for(int i = 0; i < merged.GetCount(); i++) {
 		Cout() << "+" << '\t' << merged[i];
 		Cout() << (i + 1 < merged.GetCount() ? ",\n" : ";\n");
+	}
+}
+
+static String sAnsi(const char *code, const String& text, bool color);
+static String sFmtList(const Vector<String>& v);
+
+struct PkgAuditHit : Moveable<PkgAuditHit> {
+	String flag;
+	String path;
+	int line = 0;
+	String snippet;
+};
+
+struct PkgAuditPackage : Moveable<PkgAuditPackage> {
+	const PkgPackage *pkg = nullptr;
+	Vector<String> used;
+	Vector<String> accepted;
+	Vector<PkgAuditHit> hits;
+	Vector<String> missing;
+};
+
+static bool sAuditScanPathAllowed(const String& path)
+{
+	String p = ToLower(UnixPath(NormalizePath(path)));
+	if(p.Find("/.ai-upp/") >= 0 || p.StartsWith(".ai-upp/"))
+		return false;
+	if(p.Find("/build/") >= 0 || p.Find("/out/") >= 0 || p.Find("/bin/") >= 0 || p.Find("/obj/") >= 0)
+		return false;
+	if(p.Find("/tmp/") >= 0 || p.Find("/cache/") >= 0)
+		return false;
+	if(p.Find("/generated/") >= 0 || p.Find("/autogen/") >= 0 || p.Find("/gen/") >= 0)
+		return false;
+	return true;
+}
+
+static bool sAuditWordBefore(const String& text, int pos)
+{
+	return pos <= 0 || !(IsAlNum(text[pos - 1]) || text[pos - 1] == '_');
+}
+
+static String sAuditSnippet(const String& line)
+{
+	return TrimBoth(line);
+}
+
+static void sAuditScanFile(const String& path, Vector<PkgAuditHit>& hits)
+{
+	if(!sAuditScanPathAllowed(path))
+		return;
+	String txt = LoadFile(path);
+	if(txt.IsEmpty())
+		return;
+	if(txt.Find((char)0) >= 0)
+		return;
+
+	int line = 1;
+	bool line_comment = false;
+	bool block_comment = false;
+	char quote = 0;
+	for(int i = 0; i < txt.GetCount(); ) {
+		char c = txt[i];
+		char n = i + 1 < txt.GetCount() ? txt[i + 1] : 0;
+
+		if(c == '\n') {
+			++line;
+			line_comment = false;
+			++i;
+			continue;
+		}
+
+		if(line_comment) {
+			++i;
+			continue;
+		}
+		if(block_comment) {
+			if(c == '*' && n == '/') {
+				block_comment = false;
+				i += 2;
+			}
+			else
+				++i;
+			continue;
+		}
+		if(quote) {
+			if(c == '\\' && n) {
+				i += 2;
+				continue;
+			}
+			if(c == quote)
+				quote = 0;
+			++i;
+			continue;
+		}
+
+		if(c == '/' && n == '/') {
+			line_comment = true;
+			i += 2;
+			continue;
+		}
+		if(c == '/' && n == '*') {
+			block_comment = true;
+			i += 2;
+			continue;
+		}
+		if(c == '"' || c == '\'') {
+			quote = c;
+			++i;
+			continue;
+		}
+
+		if(c == 'f' && i + 4 < txt.GetCount() && txt[i + 1] == 'l' && txt[i + 2] == 'a' && txt[i + 3] == 'g' &&
+		   sAuditWordBefore(txt, i)) {
+			int j = i + 4;
+			if(j < txt.GetCount() && ((txt[j] >= 'A' && txt[j] <= 'Z') || txt[j] == '_')) {
+				int k = j + 1;
+				bool ok = true;
+				while(k < txt.GetCount() && (IsAlNum(txt[k]) || txt[k] == '_')) {
+					if(!((txt[k] >= 'A' && txt[k] <= 'Z') || (txt[k] >= '0' && txt[k] <= '9') || txt[k] == '_'))
+						ok = false;
+					++k;
+				}
+				if(ok) {
+					String flag = txt.Mid(i + 4, k - (i + 4));
+					PkgAuditHit& hit = hits.Add();
+					hit.flag = flag;
+					hit.path = path;
+					hit.line = line;
+					int eol = txt.Find('\n', i);
+					if(eol < 0)
+						eol = txt.GetCount();
+					hit.snippet = sAuditSnippet(txt.Mid(i, eol - i));
+					i = k;
+					continue;
+				}
+			}
+		}
+
+		++i;
+	}
+}
+
+static Vector<String> sAuditRelevantFlags(const Vector<PkgAuditHit>& hits, Vector<PkgAuditHit>& relevant_hits)
+{
+	Index<String> seen;
+	Vector<String> used;
+	for(const PkgAuditHit& hit : hits) {
+		if(IsGlobalAuditFlag(hit.flag))
+			continue;
+		if(seen.Find(hit.flag) < 0) {
+			seen.Add(hit.flag);
+			used.Add(hit.flag);
+		}
+		relevant_hits.Add(hit);
+	}
+	return pick(used);
+}
+
+static void sPrintAuditLine(const PkgAuditPackage& a, const PkgPackage& p, bool color)
+{
+	String prefix;
+	if(!a.missing.IsEmpty())
+		prefix = sAnsi("33;1", "[warn]", color);
+	else if(a.used.IsEmpty())
+		prefix = sAnsi("90", "[skip]", color);
+	else
+		prefix = sAnsi("32;1", "[ok]", color);
+
+	Cout() << prefix << ' ' << p.name;
+	if(!a.used.IsEmpty())
+		Cout() << ' ' << sAnsi("90", "uses", color) << ' ' << sFmtList(a.used);
+	if(!a.accepted.IsEmpty())
+		Cout() << ' ' << sAnsi("90", "accepts", color) << ' ' << sFmtList(a.accepted);
+	if(a.used.IsEmpty())
+		Cout() << ' ' << sAnsi("90", "only global/system flags", color);
+	Cout() << "\n";
+}
+
+static void sPrintAuditHitDetail(const PkgRepository& repo, const PkgAuditHit& hit, bool color)
+{
+	Cout() << "         " << sAnsi("90", "source:", color) << ' ' << sRepoRelativePath(repo, hit.path) << ':' << hit.line;
+	if(!hit.snippet.IsEmpty())
+		Cout() << "  " << sAnsi("90", hit.snippet, color);
+	Cout() << "\n";
+}
+
+static void sAuditPrintPackage(const PkgRepository& repo, const PkgPackage& p, bool color, bool patch, int& warnings, int& ok, int& skipped)
+{
+	Vector<PkgAuditHit> hits;
+	for(const String& src : p.source_files)
+		sAuditScanFile(src, hits);
+
+	Vector<PkgAuditHit> relevant_hits;
+	Vector<String> used = sAuditRelevantFlags(hits, relevant_hits);
+	Sort(used, [](const String& a, const String& b) { return a < b; });
+
+	Vector<String> accepted;
+	for(const String& s : p.accepts)
+		accepted.Add(s);
+	Sort(accepted, [](const String& a, const String& b) { return a < b; });
+
+	PkgAuditPackage audit;
+	audit.pkg = &p;
+	for(const String& s : used)
+		audit.used.Add(s);
+	for(const String& s : accepted)
+		audit.accepted.Add(s);
+	for(const PkgAuditHit& hit : relevant_hits)
+		audit.hits.Add(hit);
+
+	if(audit.used.IsEmpty()) {
+		++skipped;
+		sPrintAuditLine(audit, p, color);
+		return;
+	}
+
+	Index<String> accepted_set;
+	for(const String& s : accepted)
+		accepted_set.Add(s);
+	for(const String& s : used)
+		if(accepted_set.Find(s) < 0)
+			audit.missing.Add(s);
+
+	if(audit.missing.IsEmpty())
+		++ok;
+	else
+		++warnings;
+
+	sPrintAuditLine(audit, p, color);
+	Vector<String> missing;
+	for(const String& s : audit.missing)
+		missing.Add(s);
+	if(!missing.IsEmpty()) {
+		for(const String& flag : missing) {
+			PkgAuditHit best;
+			bool found = false;
+			for(const PkgAuditHit& hit : audit.hits) {
+				if(hit.flag == flag) {
+					best = hit;
+					found = true;
+					break;
+				}
+			}
+			if(found)
+				sPrintAuditHitDetail(repo, best, color);
+			Cout() << "         " << sAnsi("90", "hint:", color) << " add `acceptflags " << flag << ";`\n";
+		}
+		if(patch) {
+			Cout() << '\n';
+			sPrintAcceptFlagsPatch(repo, p, audit.missing);
+		}
 	}
 }
 
@@ -1640,6 +1892,7 @@ bool ParsePkgArgs(const Vector<String>& args, PkgInvocation& inv, String& error)
 			else if(a == "--info") inv.info = true, inv.command = PKG_CMD_INFO;
 			else if(a == "--metadata") inv.metadata = true, inv.command = PKG_CMD_METADATA;
 			else if(a == "--list-sets") inv.list_sets = true, inv.command = PKG_CMD_LIST_SETS;
+			else if(a == "--audit-acceptflags") inv.command = PKG_CMD_AUDIT_ACCEPTFLAGS;
 			else if(a == "--targets") inv.targets = true, inv.command = PKG_CMD_TARGETS;
 			else if(a == "--providers") inv.providers = true, inv.command = PKG_CMD_PROVIDERS;
 			else if(a == "--brief") inv.brief = true;
@@ -2131,6 +2384,7 @@ static void sPrintHelp(bool color)
 		<< "  --info, info\n"
 		<< "  --metadata, metadata\n"
 		<< "  --list-sets\n"
+		<< "  --audit-acceptflags [atom] [--patch]\n"
 		<< "  --targets\n"
 		<< "  targets\n"
 		<< "  --providers [capability]\n"
@@ -3273,7 +3527,7 @@ static void sPrintEselectCommand(const PkgInvocation& inv, const PkgRepository& 
 	Cout() << "\n";
 }
 
-static void sAuditAcceptFlags(const PkgInvocation& inv, const PkgRepository& repo)
+static void sAuditAcceptFlags(const PkgInvocation& inv, const PkgRepository& repo, bool color)
 {
 	Vector<const PkgPackage*> targets;
 	if(inv.atom.IsEmpty()) {
@@ -3282,77 +3536,31 @@ static void sAuditAcceptFlags(const PkgInvocation& inv, const PkgRepository& rep
 	}
 	else {
 		const PkgPackage* p = repo.Find(inv.atom);
-		if(p)
-			targets.Add(p);
+		if(!p) {
+			Cout() << sAnsi("33;1", "[warn]", color) << " unknown package: " << inv.atom << "\n";
+			return;
+		}
+		targets.Add(p);
 	}
 	Sort(targets, [](const PkgPackage* a, const PkgPackage* b) { return a->name < b->name; });
 
-	for(const PkgPackage* p : targets) {
-		Vector<String> used;
-		Vector<String> skipped;
-		for(const String& src : p->source_files) {
-			String txt = LoadFile(src);
-			if(txt.IsEmpty())
-				continue;
-			Vector<String> lines = Split(txt, '\n');
-			for(String line : lines) {
-				int sl = line.Find("//");
-				if(sl >= 0)
-					line = line.Left(sl);
-				line = TrimLeft(line);
-				if(line.IsEmpty() || line[0] != '#')
-					continue;
-				for(;;) {
-					int q = line.Find("flag");
-					if(q < 0)
-						break;
-					bool before = q == 0 || !(IsAlNum(line[q - 1]) || line[q - 1] == '_');
-					int s = q + 4;
-					if(before && s < line.GetCount() && (IsAlNum(line[s]) || line[s] == '_')) {
-						String flag;
-						while(s < line.GetCount() && (IsAlNum(line[s]) || line[s] == '_'))
-							flag.Cat(line[s++]);
-						if(!IsGlobalAuditFlag(flag)) {
-							if(FindIndex(used, flag) < 0)
-								used.Add(flag);
-						}
-						else if(FindIndex(skipped, flag) < 0)
-							skipped.Add(flag);
-						line = line.Mid(s);
-					}
-					else
-						line = line.Mid(q + 4);
-				}
-			}
-		}
-		Sort(skipped, [](const String& a, const String& b) { return a < b; });
-		for(const String& s : skipped)
-			Cout() << "[info] " << p->name << " uses flag" << s << " but " << s
-			     << " is skipped as a global/platform flag\n";
-
-		Sort(used, [](const String& a, const String& b) { return a < b; });
-		Vector<String> accepts;
-		for(const String& s : p->accepts)
-			accepts.Add(s);
-		Sort(accepts, [](const String& a, const String& b) { return a < b; });
-
-		Vector<String> missing;
-		for(const String& s : used) {
-			if(FindIndex(accepts, s) < 0) {
-				missing.Add(s);
-				Cout() << "[warn] " << p->name << " uses flag" << s << " but "
-				     << GetFileName(p->path) << " does not accept " << s << "\n";
-				Cout() << "[hint] add: acceptflags " << s << ";\n";
-			}
-		}
-		for(const String& a : accepts)
-			if(FindIndex(used, a) < 0)
-				Cout() << "[info] " << p->name << " accepts " << a << " but no source flag was found\n";
-		if(inv.audit_patch && !missing.IsEmpty()) {
-			Cout() << '\n';
-			sPrintAcceptFlagsPatch(repo, *p, missing);
-		}
+	int scanned = 0;
+	int warnings = 0;
+	int ok = 0;
+	int skipped = 0;
+	Cout() << "Acceptflags audit:\n\n";
+	for(int i = 0; i < targets.GetCount(); i++) {
+		const PkgPackage& p = *targets[i];
+		++scanned;
+		sAuditPrintPackage(repo, p, color, inv.audit_patch, warnings, ok, skipped);
+		if(i + 1 < targets.GetCount())
+			Cout() << "\n";
 	}
+	Cout() << "\nSummary:\n";
+	Cout() << "  packages scanned: " << scanned << "\n";
+	Cout() << "  warnings: " << warnings << "\n";
+	Cout() << "  ok: " << ok << "\n";
+	Cout() << "  skipped: " << skipped << "\n";
 	if(inv.audit_patch)
 		Cout() << "\n[patch] suggestion only - no files modified\n";
 }
@@ -3468,7 +3676,7 @@ int RunPkg(const Vector<String>& args)
 		return 0;
 	}
 	if(inv.command == PKG_CMD_AUDIT_ACCEPTFLAGS) {
-		sAuditAcceptFlags(inv, repo);
+		sAuditAcceptFlags(inv, repo, color);
 		sFlushConsole();
 		return 0;
 	}

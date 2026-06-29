@@ -30,4 +30,6 @@ file
 	ModelRuntime.h,
 	ModelRuntime.cpp,
 	PipelineRunner.h,
-	PipelineRunner.cpp;
+	PipelineRunner.cpp,
+	PipelineCache.h,
+	PipelineCache.cpp;

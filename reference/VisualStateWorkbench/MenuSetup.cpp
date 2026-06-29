@@ -12,6 +12,7 @@ void MainWindow::MenuFile(Bar& bar)
 	bar.Add("Load Sample Session", [=] { LoadSampleSession(); });
 	bar.Separator();
 	bar.Add("Run Pipeline",        [=] { OnRunPipeline(); });
+	bar.Add("Clear Pipeline Cache",[=] { OnClearCache(); });
 	bar.Separator();
 	bar.Add("Exit", [=] { Close(); });
 }

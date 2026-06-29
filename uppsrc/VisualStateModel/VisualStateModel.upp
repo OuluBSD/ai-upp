@@ -18,4 +18,6 @@ file
 	SessionStorage.h,
 	SessionStorage.cpp,
 	Annotation.h,
-	Annotation.cpp;
+	Annotation.cpp,
+	Preprocess.h,
+	Preprocess.cpp;

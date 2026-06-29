@@ -96,6 +96,9 @@ void MainWindow::InitDockers()
 	Register(annotation_dock_);
 	annotation_dock_.WhenLayerChanged = [=] { OnAnnotationChanged(); };
 
+	pipeline_dock_.Title("Pipeline Editor").SizeHint(Size(280, 220));
+	Register(pipeline_dock_);
+
 	timeline_dock_.WhenStep   = [=] { OnStep(); };
 	timeline_dock_.WhenRunAll = [=] { OnRunAll(); };
 	timeline_dock_.WhenReset  = [=] { OnResetReplay(); };
@@ -109,6 +112,7 @@ void MainWindow::OnResetDockLayout()
 	DockRight(props_dock_);
 	DockRight(session_dock_);
 	DockLeft(annotation_dock_);
+	DockLeft(pipeline_dock_);
 	DockBottom(timeline_dock_);
 	Log("layout: reset to default");
 }
@@ -349,6 +353,17 @@ void MainWindow::LoadSampleAnnotation()
 
 	annotation_dock_.SetLayer(&annotation_layer_);
 	Log(Format("annotations: loaded %d annotation(s)", annotation_layer_.annotations.GetCount()));
+
+	// Seed a default pipeline for the workbench
+	if(current_pipeline_.steps.IsEmpty()) {
+		current_pipeline_.id   = "pipe-default";
+		current_pipeline_.name = "Default";
+		VsmPreprocessStep s1; s1.type = VSM_PREP_GRAYSCALE;
+		VsmPreprocessStep s2; s2.type = VSM_PREP_NORMALIZE_32;
+		current_pipeline_.steps.Add(s1);
+		current_pipeline_.steps.Add(s2);
+	}
+	pipeline_dock_.SetPipeline(&current_pipeline_);
 }
 
 void MainWindow::OnAnnotationChanged()

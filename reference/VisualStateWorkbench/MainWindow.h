@@ -42,11 +42,13 @@ private:
 	ReplayTimelinePanel   timeline_dock_;
 	SessionInfoPanel      session_dock_;
 	AnnotationEditorPanel annotation_dock_;
+	PipelineEditorPanel   pipeline_dock_;
 
-	// ---- Session storage + annotation layer
-	VsmSessionStore       session_store_;
-	VsmAnnotationLayer    annotation_layer_;
-	String                annotation_path_;
+	// ---- Session storage + annotation layer + pipeline
+	VsmSessionStore        session_store_;
+	VsmAnnotationLayer     annotation_layer_;
+	String                 annotation_path_;
+	VsmPreprocessPipeline  current_pipeline_;
 
 	// ---- AppRegistry + state
 	AppRegistry registry_;

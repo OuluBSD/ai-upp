@@ -13,5 +13,6 @@ using namespace Upp;
 #include "SessionStorage.h"
 #include "Annotation.h"
 #include "Preprocess.h"
+#include "TemplateMatch.h"
 
 #endif

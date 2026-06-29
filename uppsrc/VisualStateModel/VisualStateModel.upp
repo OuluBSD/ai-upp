@@ -1,0 +1,15 @@
+description "VisualStateModel — headless change detection and replay\377";
+
+uses
+	Core;
+
+file
+	VisualStateModel.h options(PCH),
+	Types.h,
+	Types.cpp,
+	RegionMemory.h,
+	RegionMemory.cpp,
+	GroundTruth.h,
+	GroundTruth.cpp,
+	Replay.h,
+	Replay.cpp;

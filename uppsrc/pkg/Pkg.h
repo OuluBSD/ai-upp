@@ -18,6 +18,7 @@ enum PkgCommandKind {
 	PKG_CMD_INFO,
 	PKG_CMD_METADATA,
 	PKG_CMD_LIST_SETS,
+	PKG_CMD_TARGETS,
 	PKG_CMD_PROVIDERS,
 	PKG_CMD_SEARCH,
 	PKG_CMD_PLAN,
@@ -65,6 +66,7 @@ struct PkgUseModel : Moveable<PkgUseModel> {
 	Vector<String> defaults;
 	Vector<String> forced;
 	Vector<String> masked;
+	Vector<String> conflicts;
 	Vector<String> selected;
 	Vector<String> disabled;
 	Vector<String> effective;
@@ -75,6 +77,8 @@ struct PkgUppFlag : Moveable<PkgUppFlag> {
 	String name;
 	int scope = PKG_UPP_GLOBAL;
 	String reason;
+
+	void Jsonize(JsonIO& jio);
 };
 
 struct PkgUppProjection : Moveable<PkgUppProjection> {
@@ -83,6 +87,15 @@ struct PkgUppProjection : Moveable<PkgUppProjection> {
 	Vector<String> accepted;
 	Vector<String> main_only;
 	Vector<String> transitions;
+};
+
+struct PkgProviderPreference : Moveable<PkgProviderPreference> {
+	String capability;
+	String provider_id;
+	String reason;
+	int priority = 0;
+
+	void Jsonize(JsonIO& jio);
 };
 
 struct PkgTargetProfile : Moveable<PkgTargetProfile> {
@@ -99,9 +112,13 @@ struct PkgTargetProfile : Moveable<PkgTargetProfile> {
 	String linker;
 	String sdk;
 	String summary;
+	Vector<String> default_use;
 	Vector<String> forced_use;
 	Vector<String> masked_use;
-	Vector<String> provider_preferences;
+	Vector<PkgProviderPreference> provider_preferences;
+	Vector<PkgUppFlag> upp_add;
+	Vector<String> notes;
+	Vector<String> warnings;
 
 	void Jsonize(JsonIO& jio);
 };
@@ -253,6 +270,7 @@ struct PkgPlan : Moveable<PkgPlan> {
 	Vector<String> uppflags;
 	Vector<String> providers;
 	Vector<String> virtuals;
+	Vector<String> warnings;
 	PkgProviderPlan provider_plan;
 	Vector<PkgPlanItem> items;
 	int backtrack = 0;
@@ -298,6 +316,7 @@ struct PkgInvocation {
 	bool plan = false;
 	bool metadata = false;
 	bool list_sets = false;
+	bool targets = false;
 	bool providers = false;
 	bool info = false;
 	bool search = false;

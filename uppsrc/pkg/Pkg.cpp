@@ -357,6 +357,50 @@ static int sSearchScore(const PkgPackage& p, const String& query)
 	return 1000;
 }
 
+static bool sStateHasAtom(const PkgState& state, const String& atom)
+{
+	for(const PkgStateRecord& rec : state.records)
+		if(rec.atom == atom)
+			return true;
+	return false;
+}
+
+static String sPlanStatusText(char status)
+{
+	switch(status) {
+	case 'N': return "new";
+	case 'U': return "update";
+	case 'D': return "downgrade";
+	case 'R': return "rebuild";
+	case 'r': return "reverse rebuild";
+	case 'B': return "blocker";
+	case 'b': return "resolved blocker";
+	case 'F': return "fetch/manual action";
+	case 'I': return "interactive";
+	default:  return "unknown";
+	}
+}
+
+static String sPlanTag(char status)
+{
+	String tag;
+	switch(status) {
+	case 'B': return "[blocked  B    ]";
+	case 'F': return "[fetch    F    ]";
+	case 'I': return "[ebuild   I    ]";
+	}
+	tag << "[ebuild   " << status << "    ]";
+	return tag;
+}
+
+static String sPlanLabel(const PkgPlanItem& item)
+{
+	String s = item.atom;
+	if(!item.description.IsEmpty())
+		s << " - " << item.description;
+	return s;
+}
+
 bool PkgRepository::HasPackage(const String& atom) const
 {
 	return Find(atom) != nullptr;
@@ -772,7 +816,7 @@ static void sAddWorld(const PkgConfigPaths& paths, const String& atom)
 
 static bool sPromptYesNo()
 {
-	Cout() << "Would you like to build these packages? [Yes/No] ";
+	Cout() << "Would you like to continue? [Yes/No] ";
 	Cout().Flush();
 	char buf[64];
 	if(!fgets(buf, sizeof(buf), stdin))
@@ -1570,54 +1614,205 @@ static void sWriteState(const PkgRepository& repo, const PkgInvocation& inv, con
 	StoreAsJsonFile(state, repo.paths.state, true);
 }
 
-static void sPrintPlan(const PkgInvocation& inv, const PkgRepository& repo, bool color)
+static Vector<String> sPlanUppFlags(const Vector<String>& effective)
 {
-	Vector<String> selected;
-	Vector<String> disabled;
-	Vector<String> defaulted;
-	Vector<String> effective;
-	Vector<String> target_forced;
-	Vector<String> target_masked;
-	sPolicyFlags(inv.use_args, inv.target, selected, disabled, defaulted, effective, &target_forced, &target_masked);
-	const PkgTargetProfile& tp = sDefaultTargetProfile(inv.target);
-	Vector<String> providers;
-	Vector<String> virtuals;
 	Vector<String> uppflags;
-	if(sIsSelected(effective, "sqlite"))
-		virtuals.Add("virtual/sqlite");
-	if(sIsSelected(effective, "gtk") || sIsSelected(effective, "gui") || tp.thread_model == "st")
-		virtuals.Add("virtual/gui-runtime");
-	for(const String& v : virtuals) {
-		String provider = sResolveProvider(v, repo);
-		if(!provider.IsEmpty())
-			providers.Add(provider);
-	}
+	Index<String> seen;
 	for(const String& s : effective) {
 		const PkgUsePolicy* p = sFindPolicy(s);
 		if(!p)
 			continue;
-		for(const PkgUseMap& m : p->maps_to)
-			uppflags.Add(sUppFlagSpelling(m.upp_flag, m.scope == "accepted"));
+		for(const PkgUseMap& m : p->maps_to) {
+			String spell = sUppFlagSpelling(m.upp_flag, m.scope == "accepted");
+			if(seen.Find(spell) < 0) {
+				seen.Add(spell);
+				uppflags.Add(spell);
+			}
+		}
 	}
+	return pick(uppflags);
+}
+
+static void sPlanAddItem(PkgPlan& plan, char base_status, const String& atom, const PkgPackage* pkg, const String& reason, const String& provider, bool blocker, bool resolved, int depth)
+{
+	PkgPlanItem& item = plan.items.Add();
+	item.status = plan.ask && depth == 0 ? 'I' : base_status;
+	item.atom = atom;
+	item.provider = provider;
+	item.blocker = blocker;
+	item.resolved = resolved;
+	item.interactive = plan.ask && depth == 0;
+	item.target = sTargetNameText(plan.target);
+	item.use = sJoin(plan.effective_use, " ");
+	item.uppflags = sJoin(plan.uppflags, " ");
+	item.reason = reason;
+	if(item.interactive) {
+		String note = sPlanStatusText(base_status);
+		item.reason = item.reason.IsEmpty() ? note : note + "; " + item.reason;
+	}
+	if(pkg) {
+		item.repository = pkg->nest;
+		item.description = pkg->description;
+	}
+}
+
+static void sPlanWalkAtom(PkgPlan& plan, const PkgRepository& repo, const PkgState& state, const String& atom, const String& reason, Index<String>& seen, int depth)
+{
+	String key = ToLower(TrimBoth(atom));
+	if(key.IsEmpty())
+		return;
+
+	if(atom == "@world") {
+		Vector<String> world = sReadWorld(repo.paths);
+		if(world.IsEmpty()) {
+			sPlanAddItem(plan, 'F', atom, nullptr, reason.IsEmpty() ? String("world file is empty") : reason, String(), false, false, depth);
+			return;
+		}
+		for(const String& w : world)
+			sPlanWalkAtom(plan, repo, state, w, "member of @world", seen, depth);
+		return;
+	}
+
+	if(atom == "@system" || atom == "@toolchain") {
+		sPlanAddItem(plan, 'N', atom, nullptr, reason.IsEmpty() ? String("synthetic set") : reason, String(), false, false, depth);
+		return;
+	}
+
+	if(atom.StartsWith("virtual/")) {
+		String provider = sResolveProvider(atom, repo);
+		if(provider.IsEmpty()) {
+			sPlanAddItem(plan, 'B', atom, nullptr, reason.IsEmpty() ? String("no provider available") : reason, String(), true, false, depth);
+			return;
+		}
+		const PkgPackage* provider_pkg = repo.Find(provider);
+		sPlanAddItem(plan, provider_pkg ? 'b' : 'B', provider, provider_pkg, reason.IsEmpty() ? String("provider for ") + atom : reason, atom, false, provider_pkg != nullptr, depth);
+		if(provider_pkg && plan.deep)
+			sPlanWalkAtom(plan, repo, state, provider_pkg->atom, String("provider for ") + atom, seen, depth + 1);
+		return;
+	}
+
+	const PkgPackage* pkg = repo.Find(atom);
+	if(!pkg) {
+		String provider = sResolveProvider(atom, repo);
+		if(provider.IsEmpty() && !atom.StartsWith("virtual/"))
+			provider = sResolveProvider(String("virtual/") + atom, repo);
+		if(!provider.IsEmpty()) {
+			const PkgPackage* provider_pkg = repo.Find(provider);
+			sPlanAddItem(plan, provider_pkg ? 'b' : 'B', provider, provider_pkg, reason.IsEmpty() ? String("provider for ") + atom : reason, atom, false, provider_pkg != nullptr, depth);
+		}
+		else
+			sPlanAddItem(plan, 'F', atom, nullptr, reason.IsEmpty() ? String("package metadata not found") : reason, String(), false, false, depth);
+		return;
+	}
+
+	if(FindIndex(seen, key) >= 0) {
+		if(depth > 0)
+			sPlanAddItem(plan, 'r', atom, pkg, reason.IsEmpty() ? String("reverse dependency already scheduled") : reason, String(), false, false, depth);
+		return;
+	}
+	seen.Add(key);
+
+	char status = sStateHasAtom(state, atom) ? (plan.update ? 'U' : 'R') : 'N';
+	String msg = reason;
+	if(msg.IsEmpty())
+		msg = status == 'N' ? "new package" : (status == 'U' ? "update requested" : "rebuild requested");
+	sPlanAddItem(plan, status, atom, pkg, msg, String(), false, false, depth);
+
+	if(!plan.deep)
+		return;
+
+	for(const String& dep : pkg->uses) {
+		String dep_reason = String("dependency of ") + atom;
+		sPlanWalkAtom(plan, repo, state, dep, dep_reason, seen, depth + 1);
+	}
+}
+
+static PkgPlan sBuildPlan(const PkgInvocation& inv, const PkgRepository& repo, const PkgState& state, bool color)
+{
+	PkgPlan plan;
+	plan.atom = inv.atom;
+	plan.target = inv.target;
+	plan.color = color;
+	plan.ask = inv.ask;
+	plan.pretend = inv.pretend;
+	plan.update = inv.update;
+	plan.deep = inv.deep;
+	plan.newuse = inv.newuse;
+	sPolicyFlags(inv.use_args, inv.target, plan.selected_use, plan.disabled_use, plan.defaulted_use, plan.effective_use, &plan.target_forced, &plan.target_masked);
+	plan.uppflags = sPlanUppFlags(plan.effective_use);
+
+	if(sIsSelected(plan.effective_use, "sqlite") && FindIndex(plan.virtuals, "virtual/sqlite") < 0)
+		plan.virtuals.Add("virtual/sqlite");
+	if((sIsSelected(plan.effective_use, "st") || sIsSelected(plan.effective_use, "gtk")) && FindIndex(plan.virtuals, "virtual/gui-runtime") < 0)
+		plan.virtuals.Add("virtual/gui-runtime");
+	for(const String& v : plan.virtuals) {
+		String provider = sResolveProvider(v, repo);
+		if(!provider.IsEmpty() && FindIndex(plan.providers, provider) < 0)
+			plan.providers.Add(provider);
+	}
+
+	Index<String> seen;
+	if(!inv.atom.IsEmpty())
+		sPlanWalkAtom(plan, repo, state, inv.atom, String(), seen, 0);
+	else if(inv.command == PKG_CMD_PLAN && inv.ask)
+		sPlanWalkAtom(plan, repo, state, "@world", String(), seen, 0);
+
+	plan.backtrack = 0;
+	plan.dependency_seconds = 0.00;
+	return plan;
+}
+
+static void sPrintPlanItem(const PkgPlan& plan, const PkgPlanItem& item)
+{
+	String tag = sPlanTag(item.status);
+	String use = String("USE=\"") + (item.use.IsEmpty() ? String("[none]") : item.use) + "\"";
+	String target = String("TARGET=\"") + (item.target.IsEmpty() ? String("native") : item.target) + "\"";
+	String upp = item.uppflags.IsEmpty() ? String() : String("UPPFLAGS=\"") + item.uppflags + "\"";
+	String color_code = item.status == 'B' ? "31;1" : item.status == 'F' ? "33;1" : item.status == 'I' ? "36;1" : "32;1";
+
+	Cout() << sAnsi(color_code, tag, plan.color) << ' '
+	       << sAnsi("36", item.atom, plan.color) << ' '
+	       << sAnsi("33", use, plan.color) << ' '
+	       << sAnsi("35", target, plan.color);
+	if(!upp.IsEmpty())
+		Cout() << ' ' << sAnsi("33", upp, plan.color);
+	Cout() << "\n";
+	if(!item.provider.IsEmpty())
+		Cout() << "  " << sAnsi("34", "provider:", plan.color) << ' ' << item.provider << "\n";
+	if(!item.reason.IsEmpty())
+		Cout() << "  " << sAnsi("90", "reason:", plan.color) << ' ' << item.reason << "\n";
+	if(!item.repository.IsEmpty())
+		Cout() << "  " << sAnsi("90", "repository:", plan.color) << ' ' << item.repository << "\n";
+	if(!item.description.IsEmpty())
+		Cout() << "  " << sAnsi("90", "description:", plan.color) << ' ' << item.description << "\n";
+	Cout() << "\n";
+}
+
+static void sPrintPlan(const PkgInvocation& inv, const PkgRepository& repo, bool color)
+{
+	PkgState state;
+	LoadFromJsonFile(state, repo.paths.state);
+	PkgPlan plan = sBuildPlan(inv, repo, state, color);
 
 	Cout() << "These are the packages that would be built, in order:\n\n";
 	Cout() << "Calculating dependencies... done!\n";
-	Cout() << "Dependency resolution took 0.00 s (backtrack: 0/20).\n\n";
-	String use_text = String("USE=\"") + sJoin(effective, " ") + "\"";
-	String target_text = String("TARGET=\"") + sTargetNameText(inv.target) + "\"";
-	Cout() << sAnsi("32;1", "[ebuild  N    ]", color) << ' '
-	     << sAnsi("36", inv.atom, color) << ' '
-	     << sAnsi("33", use_text, color) << ' '
-	     << sAnsi("35", target_text, color);
-	if(!inv.use_args.IsEmpty())
-		Cout() << ' ' << sAnsi("33", String("UPPFLAGS=\"") + (uppflags.IsEmpty() ? String("[none]") : sJoin(uppflags, " ")) + "\"", color);
-	Cout() << "\n";
-	for(const String& p : providers)
-		Cout() << "  " << sAnsi("34", "provider:", color) << ' ' << p << "\n";
-	Cout() << "\n";
-	sWriteState(repo, inv, selected, effective, providers);
-	if(!inv.oneshot && !inv.pretend)
-		sAddWorld(repo.paths, inv.atom);
+	Cout() << "Dependency resolution took " << FormatDouble(plan.dependency_seconds, 2) << " s (backtrack: "
+	     << plan.backtrack << '/' << plan.backtrack_limit << ").\n\n";
+
+	if(plan.items.IsEmpty())
+		Cout() << "[ no packages selected ]\n\n";
+	else
+		for(const PkgPlanItem& item : plan.items)
+			sPrintPlanItem(plan, item);
+
+	Cout() << "USE flags: " << sFmtList(plan.effective_use) << "\n";
+	Cout() << "TARGET: " << sTargetNameText(plan.target) << "\n";
+	Cout() << "UPPFLAGS: " << sFmtList(plan.uppflags) << "\n";
+	if(!plan.providers.IsEmpty())
+		Cout() << "Providers: " << sFmtList(plan.providers) << "\n";
+	if(!plan.virtuals.IsEmpty())
+		Cout() << "Virtual requirements: " << sFmtList(plan.virtuals) << "\n";
+	Cout() << "Total packages: " << plan.items.GetCount() << "\n";
 }
 
 static void sPrintTargetCommand(const PkgInvocation& inv)
@@ -1855,14 +2050,20 @@ int RunPkg(const Vector<String>& args)
 		return 0;
 	}
 	if(inv.command == PKG_CMD_PLAN) {
-		if(inv.ask && !sPromptYesNo())
-			return 0;
-		if(inv.install) {
+		sPrintPlan(inv, repo, color);
+		if(inv.ask) {
+			if(!sPromptYesNo()) {
+				Cout() << "Aborted.\n";
+				sFlushConsole();
+				return 0;
+			}
+			Cout() << "Continuing.\n";
+		}
+		if(inv.install && !inv.pretend) {
 			Cout() << "system package installation is not implemented yet\n";
 			sFlushConsole();
 			return 1;
 		}
-		sPrintPlan(inv, repo, color);
 		sFlushConsole();
 		return 0;
 	}

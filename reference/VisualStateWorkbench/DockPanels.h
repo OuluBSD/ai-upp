@@ -37,6 +37,34 @@ private:
 };
 
 // ---------------------------------------------------------------------------
+// OcrRulePanel — display OCR rules and results
+
+class OcrRulePanel : public DockableCtrl {
+public:
+	typedef OcrRulePanel CLASSNAME;
+
+	OcrRulePanel();
+
+	void SetRules(Vector<VsmOcrRule>* rules);
+	void AddResult(const VsmOcrResult& result, const VsmOcrComparison& cmp);
+	void ClearResults();
+
+private:
+	Vector<VsmOcrRule>* rules_ = nullptr;
+
+	ArrayCtrl rules_list_;
+	ArrayCtrl results_list_;
+	Button    add_btn_, remove_btn_, run_btn_;
+	EditString expected_edit_;
+	Label      expected_lbl_, status_lbl_;
+
+	void OnAdd();
+	void OnRemove();
+	void OnRun();
+	void RebuildRules();
+};
+
+// ---------------------------------------------------------------------------
 // TemplateRulePanel — display/edit template rules and show match results
 
 class TemplateRulePanel : public DockableCtrl {

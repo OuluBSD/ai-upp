@@ -14,5 +14,6 @@ using namespace Upp;
 #include "Annotation.h"
 #include "Preprocess.h"
 #include "TemplateMatch.h"
+#include "OcrLayer.h"
 
 #endif

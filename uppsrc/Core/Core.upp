@@ -185,6 +185,8 @@ file
 	JSON.cpp,
 	YAML.h,
 	YAML.cpp,
+	TOON.h,
+	TOON.cpp,
 	VCS.h,
 	VCS.cpp,
 	Visitor.h,

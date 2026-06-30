@@ -78,6 +78,7 @@ cookie.txt
 .tmp/
 .venv/
 .gemini/
+.ai-upp/
 stdsrc/build/*.o
 stdsrc/build/build
 stdsrc/build/build.exe

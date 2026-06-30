@@ -212,6 +212,87 @@ string GetAbsolutePath(const string& path) {
 #endif
 }
 
+string GetExePath() {
+#ifdef _WIN32
+    char buff[MAX_PATH];
+    DWORD len = GetModuleFileNameA(NULL, buff, MAX_PATH);
+    if (len > 0 && len < MAX_PATH)
+        return string(buff, len);
+    return "";
+#else
+    char buff[PATH_MAX];
+    ssize_t len = readlink("/proc/self/exe", buff, sizeof(buff) - 1);
+    if (len > 0) {
+        buff[len] = 0;
+        return string(buff);
+    }
+    return "";
+#endif
+}
+
+void AddUnique(vector<string>& list, const string& value) {
+    if (value.empty()) return;
+    if (find(list.begin(), list.end(), value) == list.end())
+        list.push_back(value);
+}
+
+vector<string> SplitRoots(const string& spec) {
+    vector<string> roots;
+    string token;
+    auto flush = [&] {
+        string trimmed = Trim(token);
+        if (!trimmed.empty())
+            roots.push_back(trimmed);
+        token.clear();
+    };
+
+    for (char c : spec) {
+        if (c == ';' || c == ',' || c == '\n' || c == '\r' || c == '\t')
+            flush();
+        else
+            token += c;
+    }
+    flush();
+    return roots;
+}
+
+void AppendRoots(vector<string>& dst, const string& spec) {
+    vector<string> roots = SplitRoots(spec);
+    for (const string& root : roots)
+        AddUnique(dst, root);
+}
+
+vector<string> ExpandSourceRoots(const vector<string>& roots, const string& repo_root) {
+    vector<string> result;
+    static const char *kPackageTrees[] = {
+        "src",
+        "uppsrc",
+        "stdsrc",
+        "stdtst",
+        "upptst",
+        "examples",
+        "tutorial",
+        "reference",
+        "game",
+        "rainbow"
+    };
+
+    for (const string& root : roots) {
+        string abs_root = GetAbsolutePath(root);
+        if (abs_root == repo_root)
+            continue;
+        if (StartsWith(abs_root, repo_root + PATH_SEPS))
+            continue;
+
+        for (const char *tree : kPackageTrees) {
+            string dir = JoinPath(abs_root, tree);
+            if (DirectoryExists(dir))
+                AddUnique(result, dir);
+        }
+    }
+    return result;
+}
+
 // --- Process Helpers ---
 
 int RunCommand(const string& cmd) {
@@ -379,6 +460,7 @@ struct Options {
     bool android = false;
     bool bootstrap = false;
     bool smoketest = false;
+    vector<string> source_roots;
     vector<string> add_roots;
     vector<string> search_roots;
     string target;
@@ -425,6 +507,7 @@ void PrintHelp(const char* prog) {
     cout << "  --jobs N, -j N, -jN                Parallel jobs" << endl;
     cout << "  --verbose, -v                      Verbose output" << endl;
     cout << "  --rainbow, -R                      Enable rainbow source root" << endl;
+    cout << "  --source-roots P1;P2               Add workspace roots for lookup and umk" << endl;
     cout << "  --add-root P                       Add source root passed to umk (repeatable)" << endl;
     cout << "  --search-root P                    Add package lookup root for target/mainconfig (repeatable)" << endl;
     cout << "  --dump-cmd                         Dump the umk command and exit" << endl;
@@ -588,6 +671,8 @@ Options ParseArgs(int argc, char* argv[]) {
             } else {
                 opts.jobs = atoi(arg.c_str() + 2);
             }
+        } else if (arg == "--source-root" || arg == "--source-roots") {
+            if (++i < argc) AppendRoots(opts.source_roots, argv[i]);
         } else if (arg == "-sr" || arg == "--search-root") {
             if (++i < argc) opts.search_roots.push_back(argv[i]);
         } else if (arg == "-ar" || arg == "--add-root") {
@@ -604,23 +689,13 @@ Options ParseArgs(int argc, char* argv[]) {
     return opts;
 }
 
-string ResolveUmkPath() {
-    string p = JoinPath("bin", "umk");
+string ResolveUmkPath(const string& bin_dir) {
+    string p = JoinPath(bin_dir, "umk");
 #ifdef _WIN32
     p += ".exe";
 #endif
     if (FileExists(p)) return p;
     return "umk"; // Fallback to PATH
-}
-
-string FindRepoRoot(string current) {
-    while (!current.empty() && current != "/" && current != "\\") {
-        if (DirectoryExists(JoinPath(current, "uppsrc"))) {
-            return current;
-        }
-        current = GetParentDir(current);
-    }
-    return GetCurrentDir(); // fallback
 }
 
 int main(int argc, char* argv[]) {
@@ -630,7 +705,12 @@ int main(int argc, char* argv[]) {
         return 0;
     }
 
-    string repo_root = FindRepoRoot(GetAbsolutePath(GetCurrentDir()));
+    string exe_raw = GetExePath();
+    string exe_path = exe_raw.empty() ? "" : GetAbsolutePath(exe_raw);
+    string exe_dir = exe_path.empty() ? GetCurrentDir() : GetParentDir(exe_path);
+    string repo_root = GetParentDir(exe_dir);
+    if (repo_root.empty() || repo_root == "." || repo_root == "/")
+        repo_root = GetCurrentDir();
     
     if (opts.list_methods) {
         vector<BuildMethod> methods = CollectMethods();
@@ -638,8 +718,12 @@ int main(int argc, char* argv[]) {
         return 0;
     }
 
+    vector<string> source_roots = ExpandSourceRoots(opts.source_roots, repo_root);
+
     if (!opts.list_mainconfigs.empty()) {
-        string upp_path = FindUppByName(repo_root, opts.list_mainconfigs + ".upp", opts.search_roots, opts.rainbow);
+        vector<string> lookup_roots = opts.search_roots;
+        lookup_roots.insert(lookup_roots.end(), source_roots.begin(), source_roots.end());
+        string upp_path = FindUppByName(repo_root, opts.list_mainconfigs + ".upp", lookup_roots, opts.rainbow);
         if (upp_path.empty()) {
             cerr << "Unable to locate .upp file for " << opts.list_mainconfigs << endl;
             return 1;
@@ -669,7 +753,9 @@ int main(int argc, char* argv[]) {
     if (EndsWith(opts.target, ".upp")) {
         upp_path = GetAbsolutePath(opts.target);
     } else {
-        upp_path = FindUppByName(repo_root, opts.target + ".upp", opts.search_roots, opts.rainbow);
+        vector<string> lookup_roots = opts.search_roots;
+        lookup_roots.insert(lookup_roots.end(), source_roots.begin(), source_roots.end());
+        upp_path = FindUppByName(repo_root, opts.target + ".upp", lookup_roots, opts.rainbow);
     }
 
     if (upp_path.empty()) {
@@ -767,19 +853,21 @@ int main(int argc, char* argv[]) {
         cout << "Selected method: " << method.name << " (" << method.path << ")" << endl;
     }
 
-    string umk = ResolveUmkPath();
+    string umk = ResolveUmkPath(exe_dir);
     stringstream ss;
     ss << umk << " ";
     
     vector<string> roots = {
         JoinPath(repo_root, "upptst"),
         JoinPath(repo_root, "uppsrc"),
+        JoinPath(repo_root, "src"),
         JoinPath(repo_root, "examples"),
         JoinPath(repo_root, "tutorial"),
         JoinPath(repo_root, "reference"),
         JoinPath(repo_root, "game")
     };
     if (opts.rainbow) roots.insert(roots.begin() + 2, JoinPath(repo_root, "rainbow"));
+    roots.insert(roots.end(), source_roots.begin(), source_roots.end());
     for (const string& r : opts.add_roots) roots.push_back(r);
     
     for (size_t i = 0; i < roots.size(); ++i) {

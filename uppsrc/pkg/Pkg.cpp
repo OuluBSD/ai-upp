@@ -1000,13 +1000,33 @@ static Vector<PkgProvider> sProviders()
 	return pick(v);
 }
 
+static String sTargetFamily(String target)
+{
+	target = ToLower(TrimBoth(target));
+	if(target.IsEmpty())
+		return "native";
+	if(target.StartsWith("native-") || target == "native")
+		return "native";
+	if(target.StartsWith("windows-") || target == "windows")
+		return "windows";
+	if(target.StartsWith("linux-") || target == "linux")
+		return "linux";
+	if(target.StartsWith("macos-") || target == "macos")
+		return "macos";
+	if(target.StartsWith("wasm-") || target == "wasm32" || target == "wasm")
+		return "wasm";
+	if(target.StartsWith("freebsd-") || target == "freebsd")
+		return "freebsd";
+	return target;
+}
+
 static bool sProviderTargetMatch(const PkgProvider& p, const String& target)
 {
 	if(p.targets.IsEmpty())
 		return true;
-	String t = ToLower(target.IsEmpty() ? String("native") : target);
+	String t = sTargetFamily(target);
 	for(const String& s : p.targets)
-		if(ToLower(s) == t)
+		if(sTargetFamily(s) == t)
 			return true;
 	return false;
 }
@@ -1066,8 +1086,360 @@ static bool sProviderMatchesTargetPreference(const PkgProvider& p, const PkgProv
 	return true;
 }
 
+static String sProbeResolvePath(const String& exe, const String& root = Null)
+{
+	String path;
+	if(!root.IsEmpty()) {
+		path = AppendFileName(root, exe);
+		if(FileExists(path))
+			return path;
+	}
+	path = GetFileOnPath(exe, GetEnv("PATH"), true);
+	if(!path.IsEmpty())
+		return path;
+	return FileExists(exe) ? exe : String();
+}
+
+static String sProbeCommandText(const String& exe, const Vector<String>& args)
+{
+	String cmd;
+	if(exe.FindFirstOf(" \t\"") >= 0)
+		cmd << '"' << exe << '"';
+	else
+		cmd << exe;
+	for(const String& a : args) {
+		cmd << ' ';
+		if(a.FindFirstOf(" \t\"") >= 0)
+		{
+			String q = a;
+			q.Replace("\"", "\\\"");
+			cmd << '"' << q << '"';
+		}
+		else
+			cmd << a;
+	}
+	return cmd;
+}
+
+static bool sProbeCommandAllowed(const String& exe, const Vector<String>& args, String& why)
+{
+	String base = ToLower(GetFileTitle(exe));
+	if(base == "pkg-config" || base == "pkgconf") {
+		if(args.GetCount() == 2 && (args[0] == "--exists" || args[0] == "--modversion"))
+			return true;
+		why = "pkg-config probe arguments must be --exists <pkg> or --modversion <pkg>";
+		return false;
+	}
+	if(base == "vcpkg") {
+		if(args.GetCount() == 1 && args[0] == "list")
+			return true;
+		why = "vcpkg probe arguments must be exactly: list";
+		return false;
+	}
+	if(base == "emcc" || base == "clang" || base == "gcc") {
+		if(args.GetCount() == 1 && args[0] == "--version")
+			return true;
+		why = "compiler probe arguments must be exactly: --version";
+		return false;
+	}
+	why = "command is not on the read-only probe allowlist";
+	return false;
+}
+
+static int sRunProbeCommand(const String& exe, const Vector<String>& args, String& out, String& command, String& path, String& why)
+{
+	why.Clear();
+	if(!sProbeCommandAllowed(exe, args, why))
+		return -1;
+	path = sProbeResolvePath(exe);
+	if(path.IsEmpty()) {
+		why = "command not found: " + exe;
+		return -1;
+	}
+	command = sProbeCommandText(path, args);
+	int rc = Sys(command, out);
+	if(rc < 0) {
+		why = "failed to launch: " + path;
+		return -1;
+	}
+	return rc;
+}
+
+static String sProbeFirstLine(const String& s)
+{
+	if(IsVoid(s))
+		return String();
+	int p = s.Find('\n');
+	if(p < 0)
+		p = s.Find('\r');
+	return TrimBoth(p < 0 ? s : s.Left(p));
+}
+
+static void sProbePkgConfig(PkgProvider& q, const Vector<String>& names, const String& exe, bool probe)
+{
+	if(!probe) {
+		q.probe_status = "probe_not_run";
+		q.probe_reason = "probe disabled";
+		q.probe_command = "pkg-config";
+		return;
+	}
+	String pkgconf = sProbeResolvePath(exe);
+	if(pkgconf.IsEmpty() && exe != "pkgconf")
+		pkgconf = sProbeResolvePath("pkgconf");
+	if(pkgconf.IsEmpty()) {
+		q.probe_status = "unknown";
+		q.probe_reason = exe + " not found";
+		return;
+	}
+
+	for(const String& name : names) {
+		Vector<String> args;
+		args.Add("--exists");
+		args.Add(name);
+		String out, command, path, why;
+		int rc = sRunProbeCommand(pkgconf, args, out, command, path, why);
+		q.probe_command = command;
+		q.probe_path = path;
+		if(rc < 0) {
+			q.probe_status = "probe_error";
+			q.probe_reason = why;
+			return;
+		}
+		if(rc == 0) {
+			q.probe_status = "available";
+			q.probe_reason = name + " found";
+			Vector<String> modv;
+			modv.Add("--modversion");
+			modv.Add(name);
+			String ver;
+			String ver_cmd, ver_path, ver_why;
+			if(sRunProbeCommand(pkgconf, modv, ver, ver_cmd, ver_path, ver_why) >= 0) {
+				q.probe_command = ver_cmd;
+				q.probe_path = ver_path;
+				q.probe_version = sProbeFirstLine(ver);
+			}
+			return;
+		}
+		q.probe_reason = name + " not found";
+	}
+
+	q.probe_status = "missing";
+}
+
+static void sProbeVcpkg(PkgProvider& q, const PkgInvocation& inv, const String& package, bool probe)
+{
+	if(!probe) {
+		q.probe_status = "probe_not_run";
+		q.probe_reason = "probe disabled";
+		q.probe_command = "vcpkg list";
+		return;
+	}
+
+	String root = !inv.vcpkg_root.IsEmpty() ? inv.vcpkg_root : GetEnv("VCPKG_ROOT");
+	if(root.IsEmpty()) {
+		q.probe_status = "unknown";
+		q.probe_reason = "VCPKG_ROOT not configured";
+		return;
+	}
+	String exe = sProbeResolvePath(flagWIN32 ? "vcpkg.exe" : "vcpkg", root);
+	if(exe.IsEmpty())
+		exe = sProbeResolvePath("vcpkg");
+	if(exe.IsEmpty()) {
+		q.probe_status = "unknown";
+		q.probe_reason = "vcpkg executable not found";
+		return;
+	}
+
+	Vector<String> args;
+	args.Add("list");
+	String out, command, path, why;
+	int rc = sRunProbeCommand(exe, args, out, command, path, why);
+	q.probe_command = command;
+	q.probe_path = path;
+	if(rc < 0) {
+		q.probe_status = "probe_error";
+		q.probe_reason = why;
+		return;
+	}
+	String low = ToLower(out);
+	String needle = ToLower(package) + ":";
+	if(low.Find(needle) >= 0 || low.Find(ToLower(package) + " ") >= 0 || low.Find(ToLower(package)) >= 0) {
+		q.probe_status = "available";
+		q.probe_reason = package + " found in vcpkg list";
+		q.probe_version = sProbeFirstLine(out);
+	}
+	else {
+		q.probe_status = "missing";
+		q.probe_reason = package + " not found in vcpkg list";
+	}
+}
+
+static void sProbeCompiler(PkgProvider& q, const String& exe_name, bool probe)
+{
+	if(!probe) {
+		q.probe_status = "probe_not_run";
+		q.probe_reason = "probe disabled";
+		q.probe_command = exe_name + " --version";
+		return;
+	}
+	String exe = sProbeResolvePath(exe_name);
+	if(exe.IsEmpty()) {
+		q.probe_status = "unknown";
+		q.probe_reason = exe_name + " not found";
+		return;
+	}
+	Vector<String> args;
+	args.Add("--version");
+	String out, command, path, why;
+	int rc = sRunProbeCommand(exe, args, out, command, path, why);
+	q.probe_command = command;
+	q.probe_path = path;
+	if(rc < 0) {
+		q.probe_status = "probe_error";
+		q.probe_reason = why;
+		return;
+	}
+	q.probe_version = sProbeFirstLine(out);
+	q.probe_status = rc == 0 ? "available" : "missing";
+	q.probe_reason = q.probe_version.IsEmpty() ? exe_name + " version query " + (rc == 0 ? "succeeded" : "failed") : q.probe_version;
+}
+
+static void sProbeProviderInfo(PkgProvider& q, const PkgRepository& repo, const PkgInvocation& inv, bool probe)
+{
+	q.probe_command.Clear();
+	q.probe_path.Clear();
+	q.probe_version.Clear();
+	q.probe_reason.Clear();
+	if(q.manual) {
+		q.probe_status = "manual";
+		q.probe_reason = "manual setup required";
+		return;
+	}
+	if(q.kind == "upp-plugin") {
+		bool ok = repo.HasPackage(q.provider);
+		q.probe_status = ok ? "available" : "missing";
+		q.probe_reason = ok ? "bundled provider package present" : "bundled provider package missing";
+		return;
+	}
+	if(!probe) {
+		q.probe_status = "probe_not_run";
+		q.probe_reason = "probe disabled";
+		return;
+	}
+
+	if(q.id == "system-sqlite") {
+		Vector<String> names;
+		names.Add("sqlite3");
+		names.Add("sqlite");
+		sProbePkgConfig(q, names, "pkg-config", true);
+		return;
+	}
+	if(q.id == "system-ssl") {
+		Vector<String> names;
+		names.Add("openssl");
+		names.Add("libssl");
+		sProbePkgConfig(q, names, "pkg-config", true);
+		return;
+	}
+	if(q.id == "vcpkg-sqlite3") {
+		sProbeVcpkg(q, inv, "sqlite3", true);
+		return;
+	}
+	if(q.id == "vcpkg-sdl2") {
+		sProbeVcpkg(q, inv, "sdl2", true);
+		return;
+	}
+	if(q.id == "system-sdl2") {
+		Vector<String> names;
+		names.Add("SDL2");
+		names.Add("sdl2");
+		sProbePkgConfig(q, names, "pkg-config", true);
+		return;
+	}
+	if(q.id == "msys2-sdl2") {
+		if(GetEnv("MSYSTEM").IsEmpty()) {
+			q.probe_status = "unknown";
+			q.probe_reason = "MSYSTEM not configured";
+			return;
+		}
+		Vector<String> names;
+		names.Add("SDL2");
+		names.Add("sdl2");
+		sProbePkgConfig(q, names, "pkg-config", true);
+		if(q.probe_status == "available")
+			q.probe_reason = "MSYS2 SDL2 package found";
+		else if(q.probe_status == "missing" && q.probe_reason.IsEmpty())
+			q.probe_reason = "SDL2 not found in pkg-config";
+		return;
+	}
+	if(q.id == "emscripten-sdl2") {
+		String emsdk = GetEnv("EMSDK");
+		String emcfg = GetEnv("EM_CONFIG");
+		if(emsdk.IsEmpty() && emcfg.IsEmpty()) {
+			q.probe_status = "unknown";
+			q.probe_reason = "EMSDK/EM_CONFIG not configured";
+			return;
+		}
+		sProbeCompiler(q, "emcc", true);
+		if(q.probe_status == "available")
+			q.probe_reason = "emcc available";
+		return;
+	}
+	if(q.id == "system-opengl") {
+#ifdef flagWIN32
+		q.probe_status = "available";
+		q.probe_reason = "Windows OpenGL runtime is available";
+#else
+		Vector<String> names;
+		names.Add("gl");
+		names.Add("opengl");
+		sProbePkgConfig(q, names, "pkg-config", true);
+		if(q.probe_status == "missing" && q.probe_reason.IsEmpty())
+			q.probe_reason = "OpenGL package not found";
+#endif
+		return;
+	}
+	if(q.id == "webgl") {
+		sProbeCompiler(q, "emcc", true);
+		if(q.probe_status == "available")
+			q.probe_reason = "emcc available for WebGL";
+		return;
+	}
+	if(q.id == "native-gui") {
+#ifdef flagWIN32
+		q.probe_status = "available";
+		q.probe_reason = "Windows desktop GUI available";
+#else
+		if(!GetEnv("DISPLAY").IsEmpty() || !GetEnv("WAYLAND_DISPLAY").IsEmpty()) {
+			q.probe_status = "available";
+			q.probe_reason = "desktop display environment present";
+		}
+		else {
+			q.probe_status = "missing";
+			q.probe_reason = "no display environment present";
+		}
+#endif
+		return;
+	}
+	if(q.id == "framebuffer") {
+#ifdef flagWIN32
+		q.probe_status = "unknown";
+		q.probe_reason = "framebuffer runtime is platform-specific";
+#else
+		q.probe_status = FileExists("/dev/fb0") ? "available" : "missing";
+		q.probe_reason = FileExists("/dev/fb0") ? "/dev/fb0 present" : "/dev/fb0 missing";
+#endif
+		return;
+	}
+
+	q.probe_status = "unknown";
+	q.probe_reason = "no probe adapter";
+}
+
 static String sProviderProbeStatus(const PkgProvider& p, const PkgRepository& repo)
 {
+	if(!p.probe_status.IsEmpty())
+		return p.probe_status;
 	if(p.manual)
 		return "manual";
 	if(p.kind == "upp-plugin")
@@ -1075,11 +1447,11 @@ static String sProviderProbeStatus(const PkgProvider& p, const PkgRepository& re
 	if(p.kind == "manual")
 		return "manual";
 	if(p.kind == "system" || p.kind == "vcpkg" || p.kind == "msys2" || p.kind == "web" || p.kind == "emscripten" || p.kind == "freebsd" || p.kind == "debian" || p.kind == "macos")
-		return "unknown";
+		return "probe_not_run";
 	return "unknown";
 }
 
-static Vector<PkgProvider> sProvidersFor(const String& capability, const String& target = Null)
+static Vector<PkgProvider> sProvidersFor(const String& capability, const PkgRepository& repo, const PkgInvocation& inv, bool probe, const String& target = Null)
 {
 	Vector<PkgProvider> all = sProviders();
 	Vector<PkgProvider> out;
@@ -1094,7 +1466,7 @@ static Vector<PkgProvider> sProvidersFor(const String& capability, const String&
 			q.priority = p.priority;
 			q.system_install = p.system_install;
 			q.manual = p.manual;
-			q.probe_status = sProviderProbeStatus(p, PkgRepository());
+			sProbeProviderInfo(q, repo, inv, probe);
 			for(const String& s : p.targets)
 				q.targets.Add(s);
 			for(const String& s : p.uses_add)
@@ -1170,6 +1542,12 @@ static int sProviderSelectionScore(const PkgProvider& p, const PkgRepository& re
 		score += 1000;
 	if(p.manual)
 		score += 500;
+	if(p.probe_status == "available")
+		score -= 20;
+	else if(p.probe_status == "missing" || p.probe_status == "probe_error")
+		score += 500;
+	else if(p.probe_status == "unknown")
+		score += 20;
 	score -= p.priority / 10;
 	return score;
 }
@@ -1184,6 +1562,10 @@ static PkgProviderResolution sMakeResolution(const PkgProvider& p, const PkgRepo
 	r.external_package = p.provider;
 	r.details = p.details;
 	r.probe_status = sProviderProbeStatus(p, repo);
+	r.probe_command = p.probe_command;
+	r.probe_path = p.probe_path;
+	r.probe_version = p.probe_version;
+	r.probe_reason = p.probe_reason;
 	r.priority = p.priority;
 	r.selected = selected;
 	r.manual = p.manual;
@@ -1226,7 +1608,7 @@ static Vector<PkgVirtualCapability> sProviderCapabilities()
 	return pick(v);
 }
 
-static void sBuildProviderPlan(PkgProviderPlan& plan, const PkgRepository& repo, const PkgTargetProfile *tp, const String& target, const Vector<String>& virtuals, const String& provider_pref)
+static void sBuildProviderPlan(PkgProviderPlan& plan, const PkgRepository& repo, const PkgTargetProfile *tp, const String& target, const Vector<String>& virtuals, const String& provider_pref, const PkgInvocation& inv)
 {
 	plan.capabilities.Clear();
 	plan.resolutions.Clear();
@@ -1253,7 +1635,7 @@ static void sBuildProviderPlan(PkgProviderPlan& plan, const PkgRepository& repo,
 			c.description = sCapabilityTitle(capability);
 			cap = &c;
 		}
-		Vector<PkgProvider> candidates = sProvidersFor(capability, target);
+		Vector<PkgProvider> candidates = sProvidersFor(capability, repo, inv, inv.probe, target);
 		for(const PkgProvider& p : candidates)
 			cap->provider_ids.Add(p.id);
 		const PkgProvider* selected = sSelectProviderCandidate(candidates, repo, tp, provider_pref, capability);
@@ -1267,6 +1649,10 @@ static void sBuildProviderPlan(PkgProviderPlan& plan, const PkgRepository& repo,
 			q.external_package = r.external_package;
 			q.details = r.details;
 			q.probe_status = r.probe_status;
+			q.probe_command = r.probe_command;
+			q.probe_path = r.probe_path;
+			q.probe_version = r.probe_version;
+			q.probe_reason = r.probe_reason;
 			q.priority = r.priority;
 			q.selected = r.selected;
 			q.manual = r.manual;
@@ -1293,6 +1679,7 @@ static void sBuildProviderPlan(PkgProviderPlan& plan, const PkgRepository& repo,
 			r.external_package = Null;
 			r.details = "no provider selected";
 			r.probe_status = "missing";
+			r.probe_reason = "no provider available";
 			r.manual = true;
 			PkgProviderResolution& q = plan.resolutions.Add();
 			q.capability = r.capability;
@@ -1302,6 +1689,10 @@ static void sBuildProviderPlan(PkgProviderPlan& plan, const PkgRepository& repo,
 			q.external_package = r.external_package;
 			q.details = r.details;
 			q.probe_status = r.probe_status;
+			q.probe_command = r.probe_command;
+			q.probe_path = r.probe_path;
+			q.probe_version = r.probe_version;
+			q.probe_reason = r.probe_reason;
 			q.priority = r.priority;
 			q.selected = r.selected;
 			q.manual = r.manual;
@@ -1908,6 +2299,7 @@ bool ParsePkgArgs(const Vector<String>& args, PkgInvocation& inv, String& error)
 			else if(a == "--oneshot") inv.oneshot = true;
 			else if(a == "--plan") inv.plan = true;
 			else if(a == "--install") inv.install = true;
+			else if(a == "--probe") inv.probe = true;
 			else if(a == "--patch") inv.audit_patch = true;
 			else if(a == "--search") inv.command = PKG_CMD_SEARCH;
 			else if(a == "--color" || a.StartsWith("--color=")) {
@@ -2391,13 +2783,13 @@ static void sPrintHelp(bool color)
 		<< "  --help, help\n"
 		<< "  --version, version\n"
 		<< "  --info, info\n"
-		<< "  --doctor, doctor [env|state|shell|providers]\n"
+		<< "  --doctor, doctor [env|state|shell|providers [--probe]]\n"
 		<< "  --metadata, metadata\n"
 		<< "  --list-sets\n"
 		<< "  --audit-acceptflags [atom] [--patch]\n"
 		<< "  --targets\n"
 		<< "  targets\n"
-		<< "  --providers [capability]\n"
+		<< "  --providers [capability] [--probe]\n"
 		<< "  --provider <portable|system|...>\n"
 		<< "  -s, --search <query>\n"
 		<< "  deps <atom> [USE flags...] --plan\n"
@@ -2818,7 +3210,7 @@ static void sPrintDeps(const PkgInvocation& inv, const PkgRepository& repo)
 		virtuals.Add("virtual/opengl");
 	}
 	PkgProviderPlan provider_plan;
-	sBuildProviderPlan(provider_plan, repo, &tp, inv.target, virtuals, inv.provider);
+	sBuildProviderPlan(provider_plan, repo, &tp, inv.target, virtuals, inv.provider, inv);
 	Cout() << "Dependencies for " << inv.atom << "\n";
 	Cout() << "Target: " << sTargetNameText(inv.target) << " (" << tp.thread_model << ")\n";
 	Cout() << "Virtual requirements:\n";
@@ -2868,7 +3260,20 @@ static void sPrintDeps(const PkgInvocation& inv, const PkgRepository& repo)
 	Cout() << "\nSystem installation required: " << (need_system ? "yes" : "no") << "\n";
 }
 
-static void sPrintProvidersCommand(const PkgInvocation& inv, const PkgRepository& repo)
+static String sProviderStatusColor(const String& status)
+{
+	if(status == "available")
+		return "32;1";
+	if(status == "missing" || status == "probe_error")
+		return "33;1";
+	if(status == "manual")
+		return "36;1";
+	if(status == "probe_not_run")
+		return "90";
+	return "36";
+}
+
+static void sPrintProvidersCommand(const PkgInvocation& inv, const PkgRepository& repo, bool color)
 {
 	String target = inv.target.IsEmpty() ? String("native") : inv.target;
 	String query = inv.provider_query;
@@ -2879,13 +3284,21 @@ static void sPrintProvidersCommand(const PkgInvocation& inv, const PkgRepository
 		Vector<PkgVirtualCapability> caps = sProviderCapabilities();
 		for(const PkgVirtualCapability& cap : caps) {
 			Cout() << "  " << cap.capability << " - " << cap.description << "\n";
-			Vector<PkgProvider> candidates = sProvidersFor(cap.capability, target);
+			Vector<PkgProvider> candidates = sProvidersFor(cap.capability, repo, inv, inv.probe, target);
 			for(const PkgProvider& p : candidates) {
-				String status = sProviderProbeStatus(p, repo);
-				Cout() << "    " << p.id << " [" << p.kind << "; " << status << "]";
+				Cout() << "    " << p.id << " [" << p.kind << "; "
+				     << sAnsi(sProviderStatusColor(p.probe_status), p.probe_status, color) << "]";
 				if(!p.provider.IsEmpty())
 					Cout() << " -> " << p.provider;
+				if(!p.probe_reason.IsEmpty())
+					Cout() << " - " << p.probe_reason;
+				if(!p.probe_version.IsEmpty())
+					Cout() << " (" << p.probe_version << ")";
 				Cout() << "\n";
+				if(!p.probe_command.IsEmpty())
+					Cout() << "      command: " << p.probe_command << "\n";
+				if(!p.probe_path.IsEmpty())
+					Cout() << "      path: " << p.probe_path << "\n";
 			}
 		}
 		Cout() << "\nSelection rules:\n";
@@ -2894,13 +3307,14 @@ static void sPrintProvidersCommand(const PkgInvocation& inv, const PkgRepository
 		Cout() << "  otherwise prefer upp-plugin/bundled providers\n";
 		Cout() << "  then target/platform providers\n";
 		Cout() << "  missing/manual providers are reported, not installed\n";
+		Cout() << "  use --probe for read-only availability checks\n";
 		return;
 	}
 
 	Vector<String> virtuals;
 	virtuals.Add(query);
 	PkgProviderPlan plan;
-	sBuildProviderPlan(plan, repo, &sDefaultTargetProfile(target), target, virtuals, inv.provider);
+	sBuildProviderPlan(plan, repo, &sDefaultTargetProfile(target), target, virtuals, inv.provider, inv);
 	const PkgProviderResolution* res = sFindProviderResolution(plan, query);
 	if(!res) {
 		Cout() << "Capability: " << query << "\n";
@@ -2910,9 +3324,17 @@ static void sPrintProvidersCommand(const PkgInvocation& inv, const PkgRepository
 
 	Cout() << "Capability: " << res->capability << "\n";
 	Cout() << "Selected provider: " << (res->provider_id.IsEmpty() ? String("[none]") : res->provider_id)
-	     << " [" << res->probe_status << "]\n";
+	     << " [" << sAnsi(sProviderStatusColor(res->probe_status), res->probe_status, color) << "]\n";
 	if(!res->external_package.IsEmpty())
 		Cout() << "External package: " << res->external_package << "\n";
+	if(!res->probe_reason.IsEmpty())
+		Cout() << "Probe reason: " << res->probe_reason << "\n";
+	if(!res->probe_command.IsEmpty())
+		Cout() << "Probe command: " << res->probe_command << "\n";
+	if(!res->probe_path.IsEmpty())
+		Cout() << "Probe path: " << res->probe_path << "\n";
+	if(!res->probe_version.IsEmpty())
+		Cout() << "Probe version: " << res->probe_version << "\n";
 	if(!res->uses_add.IsEmpty())
 		Cout() << "U++ uses: " << sFmtList(res->uses_add) << "\n";
 	if(!res->upp_add.IsEmpty()) {
@@ -2922,17 +3344,26 @@ static void sPrintProvidersCommand(const PkgInvocation& inv, const PkgRepository
 		Cout() << "U++ flags: " << sFmtList(flags) << "\n";
 	}
 	Cout() << "\nCandidates:\n";
-	Vector<PkgProvider> candidates = sProvidersFor(query, target);
+	Vector<PkgProvider> candidates = sProvidersFor(query, repo, inv, inv.probe, target);
 	if(candidates.IsEmpty())
 		Cout() << "  [none]\n";
 	else
 		for(const PkgProvider& p : candidates) {
-			Cout() << "  " << p.id << " [" << p.kind << "; " << sProviderProbeStatus(p, repo) << "]";
+			Cout() << "  " << p.id << " [" << p.kind << "; "
+			     << sAnsi(sProviderStatusColor(p.probe_status), p.probe_status, color) << "]";
 			if(!p.provider.IsEmpty())
 				Cout() << " -> " << p.provider;
 			if(!p.details.IsEmpty())
 				Cout() << " - " << p.details;
+			if(!p.probe_reason.IsEmpty())
+				Cout() << " | " << p.probe_reason;
 			Cout() << "\n";
+			if(!p.probe_command.IsEmpty())
+				Cout() << "    probe command: " << p.probe_command << "\n";
+			if(!p.probe_path.IsEmpty())
+				Cout() << "    probe path: " << p.probe_path << "\n";
+			if(!p.probe_version.IsEmpty())
+				Cout() << "    probe version: " << p.probe_version << "\n";
 			if(!p.uses_add.IsEmpty())
 				Cout() << "    U++ uses: " << sFmtList(p.uses_add) << "\n";
 			if(!p.upp_add.IsEmpty()) {
@@ -3161,19 +3592,52 @@ static void sPrintDoctorState(PkgDoctorSummary& sum, const PkgConfigPaths& paths
 	}
 }
 
-static void sPrintDoctorProviders(PkgDoctorSummary& sum, bool color)
+static int sProviderDoctorLevel(const String& status)
 {
-	Cout() << "Providers:\n";
-	sDoctorLine(sum, "info", "provider probing is plan-only/placeholder in this milestone", color);
-	sDoctorLine(sum, "info", "toolchain probing is also plan-only/placeholder", color);
-	sDoctorLine(sum, "info", "no package managers were invoked", color);
+	if(status == "available")
+		return 0;
+	if(status == "missing" || status == "probe_error")
+		return 1;
+	return 2;
 }
 
-static void sPrintDoctorCommand(const PkgInvocation& inv, bool color)
+static void sPrintDoctorProviders(PkgDoctorSummary& sum, const PkgInvocation& inv, const PkgRepository& repo, bool color)
+{
+	Cout() << "Providers:\n";
+	if(!inv.probe) {
+		sDoctorLine(sum, "info", "provider probing is plan-only/placeholder in this milestone", color);
+		sDoctorLine(sum, "info", "toolchain probing is also plan-only/placeholder", color);
+		sDoctorLine(sum, "info", "no package managers were invoked", color);
+		return;
+	}
+
+	String target = inv.target.IsEmpty() ? String("native") : inv.target;
+	for(const PkgVirtualCapability& cap : sProviderCapabilities()) {
+		Cout() << "  " << cap.capability << ":\n";
+		Vector<PkgProvider> candidates = sProvidersFor(cap.capability, repo, inv, true, target);
+		for(const PkgProvider& p : candidates) {
+			String msg = p.id + " " + p.probe_status;
+			if(!p.probe_reason.IsEmpty())
+				msg << ": " << p.probe_reason;
+			else if(!p.details.IsEmpty())
+				msg << ": " << p.details;
+			sDoctorLine(sum, sProviderDoctorLevel(p.probe_status) == 0 ? "ok" : sProviderDoctorLevel(p.probe_status) == 1 ? "warn" : "info", msg, color);
+			if(!p.probe_command.IsEmpty())
+				sDoctorSubline("command: ", p.probe_command);
+			if(!p.probe_path.IsEmpty())
+				sDoctorSubline("path: ", p.probe_path);
+			if(!p.probe_version.IsEmpty())
+				sDoctorSubline("version: ", p.probe_version);
+		}
+	}
+	sDoctorLine(sum, "info", "no install commands were run", color);
+}
+
+static void sPrintDoctorCommand(const PkgInvocation& inv, const PkgRepository& repo, bool color)
 {
 	PkgDoctorSummary sum;
 	String section = ToLower(TrimBoth(inv.subcommand));
-	PkgConfigPaths paths = FindPkgConfigPaths(sEselectRoot(inv));
+	PkgConfigPaths paths = repo.paths;
 
 	Cout() << "pkg doctor\n\n";
 	if(section.IsEmpty() || section == "all" || section == "env")
@@ -3183,7 +3647,7 @@ static void sPrintDoctorCommand(const PkgInvocation& inv, bool color)
 	if(section.IsEmpty() || section == "all" || section == "state")
 		sPrintDoctorState(sum, paths, color);
 	if(section.IsEmpty() || section == "all" || section == "providers")
-		sPrintDoctorProviders(sum, color);
+		sPrintDoctorProviders(sum, inv, repo, color);
 
 	if(!section.IsEmpty() && section != "all" && section != "env" && section != "shell" && section != "state" && section != "providers") {
 		sDoctorLine(sum, "warn", "unknown doctor subcommand: " + inv.subcommand, color);
@@ -3368,6 +3832,10 @@ static void sPlanWalkAtom(PkgPlan& plan, const PkgInvocation& inv, const PkgRepo
 		item.provider_kind = res->provider_kind;
 		item.provider_package = res->external_package;
 		item.provider_status = res->probe_status;
+		item.provider_command = res->probe_command;
+		item.provider_path = res->probe_path;
+		item.provider_version = res->probe_version;
+		item.provider_reason = res->probe_reason;
 		if(provider_pkg && plan.deep)
 			sPlanWalkAtom(plan, inv, repo, state, provider_pkg->atom, String("provider for ") + atom, seen, depth + 1);
 		return;
@@ -3386,6 +3854,10 @@ static void sPlanWalkAtom(PkgPlan& plan, const PkgInvocation& inv, const PkgRepo
 			item.provider_kind = res->provider_kind;
 			item.provider_package = res->external_package;
 			item.provider_status = res->probe_status;
+			item.provider_command = res->probe_command;
+			item.provider_path = res->probe_path;
+			item.provider_version = res->probe_version;
+			item.provider_reason = res->probe_reason;
 		}
 		else
 			sPlanAddItem(plan, 'F', atom, nullptr, reason.IsEmpty() ? String("package metadata not found") : reason, String(), false, false, depth);
@@ -3478,7 +3950,7 @@ static PkgPlan sBuildPlan(const PkgInvocation& inv, const PkgRepository& repo, c
 		if(FindIndex(plan.virtuals, "virtual/opengl") < 0)
 			plan.virtuals.Add("virtual/opengl");
 	}
-	sBuildProviderPlan(plan.provider_plan, repo, &tp, plan.target, plan.virtuals, inv.provider);
+	sBuildProviderPlan(plan.provider_plan, repo, &tp, plan.target, plan.virtuals, inv.provider, inv);
 	for(const PkgProviderResolution& r : plan.provider_plan.resolutions)
 		if(!r.external_package.IsEmpty() && FindIndex(plan.providers, r.external_package) < 0)
 			plan.providers.Add(r.external_package);
@@ -3525,6 +3997,14 @@ static void sPrintPlanItem(const PkgPlan& plan, const PkgPlanItem& item)
 		Cout() << "  " << sAnsi("34", "provider:", plan.color) << ' ' << item.provider
 		     << (item.provider_kind.IsEmpty() ? String() : String(" [") + item.provider_kind + "]")
 		     << (item.provider_status.IsEmpty() ? String() : String(" [") + item.provider_status + "]") << "\n";
+	if(!item.provider_command.IsEmpty())
+		Cout() << "  " << sAnsi("90", "probe command:", plan.color) << ' ' << item.provider_command << "\n";
+	if(!item.provider_path.IsEmpty())
+		Cout() << "  " << sAnsi("90", "probe path:", plan.color) << ' ' << item.provider_path << "\n";
+	if(!item.provider_version.IsEmpty())
+		Cout() << "  " << sAnsi("90", "probe version:", plan.color) << ' ' << item.provider_version << "\n";
+	if(!item.provider_reason.IsEmpty())
+		Cout() << "  " << sAnsi("90", "probe reason:", plan.color) << ' ' << item.provider_reason << "\n";
 	if(!item.provider_package.IsEmpty())
 		Cout() << "  " << sAnsi("34", "package:", plan.color) << ' ' << item.provider_package << "\n";
 	if(!item.reason.IsEmpty())
@@ -3605,7 +4085,15 @@ static PkgPlan sPrintPlan(const PkgInvocation& inv, const PkgRepository& repo, b
 			     << " [" << r.probe_status << "]";
 			if(!r.external_package.IsEmpty())
 				Cout() << " -> " << r.external_package;
+			if(!r.probe_reason.IsEmpty())
+				Cout() << " - " << r.probe_reason;
+			if(!r.probe_version.IsEmpty())
+				Cout() << " (" << r.probe_version << ")";
 			Cout() << "\n";
+			if(!r.probe_command.IsEmpty())
+				Cout() << "    probe command: " << r.probe_command << "\n";
+			if(!r.probe_path.IsEmpty())
+				Cout() << "    probe path: " << r.probe_path << "\n";
 		}
 	if(!plan.provider_plan.uses_additions.IsEmpty()) {
 		Cout() << "Provider U++ uses: " << sFmtList(plan.provider_plan.uses_additions) << "\n";
@@ -3773,7 +4261,7 @@ int RunPkg(const Vector<String>& args)
 	                 inv.command == PKG_CMD_PROVIDERS || inv.command == PKG_CMD_SEARCH || inv.command == PKG_CMD_EXPLAIN_USE ||
 	                 inv.command == PKG_CMD_EXPLAIN_TARGET || inv.command == PKG_CMD_DEPS || inv.command == PKG_CMD_PLAN ||
 	                 inv.command == PKG_CMD_AUDIT_ACCEPTFLAGS || inv.command == PKG_CMD_ESELECT ||
-	                 inv.command == PKG_CMD_TARGET;
+	                 inv.command == PKG_CMD_TARGET || inv.command == PKG_CMD_DOCTOR;
 	PkgRepository repo;
 	if(need_repo)
 		repo.Discover();
@@ -3794,12 +4282,12 @@ int RunPkg(const Vector<String>& args)
 		return 0;
 	}
 	if(inv.command == PKG_CMD_DOCTOR) {
-		sPrintDoctorCommand(inv, color);
+		sPrintDoctorCommand(inv, repo, color);
 		sFlushConsole();
 		return 0;
 	}
 	if(inv.command == PKG_CMD_PROVIDERS) {
-		sPrintProvidersCommand(inv, repo);
+		sPrintProvidersCommand(inv, repo, color);
 		sFlushConsole();
 		return 0;
 	}

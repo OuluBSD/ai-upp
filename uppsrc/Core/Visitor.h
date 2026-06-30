@@ -706,6 +706,48 @@ String VisitToJson(T& var)
 	}
 }
 
+template <class T>
+bool VisitFromTOON(T& var, const char *toon, bool strict = true, int indentSize = 2, bool expandPaths = false)
+{
+	try {
+		Value jv;
+		if (TrimLeft(String(toon)).GetCount()) {
+			jv = ParseTOON(toon, strict, indentSize, expandPaths);
+			if(jv.IsError()) {
+				LOG("VisitFromTOON: " << GetErrorText(jv));
+				return false;
+			}
+		}
+		JsonIO io(jv);
+		Vis vis(io);
+		var.Visit(vis);
+	}
+	catch(ValueTypeError e) {
+		LOG("VisitFromTOON: " << e);
+		return false;
+	}
+	catch(JsonizeError e) {
+		LOG("VisitFromTOON: " << e);
+		return false;
+	}
+	return true;
+}
+
+template <class T>
+String VisitToTOON(T& var, int indentSize = 2, int delimiter = ',', bool keyFolding = false, int flattenDepth = INT_MAX)
+{
+	try {
+		JsonIO io;
+		Vis vis(io);
+		var.Visit(vis);
+		Value val = io.GetResult();
+		return AsTOON(val, indentSize, delimiter, keyFolding, flattenDepth);
+	}
+	catch (...) {
+		return String();
+	}
+}
+
 template <class T> inline hash_t GetVisitJsonHash(const T& o) {return VisitToJson<T>(const_cast<T&>(o)).GetHashValue();}
 
 template <class T>

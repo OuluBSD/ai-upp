@@ -1,0 +1,10 @@
+description "Using U++ TOON support functions and classes\377";
+
+uses
+	Core;
+
+file
+	main.cpp;
+
+mainconfig
+	"" = "";

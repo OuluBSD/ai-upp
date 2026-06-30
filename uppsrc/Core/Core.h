@@ -402,6 +402,7 @@ class YamlIO;
 #include "Parser.h"
 #include "JSON.h"
 #include "YAML.h"
+#include "TOON.h"
 #include "VCS.h"
 #include "Visitor.h"
 #include "XML.h"

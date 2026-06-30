@@ -136,6 +136,10 @@ struct PkgProvider : Moveable<PkgProvider> {
 	Vector<String> uses_add;
 	Vector<PkgUppFlag> upp_add;
 	String probe_status;
+	String probe_command;
+	String probe_path;
+	String probe_version;
+	String probe_reason;
 	bool manual = false;
 };
 
@@ -153,6 +157,10 @@ struct PkgProviderResolution : Moveable<PkgProviderResolution> {
 	String external_package;
 	String details;
 	String probe_status;
+	String probe_command;
+	String probe_path;
+	String probe_version;
+	String probe_reason;
 	int priority = 0;
 	bool selected = false;
 	bool manual = false;
@@ -246,6 +254,10 @@ struct PkgPlanItem : Moveable<PkgPlanItem> {
 	String provider_kind;
 	String provider_package;
 	String provider_status;
+	String provider_command;
+	String provider_path;
+	String provider_version;
+	String provider_reason;
 	String reason;
 	String repository;
 	String description;
@@ -324,6 +336,7 @@ struct PkgInvocation {
 	bool deep = false;
 	bool newuse = false;
 	bool changed_use = false;
+	bool probe = false;
 	bool pretend = false;
 	bool resume = false;
 	bool oneshot = false;

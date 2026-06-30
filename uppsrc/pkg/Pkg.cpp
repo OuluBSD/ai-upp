@@ -284,6 +284,75 @@ static String sPackageNameFromPath(const String& atom, const String& nest)
 	return nest + "/" + atom;
 }
 
+static String sPackageResolvePath(const String& path)
+{
+	return ToLower(UnixPath(NormalizePath(path)));
+}
+
+static int sPackageResolveScore(const PkgPackage& p, const String& query)
+{
+	String q = TrimBoth(query);
+	if(q.IsEmpty())
+		return 1000;
+	String qpath = sPackageResolvePath(q);
+	String qlow = ToLower(q);
+	String path = sPackageResolvePath(p.path);
+	String atom = ToLower(p.atom);
+	String name = ToLower(p.name);
+	String qualified = ToLower(p.nest + "/" + p.atom);
+	String title = ToLower(GetFileName(path));
+
+	if(qpath == path || q == p.path)
+		return 0;
+	if(qlow == name || qlow == atom || qlow == qualified)
+		return 1;
+	if(path.EndsWith(qpath) || qpath.EndsWith(path))
+		return 2;
+	if(atom.EndsWith(qlow) || name.EndsWith(qlow) || title == qlow)
+		return 3;
+	return 1000;
+}
+
+static String sPackageLookupLabel(const PkgPackage& p)
+{
+	return p.name + " <" + p.path + ">";
+}
+
+PkgLookupResult PkgRepository::Resolve(const String& atom) const
+{
+	PkgLookupResult r;
+	r.query = TrimBoth(atom);
+	if(r.query.IsEmpty())
+		return r;
+
+	int best = 1000;
+	for(const PkgPackage& p : packages) {
+		int score = sPackageResolveScore(p, r.query);
+		if(score >= 1000)
+			continue;
+		if(score < best) {
+			best = score;
+			r.candidates.Clear();
+		}
+		if(score == best)
+			r.candidates.Add(&p);
+	}
+
+	if(r.candidates.IsEmpty())
+		return r;
+
+	if(r.candidates.GetCount() == 1) {
+		r.pkg = r.candidates[0];
+		r.canonical = r.pkg->name;
+		r.path = r.pkg->path;
+		r.direct_path = sPackageResolvePath(r.query) == sPackageResolvePath(r.pkg->path) || r.query.EndsWith(".upp") || r.query.EndsWith(".xupp");
+		return r;
+	}
+
+	r.ambiguous = true;
+	return r;
+}
+
 void PkgRepository::Discover()
 {
 	root = PkgRepoRoot();
@@ -313,7 +382,8 @@ void PkgRepository::Discover()
 		for(int i = 0; i < pkg.uses.GetCount(); i++)
 			p.uses.Add(pkg.uses[i].text);
 		for(int i = 0; i < pkg.config.GetCount(); i++)
-			p.mainconfig.Add(pkg.config[i].name);
+			if(!pkg.config[i].name.IsEmpty())
+				p.mainconfig.Add(pkg.config[i].name);
 		Vector<String> sources = sExpandSourceFiles(p.dir);
 		for(const String& s : sources)
 			p.source_files.Add(s);
@@ -498,7 +568,7 @@ static String sPlanLabel(const PkgPlanItem& item)
 
 bool PkgRepository::HasPackage(const String& atom) const
 {
-	return Find(atom) != nullptr;
+	return Resolve(atom).pkg != nullptr;
 }
 
 static Vector<PkgUsePolicy> sUsePolicies()
@@ -3000,7 +3070,15 @@ static void sPolicyFlags(const Vector<String>& use_args, const String& target, V
 
 static void sExplainUse(const PkgInvocation& inv, const PkgRepository& repo)
 {
-	const PkgPackage *pkg = inv.atom.IsEmpty() ? nullptr : repo.Find(inv.atom);
+	PkgLookupResult lookup = inv.atom.IsEmpty() ? PkgLookupResult() : repo.Resolve(inv.atom);
+	const PkgPackage *pkg = lookup.pkg;
+	if(lookup.ambiguous) {
+		Cout() << "Ambiguous package: " << inv.atom << "\n";
+		for(const PkgPackage* c : lookup.candidates)
+			if(c)
+				Cout() << "  " << sPackageLookupLabel(*c) << "\n";
+		return;
+	}
 	PkgUseModel use;
 	sBuildUseModel(use, pkg, inv.use_args, inv.target);
 	PkgUppProjection upp;
@@ -3192,7 +3270,15 @@ static const PkgProviderResolution* sFindProviderResolution(const PkgProviderPla
 
 static void sPrintDeps(const PkgInvocation& inv, const PkgRepository& repo)
 {
-	const PkgPackage *pkg = inv.atom.IsEmpty() ? nullptr : repo.Find(inv.atom);
+	PkgLookupResult lookup = inv.atom.IsEmpty() ? PkgLookupResult() : repo.Resolve(inv.atom);
+	const PkgPackage *pkg = lookup.pkg;
+	if(lookup.ambiguous) {
+		Cout() << "Ambiguous package: " << inv.atom << "\n";
+		for(const PkgPackage* c : lookup.candidates)
+			if(c)
+				Cout() << "  " << sPackageLookupLabel(*c) << "\n";
+		return;
+	}
 	PkgUseModel use;
 	PkgUppProjection upp;
 	sBuildUseModel(use, pkg, inv.use_args, inv.target);
@@ -3412,7 +3498,7 @@ static void sPrintSearch(const PkgRepository& repo, const String& query, bool co
 	Cout() << "[ Packages found : " << found.GetCount() << " ]\n";
 }
 
-static void sPrintMetadata(const PkgRepository& repo)
+static void sPrintMetadata(const PkgRepository& repo, const PkgInvocation& inv)
 {
 	Cout() << "Repository root: " << repo.paths.root << "\n";
 	Cout() << "Package count: " << repo.packages.GetCount() << "\n";
@@ -3422,6 +3508,31 @@ static void sPrintMetadata(const PkgRepository& repo)
 	Cout() << "Package.use: " << repo.paths.package_use << "\n";
 	Cout() << "Package.provider: " << repo.paths.package_provider << "\n";
 	Cout() << "Package.target: " << repo.paths.package_target << "\n";
+	if(!inv.atom.IsEmpty()) {
+		Cout() << "\nPackage metadata for: " << inv.atom << "\n";
+		PkgLookupResult lookup = repo.Resolve(inv.atom);
+		if(lookup.ambiguous) {
+			Cout() << "Status: ambiguous\n";
+			Cout() << "Candidates:\n";
+			for(const PkgPackage* c : lookup.candidates)
+				if(c)
+					Cout() << "  " << sPackageLookupLabel(*c) << "\n";
+			return;
+		}
+		const PkgPackage* p = lookup.pkg;
+		if(!p) {
+			Cout() << "Status: not found\n";
+			return;
+		}
+		Cout() << "Status: found\n";
+		Cout() << "Name: " << p->name << "\n";
+		Cout() << "Nest: " << p->nest << "\n";
+		Cout() << "Path: " << p->path << "\n";
+		Cout() << "Description: " << (p->description.IsEmpty() ? String("[none]") : p->description) << "\n";
+		Cout() << "Acceptflags: " << sFmtList(p->accepts) << "\n";
+		Cout() << "Uses: " << sFmtList(p->uses) << "\n";
+		Cout() << "Mainconfig: " << sFmtList(p->mainconfig) << "\n";
+	}
 }
 
 static void sPrintInfo(const PkgRepository& repo, const PkgInvocation& inv)
@@ -3710,7 +3821,7 @@ static void sWriteState(const PkgRepository& repo, const PkgPlan& plan)
 			rec.effective_uppflags.Add(s);
 		for(const String& s : plan.providers)
 			rec.providers.Add(s);
-		if(const PkgPackage* p = repo.Find(item.atom))
+		if(const PkgPackage* p = repo.Resolve(item.atom).pkg)
 			for(const String& s : p->accepts)
 				rec.accepted_flags.Add(s);
 	}
@@ -3761,7 +3872,8 @@ static void sPlanAddItem(PkgPlan& plan, char base_status, const String& atom, co
 {
 	PkgPlanItem& item = plan.items.Add();
 	item.status = plan.ask && depth == 0 ? 'I' : base_status;
-	item.atom = atom;
+	item.atom = pkg ? pkg->name : atom;
+	item.path = pkg ? pkg->path : String();
 	item.provider = provider;
 	item.blocker = blocker;
 	item.resolved = resolved;
@@ -3777,15 +3889,24 @@ static void sPlanAddItem(PkgPlan& plan, char base_status, const String& atom, co
 	if(pkg) {
 		item.repository = pkg->nest;
 		item.description = pkg->description;
+		for(const String& s : pkg->accepts)
+			item.accepts.Add(s);
+		for(const String& s : pkg->uses)
+			item.uses.Add(s);
+		for(const String& s : pkg->mainconfig)
+			if(!s.IsEmpty())
+				item.mainconfig.Add(s);
 	}
 }
 
 static bool sShouldSkipPlannedAtom(const PkgInvocation& inv, const PkgPlan& plan, const PkgRepository& repo, const PkgState& state, const String& atom)
 {
-	const PkgStateRecord* rec = sFindStateRecord(state, atom);
+	PkgLookupResult lookup = repo.Resolve(atom);
+	String key = lookup.pkg ? lookup.pkg->name : atom;
+	const PkgStateRecord* rec = sFindStateRecord(state, key);
 	if(!rec)
 		return false;
-	const PkgPackage* pkg = repo.Find(atom);
+	const PkgPackage* pkg = lookup.pkg;
 	if(inv.newuse)
 		return sRecordMatchesNewUse(*rec, plan, pkg);
 	if(inv.changed_use)
@@ -3795,10 +3916,6 @@ static bool sShouldSkipPlannedAtom(const PkgInvocation& inv, const PkgPlan& plan
 
 static void sPlanWalkAtom(PkgPlan& plan, const PkgInvocation& inv, const PkgRepository& repo, const PkgState& state, const String& atom, const String& reason, Index<String>& seen, int depth)
 {
-	String key = ToLower(TrimBoth(atom));
-	if(key.IsEmpty())
-		return;
-
 	if(atom == "@world" || atom == "world") {
 		Vector<String> world = sLoadSet(repo.paths, "world", repo.paths.world);
 		if(world.IsEmpty()) {
@@ -3824,7 +3941,7 @@ static void sPlanWalkAtom(PkgPlan& plan, const PkgInvocation& inv, const PkgRepo
 			item.provider_status = "missing";
 			return;
 		}
-		const PkgPackage* provider_pkg = res->external_package.IsEmpty() ? nullptr : repo.Find(res->external_package);
+		const PkgPackage* provider_pkg = res->external_package.IsEmpty() ? nullptr : repo.Resolve(res->external_package).pkg;
 		char status = res->provider_kind == "manual" || res->probe_status == "missing" || res->external_package.IsEmpty() ? 'F' : 'N';
 		sPlanAddItem(plan, status, atom, provider_pkg, reason.IsEmpty() ? String("provider for ") + atom : reason,
 		             res->provider_id, false, provider_pkg != nullptr, depth);
@@ -3835,18 +3952,33 @@ static void sPlanWalkAtom(PkgPlan& plan, const PkgInvocation& inv, const PkgRepo
 		item.provider_command = res->probe_command;
 		item.provider_path = res->probe_path;
 		item.provider_version = res->probe_version;
-		item.provider_reason = res->probe_reason;
+			item.provider_reason = res->probe_reason;
 		if(provider_pkg && plan.deep)
 			sPlanWalkAtom(plan, inv, repo, state, provider_pkg->atom, String("provider for ") + atom, seen, depth + 1);
 		return;
 	}
 
-	const PkgPackage* pkg = repo.Find(atom);
+	PkgLookupResult lookup = repo.Resolve(atom);
+	const PkgPackage* pkg = lookup.pkg;
+	String key = pkg ? ToLower(pkg->name) : ToLower(TrimBoth(atom));
+	if(key.IsEmpty())
+		return;
+
+	if(lookup.ambiguous) {
+		sPlanAddItem(plan, 'F', atom, nullptr, reason.IsEmpty() ? String("ambiguous package name") : reason, String(), false, false, depth);
+		PkgPlanItem& item = plan.items.Top();
+		item.ambiguous = true;
+		for(const PkgPackage* c : lookup.candidates)
+			if(c)
+				item.candidates.Add(sPackageLookupLabel(*c));
+		return;
+	}
+
 	if(!pkg) {
 		String cap = atom.StartsWith("virtual/") ? atom : String("virtual/") + atom;
 		const PkgProviderResolution* res = sFindProviderResolution(plan.provider_plan, cap);
 		if(res) {
-			const PkgPackage* provider_pkg = res->external_package.IsEmpty() ? nullptr : repo.Find(res->external_package);
+			const PkgPackage* provider_pkg = res->external_package.IsEmpty() ? nullptr : repo.Resolve(res->external_package).pkg;
 			char status = res->provider_kind == "manual" || res->probe_status == "missing" || res->external_package.IsEmpty() ? 'F' : 'N';
 			sPlanAddItem(plan, status, cap, provider_pkg, reason.IsEmpty() ? String("provider for ") + atom : reason,
 			             res->provider_id, false, provider_pkg != nullptr, depth);
@@ -3902,7 +4034,8 @@ static PkgPlan sBuildPlan(const PkgInvocation& inv, const PkgRepository& repo, c
 	plan.deep = inv.deep;
 	plan.newuse = inv.newuse;
 	plan.changed_use = inv.changed_use;
-	const PkgPackage *root_pkg = inv.atom.IsEmpty() ? nullptr : repo.Find(inv.atom);
+	PkgLookupResult root_lookup = inv.atom.IsEmpty() ? PkgLookupResult() : repo.Resolve(inv.atom);
+	const PkgPackage *root_pkg = root_lookup.pkg;
 	const PkgTargetProfile& tp = sDefaultTargetProfile(inv.target);
 	sBuildUseModel(plan.use, root_pkg, inv.use_args, inv.target);
 	sProjectUpp(plan.upp, plan.use);
@@ -4013,6 +4146,8 @@ static void sPrintPlanItem(const PkgPlan& plan, const PkgPlanItem& item)
 		Cout() << "  " << sAnsi("90", "repository:", plan.color) << ' ' << item.repository << "\n";
 	if(!item.description.IsEmpty())
 		Cout() << "  " << sAnsi("90", "description:", plan.color) << ' ' << item.description << "\n";
+	if(!item.path.IsEmpty())
+		Cout() << "  " << sAnsi("90", "path:", plan.color) << ' ' << item.path << "\n";
 	if(plan.verbose) {
 		Cout() << "  " << sAnsi("90", "declared USE:", plan.color) << ' ' << sFormatUseList(plan.use.declared) << "\n";
 		Cout() << "  " << sAnsi("90", "selected USE:", plan.color) << ' ' << sFormatUseList(plan.use.selected) << "\n";
@@ -4020,6 +4155,12 @@ static void sPrintPlanItem(const PkgPlan& plan, const PkgPlanItem& item)
 		Cout() << "  " << sAnsi("90", "forced USE:", plan.color) << ' ' << sFormatUseList(plan.use.forced) << "\n";
 		Cout() << "  " << sAnsi("90", "masked USE:", plan.color) << ' ' << sFormatUseList(plan.use.masked) << "\n";
 		Cout() << "  " << sAnsi("90", "effective USE:", plan.color) << ' ' << sFormatUseList(plan.use.effective) << "\n";
+		if(!item.accepts.IsEmpty())
+			Cout() << "  " << sAnsi("90", "acceptflags:", plan.color) << ' ' << sFmtList(item.accepts) << "\n";
+		if(!item.uses.IsEmpty())
+			Cout() << "  " << sAnsi("90", "uses:", plan.color) << ' ' << sFmtList(item.uses) << "\n";
+		if(!item.mainconfig.IsEmpty())
+			Cout() << "  " << sAnsi("90", "mainconfig:", plan.color) << ' ' << sFmtList(item.mainconfig) << "\n";
 		if(!plan.use.transitions.IsEmpty()) {
 			Cout() << "  " << sAnsi("90", "USE transitions:", plan.color) << '\n';
 			for(const PkgUseTransition& tr : plan.use.transitions)
@@ -4028,6 +4169,11 @@ static void sPrintPlanItem(const PkgPlan& plan, const PkgPlanItem& item)
 		Cout() << "  " << sAnsi("90", "UPP global:", plan.color) << ' ' << sFormatUseList(plan.upp.global) << "\n";
 		Cout() << "  " << sAnsi("90", "UPP accepted:", plan.color) << ' ' << sFormatUseList(plan.upp.accepted) << "\n";
 		Cout() << "  " << sAnsi("90", "UPP main-only:", plan.color) << ' ' << sFormatUseList(plan.upp.main_only) << "\n";
+		if(item.ambiguous && !item.candidates.IsEmpty())
+			Cout() << "  " << sAnsi("90", "candidates:", plan.color) << ' ' << sFmtList(item.candidates) << "\n";
+	}
+	else if(item.ambiguous && !item.candidates.IsEmpty()) {
+		Cout() << "  " << sAnsi("90", "candidates:", plan.color) << ' ' << sFmtList(item.candidates) << "\n";
 	}
 	Cout() << "\n";
 }
@@ -4200,7 +4346,15 @@ static void sAuditAcceptFlags(const PkgInvocation& inv, const PkgRepository& rep
 			targets.Add(&p);
 	}
 	else {
-		const PkgPackage* p = repo.Find(inv.atom);
+		PkgLookupResult lookup = repo.Resolve(inv.atom);
+		if(lookup.ambiguous) {
+			Cout() << sAnsi("33;1", "[warn]", color) << " ambiguous package: " << inv.atom << "\n";
+			for(const PkgPackage* c : lookup.candidates)
+				if(c)
+					Cout() << "  " << sPackageLookupLabel(*c) << "\n";
+			return;
+		}
+		const PkgPackage* p = lookup.pkg;
 		if(!p) {
 			Cout() << sAnsi("33;1", "[warn]", color) << " unknown package: " << inv.atom << "\n";
 			return;
@@ -4292,7 +4446,7 @@ int RunPkg(const Vector<String>& args)
 		return 0;
 	}
 	if(inv.command == PKG_CMD_METADATA) {
-		sPrintMetadata(repo);
+		sPrintMetadata(repo, inv);
 		sFlushConsole();
 		return 0;
 	}

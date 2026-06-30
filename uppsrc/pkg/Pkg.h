@@ -191,6 +191,16 @@ struct PkgPackage : Moveable<PkgPackage> {
 	Time mtime;
 };
 
+struct PkgLookupResult : Moveable<PkgLookupResult> {
+	String query;
+	String canonical;
+	String path;
+	const PkgPackage *pkg = nullptr;
+	Vector<const PkgPackage*> candidates;
+	bool direct_path = false;
+	bool ambiguous = false;
+};
+
 struct PkgStateRecord : Moveable<PkgStateRecord> {
 	String atom;
 	String target;
@@ -247,6 +257,7 @@ struct PkgConfigPaths {
 struct PkgPlanItem : Moveable<PkgPlanItem> {
 	char status = 'N';
 	String atom;
+	String path;
 	String use;
 	String target;
 	String uppflags;
@@ -261,6 +272,11 @@ struct PkgPlanItem : Moveable<PkgPlanItem> {
 	String reason;
 	String repository;
 	String description;
+	Vector<String> accepts;
+	Vector<String> uses;
+	Vector<String> mainconfig;
+	Vector<String> candidates;
+	bool ambiguous = false;
 	bool interactive = false;
 	bool blocker = false;
 	bool resolved = false;
@@ -303,6 +319,7 @@ struct PkgRepository {
 	Vector<String> nests;
 
 	void Discover();
+	PkgLookupResult Resolve(const String& atom) const;
 	const PkgPackage* Find(const String& atom) const;
 	Vector<const PkgPackage*> Search(const String& query) const;
 	bool HasPackage(const String& atom) const;

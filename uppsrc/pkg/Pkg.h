@@ -287,6 +287,63 @@ struct PkgState : Moveable<PkgState> {
 	void Jsonize(JsonIO& jio);
 };
 
+struct PkgBuildStep : Moveable<PkgBuildStep> {
+	String atom;
+	String path;
+	String reason;
+	String command;
+	String result;
+	int exit_code = -1;
+	bool requested = false;
+	bool provider_added = false;
+	bool set_member = false;
+	bool root = false;
+	bool executed = false;
+	bool completed = false;
+	bool skipped = false;
+	bool failed = false;
+
+	void Jsonize(JsonIO& jio);
+};
+
+struct PkgExecutionResult : Moveable<PkgExecutionResult> {
+	bool ok = false;
+	bool executed = false;
+	bool resumed = false;
+	int failed_index = -1;
+	String failed_atom;
+	String message;
+	Vector<String> completed_steps;
+	Vector<String> resume_data;
+	PkgBuildStep failed_step;
+};
+
+struct PkgTransaction : Moveable<PkgTransaction> {
+	String command_line;
+	String target;
+	String provider;
+	String compiler;
+	String linker;
+	String toolchain;
+	String build_method;
+	String result;
+	int jobs = 0;
+	int failed_index = -1;
+	bool pretend = false;
+	bool ask = false;
+	bool resume = false;
+	bool keep_going = false;
+	bool skip_first = false;
+	Vector<String> requested_atoms;
+	Vector<String> completed_steps;
+	Vector<String> resume_data;
+	PkgBuildStep failed_step;
+	Vector<PkgBuildStep> steps;
+	Time timestamp;
+
+	void Jsonize(JsonIO& jio);
+};
+
 struct PkgEselectState : Moveable<PkgEselectState> {
 	String compiler;
 	String linker;
@@ -313,6 +370,7 @@ struct PkgConfigPaths {
 	String package_target;
 	String state;
 	String eselect;
+	String transaction;
 };
 
 struct PkgPlanItem : Moveable<PkgPlanItem> {
@@ -337,6 +395,10 @@ struct PkgPlanItem : Moveable<PkgPlanItem> {
 	Vector<String> uses;
 	Vector<String> mainconfig;
 	Vector<String> candidates;
+	int depth = 0;
+	bool requested = false;
+	bool provider_added = false;
+	bool set_member = false;
 	bool ambiguous = false;
 	bool interactive = false;
 	bool blocker = false;
@@ -407,14 +469,18 @@ struct PkgInvocation {
 	String subcommand;
 	String root;
 	String sysroot;
+	String command_line;
 	Vector<String> use_args;
 	Vector<String> extra;
+	int jobs = 0;
 	bool ask = false;
 	bool verbose = false;
 	bool update = false;
 	bool deep = false;
 	bool newuse = false;
 	bool changed_use = false;
+	bool keep_going = false;
+	bool skip_first = false;
 	bool probe = false;
 	bool pretend = false;
 	bool resume = false;

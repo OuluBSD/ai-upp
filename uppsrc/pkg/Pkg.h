@@ -201,6 +201,67 @@ struct PkgLookupResult : Moveable<PkgLookupResult> {
 	bool ambiguous = false;
 };
 
+struct PkgGraphEdge : Moveable<PkgGraphEdge> {
+	String from;
+	String to;
+	String kind;
+	String reason;
+	bool missing = false;
+};
+
+struct PkgResolveIssue : Moveable<PkgResolveIssue> {
+	String kind;
+	String from;
+	String atom;
+	String reason;
+	Vector<String> candidates;
+};
+
+struct PkgGraphNode : Moveable<PkgGraphNode> {
+	String key;
+	String atom;
+	String path;
+	String inclusion;
+	String reason;
+	String repository;
+	String description;
+	String provider;
+	String provider_kind;
+	String provider_package;
+	String provider_status;
+	String provider_command;
+	String provider_path;
+	String provider_version;
+	String provider_reason;
+	char status = 'N';
+	int depth = 0;
+	bool resolved = false;
+	bool missing = false;
+	bool ambiguous = false;
+	bool cycle = false;
+	bool provider_added = false;
+	bool set_member = false;
+	bool requested = false;
+	bool blocker = false;
+	Vector<String> accepts;
+	Vector<String> uses;
+	Vector<String> mainconfig;
+	Vector<String> candidates;
+	Vector<String> deps;
+};
+
+struct PkgGraph : Moveable<PkgGraph> {
+	Vector<PkgGraphNode> nodes;
+	Vector<PkgGraphEdge> edges;
+	Vector<PkgResolveIssue> issues;
+	Vector<String> order;
+};
+
+struct PkgResolveResult : Moveable<PkgResolveResult> {
+	PkgGraph graph;
+	Vector<String> roots;
+};
+
 struct PkgStateRecord : Moveable<PkgStateRecord> {
 	String atom;
 	String target;
@@ -306,6 +367,7 @@ struct PkgPlan : Moveable<PkgPlan> {
 	Vector<String> virtuals;
 	Vector<String> warnings;
 	PkgProviderPlan provider_plan;
+	PkgGraph graph;
 	Vector<PkgPlanItem> items;
 	int backtrack = 0;
 	int backtrack_limit = 20;

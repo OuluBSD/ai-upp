@@ -3899,6 +3899,370 @@ static void sPlanAddItem(PkgPlan& plan, char base_status, const String& atom, co
 	}
 }
 
+static int sGraphFindNodeIndex(const PkgGraph& graph, const String& key)
+{
+	for(int i = 0; i < graph.nodes.GetCount(); i++)
+		if(graph.nodes[i].key == key)
+			return i;
+	return -1;
+}
+
+static PkgGraphNode& sGraphEnsureNode(PkgGraph& graph, const String& key)
+{
+	int i = sGraphFindNodeIndex(graph, key);
+	if(i >= 0)
+		return graph.nodes[i];
+	PkgGraphNode& node = graph.nodes.Add();
+	node.key = key;
+	return node;
+}
+
+static void sGraphAddIssue(PkgGraph& graph, const String& kind, const String& from, const String& atom, const String& reason, const Vector<String>& candidates = Vector<String>())
+{
+	PkgResolveIssue& issue = graph.issues.Add();
+	issue.kind = kind;
+	issue.from = from;
+	issue.atom = atom;
+	issue.reason = reason;
+	for(const String& s : candidates)
+		issue.candidates.Add(s);
+}
+
+static void sGraphAddEdge(PkgGraph& graph, const String& from, const String& to, const String& kind, const String& reason, bool missing = false)
+{
+	PkgGraphEdge& edge = graph.edges.Add();
+	edge.from = from;
+	edge.to = to;
+	edge.kind = kind;
+	edge.reason = reason;
+	edge.missing = missing;
+}
+
+static String sGraphMissingKey(const String& atom)
+{
+	return "missing:" + ToLower(TrimBoth(atom));
+}
+
+static String sGraphAmbiguousKey(const String& atom)
+{
+	return "ambiguous:" + ToLower(TrimBoth(atom));
+}
+
+static String sGraphCycleKey(const String& from, const String& atom)
+{
+	return "cycle:" + ToLower(TrimBoth(from)) + "->" + ToLower(TrimBoth(atom));
+}
+
+static void sGraphPopulateResolvedNode(PkgGraphNode& node, const PkgPackage& pkg, const String& reason, const String& inclusion, int depth, bool requested, bool provider_added, bool set_member)
+{
+	if(node.key.IsEmpty())
+		node.key = pkg.path;
+	node.atom = pkg.name;
+	node.path = pkg.path;
+	if(node.inclusion.IsEmpty() || requested)
+		node.inclusion = inclusion;
+	if(node.reason.IsEmpty() || requested)
+		node.reason = reason;
+	node.repository = pkg.nest;
+	node.description = pkg.description;
+	if(node.depth == 0 || depth < node.depth)
+		node.depth = depth;
+	node.resolved = true;
+	node.provider_added = node.provider_added || provider_added;
+	node.set_member = node.set_member || set_member;
+	node.requested = node.requested || requested;
+	if(node.accepts.IsEmpty())
+		for(const String& s : pkg.accepts)
+			node.accepts.Add(s);
+	if(node.uses.IsEmpty())
+		for(const String& s : pkg.uses)
+			node.uses.Add(s);
+	if(node.mainconfig.IsEmpty())
+		for(const String& s : pkg.mainconfig)
+			if(!s.IsEmpty())
+				node.mainconfig.Add(s);
+}
+
+static void sGraphAppendOrder(PkgGraph& graph, const String& key)
+{
+	if(FindIndex(graph.order, key) < 0)
+		graph.order.Add(key);
+}
+
+static void sGraphMarkPackageNode(PkgGraph& graph, const String& key, char status, const String& atom, const String& reason, int depth, bool requested, bool provider_added, bool set_member)
+{
+	PkgGraphNode& node = sGraphEnsureNode(graph, key);
+	node.key = key;
+	node.atom = atom;
+	node.status = status;
+	node.depth = depth;
+	node.reason = reason;
+	node.blocker = status == 'B';
+	node.missing = status == 'F';
+	node.ambiguous = false;
+	node.cycle = false;
+	node.resolved = false;
+	node.requested = requested;
+	node.provider_added = provider_added;
+	node.set_member = set_member;
+}
+
+static String sResolveGraphAtom(PkgGraph& graph, const PkgInvocation& inv, const PkgRepository& repo, const PkgState& state, const PkgPlan& plan, const PkgProviderPlan& provider_plan,
+                                const String& atom, const String& reason, const String& inclusion, int depth, bool requested, bool provider_added, bool set_member, Vector<String>& stack);
+static bool sShouldSkipPlannedAtom(const PkgInvocation& inv, const PkgPlan& plan, const PkgRepository& repo, const PkgState& state, const String& atom);
+
+static String sResolveGraphSet(PkgGraph& graph, const PkgInvocation& inv, const PkgRepository& repo, const PkgState& state, const PkgPlan& plan, const PkgProviderPlan& provider_plan,
+                              const String& set_name, const String& path, const String& reason, const String& inclusion, int depth, bool requested, Vector<String>& stack)
+{
+	(void)inv;
+	(void)state;
+	(void)inclusion;
+	Vector<String> set = sLoadSet(repo.paths, set_name, path);
+	if(set.IsEmpty()) {
+		String key = sGraphMissingKey(set_name);
+		sGraphMarkPackageNode(graph, key, 'F', set_name, reason.IsEmpty() ? String(set_name) + " set is empty" : reason, depth, requested, false, true);
+		PkgGraphNode& node = sGraphEnsureNode(graph, key);
+		node.missing = true;
+		node.blocker = true;
+		node.reason = reason.IsEmpty() ? String(set_name) + " set is empty" : reason;
+		sGraphAddIssue(graph, "missing-set", Null, set_name, node.reason);
+		sGraphAppendOrder(graph, key);
+		return key;
+	}
+	for(const String& s : set)
+		sResolveGraphAtom(graph, inv, repo, state, plan, provider_plan, s, reason.IsEmpty() ? String("member of @") + set_name : reason, "set member", depth, requested, false, true, stack);
+	return Null;
+}
+
+static String sResolveGraphAtom(PkgGraph& graph, const PkgInvocation& inv, const PkgRepository& repo, const PkgState& state, const PkgPlan& plan, const PkgProviderPlan& provider_plan,
+                                const String& atom, const String& reason, const String& inclusion, int depth, bool requested, bool provider_added, bool set_member, Vector<String>& stack)
+{
+	(void)inv;
+	(void)state;
+	String trimmed = TrimBoth(atom);
+	if(trimmed.IsEmpty())
+		return Null;
+
+	if(trimmed == "@world" || trimmed == "world")
+		return sResolveGraphSet(graph, inv, repo, state, plan, provider_plan, "world", repo.paths.world,
+		                        String(), inclusion, depth, requested, stack);
+	if(trimmed == "@system" || trimmed == "system")
+		return sResolveGraphSet(graph, inv, repo, state, plan, provider_plan, "system", repo.paths.system_set,
+		                        String(), inclusion, depth, requested, stack);
+	if(trimmed == "@toolchain" || trimmed == "toolchain")
+		return sResolveGraphSet(graph, inv, repo, state, plan, provider_plan, "toolchain", repo.paths.toolchain_set,
+		                        String(), inclusion, depth, requested, stack);
+
+	if(trimmed.StartsWith("virtual/")) {
+		const PkgProviderResolution *res = sFindProviderResolution(provider_plan, trimmed);
+		if(!res || res->provider_id.IsEmpty() || res->external_package.IsEmpty() || res->provider_kind == "manual" || res->probe_status == "missing") {
+			String key = sGraphMissingKey(trimmed);
+			sGraphMarkPackageNode(graph, key, 'F', trimmed, reason.IsEmpty() ? String("no provider available") : reason, depth, requested, false, false);
+			PkgGraphNode& node = sGraphEnsureNode(graph, key);
+			node.missing = true;
+			node.blocker = true;
+			node.provider = res ? res->provider_id : String("manual");
+			node.provider_kind = res ? res->provider_kind : String("manual");
+			node.provider_package = res ? res->external_package : String();
+			node.provider_status = res ? res->probe_status : String("missing");
+			node.provider_command = res ? res->probe_command : String();
+			node.provider_path = res ? res->probe_path : String();
+			node.provider_version = res ? res->probe_version : String();
+			node.provider_reason = res ? res->probe_reason : String("no provider available");
+			node.reason = node.provider_reason;
+			sGraphAddIssue(graph, "missing-provider", Null, trimmed, node.reason);
+			sGraphAppendOrder(graph, key);
+			return key;
+		}
+		return sResolveGraphAtom(graph, inv, repo, state, plan, provider_plan, res->external_package,
+		                         reason.IsEmpty() ? String("provider for ") + trimmed : reason,
+		                         "provider", depth, requested, true, set_member, stack);
+	}
+
+	PkgLookupResult lookup = repo.Resolve(trimmed);
+	if(lookup.ambiguous) {
+		String key = sGraphAmbiguousKey(trimmed);
+		sGraphMarkPackageNode(graph, key, 'F', trimmed, reason.IsEmpty() ? String("ambiguous package name") : reason, depth, requested, provider_added, set_member);
+		PkgGraphNode& node = sGraphEnsureNode(graph, key);
+		node.ambiguous = true;
+		for(const PkgPackage* c : lookup.candidates)
+			if(c)
+				node.candidates.Add(sPackageLookupLabel(*c));
+		sGraphAddIssue(graph, "ambiguous", Null, trimmed, node.reason, node.candidates);
+		sGraphAppendOrder(graph, key);
+		return key;
+	}
+
+	const PkgPackage *pkg = lookup.pkg;
+	if(!pkg) {
+		String key = sGraphMissingKey(trimmed);
+		sGraphMarkPackageNode(graph, key, 'F', trimmed, reason.IsEmpty() ? String("package metadata not found") : reason, depth, requested, provider_added, set_member);
+		PkgGraphNode& node = sGraphEnsureNode(graph, key);
+		node.missing = true;
+		node.blocker = true;
+		sGraphAddIssue(graph, "missing", Null, trimmed, node.reason);
+		sGraphAppendOrder(graph, key);
+		return key;
+	}
+
+	String key = lookup.path.IsEmpty() ? pkg->path : lookup.path;
+	int done = FindIndex(graph.order, key);
+	if(done >= 0)
+		return key;
+	if(FindIndex(stack, key) >= 0) {
+		String cycle_key = sGraphCycleKey(stack.Top(), key);
+		sGraphMarkPackageNode(graph, cycle_key, 'B', pkg->name, String("cycle detected: ") + stack.Top() + " -> " + pkg->name, depth, requested, provider_added, set_member);
+		PkgGraphNode& cycle = sGraphEnsureNode(graph, cycle_key);
+		cycle.cycle = true;
+		cycle.blocker = true;
+		cycle.reason = String("cycle detected: ") + stack.Top() + " -> " + pkg->name;
+		sGraphAddIssue(graph, "cycle", stack.Top(), pkg->name, cycle.reason);
+		sGraphAppendOrder(graph, cycle_key);
+		return cycle_key;
+	}
+
+	PkgGraphNode& node = sGraphEnsureNode(graph, key);
+	sGraphPopulateResolvedNode(node, *pkg, reason.IsEmpty() ? String("new package") : reason, inclusion, depth, requested, provider_added, set_member);
+	if(sShouldSkipPlannedAtom(inv, plan, repo, state, lookup.path.IsEmpty() ? pkg->name : lookup.path))
+		return key;
+	stack.Add(key);
+	for(const String& dep : pkg->uses) {
+		String dep_reason = String("dependency of ") + pkg->name;
+		String dep_key = sResolveGraphAtom(graph, inv, repo, state, plan, provider_plan, dep, dep_reason, "dependency", depth + 1, false, false, false, stack);
+		if(!dep_key.IsEmpty()) {
+			String kind = dep.StartsWith("virtual/") ? "provider" : "dependency";
+			sGraphAddEdge(graph, key, dep_key, kind, dep_reason, dep_key.StartsWith("missing:") || dep_key.StartsWith("ambiguous:") || dep_key.StartsWith("cycle:"));
+			node.deps.Add(dep_key);
+		}
+	}
+	stack.Remove(stack.GetCount() - 1);
+	node.resolved = true;
+	sGraphAppendOrder(graph, key);
+	return key;
+}
+
+static void sGraphBuild(PkgGraph& graph, const PkgInvocation& inv, const PkgRepository& repo, const PkgState& state, const PkgPlan& plan, const PkgProviderPlan& provider_plan, const Vector<String>& roots)
+{
+	graph.nodes.Clear();
+	graph.edges.Clear();
+	graph.issues.Clear();
+	graph.order.Clear();
+	graph.nodes.Reserve(max(64, repo.packages.GetCount()));
+	graph.edges.Reserve(max(128, repo.packages.GetCount() * 4));
+	graph.issues.Reserve(max(64, repo.packages.GetCount() / 8 + 1));
+	Vector<String> stack;
+	String root_reason = "requested";
+	if(inv.atom == "@world" || inv.atom == "world" || (inv.atom.IsEmpty() && inv.command == PKG_CMD_PLAN && inv.ask))
+		root_reason = "member of @world";
+	else if(inv.atom == "@system" || inv.atom == "system")
+		root_reason = "member of @system";
+	else if(inv.atom == "@toolchain" || inv.atom == "toolchain")
+		root_reason = "member of @toolchain";
+
+	for(const PkgProviderResolution& r : provider_plan.resolutions) {
+		if(!r.selected || r.external_package.IsEmpty())
+			continue;
+		String reason = String("provider for ") + r.capability;
+		sResolveGraphAtom(graph, inv, repo, state, plan, provider_plan, r.external_package, reason, "provider", 0, false, true, false, stack);
+	}
+
+	for(const String& root : roots) {
+		String reason = root_reason;
+		if(!inv.atom.IsEmpty() && root == inv.atom)
+			reason = "requested";
+		sResolveGraphAtom(graph, inv, repo, state, plan, provider_plan, root, reason, "requested", 0, true, false, false, stack);
+	}
+}
+
+static const PkgGraphNode* sFindGraphNode(const PkgGraph& graph, const String& key)
+{
+	int i = sGraphFindNodeIndex(graph, key);
+	return i >= 0 ? &graph.nodes[i] : nullptr;
+}
+
+static void sGraphToPlan(PkgPlan& plan, const PkgGraph& graph, const PkgRepository& repo, const PkgState& state, const PkgInvocation& inv)
+{
+	for(const String& key : graph.order) {
+		const PkgGraphNode *node = sFindGraphNode(graph, key);
+		if(!node)
+			continue;
+		const PkgPackage *pkg = nullptr;
+		if(node->resolved && !node->path.IsEmpty())
+			pkg = repo.Resolve(node->path).pkg;
+		if(!pkg && node->resolved)
+			pkg = repo.Resolve(node->atom).pkg;
+		if(node->resolved && sShouldSkipPlannedAtom(inv, plan, repo, state, node->path.IsEmpty() ? node->atom : node->path))
+			continue;
+		char status = node->status;
+		if(node->resolved) {
+			status = sFindStateRecord(state, node->atom) ? (plan.update ? 'U' : 'R') : 'N';
+			if(status == 'R' && plan.newuse) {
+				const PkgStateRecord *rec = sFindStateRecord(state, node->atom);
+				if(rec && sRecordMatchesNewUse(*rec, plan, pkg))
+					continue;
+			}
+			if(status == 'R' && plan.changed_use) {
+				const PkgStateRecord *rec = sFindStateRecord(state, node->atom);
+				if(rec && sRecordMatchesChangedUse(*rec, plan))
+					continue;
+			}
+		}
+		char base_status = status;
+		if(node->blocker)
+			base_status = 'B';
+		else if(node->missing || node->ambiguous || node->cycle)
+			base_status = 'F';
+		int depth = node->requested ? node->depth : (node->depth > 0 ? node->depth : 1);
+		sPlanAddItem(plan, base_status, node->atom, pkg, node->reason, node->provider, node->blocker, node->resolved, depth);
+		PkgPlanItem& item = plan.items.Top();
+		if(!node->path.IsEmpty())
+			item.path = node->path;
+		if(!node->repository.IsEmpty())
+			item.repository = node->repository;
+		if(!node->description.IsEmpty())
+			item.description = node->description;
+		if(!node->accepts.IsEmpty()) {
+			item.accepts.Clear();
+			for(const String& s : node->accepts)
+				item.accepts.Add(s);
+		}
+		if(!node->uses.IsEmpty()) {
+			item.uses.Clear();
+			for(const String& s : node->uses)
+				item.uses.Add(s);
+		}
+		if(!node->mainconfig.IsEmpty()) {
+			item.mainconfig.Clear();
+			for(const String& s : node->mainconfig)
+				item.mainconfig.Add(s);
+		}
+		if(!node->provider.IsEmpty())
+			item.provider = node->provider;
+		if(!node->provider_kind.IsEmpty())
+			item.provider_kind = node->provider_kind;
+		if(!node->provider_package.IsEmpty())
+			item.provider_package = node->provider_package;
+		if(!node->provider_status.IsEmpty())
+			item.provider_status = node->provider_status;
+		if(!node->provider_command.IsEmpty())
+			item.provider_command = node->provider_command;
+		if(!node->provider_path.IsEmpty())
+			item.provider_path = node->provider_path;
+		if(!node->provider_version.IsEmpty())
+			item.provider_version = node->provider_version;
+		if(!node->provider_reason.IsEmpty())
+			item.provider_reason = node->provider_reason;
+		item.ambiguous = node->ambiguous;
+		item.blocker = node->blocker;
+		item.resolved = node->resolved;
+		if(!node->candidates.IsEmpty()) {
+			item.candidates.Clear();
+			for(const String& s : node->candidates)
+				item.candidates.Add(s);
+		}
+	}
+}
+
 static bool sShouldSkipPlannedAtom(const PkgInvocation& inv, const PkgPlan& plan, const PkgRepository& repo, const PkgState& state, const String& atom)
 {
 	PkgLookupResult lookup = repo.Resolve(atom);
@@ -4100,11 +4464,34 @@ static PkgPlan sBuildPlan(const PkgInvocation& inv, const PkgRepository& repo, c
 		if(FindIndex(plan.warnings, s) < 0)
 			plan.warnings.Add(s);
 
-	Index<String> seen;
-	if(!inv.atom.IsEmpty())
-		sPlanWalkAtom(plan, inv, repo, state, inv.atom, String(), seen, 0);
-	else if(inv.command == PKG_CMD_PLAN && inv.ask)
-		sPlanWalkAtom(plan, inv, repo, state, "@world", String(), seen, 0);
+	Vector<String> roots;
+	if(!inv.atom.IsEmpty()) {
+		if(inv.atom == "@world" || inv.atom == "world") {
+			Vector<String> world = sLoadSet(repo.paths, "world", repo.paths.world);
+			for(const String& s : world)
+				roots.Add(s);
+		}
+		else if(inv.atom == "@system" || inv.atom == "system") {
+			Vector<String> system = sLoadSet(repo.paths, "system", repo.paths.system_set);
+			for(const String& s : system)
+				roots.Add(s);
+		}
+		else if(inv.atom == "@toolchain" || inv.atom == "toolchain") {
+			Vector<String> toolchain = sLoadSet(repo.paths, "toolchain", repo.paths.toolchain_set);
+			for(const String& s : toolchain)
+				roots.Add(s);
+		}
+		else
+			roots.Add(inv.atom);
+	}
+	else if(inv.command == PKG_CMD_PLAN && inv.ask) {
+		Vector<String> world = sLoadSet(repo.paths, "world", repo.paths.world);
+		for(const String& s : world)
+			roots.Add(s);
+	}
+
+	sGraphBuild(plan.graph, inv, repo, state, plan, plan.provider_plan, roots);
+	sGraphToPlan(plan, plan.graph, repo, state, inv);
 
 	plan.backtrack = 0;
 	plan.dependency_seconds = 0.00;
@@ -4189,6 +4576,7 @@ static PkgPlan sPrintPlan(const PkgInvocation& inv, const PkgRepository& repo, b
 	Cout() << "Calculating dependencies... done!\n";
 	Cout() << "Dependency resolution took " << FormatDouble(plan.dependency_seconds, 2) << " s (backtrack: "
 	     << plan.backtrack << '/' << plan.backtrack_limit << ").\n\n";
+	Cout() << "Dependency graph: " << plan.graph.nodes.GetCount() << " nodes, " << plan.graph.edges.GetCount() << " edges.\n\n";
 
 	if(plan.verbose) {
 		Cout() << "Target:\n";

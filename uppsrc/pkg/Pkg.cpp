@@ -101,6 +101,28 @@ void PkgState::Jsonize(JsonIO& jio)
 	jio("records", records);
 }
 
+void PkgBuildStep::Jsonize(JsonIO& jio)
+{
+	jio("atom", atom)("path", path)("reason", reason)("command", command)("result", result)
+	   ("exit_code", exit_code)("requested", requested)("provider_added", provider_added)
+	   ("set_member", set_member)("root", root)("executed", executed)("completed", completed)
+	   ("skipped", skipped)("failed", failed);
+}
+
+void PkgTransaction::Jsonize(JsonIO& jio)
+{
+	jio("command_line", command_line)("target", target)("provider", provider)("compiler", compiler)
+	   ("linker", linker)("toolchain", toolchain)("build_method", build_method)("result", result)
+	   ("jobs", jobs)("failed_index", failed_index)("pretend", pretend)("ask", ask)
+	   ("resume", resume)("keep_going", keep_going)("skip_first", skip_first);
+	jio("requested_atoms", requested_atoms);
+	jio("completed_steps", completed_steps);
+	jio("resume_data", resume_data);
+	jio("failed_step", failed_step);
+	jio("steps", steps);
+	jio("timestamp", timestamp);
+}
+
 void PkgEselectState::Jsonize(JsonIO& jio)
 {
 	jio("compiler", compiler)("linker", linker)("target", target)("provider", provider);
@@ -243,6 +265,7 @@ PkgConfigPaths FindPkgConfigPaths(const String& root)
 	p.package_target = AppendFileName(p.ai_dir, "package.target");
 	p.state = AppendFileName(p.ai_dir, "state.json");
 	p.eselect = AppendFileName(p.ai_dir, "eselect.json");
+	p.transaction = AppendFileName(p.ai_dir, "last-transaction.json");
 	return p;
 }
 
@@ -2365,6 +2388,8 @@ bool ParsePkgArgs(const Vector<String>& args, PkgInvocation& inv, String& error)
 			else if(a == "--deep") inv.deep = true;
 			else if(a == "--newuse") inv.newuse = true;
 			else if(a == "--changed-use") inv.changed_use = true;
+			else if(a == "--keep-going") inv.keep_going = true;
+			else if(a == "--skipfirst") inv.skip_first = true;
 			else if(a == "--resume") inv.resume = true;
 			else if(a == "--oneshot") inv.oneshot = true;
 			else if(a == "--plan") inv.plan = true;
@@ -2401,6 +2426,10 @@ bool ParsePkgArgs(const Vector<String>& args, PkgInvocation& inv, String& error)
 			else if(a == "--provider" || a.StartsWith("--provider=")) {
 				inv.provider = a == "--provider" ? (i + 1 < args.GetCount() ? args[++i] : String()) : sOptValue(a);
 			}
+			else if(a == "--jobs" || a.StartsWith("--jobs=")) {
+				String v = a == "--jobs" ? (i + 1 < args.GetCount() ? args[++i] : String()) : sOptValue(a);
+				inv.jobs = ScanInt(v);
+			}
 			else
 				inv.extra.Add(a);
 			continue;
@@ -2416,6 +2445,12 @@ bool ParsePkgArgs(const Vector<String>& args, PkgInvocation& inv, String& error)
 				case 'U': inv.changed_use = true; break;
 				case 'p': inv.pretend = true; inv.plan = true; break;
 				case 's': inv.command = PKG_CMD_SEARCH; break;
+				case 'j': {
+					String v = a.Mid(j + 1);
+					inv.jobs = ScanInt(v);
+					j = a.GetCount();
+					break;
+				}
 				default:
 					String msg;
 					msg << "unknown option: -" << a[j];
@@ -2475,7 +2510,7 @@ bool ParsePkgArgs(const Vector<String>& args, PkgInvocation& inv, String& error)
 			inv.command = PKG_CMD_PROVIDERS;
 		else if(inv.resume)
 			inv.command = PKG_CMD_RESUME;
-		else if(inv.ask || inv.verbose || inv.update || inv.deep || inv.newuse || inv.changed_use || inv.pretend)
+		else if(inv.ask || inv.verbose || inv.update || inv.deep || inv.newuse || inv.changed_use || inv.pretend || inv.install)
 			inv.command = PKG_CMD_PLAN;
 		else
 			inv.command = PKG_CMD_HELP;
@@ -2847,6 +2882,10 @@ static void sPrintHelp(bool color)
 		<< "  -N, --newuse         include packages whose USE metadata changed\n"
 		<< "  -U, --changed-use    rebuild only if effective USE or projection changed\n"
 		<< "  -p, --pretend        print a plan without changing anything\n"
+		<< "      --install        execute the planned build after checks\n"
+		<< "      --keep-going     continue after independent build failures\n"
+		<< "      --skipfirst      resume from the step after the failed step\n"
+		<< "      --jobs N         set build parallelism\n"
 		<< "      --color <y|n|auto>\n"
 		<< "      --colour <yes|no|auto>\n\n"
 		<< "Commands:\n"
@@ -2867,7 +2906,7 @@ static void sPrintHelp(bool color)
 		<< "  explain-target <name>\n"
 		<< "  target list|info <name>|explain <name>|set <name>\n"
 		<< "  eselect ...\n"
-		<< "  resume [--pretend]\n"
+		<< "  resume [--pretend] [--skipfirst] [--keep-going]\n"
 		<< "  audit-acceptflags [atom] [--patch]  global/platform flags are skipped\n"
 		<< "  -avuDN @world\n\n"
 		<< "Recognized sets: @world, @system, @toolchain\n";
@@ -3769,30 +3808,43 @@ static void sPrintDoctorCommand(const PkgInvocation& inv, const PkgRepository& r
 	Cout() << "  " << sum.ok << " ok, " << sum.warn << " warn, " << sum.info << " info, " << sum.error << " error\n";
 }
 
-static void sPrintResumeState(const PkgState& state)
+static void sPrintResumeState(const PkgTransaction& tx)
 {
-	if(state.records.IsEmpty()) {
+	if(tx.steps.IsEmpty()) {
 		Cout() << "No saved transaction found.\n";
 		return;
 	}
+	if(tx.result != "failed") {
+		Cout() << "No saved failed transaction found.\n";
+		Cout() << "Last transaction result: " << (tx.result.IsEmpty() ? String("[none]") : tx.result) << "\n";
+		return;
+	}
 
-	const PkgStateRecord& rec = state.records.Top();
-	Cout() << "Last transaction:\n";
-	Cout() << "  atom: " << (rec.atom.IsEmpty() ? String("[none]") : rec.atom) << "\n";
-	Cout() << "  target: " << (rec.target.IsEmpty() ? String("[none]") : rec.target) << "\n";
-	Cout() << "  toolchain: " << (rec.toolchain.IsEmpty() ? String("[none]") : rec.toolchain) << "\n";
-	Cout() << "  build_status: " << (rec.build_status.IsEmpty() ? String("[none]") : rec.build_status) << "\n";
-	Cout() << "  artifact_path: " << (rec.artifact_path.IsEmpty() ? String("[none]") : rec.artifact_path) << "\n";
-	Cout() << "  selected_use: " << sFmtList(rec.selected_use) << "\n";
-	Cout() << "  declared_use: " << sFmtList(rec.declared_use) << "\n";
-	Cout() << "  effective_use: " << sFmtList(rec.effective_use) << "\n";
-	Cout() << "  effective_uppflags: " << sFmtList(rec.effective_uppflags) << "\n";
-	Cout() << "  accepted_flags: " << sFmtList(rec.accepted_flags) << "\n";
-	Cout() << "  providers: " << sFmtList(rec.providers) << "\n";
-	Cout() << "  timestamp: " << Format(rec.timestamp) << "\n";
+	Cout() << "Last failed transaction:\n";
+	Cout() << "  command_line: " << (tx.command_line.IsEmpty() ? String("[none]") : tx.command_line) << "\n";
+	Cout() << "  target: " << (tx.target.IsEmpty() ? String("[none]") : tx.target) << "\n";
+	Cout() << "  compiler: " << (tx.compiler.IsEmpty() ? String("[none]") : tx.compiler) << "\n";
+	Cout() << "  linker: " << (tx.linker.IsEmpty() ? String("[none]") : tx.linker) << "\n";
+	Cout() << "  toolchain: " << (tx.toolchain.IsEmpty() ? String("[none]") : tx.toolchain) << "\n";
+	Cout() << "  build_method: " << (tx.build_method.IsEmpty() ? String("[none]") : tx.build_method) << "\n";
+	Cout() << "  jobs: " << tx.jobs << "\n";
+	Cout() << "  requested_atoms: " << sFmtList(tx.requested_atoms) << "\n";
+	Cout() << "  completed_steps: " << sFmtList(tx.completed_steps) << "\n";
+	Cout() << "  result: " << tx.result << "\n";
+	Cout() << "  failed_index: " << tx.failed_index << "\n";
+	if(!tx.failed_step.atom.IsEmpty()) {
+		Cout() << "  failed_step: " << tx.failed_step.atom << "\n";
+		Cout() << "    path: " << (tx.failed_step.path.IsEmpty() ? String("[none]") : tx.failed_step.path) << "\n";
+		Cout() << "    command: " << (tx.failed_step.command.IsEmpty() ? String("[none]") : tx.failed_step.command) << "\n";
+		Cout() << "    exit_code: " << tx.failed_step.exit_code << "\n";
+		Cout() << "    reason: " << (tx.failed_step.reason.IsEmpty() ? String("[none]") : tx.failed_step.reason) << "\n";
+	}
+	Cout() << "  timestamp: " << Format(tx.timestamp) << "\n";
+	if(!tx.resume_data.IsEmpty())
+		Cout() << "  resume_data: " << sFmtList(tx.resume_data) << "\n";
 }
 
-static void sWriteState(const PkgRepository& repo, const PkgPlan& plan)
+static void sWriteState(const PkgRepository& repo, const PkgPlan& plan, const String& build_status = "planned")
 {
 	PkgState state;
 	LoadFromJsonFile(state, repo.paths.state);
@@ -3808,7 +3860,7 @@ static void sWriteState(const PkgRepository& repo, const PkgPlan& plan)
 		rec.atom = item.atom;
 		rec.target = state.target;
 		rec.toolchain = state.toolchain;
-		rec.build_status = plan.pretend ? "pretend" : "planned";
+		rec.build_status = build_status;
 		rec.artifact_path = repo.root + "/bin/build.exe";
 		rec.timestamp = GetSysTime();
 		for(const String& s : plan.use.requested)
@@ -3826,6 +3878,516 @@ static void sWriteState(const PkgRepository& repo, const PkgPlan& plan)
 				rec.accepted_flags.Add(s);
 	}
 	StoreAsJsonFile(state, repo.paths.state, true);
+}
+
+struct PkgBuildMethod : Moveable<PkgBuildMethod> {
+	String name;
+	String path;
+	String builder;
+};
+
+static String sBuildExePath(const String& root)
+{
+#ifdef flagWIN32
+	return AppendFileName(root, "bin/build.exe");
+#else
+	return AppendFileName(root, "bin/build");
+#endif
+}
+
+static Vector<PkgBuildMethod> sListBuildMethods(const String& buildexe)
+{
+	Vector<PkgBuildMethod> methods;
+	String out;
+	Vector<String> args;
+	args.Add("--list-methods");
+	if(Sys(buildexe, args, out) < 0 || out.IsEmpty())
+		return methods;
+	Vector<String> lines = Split(out, '\n');
+	for(String line : lines) {
+		line = TrimBoth(line);
+		if(line.IsEmpty() || !line.StartsWith("["))
+			continue;
+		int colon = line.Find(':');
+		int builder = line.Find("[builder:");
+		if(colon < 0 || builder < 0)
+			continue;
+		int close = line.Find(']', 1);
+		PkgBuildMethod& m = methods.Add();
+		if(close >= 0 && close < colon)
+			m.name = TrimBoth(line.Mid(close + 1, colon - close - 1));
+		else
+			m.name = TrimBoth(line.Mid(0, colon));
+		m.path = TrimBoth(builder > colon ? line.Mid(colon + 1, builder - colon - 1) : line.Mid(colon + 1));
+		int bclose = line.ReverseFind(']');
+		if(builder >= 0 && bclose > builder)
+			m.builder = TrimBoth(line.Mid(builder + 9, bclose - (builder + 9)));
+	}
+	return methods;
+}
+
+static int sBuildMethodScore(const PkgBuildMethod& m, const String& compiler, const String& target)
+{
+	String c = ToLower(TrimBoth(compiler));
+	String n = ToLower(m.name + " " + m.path + " " + m.builder);
+	int score = 100;
+	if(c == "clang") {
+		if(n.Find("clang") >= 0)
+			score = 0;
+		else
+			score = 1000;
+	}
+	else if(c == "msvc") {
+		if(n.Find("msvs") >= 0 || n.Find("msc") >= 0)
+			score = 0;
+		else
+			score = 1000;
+	}
+	else if(c == "gcc") {
+		if(n.Find("gcc") >= 0)
+			score = 0;
+		else
+			score = 1000;
+	}
+	else if(c == "emcc") {
+		if(n.Find("emcc") >= 0 || n.Find("emscripten") >= 0)
+			score = 0;
+		else
+			score = 1000;
+	}
+	else if(!c.IsEmpty() && c != "auto") {
+		if(n.Find(c) >= 0)
+			score = 0;
+		else
+			score = 800;
+	}
+	if(target == "wasm-browser" || target == "wasm-node") {
+		if(n.Find("emcc") >= 0 || n.Find("emscripten") >= 0)
+			score -= 50;
+	}
+	return score;
+}
+
+static String sSelectBuildMethod(const PkgRepository& repo, const PkgPlan& plan, const PkgInvocation& inv)
+{
+	String compiler = !inv.compiler.IsEmpty() ? inv.compiler : sDefaultTargetProfile(plan.target).compiler;
+	Vector<PkgBuildMethod> methods = sListBuildMethods(sBuildExePath(repo.root));
+	if(methods.IsEmpty())
+		return compiler.IsEmpty() ? String() : compiler;
+	int best = -1;
+	int best_score = INT_MAX;
+	for(int i = 0; i < methods.GetCount(); i++) {
+		int score = sBuildMethodScore(methods[i], compiler, plan.target);
+		if(best < 0 || score < best_score) {
+			best = i;
+			best_score = score;
+		}
+	}
+	if(best < 0)
+		return compiler.IsEmpty() ? String() : compiler;
+	return methods[best].path.IsEmpty() ? methods[best].name : methods[best].path;
+}
+
+static bool sIsBuildableStep(const PkgGraphNode& node)
+{
+	if(node.missing || node.ambiguous || node.cycle || node.blocker)
+		return false;
+	if(node.requested || node.set_member)
+		return true;
+	return node.provider_added && node.provider_kind == "upp-plugin";
+}
+
+static bool sRunBuildCommand(const String& buildexe, const String& method, int jobs, const String& target, const String& cd, String& output)
+{
+	LocalProcess p;
+	p.NoConvertCharset();
+	Vector<String> args;
+	if(!method.IsEmpty()) {
+		args.Add("-m");
+		args.Add(method);
+	}
+	if(jobs > 0) {
+		args.Add("-j" + AsString(jobs));
+	}
+	args.Add(target);
+	if(!p.Start2(buildexe, args, nullptr, cd))
+		return false;
+
+	output.Clear();
+	String so, se;
+	while(p.IsRunning()) {
+		bool activity = false;
+		while(p.Read2(so, se)) {
+			if(!so.IsEmpty()) {
+				output.Cat(so);
+				Cout() << so;
+				activity = true;
+			}
+			if(!se.IsEmpty()) {
+				output.Cat(se);
+				Cerr() << se;
+				activity = true;
+			}
+			if(so.IsEmpty() && se.IsEmpty())
+				break;
+		}
+		if(!activity)
+			Sleep(10);
+	}
+	while(p.Read2(so, se)) {
+		if(!so.IsEmpty()) {
+			output.Cat(so);
+			Cout() << so;
+		}
+		if(!se.IsEmpty()) {
+			output.Cat(se);
+			Cerr() << se;
+		}
+	}
+	return p.GetExitCode() == 0;
+}
+
+static bool sWouldOverwriteRunningExecutable(const PkgBuildStep& step, String& reason)
+{
+#ifdef flagWIN32
+	String running = NormalizePath(GetExeFilePath());
+	if(running.IsEmpty() || step.path.IsEmpty())
+		return false;
+	String out = NormalizePath(GetExeDirFile(GetFileTitle(step.path) + GetExeExt()));
+	if(out.IsEmpty())
+		return false;
+	if(ToLower(running) == ToLower(out)) {
+		reason = "Refusing to rebuild running executable " + out + " on Windows; run from a copied executable or add output redirection/staging first.";
+		return true;
+	}
+#endif
+	(void)step;
+	return false;
+}
+
+static const PkgGraphNode* sFindGraphNode(const PkgGraph& graph, const String& key);
+
+static Vector<PkgBuildStep> sTransactionSteps(const PkgPlan& plan)
+{
+	Vector<PkgBuildStep> steps;
+	for(const String& key : plan.graph.order) {
+		const PkgGraphNode *node = sFindGraphNode(plan.graph, key);
+		if(!node || !sIsBuildableStep(*node))
+			continue;
+		PkgBuildStep& step = steps.Add();
+		step.atom = node->atom.IsEmpty() ? node->path : node->atom;
+		step.path = node->path;
+		step.reason = node->reason;
+		step.requested = node->requested;
+		step.provider_added = node->provider_added;
+		step.set_member = node->set_member;
+		step.root = node->requested || node->set_member || node->provider_added;
+	}
+	return steps;
+}
+
+static bool sPlanHasBlockingRows(const PkgPlan& plan, String& reason)
+{
+	for(const PkgPlanItem& item : plan.items) {
+		if(item.blocker || item.ambiguous || item.status == 'F') {
+			String r = item.reason;
+			if(r.IsEmpty())
+				r = sPlanStatusText(item.status);
+			reason = item.atom;
+			if(!r.IsEmpty())
+				reason << ": " << r;
+			return true;
+		}
+	}
+	for(const PkgResolveIssue& issue : plan.graph.issues) {
+		if(issue.kind == "missing" || issue.kind == "missing-provider" || issue.kind == "ambiguous" || issue.kind == "cycle") {
+			reason = issue.atom;
+			if(!issue.reason.IsEmpty())
+				reason << ": " << issue.reason;
+			return true;
+		}
+	}
+	return false;
+}
+
+static String sBuildTransactionPath(const PkgRepository& repo);
+static void sStoreTransaction(const PkgRepository& repo, const PkgTransaction& tx);
+static bool sLoadTransaction(const PkgRepository& repo, PkgTransaction& tx);
+
+static void sTransactionTail(PkgTransaction& tx, const PkgBuildStep& step, bool ok)
+{
+	tx.completed_steps.Clear();
+	for(const PkgBuildStep& s : tx.steps)
+		if(s.completed)
+			tx.completed_steps.Add(s.atom);
+	tx.resume_data.Clear();
+	for(const String& s : tx.completed_steps)
+		tx.resume_data.Add(s);
+	if(!ok)
+		tx.failed_step = step;
+}
+
+static PkgExecutionResult sExecuteTransaction(const PkgInvocation& inv, const PkgRepository& repo, const PkgPlan& plan, bool color, bool resume_mode)
+{
+	PkgExecutionResult result;
+	PkgTransaction tx;
+	tx.command_line = inv.command_line;
+	tx.target = sTargetNameText(plan.target);
+	tx.provider = inv.provider;
+	tx.compiler = inv.compiler;
+	tx.linker = inv.linker;
+	tx.toolchain = sDefaultTargetProfile(plan.target).toolchain;
+	tx.jobs = inv.jobs > 0 ? inv.jobs : max(1, CPU_Cores() + 2);
+	tx.pretend = inv.pretend;
+	tx.ask = inv.ask;
+	tx.resume = resume_mode;
+	tx.keep_going = inv.keep_going;
+	tx.skip_first = inv.skip_first;
+	tx.build_method = sSelectBuildMethod(repo, plan, inv);
+	tx.timestamp = GetSysTime();
+	tx.requested_atoms.Add(plan.atom);
+	tx.steps = sTransactionSteps(plan);
+
+	if(resume_mode) {
+		PkgTransaction prev;
+		if(!sLoadTransaction(repo, prev) || prev.result != "failed" || prev.steps.IsEmpty()) {
+			Cout() << "No saved failed transaction found.\n";
+			result.ok = true;
+			result.executed = false;
+			return result;
+		}
+		tx.command_line = prev.command_line;
+		tx.target = prev.target;
+		tx.provider = prev.provider;
+		tx.compiler = prev.compiler;
+		tx.linker = prev.linker;
+		tx.toolchain = prev.toolchain;
+		tx.build_method = prev.build_method;
+		tx.result = prev.result;
+		tx.jobs = prev.jobs;
+		tx.failed_index = prev.failed_index;
+		tx.pretend = prev.pretend;
+		tx.ask = prev.ask;
+		tx.resume = prev.resume;
+		tx.keep_going = prev.keep_going;
+		tx.skip_first = prev.skip_first;
+		tx.requested_atoms.Clear();
+		for(const String& s : prev.requested_atoms)
+			tx.requested_atoms.Add(s);
+		tx.completed_steps.Clear();
+		for(const String& s : prev.completed_steps)
+			tx.completed_steps.Add(s);
+		tx.resume_data.Clear();
+		for(const String& s : prev.resume_data)
+			tx.resume_data.Add(s);
+		tx.failed_step = prev.failed_step;
+		tx.steps.Clear();
+		for(const PkgBuildStep& s : prev.steps)
+			tx.steps.Add(s);
+		tx.timestamp = prev.timestamp;
+		tx.resume = true;
+		tx.pretend = inv.pretend;
+		tx.ask = inv.ask;
+		tx.keep_going = inv.keep_going;
+		tx.skip_first = inv.skip_first;
+		tx.timestamp = GetSysTime();
+		result.resumed = true;
+		tx.command_line = inv.command_line;
+		tx.result = "resuming";
+	}
+	if(tx.steps.IsEmpty()) {
+		String blocker_reason;
+		if(!resume_mode && sPlanHasBlockingRows(plan, blocker_reason)) {
+			Cout() << sAnsi("31;1", "[blocked]", color) << " build refused: " << blocker_reason << "\n";
+			tx.result = "blocked";
+			sTransactionTail(tx, PkgBuildStep(), false);
+			sStoreTransaction(repo, tx);
+			result.ok = false;
+			result.executed = false;
+			result.message = blocker_reason;
+			return result;
+		}
+		Cout() << "No buildable steps selected.\n";
+		tx.result = "nothing-to-do";
+		sStoreTransaction(repo, tx);
+		result.ok = true;
+		result.executed = false;
+		return result;
+	}
+
+	if(inv.pretend) {
+		Cout() << "Executing build plan...\n";
+		Cout() << "  build method: " << (tx.build_method.IsEmpty() ? String("[none]") : tx.build_method) << "\n";
+		Cout() << "  jobs: " << tx.jobs << "\n";
+		Cout() << "  steps: " << tx.steps.GetCount() << "\n";
+		for(int i = 0; i < tx.steps.GetCount(); i++) {
+			const PkgBuildStep& s = tx.steps[i];
+			Cout() << "  [" << (i + 1) << "/" << tx.steps.GetCount() << "] " << s.atom << "\n";
+		}
+		tx.result = "pretend";
+		sStoreTransaction(repo, tx);
+		result.ok = true;
+		result.executed = false;
+		result.message = "pretend";
+		return result;
+	}
+
+	Cout() << "Executing build plan...\n";
+	Cout() << "  build method: " << (tx.build_method.IsEmpty() ? String("[none]") : tx.build_method) << "\n";
+	Cout() << "  jobs: " << tx.jobs << "\n";
+	Cout() << "  steps: " << tx.steps.GetCount() << "\n\n";
+
+	String buildexe = sBuildExePath(repo.root);
+	if(!FileExists(buildexe)) {
+		Cout() << sAnsi("31;1", "[failed]", color) << " build executable not found: " << buildexe << "\n";
+		tx.result = "failed";
+		tx.failed_index = 0;
+		if(!tx.steps.IsEmpty())
+			tx.failed_step = tx.steps[0];
+		sTransactionTail(tx, tx.failed_step, false);
+		sStoreTransaction(repo, tx);
+		result.ok = false;
+		result.executed = false;
+		result.failed_index = 0;
+		result.failed_atom = tx.failed_step.atom;
+		result.failed_step = tx.failed_step;
+		result.message = "build executable missing";
+		return result;
+	}
+
+	int start = 0;
+	if(tx.resume && tx.skip_first)
+		start = min(tx.failed_index + 1, tx.steps.GetCount());
+	else if(tx.resume && tx.failed_index >= 0)
+		start = min(tx.failed_index, tx.steps.GetCount());
+	else if(tx.skip_first)
+		start = 1;
+
+	if(start >= tx.steps.GetCount()) {
+		Cout() << "Nothing left to resume.\n";
+		tx.result = "nothing-to-do";
+		sStoreTransaction(repo, tx);
+		result.ok = true;
+		result.executed = false;
+		return result;
+	}
+
+	int first_failure = -1;
+	for(int i = start; i < tx.steps.GetCount(); i++) {
+		PkgBuildStep& step = tx.steps[i];
+		String step_target = step.path.IsEmpty() ? step.atom : step.path;
+		String self_reason;
+		if(sWouldOverwriteRunningExecutable(step, self_reason)) {
+			Cout() << sAnsi("31;1", "[refused]", color) << " " << self_reason << "\n";
+			tx.result = "refused";
+			tx.failed_index = i;
+			tx.failed_step = step;
+			sTransactionTail(tx, step, false);
+			result.ok = false;
+			result.executed = false;
+			result.failed_index = i;
+			result.failed_atom = step.atom;
+			result.failed_step = step;
+			result.message = self_reason;
+			return result;
+		}
+		Cout() << ">>> Building (" << (i - start + 1) << " of " << (tx.steps.GetCount() - start) << ") " << step.atom << "\n";
+		Vector<String> cmd_args;
+		if(!tx.build_method.IsEmpty()) {
+			cmd_args.Add("-m");
+			cmd_args.Add(tx.build_method);
+		}
+		if(tx.jobs > 0)
+			cmd_args.Add("-j" + AsString(tx.jobs));
+		cmd_args.Add(step_target);
+		step.command = buildexe + " " + sJoin(cmd_args);
+		step.executed = true;
+		step.result = "running";
+		String cmd_output;
+		bool ok = sRunBuildCommand(buildexe, tx.build_method, tx.jobs, step_target, repo.root, cmd_output);
+		step.exit_code = ok ? 0 : 1;
+		step.completed = ok;
+		step.failed = !ok;
+		step.result = ok ? "success" : "failed";
+		if(ok) {
+			tx.completed_steps.Add(step.atom);
+			Cout() << sAnsi("32;1", "[ok]", color) << " " << step.atom << "\n";
+		}
+		else {
+			if(first_failure < 0) {
+				first_failure = i;
+				tx.failed_index = i;
+				tx.failed_step = step;
+			}
+			Cout() << sAnsi("31;1", "[failed]", color) << " " << step.atom << "\n";
+			if(!inv.keep_going)
+				break;
+		}
+		sTransactionTail(tx, tx.failed_step, ok);
+		tx.result = first_failure >= 0 ? "failed" : "running";
+		sStoreTransaction(repo, tx);
+		Cout() << "\n";
+	}
+
+	if(first_failure >= 0) {
+		tx.result = "failed";
+		tx.failed_index = first_failure;
+		sTransactionTail(tx, tx.failed_step, false);
+		sStoreTransaction(repo, tx);
+		if(!resume_mode)
+			sWriteState(repo, plan, "failed");
+		Cout() << "Saved resume state at: " << sBuildTransactionPath(repo) << "\n";
+		result.ok = false;
+		result.executed = true;
+		result.failed_index = first_failure;
+		result.failed_atom = tx.failed_step.atom;
+		result.failed_step = tx.failed_step;
+		result.message = "build failed";
+		result.completed_steps.Clear();
+		for(const String& s : tx.completed_steps)
+			result.completed_steps.Add(s);
+		result.resume_data.Clear();
+		for(const String& s : tx.resume_data)
+			result.resume_data.Add(s);
+		return result;
+	}
+
+	tx.result = "success";
+	sTransactionTail(tx, PkgBuildStep(), true);
+	sStoreTransaction(repo, tx);
+	if(!resume_mode)
+		sWriteState(repo, plan, "built");
+	Cout() << "Build plan completed successfully.\n";
+	result.ok = true;
+	result.executed = true;
+	result.message = "success";
+	result.completed_steps.Clear();
+	for(const String& s : tx.completed_steps)
+		result.completed_steps.Add(s);
+	result.resume_data.Clear();
+	for(const String& s : tx.resume_data)
+		result.resume_data.Add(s);
+	return result;
+}
+
+static String sBuildTransactionPath(const PkgRepository& repo)
+{
+	return repo.paths.transaction;
+}
+
+static void sStoreTransaction(const PkgRepository& repo, const PkgTransaction& tx)
+{
+	RealizeDirectory(GetFileFolder(sBuildTransactionPath(repo)));
+	StoreAsJsonFile(tx, sBuildTransactionPath(repo), true);
+}
+
+static bool sLoadTransaction(const PkgRepository& repo, PkgTransaction& tx)
+{
+	String path = sBuildTransactionPath(repo);
+	if(!FileExists(path))
+		return false;
+	LoadFromJsonFile(tx, path);
+	return true;
 }
 
 static int sUppScopeFromText(const String& scope)
@@ -4780,6 +5342,7 @@ int RunPkg(const Vector<String>& args)
 		Cerr() << error << "\n";
 		return 1;
 	}
+	inv.command_line = sJoin(args);
 	bool color = sUseColor(inv);
 	(void)color;
 
@@ -4803,6 +5366,7 @@ int RunPkg(const Vector<String>& args)
 	                 inv.command == PKG_CMD_PROVIDERS || inv.command == PKG_CMD_SEARCH || inv.command == PKG_CMD_EXPLAIN_USE ||
 	                 inv.command == PKG_CMD_EXPLAIN_TARGET || inv.command == PKG_CMD_DEPS || inv.command == PKG_CMD_PLAN ||
 	                 inv.command == PKG_CMD_AUDIT_ACCEPTFLAGS || inv.command == PKG_CMD_ESELECT ||
+	                 inv.command == PKG_CMD_RESUME ||
 	                 inv.command == PKG_CMD_TARGET || inv.command == PKG_CMD_DOCTOR;
 	PkgRepository repo;
 	if(need_repo)
@@ -4870,6 +5434,10 @@ int RunPkg(const Vector<String>& args)
 	}
 	if(inv.command == PKG_CMD_PLAN) {
 		PkgPlan plan = sPrintPlan(inv, repo, color);
+		if(inv.pretend) {
+			sFlushConsole();
+			return 0;
+		}
 		if(inv.ask) {
 			if(!sPromptYesNo()) {
 				Cout() << "Aborted.\n";
@@ -4878,11 +5446,12 @@ int RunPkg(const Vector<String>& args)
 			}
 			Cout() << "Continuing.\n";
 		}
-		sWriteState(repo, plan);
-		if(inv.install && !inv.pretend) {
-			Cout() << "system package installation is not implemented yet\n";
-			sFlushConsole();
-			return 1;
+		if(inv.ask || inv.install) {
+			PkgExecutionResult exec = sExecuteTransaction(inv, repo, plan, color, false);
+			if(!exec.ok) {
+				sFlushConsole();
+				return 1;
+			}
 		}
 		sFlushConsole();
 		return 0;
@@ -4893,11 +5462,36 @@ int RunPkg(const Vector<String>& args)
 		return 0;
 	}
 	if(inv.command == PKG_CMD_RESUME) {
-		PkgState state;
-		LoadFromJsonFile(state, repo.paths.state);
-		sPrintResumeState(state);
-		if(inv.pretend)
+		PkgTransaction tx;
+		if(!sLoadTransaction(repo, tx) || tx.result != "failed" || tx.steps.IsEmpty()) {
+			Cout() << "No saved failed transaction found.\n";
+			sFlushConsole();
+			return 0;
+		}
+		sPrintResumeState(tx);
+		if(inv.pretend) {
 			Cout() << "pretend mode active\n";
+			sFlushConsole();
+			return 0;
+		}
+		if(inv.ask) {
+			if(!sPromptYesNo()) {
+				Cout() << "Aborted.\n";
+				sFlushConsole();
+				return 0;
+			}
+			Cout() << "Continuing.\n";
+		}
+		PkgPlan plan;
+		plan.target = tx.target;
+		plan.atom = tx.requested_atoms.IsEmpty() ? String() : tx.requested_atoms[0];
+		{
+			PkgExecutionResult exec = sExecuteTransaction(inv, repo, plan, color, true);
+			if(!exec.ok) {
+				sFlushConsole();
+				return 1;
+			}
+		}
 		sFlushConsole();
 		return 0;
 	}

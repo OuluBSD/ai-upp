@@ -16,6 +16,7 @@ enum PkgCommandKind {
 	PKG_CMD_HELP,
 	PKG_CMD_VERSION,
 	PKG_CMD_INFO,
+	PKG_CMD_DOCTOR,
 	PKG_CMD_METADATA,
 	PKG_CMD_LIST_SETS,
 	PKG_CMD_TARGETS,
@@ -333,6 +334,7 @@ struct PkgInvocation {
 	bool targets = false;
 	bool providers = false;
 	bool info = false;
+	bool doctor = false;
 	bool search = false;
 	bool install = false;
 	bool audit_patch = false;

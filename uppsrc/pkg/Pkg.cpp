@@ -1890,6 +1890,7 @@ bool ParsePkgArgs(const Vector<String>& args, PkgInvocation& inv, String& error)
 			if(a == "--help") inv.command = PKG_CMD_HELP;
 			else if(a == "--version") inv.command = PKG_CMD_VERSION;
 			else if(a == "--info") inv.info = true, inv.command = PKG_CMD_INFO;
+			else if(a == "--doctor") inv.doctor = true, inv.command = PKG_CMD_DOCTOR;
 			else if(a == "--metadata") inv.metadata = true, inv.command = PKG_CMD_METADATA;
 			else if(a == "--list-sets") inv.list_sets = true, inv.command = PKG_CMD_LIST_SETS;
 			else if(a == "--audit-acceptflags") inv.command = PKG_CMD_AUDIT_ACCEPTFLAGS;
@@ -1981,6 +1982,7 @@ bool ParsePkgArgs(const Vector<String>& args, PkgInvocation& inv, String& error)
 			if(cmd == "help") inv.command = PKG_CMD_HELP;
 			else if(cmd == "version") inv.command = PKG_CMD_VERSION;
 			else if(cmd == "info") inv.command = PKG_CMD_INFO;
+			else if(cmd == "doctor") inv.command = PKG_CMD_DOCTOR;
 			else if(cmd == "metadata") inv.command = PKG_CMD_METADATA;
 			else if(cmd == "list-sets") inv.command = PKG_CMD_LIST_SETS;
 			else if(cmd == "targets") inv.command = PKG_CMD_TARGETS;
@@ -2003,12 +2005,14 @@ bool ParsePkgArgs(const Vector<String>& args, PkgInvocation& inv, String& error)
 			inv.command = PKG_CMD_METADATA;
 		else if(inv.info)
 			inv.command = PKG_CMD_INFO;
-			else if(inv.search)
-				inv.command = PKG_CMD_SEARCH;
-			else if(inv.providers)
-				inv.command = PKG_CMD_PROVIDERS;
-			else if(inv.resume)
-				inv.command = PKG_CMD_RESUME;
+		else if(inv.doctor)
+			inv.command = PKG_CMD_DOCTOR;
+		else if(inv.search)
+			inv.command = PKG_CMD_SEARCH;
+		else if(inv.providers)
+			inv.command = PKG_CMD_PROVIDERS;
+		else if(inv.resume)
+			inv.command = PKG_CMD_RESUME;
 		else if(inv.ask || inv.verbose || inv.update || inv.deep || inv.newuse || inv.changed_use || inv.pretend)
 			inv.command = PKG_CMD_PLAN;
 		else
@@ -2017,7 +2021,7 @@ bool ParsePkgArgs(const Vector<String>& args, PkgInvocation& inv, String& error)
 
 	if(positional.GetCount()) {
 		int start = 0;
-		if(positional[0] == "help" || positional[0] == "version" || positional[0] == "info" ||
+		if(positional[0] == "help" || positional[0] == "version" || positional[0] == "info" || positional[0] == "doctor" ||
 		   positional[0] == "metadata" || positional[0] == "list-sets" || positional[0] == "targets" || positional[0] == "providers" || positional[0] == "explain-use" || positional[0] == "explain-target" || positional[0] == "deps" ||
 		   positional[0] == "target" || positional[0] == "eselect" || positional[0] == "audit-acceptflags" ||
 		   positional[0] == "resume" || positional[0] == "search")
@@ -2055,6 +2059,11 @@ bool ParsePkgArgs(const Vector<String>& args, PkgInvocation& inv, String& error)
 				inv.atom = rest[0];
 			for(int i = 1; i < rest.GetCount(); i++)
 				inv.use_args.Add(rest[i]);
+		}
+		else if(inv.command == PKG_CMD_DOCTOR) {
+			inv.subcommand = rest.GetCount() ? rest[0] : "all";
+			for(int i = 1; i < rest.GetCount(); i++)
+				inv.extra.Add(rest[i]);
 		}
 		else if(inv.command == PKG_CMD_INFO || inv.command == PKG_CMD_METADATA || inv.command == PKG_CMD_LIST_SETS || inv.command == PKG_CMD_VERSION ||
 		        inv.command == PKG_CMD_HELP || inv.command == PKG_CMD_AUDIT_ACCEPTFLAGS) {
@@ -2382,6 +2391,7 @@ static void sPrintHelp(bool color)
 		<< "  --help, help\n"
 		<< "  --version, version\n"
 		<< "  --info, info\n"
+		<< "  --doctor, doctor [env|state|shell|providers]\n"
 		<< "  --metadata, metadata\n"
 		<< "  --list-sets\n"
 		<< "  --audit-acceptflags [atom] [--patch]\n"
@@ -3015,6 +3025,173 @@ static void sPrintInfo(const PkgRepository& repo, const PkgInvocation& inv)
 	Cout() << "Selected vcpkg root: " << (eselect.vcpkg_root.IsEmpty() ? String("[none]") : eselect.vcpkg_root) << "\n";
 	Cout() << "Selected vcpkg triplet: " << (eselect.vcpkg_triplet.IsEmpty() ? String("[none]") : eselect.vcpkg_triplet) << "\n";
 	Cout() << "Selected emscripten profile: " << (eselect.emscripten_profile.IsEmpty() ? String("[none]") : eselect.emscripten_profile) << "\n";
+	Cout() << "Doctor: run `pkg doctor` for environment diagnostics.\n";
+}
+
+struct PkgDoctorSummary {
+	int ok = 0;
+	int warn = 0;
+	int info = 0;
+	int error = 0;
+};
+
+static void sDoctorLine(PkgDoctorSummary& sum, const char *level, const String& message, bool color)
+{
+	String tag = String("[") + level + "]";
+	String code = "36";
+	if(level == String("ok")) {
+		sum.ok++;
+		code = "32;1";
+	}
+	else if(level == String("warn")) {
+		sum.warn++;
+		code = "33;1";
+	}
+	else if(level == String("info")) {
+		sum.info++;
+		code = "36";
+	}
+	else if(level == String("error")) {
+		sum.error++;
+		code = "31;1";
+	}
+	Cout() << "  " << sAnsi(code, tag, color) << "  " << message << "\n";
+}
+
+static void sDoctorSubline(const String& label, const String& value)
+{
+	Cout() << "          " << label << value << "\n";
+}
+
+static bool sDoctorPathSuffixPresent(const String& path, const String& suffix)
+{
+	String needle = ToLower(UnixPath(suffix));
+	Vector<String> entries = Split(path, ';');
+	for(const String& entry : entries) {
+		String e = ToLower(UnixPath(entry));
+		if(e.EndsWith(needle))
+			return true;
+	}
+	return false;
+}
+
+static void sPrintDoctorEnvironment(PkgDoctorSummary& sum, bool color)
+{
+	Cout() << "Environment:\n";
+	sDoctorLine(sum, "ok", "executable found: bin\\pkg.exe", color);
+#ifdef flagWIN32
+	Vector<String> missing;
+	String path = GetEnv("PATH");
+	if(!sDoctorPathSuffixPresent(path, "bin\\clang\\bin"))
+		missing.Add("...\\bin\\clang\\bin");
+	if(!sDoctorPathSuffixPresent(path, "bin\\clang\\x86_64-w64-mingw32\\bin"))
+		missing.Add("...\\bin\\clang\\x86_64-w64-mingw32\\bin");
+	if(missing.IsEmpty()) {
+		sDoctorLine(sum, "ok", "clang runtime DLL paths appear to be present in PATH", color);
+	}
+	else {
+		sDoctorLine(sum, "warn", "clang runtime DLL path may be missing", color);
+		for(const String& m : missing)
+			sDoctorSubline("expected: ", m);
+		sDoctorSubline("symptom: ", "libc++.dll or libunwind.dll loader error");
+	}
+#else
+	sDoctorLine(sum, "info", "Windows clang runtime DLL path check skipped on this platform", color);
+#endif
+}
+
+static void sPrintDoctorShell(PkgDoctorSummary& sum, bool color)
+{
+	Cout() << "Shell:\n";
+#ifdef flagWIN32
+	if(!GetEnv("PSModulePath").IsEmpty()) {
+		sDoctorLine(sum, "warn", "PowerShell treats @world specially", color);
+		sDoctorSubline("use: ", "cmd /c \"bin\\pkg.exe -pv @world\"");
+		sDoctorSubline("or: ", "quote or escape @world before passing it to pkg");
+	}
+	else {
+		sDoctorLine(sum, "info", "Windows shells may need @world quoted or escaped", color);
+		sDoctorSubline("use: ", "cmd /c \"bin\\pkg.exe -pv @world\"");
+		sDoctorSubline("or: ", "quote or escape @world before passing it to pkg");
+	}
+#else
+	sDoctorLine(sum, "info", "Shell-specific @world handling is Windows-centric", color);
+#endif
+}
+
+static void sPrintDoctorState(PkgDoctorSummary& sum, const PkgConfigPaths& paths, bool color)
+{
+	Cout() << "State:\n";
+	PkgState state;
+	bool state_exists = FileExists(paths.state);
+	bool state_ok = state_exists && LoadFromJsonFile(state, paths.state);
+	if(!state_exists)
+		sDoctorLine(sum, "warn", paths.state + " missing", color);
+	else if(!state_ok)
+		sDoctorLine(sum, "error", paths.state + " exists but failed to parse", color);
+	else {
+		sDoctorLine(sum, "ok", paths.state + " parsed", color);
+		if(!state.target.IsEmpty())
+			sDoctorSubline("target: ", state.target);
+		if(!state.toolchain.IsEmpty())
+			sDoctorSubline("toolchain: ", state.toolchain);
+	}
+
+	PkgEselectState eselect;
+	bool eselect_exists = FileExists(paths.eselect);
+	bool eselect_ok = eselect_exists && LoadFromJsonFile(eselect, paths.eselect);
+	if(!eselect_exists)
+		sDoctorLine(sum, "warn", paths.eselect + " missing", color);
+	else if(!eselect_ok)
+		sDoctorLine(sum, "error", paths.eselect + " exists but failed to parse", color);
+	else {
+		sDoctorLine(sum, "ok", paths.eselect + " parsed", color);
+		if(!eselect.target.IsEmpty())
+			sDoctorSubline("target: ", eselect.target);
+		if(!eselect.compiler.IsEmpty())
+			sDoctorSubline("compiler: ", eselect.compiler);
+		if(!eselect.provider.IsEmpty())
+			sDoctorSubline("provider: ", eselect.provider);
+		if(!eselect.vcpkg_root.IsEmpty())
+			sDoctorSubline("vcpkg root: ", eselect.vcpkg_root);
+		if(!eselect.vcpkg_triplet.IsEmpty())
+			sDoctorSubline("vcpkg triplet: ", eselect.vcpkg_triplet);
+		if(!eselect.emscripten_profile.IsEmpty())
+			sDoctorSubline("emscripten profile: ", eselect.emscripten_profile);
+	}
+}
+
+static void sPrintDoctorProviders(PkgDoctorSummary& sum, bool color)
+{
+	Cout() << "Providers:\n";
+	sDoctorLine(sum, "info", "provider probing is plan-only/placeholder in this milestone", color);
+	sDoctorLine(sum, "info", "toolchain probing is also plan-only/placeholder", color);
+	sDoctorLine(sum, "info", "no package managers were invoked", color);
+}
+
+static void sPrintDoctorCommand(const PkgInvocation& inv, bool color)
+{
+	PkgDoctorSummary sum;
+	String section = ToLower(TrimBoth(inv.subcommand));
+	PkgConfigPaths paths = FindPkgConfigPaths(sEselectRoot(inv));
+
+	Cout() << "pkg doctor\n\n";
+	if(section.IsEmpty() || section == "all" || section == "env")
+		sPrintDoctorEnvironment(sum, color);
+	if(section.IsEmpty() || section == "all" || section == "shell")
+		sPrintDoctorShell(sum, color);
+	if(section.IsEmpty() || section == "all" || section == "state")
+		sPrintDoctorState(sum, paths, color);
+	if(section.IsEmpty() || section == "all" || section == "providers")
+		sPrintDoctorProviders(sum, color);
+
+	if(!section.IsEmpty() && section != "all" && section != "env" && section != "shell" && section != "state" && section != "providers") {
+		sDoctorLine(sum, "warn", "unknown doctor subcommand: " + inv.subcommand, color);
+		Cout() << "  available sections: env shell state providers all\n";
+	}
+
+	Cout() << "\nSummary:\n";
+	Cout() << "  " << sum.ok << " ok, " << sum.warn << " warn, " << sum.info << " info, " << sum.error << " error\n";
 }
 
 static void sPrintResumeState(const PkgState& state)
@@ -3613,6 +3790,11 @@ int RunPkg(const Vector<String>& args)
 	}
 	if(inv.command == PKG_CMD_INFO) {
 		sPrintInfo(repo, inv);
+		sFlushConsole();
+		return 0;
+	}
+	if(inv.command == PKG_CMD_DOCTOR) {
+		sPrintDoctorCommand(inv, color);
 		sFlushConsole();
 		return 0;
 	}

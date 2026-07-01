@@ -532,6 +532,9 @@ public:
 	void     Dump();
 };
 
+#include "WorkspaceService.h"
+#include "ConsoleHost.h"
+
 struct Ide;
 
 String FindInDirs(const Vector<String>& dir, const String& file);

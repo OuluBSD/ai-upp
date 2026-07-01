@@ -346,46 +346,154 @@ static String sPackageLookupLabel(const PkgPackage& p)
 
 PkgLookupResult PkgRepository::Resolve(const String& atom) const
 {
+	++resolve_calls;
 	PkgLookupResult r;
 	r.query = TrimBoth(atom);
 	if(r.query.IsEmpty())
 		return r;
 
-	int best = 1000;
-	for(const PkgPackage& p : packages) {
-		int score = sPackageResolveScore(p, r.query);
-		if(score >= 1000)
-			continue;
-		if(score < best) {
-			best = score;
-			r.candidates.Clear();
+	String cache_key = ToLower(sPackageResolvePath(r.query));
+	if(!cache_key.IsEmpty()) {
+		int h = resolve_cache.Find(cache_key);
+		if(h >= 0) {
+			++resolve_cache_hits;
+			const PkgResolveCacheEntry& e = resolve_cache[h];
+			r.canonical = e.canonical;
+			r.path = e.path;
+			r.direct_path = e.direct_path;
+			r.ambiguous = e.ambiguous;
+			if(e.pkg_index >= 0 && e.pkg_index < packages.GetCount())
+				r.pkg = &packages[e.pkg_index];
+			for(int idx : e.candidates)
+				if(idx >= 0 && idx < packages.GetCount())
+					r.candidates.Add(&packages[idx]);
+			return r;
 		}
-		if(score == best)
-			r.candidates.Add(&p);
+	}
+
+	Index<int> candidate_index;
+	auto add_candidates = [&](const VectorMap<String, Vector<int> >& index, const String& key) {
+		int pos = index.Find(key);
+		if(pos < 0)
+			return;
+		for(int idx : index[pos])
+			if(candidate_index.Find(idx) < 0)
+				candidate_index.Add(idx);
+	};
+
+	String qlow = ToLower(r.query);
+	String qpath = sPackageResolvePath(r.query);
+	add_candidates(resolve_path_index, qpath);
+	add_candidates(resolve_atom_index, qlow);
+	add_candidates(resolve_name_index, qlow);
+	add_candidates(resolve_qualified_index, qlow);
+	bool used_index = !candidate_index.IsEmpty();
+	if(used_index)
+		++resolve_index_hits;
+
+	int best = 1000;
+	auto scan = [&](const Index<int>& candidates) {
+		for(int idx : candidates) {
+			const PkgPackage& p = packages[idx];
+			int score = sPackageResolveScore(p, r.query);
+			if(score >= 1000)
+				continue;
+			if(score < best) {
+				best = score;
+				r.candidates.Clear();
+			}
+			if(score == best)
+				r.candidates.Add(&p);
+		}
+	};
+
+	if(candidate_index.IsEmpty()) {
+		Index<int> all;
+		for(int i = 0; i < packages.GetCount(); i++)
+			all.Add(i);
+		scan(all);
+	}
+	else {
+		scan(candidate_index);
+		if(r.candidates.IsEmpty()) {
+			Index<int> all;
+			for(int i = 0; i < packages.GetCount(); i++)
+				all.Add(i);
+			scan(all);
+		}
 	}
 
 	if(r.candidates.IsEmpty())
+	{
+		if(!cache_key.IsEmpty())
+		{
+			PkgResolveCacheEntry& e = resolve_cache.GetAdd(cache_key);
+			e.canonical.Clear();
+			e.path.Clear();
+			e.candidates.Clear();
+			e.pkg_index = -1;
+			e.direct_path = false;
+			e.ambiguous = false;
+		}
 		return r;
+	}
 
 	if(r.candidates.GetCount() == 1) {
 		r.pkg = r.candidates[0];
 		r.canonical = r.pkg->name;
 		r.path = r.pkg->path;
 		r.direct_path = sPackageResolvePath(r.query) == sPackageResolvePath(r.pkg->path) || r.query.EndsWith(".upp") || r.query.EndsWith(".xupp");
+		if(!cache_key.IsEmpty())
+		{
+			PkgResolveCacheEntry& e = resolve_cache.GetAdd(cache_key);
+			e.canonical = r.canonical;
+			e.path = r.path;
+			e.candidates.Clear();
+			e.pkg_index = r.pkg ? int(r.pkg - packages.Begin()) : -1;
+			e.direct_path = r.direct_path;
+			e.ambiguous = false;
+		}
 		return r;
 	}
 
 	r.ambiguous = true;
+	if(!cache_key.IsEmpty())
+	{
+		PkgResolveCacheEntry& e = resolve_cache.GetAdd(cache_key);
+		e.canonical.Clear();
+		e.path.Clear();
+		e.candidates.Clear();
+		for(const PkgPackage* c : r.candidates)
+			if(c)
+				e.candidates.Add(int(c - packages.Begin()));
+		e.pkg_index = -1;
+		e.direct_path = false;
+		e.ambiguous = true;
+	}
 	return r;
 }
 
 void PkgRepository::Discover()
 {
+	TimeStop ts;
 	root = PkgRepoRoot();
 	paths = FindPkgConfigPaths(root);
 	packages.Clear();
 	nests.Clear();
+	resolve_cache.Clear();
+	resolve_atom_index.Clear();
+	resolve_name_index.Clear();
+	resolve_path_index.Clear();
+	resolve_qualified_index.Clear();
+	resolve_calls = 0;
+	resolve_cache_hits = 0;
+	resolve_index_hits = 0;
+	search_calls = 0;
+	find_calls = 0;
+	discover_paths = 0;
+	loaded_packages = 0;
 	Vector<String> upp = FindAllPaths(root, "*.upp");
+	discover_paths = upp.GetCount();
 	for(const String& upp_path : upp) {
 		String nest;
 		String atom = sPackageAtomFromUpp(root, upp_path, nest);
@@ -417,6 +525,15 @@ void PkgRepository::Discover()
 		if(FindIndex(nests, nest) < 0)
 			nests.Add(nest);
 	}
+	for(int i = 0; i < packages.GetCount(); i++) {
+		const PkgPackage& p = packages[i];
+		resolve_path_index.GetAdd(sPackageResolvePath(p.path)).Add(i);
+		resolve_atom_index.GetAdd(ToLower(p.atom)).Add(i);
+		resolve_name_index.GetAdd(ToLower(p.name)).Add(i);
+		resolve_qualified_index.GetAdd(ToLower(p.nest + "/" + p.atom)).Add(i);
+	}
+	loaded_packages = packages.GetCount();
+	discover_seconds = ts.Seconds();
 }
 
 static int sPkgScore(const PkgPackage& p, const String& atom)
@@ -433,20 +550,16 @@ static int sPkgScore(const PkgPackage& p, const String& atom)
 
 const PkgPackage* PkgRepository::Find(const String& atom) const
 {
-	int best = -1;
-	int best_score = 1000000;
-	for(int i = 0; i < packages.GetCount(); i++) {
-		int q = sPkgScore(packages[i], atom);
-		if(q < best_score) {
-			best_score = q;
-			best = i;
-		}
-	}
-	return best >= 0 && best_score < 1000 ? &packages[best] : nullptr;
+	++find_calls;
+	PkgLookupResult r = Resolve(atom);
+	if(r.ambiguous || !r.pkg)
+		return nullptr;
+	return r.pkg;
 }
 
 Vector<const PkgPackage*> PkgRepository::Search(const String& query) const
 {
+	++search_calls;
 	Vector<const PkgPackage*> found;
 	String q = sLower(query);
 	for(int i = 0; i < packages.GetCount(); i++) {
@@ -2263,6 +2376,13 @@ struct PkgLintSummary {
 	int packages = 0;
 };
 
+struct PkgLintMetrics {
+	double total_seconds = 0.0;
+	int source_scan_count = 0;
+	int duplicate_packages = 0;
+	int root_count = 0;
+};
+
 static void sLintLine(PkgLintSummary& sum, const char *level, const String& message, bool color)
 {
 	String tag = String("[") + level + "]";
@@ -2291,11 +2411,29 @@ static void sLintSubline(const String& label, const String& value)
 	Cout() << "          " << label << value << "\n";
 }
 
-static void sLintPackageMetadata(const PkgRepository& repo, const PkgPackage& p, PkgLintSummary& sum, bool color, const PkgPlan *plan, Index<String>& seen_paths)
+static void sLintPrintTiming(const PkgRepository& repo, const PkgLintMetrics& metrics)
+{
+	Cout() << "\nTiming:\n";
+	Cout() << "  package discovery time: " << FormatDouble(repo.discover_seconds, 3) << " s\n";
+	Cout() << "  package metadata load count: " << repo.loaded_packages << "\n";
+	Cout() << "  .upp parse count: " << repo.discover_paths << "\n";
+	Cout() << "  dependency graph resolve count: " << repo.resolve_calls << "\n";
+	Cout() << "  resolve cache hits: " << repo.resolve_cache_hits << "\n";
+	Cout() << "  resolve index hits: " << repo.resolve_index_hits << "\n";
+	Cout() << "  source scan count: " << metrics.source_scan_count << "\n";
+	Cout() << "  total packages visited: " << metrics.root_count << "\n";
+	Cout() << "  duplicate package loads: " << metrics.duplicate_packages << "\n";
+	Cout() << "  total elapsed: " << FormatDouble(metrics.total_seconds, 3) << " s\n";
+}
+
+static void sLintPackageMetadata(const PkgRepository& repo, const PkgPackage& p, PkgLintSummary& sum, bool color, const PkgPlan *plan, Index<String>& seen_paths, PkgLintMetrics& metrics, bool summary)
 {
 	String key = ToLower(UnixPath(NormalizePath(p.path)));
 	if(FindIndex(seen_paths, key) >= 0)
+	{
+		metrics.duplicate_packages++;
 		return;
+	}
 	seen_paths.Add(key);
 	sum.packages++;
 
@@ -2359,7 +2497,7 @@ static void sLintPackageMetadata(const PkgRepository& repo, const PkgPackage& p,
 
 	Vector<PkgAuditHit> hits;
 	for(const String& src : p.source_files)
-		sAuditScanFile(src, hits);
+		sAuditScanFile(src, hits), metrics.source_scan_count++;
 	Vector<PkgAuditHit> relevant_hits;
 	Vector<String> used = sAuditRelevantFlags(hits, relevant_hits);
 	Sort(used, [](const String& a, const String& b) { return a < b; });
@@ -2393,30 +2531,34 @@ static void sLintPackageMetadata(const PkgRepository& repo, const PkgPackage& p,
 	}
 	else {
 		sLintLine(sum, "warn", "source uses flags missing from acceptflags", color);
-		for(const String& flag : missing) {
-			PkgAuditHit best;
-			bool found = false;
-			for(const PkgAuditHit& hit : relevant_hits) {
-				if(hit.flag == flag) {
-					best = hit;
-					found = true;
-					break;
+		if(!summary) {
+			for(const String& flag : missing) {
+				PkgAuditHit best;
+				bool found = false;
+				for(const PkgAuditHit& hit : relevant_hits) {
+					if(hit.flag == flag) {
+						best = hit;
+						found = true;
+						break;
+					}
 				}
+				if(found)
+					sLintSubline("source: ", sRepoRelativePath(repo, best.path) + ":" + AsString(best.line));
+				sLintSubline("hint: ", String("add `acceptflags ") + flag + ";`");
 			}
-			if(found)
-				sLintSubline("source: ", sRepoRelativePath(repo, best.path) + ":" + AsString(best.line));
-			sLintSubline("hint: ", String("add `acceptflags ") + flag + ";`");
 		}
 	}
 
 	if(!extra.IsEmpty()) {
 		sLintLine(sum, "info", "acceptflags not seen in source", color);
-		sLintSubline("flags: ", sFmtList(extra));
+		if(!summary)
+			sLintSubline("flags: ", sFmtList(extra));
 	}
 
 	if(!p.mainconfig.IsEmpty()) {
 		sLintLine(sum, "info", "mainconfig entries present", color);
-		sLintSubline("mainconfig: ", sFmtList(p.mainconfig));
+		if(!summary)
+			sLintSubline("mainconfig: ", sFmtList(p.mainconfig));
 	}
 
 	if(plan) {
@@ -2425,18 +2567,20 @@ static void sLintPackageMetadata(const PkgRepository& repo, const PkgPackage& p,
 				continue;
 			if(r.external_package.IsEmpty()) {
 				sLintLine(sum, "warn", "provider requirement unresolved: " + r.capability, color);
-				sLintSubline("reason: ", r.probe_reason.IsEmpty() ? String("no external package selected") : r.probe_reason);
+				if(!summary)
+					sLintSubline("reason: ", r.probe_reason.IsEmpty() ? String("no external package selected") : r.probe_reason);
 				continue;
 			}
 			if(!repo.Resolve(r.external_package).pkg) {
 				sLintLine(sum, "error", "provider package missing: " + r.external_package, color);
-				sLintSubline("capability: ", r.capability);
+				if(!summary)
+					sLintSubline("capability: ", r.capability);
 			}
 		}
 	}
 }
 
-static void sLintPrintGraphIssues(const PkgPlan& plan, PkgLintSummary& sum, bool color)
+static void sLintPrintGraphIssues(const PkgPlan& plan, PkgLintSummary& sum, bool color, bool summary)
 {
 	Index<String> seen;
 	for(const PkgResolveIssue& issue : plan.graph.issues) {
@@ -2465,11 +2609,11 @@ static void sLintPrintGraphIssues(const PkgPlan& plan, PkgLintSummary& sum, bool
 			message = issue.kind + ": " + issue.atom;
 
 		sLintLine(sum, level, message, color);
-		if(!issue.from.IsEmpty())
+		if(!summary && !issue.from.IsEmpty())
 			sLintSubline("from: ", issue.from);
-		if(!issue.reason.IsEmpty())
+		if(!summary && !issue.reason.IsEmpty())
 			sLintSubline("reason: ", issue.reason);
-		if(!issue.candidates.IsEmpty())
+		if(!summary && !issue.candidates.IsEmpty())
 			sLintSubline("candidates: ", sFmtList(issue.candidates));
 	}
 }
@@ -2513,13 +2657,19 @@ static Vector<String> sLintRootQueries(const PkgInvocation& inv, const PkgReposi
 
 static int sLintCommand(const PkgInvocation& inv, const PkgRepository& repo, bool color)
 {
+	TimeStop total;
 	PkgLintSummary sum;
+	PkgLintMetrics metrics;
 	Index<String> seen_paths;
 	Vector<String> roots = sLintRootQueries(inv, repo);
 	PkgState state;
 	LoadFromJsonFile(state, repo.paths.state);
 
-	Cout() << "Linting package metadata:\n\n";
+	Cout() << "Linting package metadata";
+	if(inv.all)
+		Cout() << " for all packages";
+	Cout() << "...\n";
+	Cout() << "Indexing packages... done, " << repo.packages.GetCount() << " packages\n\n";
 	if(roots.IsEmpty()) {
 		sLintLine(sum, "info", "no packages selected", color);
 		Cout() << "\nSummary:\n";
@@ -2527,7 +2677,12 @@ static int sLintCommand(const PkgInvocation& inv, const PkgRepository& repo, boo
 		return 0;
 	}
 
-	for(const String& root : roots) {
+	if(inv.limit > 0 && roots.GetCount() > inv.limit)
+		roots.SetCount(inv.limit);
+	metrics.root_count = roots.GetCount();
+
+	for(int i = 0; i < roots.GetCount(); i++) {
+		const String& root = roots[i];
 		PkgLookupResult root_lookup = repo.Resolve(root);
 		if(root_lookup.pkg) {
 			String root_key = ToLower(UnixPath(NormalizePath(root_lookup.pkg->path)));
@@ -2572,16 +2727,19 @@ static int sLintCommand(const PkgInvocation& inv, const PkgRepository& repo, boo
 		String title = root;
 		if(!plan.atom.IsEmpty())
 			title = plan.atom;
-		Cout() << title << "\n";
+		if(inv.summary || inv.all)
+			Cout() << "[" << (i + 1) << "/" << roots.GetCount() << "] " << title << "\n";
+		else
+			Cout() << title << "\n";
 		if(plan.graph.nodes.IsEmpty())
 			sLintLine(sum, "error", "package metadata not found", color);
 
 		if(!(inv.nodeps && root_lookup.pkg))
-			sLintPrintGraphIssues(plan, sum, color);
+			sLintPrintGraphIssues(plan, sum, color, inv.summary);
 
 		if(inv.nodeps) {
 			if(root_lookup.pkg)
-				sLintPackageMetadata(repo, *root_lookup.pkg, sum, color, &plan, seen_paths);
+				sLintPackageMetadata(repo, *root_lookup.pkg, sum, color, &plan, seen_paths, metrics, inv.summary);
 		}
 		else {
 			Index<String> local_seen;
@@ -2594,10 +2752,11 @@ static int sLintCommand(const PkgInvocation& inv, const PkgRepository& repo, boo
 				const PkgPackage* pkg = repo.Resolve(node.path).pkg;
 				if(!pkg)
 					continue;
-				sLintPackageMetadata(repo, *pkg, sum, color, &plan, seen_paths);
+				sLintPackageMetadata(repo, *pkg, sum, color, &plan, seen_paths, metrics, inv.summary);
 			}
 		}
-		Cout() << "\n";
+		if(!inv.summary)
+			Cout() << "\n";
 	}
 
 	Cout() << "Summary:\n";
@@ -2606,6 +2765,11 @@ static int sLintCommand(const PkgInvocation& inv, const PkgRepository& repo, boo
 	Cout() << "  warnings: " << sum.warnings << "\n";
 	Cout() << "  info: " << sum.info << "\n";
 	Cout() << "  ok: " << sum.ok << "\n";
+	if(inv.debug_timing) {
+		metrics.root_count = sum.packages;
+		metrics.total_seconds = total.Seconds();
+		sLintPrintTiming(repo, metrics);
+	}
 	Cout() << "\n";
 
 	return sum.errors > 0 || (inv.strict && sum.warnings > 0) ? 1 : 0;
@@ -2755,6 +2919,7 @@ bool ParsePkgArgs(const Vector<String>& args, PkgInvocation& inv, String& error)
 			else if(a == "--changed-use") inv.changed_use = true;
 			else if(a == "--strict") inv.strict = true;
 			else if(a == "--nodeps") inv.nodeps = true;
+			else if(a == "--summary") inv.summary = true;
 			else if(a == "--keep-going") inv.keep_going = true;
 			else if(a == "--skipfirst") inv.skip_first = true;
 			else if(a == "--resume") inv.resume = true;
@@ -2764,6 +2929,11 @@ bool ParsePkgArgs(const Vector<String>& args, PkgInvocation& inv, String& error)
 			else if(a == "--probe") inv.probe = true;
 			else if(a == "--staged") inv.staged = true;
 			else if(a == "--patch") inv.audit_patch = true;
+			else if(a == "--debug-timing") inv.debug_timing = true;
+			else if(a == "--limit" || a.StartsWith("--limit=")) {
+				String v = a == "--limit" ? (i + 1 < args.GetCount() ? args[++i] : String()) : sOptValue(a);
+				inv.limit = ScanInt(v);
+			}
 			else if(a == "--search") inv.command = PKG_CMD_SEARCH;
 			else if(a == "--color" || a.StartsWith("--color=")) {
 				String v = a == "--color" ? (i + 1 < args.GetCount() ? args[++i] : String()) : sOptValue(a);
@@ -2816,6 +2986,12 @@ bool ParsePkgArgs(const Vector<String>& args, PkgInvocation& inv, String& error)
 				case 'j': {
 					String v = a.Mid(j + 1);
 					inv.jobs = ScanInt(v);
+					j = a.GetCount();
+					break;
+				}
+				case 'l': {
+					String v = a.Mid(j + 1);
+					inv.limit = ScanInt(v);
 					j = a.GetCount();
 					break;
 				}
@@ -3267,6 +3443,9 @@ static void sPrintHelp(bool color)
 		<< "  -U, --changed-use    rebuild only if effective USE or projection changed\n"
 		<< "      --strict         treat warnings as failures for lint\n"
 		<< "      --nodeps         lint only the selected package metadata, not its dependencies\n"
+		<< "      --summary        reduce lint output to one-line package summaries\n"
+		<< "      --debug-timing   print lint timing and cache counters\n"
+		<< "      --limit N        limit lint --all to the first N packages\n"
 		<< "  -p, --pretend        print a plan without changing anything\n"
 		<< "      --install        execute the planned build after checks\n"
 		<< "      --keep-going     continue after independent build failures\n"
@@ -3281,7 +3460,7 @@ static void sPrintHelp(bool color)
 		<< "  --doctor, doctor [env|state|shell|providers [--probe]]\n"
 		<< "  --metadata, metadata\n"
 		<< "  --list-sets\n"
-		<< "  --lint, lint [atom|@world|--all] [--strict] [--nodeps]\n"
+		<< "  --lint, lint [atom|@world|--all] [--strict] [--nodeps] [--summary] [--debug-timing] [--limit N]\n"
 		<< "  --audit-acceptflags [atom] [--patch]\n"
 		<< "  --targets\n"
 		<< "  targets\n"

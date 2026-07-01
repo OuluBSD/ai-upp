@@ -205,6 +205,15 @@ struct PkgLookupResult : Moveable<PkgLookupResult> {
 	bool ambiguous = false;
 };
 
+struct PkgResolveCacheEntry : Moveable<PkgResolveCacheEntry> {
+	String canonical;
+	String path;
+	Vector<int> candidates;
+	int pkg_index = -1;
+	bool direct_path = false;
+	bool ambiguous = false;
+};
+
 struct PkgGraphEdge : Moveable<PkgGraphEdge> {
 	String from;
 	String to;
@@ -458,6 +467,19 @@ struct PkgRepository {
 	PkgConfigPaths paths;
 	Vector<PkgPackage> packages;
 	Vector<String> nests;
+	VectorMap<String, Vector<int> > resolve_atom_index;
+	VectorMap<String, Vector<int> > resolve_name_index;
+	VectorMap<String, Vector<int> > resolve_path_index;
+	VectorMap<String, Vector<int> > resolve_qualified_index;
+	mutable VectorMap<String, PkgResolveCacheEntry> resolve_cache;
+	int discover_paths = 0;
+	int loaded_packages = 0;
+	mutable int resolve_calls = 0;
+	mutable int resolve_cache_hits = 0;
+	mutable int resolve_index_hits = 0;
+	mutable int search_calls = 0;
+	mutable int find_calls = 0;
+	double discover_seconds = 0.0;
 
 	void Discover();
 	PkgLookupResult Resolve(const String& atom) const;
@@ -499,9 +521,11 @@ struct PkgInvocation {
 	bool changed_use = false;
 	bool strict = false;
 	bool nodeps = false;
+	bool summary = false;
 	bool keep_going = false;
 	bool skip_first = false;
 	bool probe = false;
+	bool debug_timing = false;
 	bool pretend = false;
 	bool resume = false;
 	bool oneshot = false;
@@ -521,6 +545,7 @@ struct PkgInvocation {
 	bool depclean = false;
 	bool all = false;
 	bool staged = false;
+	int limit = 0;
 };
 
 bool ParsePkgArgs(const Vector<String>& args, PkgInvocation& inv, String& error);

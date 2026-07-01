@@ -1,0 +1,10 @@
+uses
+	ide/Core;
+
+file
+	AGENTS.md,
+	IdeCoreWorkspaceSmoke.h,
+	main.cpp;
+
+mainconfig
+	"" = "";

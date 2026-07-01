@@ -68,6 +68,7 @@ file
 	Log.cpp,
 	Macro.cpp,
 	MacroManager.cpp,
+	MainBootstrap.cpp,
 	MainConfig.cpp,
 	Methods.cpp,
 	MethodsCtrls.cpp,
@@ -103,6 +104,7 @@ file
 	About.h,
 	AiProvider.h,
 	Assist.h,
+	MainBootstrap.h,
 	MainCtrl.h,
 	MethodsCtrls.h,
 	Methods.h,
@@ -117,4 +119,3 @@ file
 	ide.usc,
 	app.tpp,
 	theide.desktop;
-

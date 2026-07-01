@@ -28,6 +28,7 @@ enum PkgCommandKind {
 	PKG_CMD_EXPLAIN_TARGET,
 	PKG_CMD_BINS,
 	PKG_CMD_CLEAN,
+	PKG_CMD_DEPCLEAN,
 	PKG_CMD_TARGET,
 	PKG_CMD_ESELECT,
 	PKG_CMD_AUDIT_ACCEPTFLAGS,
@@ -281,6 +282,7 @@ struct PkgStateRecord : Moveable<PkgStateRecord> {
 	Vector<String> providers;
 	bool staged = false;
 	bool success = false;
+	bool owned = true;
 	Time timestamp;
 
 	void Jsonize(JsonIO& jio);
@@ -513,6 +515,8 @@ struct PkgInvocation {
 	bool audit_patch = false;
 	bool bins = false;
 	bool clean = false;
+	bool depclean = false;
+	bool all = false;
 	bool staged = false;
 };
 

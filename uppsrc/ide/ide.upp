@@ -37,17 +37,17 @@ uses(GUI) ide/MacroManager;
 
 uses(GUI) Report;
 
-uses(GUI \& !V1) ide/Edit3D;
+uses(GUI & !V1) ide/Edit3D;
 
 uses(GUI) MCP;
 
 uses(GUI) ide/MCP;
 
-uses(GUI \& !V1) DropTerm;
+uses(GUI & !V1) DropTerm;
 
-uses(GUI \& !V1) ide/Shell;
+uses(GUI & !V1) ide/Shell;
 
-uses(GUI \& !V1) ide/AI;
+uses(GUI & !V1) ide/AI;
 
 file
 	AGENTS.md,
@@ -60,5 +60,22 @@ file
 	Copying;
 
 mainconfig
-	"" = "GUI V1 DEBUGCODE";
-
+	"" = "GUI",
+	"" = "GUI NET",
+	"" = "GUI NET CURL",
+	"" = "GUI NET CURL AUDIO",
+	"" = "GUI NET CURL AUDIO SYS_PORTAUDIO",
+	"" = "GUI NET CURL LCLANG",
+	"" = "GUI NET CURL LCLANG AUDIO SYS_PORTAUDIO",
+	"" = "GUI V1",
+	"" = "GUI V1 LCLANG",
+	"" = "GUI V1 USEMALLOC",
+	"" = "GUI V1 HEAPDBG CHECKINIT",
+	"" = "GUI V1 TESTINSTALL",
+	"" = "GUI V1 CHECKCLIPBOARD",
+	"" = "GUI V1 PEAKMEM",
+	"" = "GUI V1 HEAPLOG",
+	"" = "GUI V1 X11",
+	"" = "GUI V1 GTK WAYLAND",
+	"" = "GUI V1 DEBUGCODE",
+	"" = "";

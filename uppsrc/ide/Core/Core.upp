@@ -10,6 +10,7 @@ uses
 file
 	AGENTS.md,
 	Core.h options(BUILDER_OPTION) PCH,
+	Common.cpp,
 	Ide.cpp,
 	Cache.cpp,
 	Core.cpp,
@@ -22,6 +23,8 @@ file
 	usc.cpp,
 	BinObj.cpp,
 	Signature.cpp,
+	ConsoleHeadless.h,
+	ConsoleHeadless.cpp,
 	Host readonly separator,
 	Host.h,
 	Host.cpp,
@@ -32,4 +35,3 @@ file
 	Copying,
 	Documentation readonly separator,
 	src.tpp;
-

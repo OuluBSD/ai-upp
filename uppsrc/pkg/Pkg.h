@@ -555,6 +555,8 @@ struct PkgInvocation {
 	bool strict = false;
 	bool nodeps = false;
 	bool summary = false;
+	bool quiet = false;
+	bool ci = false;
 	bool keep_going = false;
 	bool skip_first = false;
 	bool probe = false;
@@ -579,6 +581,7 @@ struct PkgInvocation {
 	bool depclean = false;
 	bool all = false;
 	bool staged = false;
+	String report;
 	int limit = 0;
 	bool use_cache = true;
 	bool rebuild_cache = false;

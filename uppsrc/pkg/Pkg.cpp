@@ -2533,12 +2533,94 @@ static void sAuditPrintPackage(const PkgRepository& repo, const PkgPackage& p, b
 	}
 }
 
+struct PkgLintFinding : Moveable<PkgLintFinding> {
+	String atom;
+	String name;
+	String path;
+	String severity;
+	String code;
+	String message;
+	Vector<String> details;
+	Vector<String> candidates;
+
+	void Jsonize(JsonIO& jio)
+	{
+		jio("atom", atom)("name", name)("path", path)("severity", severity)
+		   ("code", code)("message", message)("details", details)("candidates", candidates);
+	}
+};
+
 struct PkgLintSummary {
 	int errors = 0;
 	int warnings = 0;
 	int info = 0;
 	int ok = 0;
 	int packages = 0;
+	bool quiet = false;
+	bool ci = false;
+	Vector<PkgLintFinding> findings;
+	VectorMap<String, int> code_counts;
+};
+
+struct PkgLintReportCategory : Moveable<PkgLintReportCategory> {
+	String code;
+	int count = 0;
+
+	void Jsonize(JsonIO& jio)
+	{
+		jio("code", code)("count", count);
+	}
+};
+
+struct PkgLintReport {
+	String command_line;
+	Time timestamp;
+	String target;
+	String provider;
+	String compiler;
+	String linker;
+	String profile;
+	String repository;
+	String atom;
+	String report_path;
+	String format;
+	bool ci = false;
+	bool quiet = false;
+	bool summary = false;
+	bool strict = false;
+	bool use_cache = true;
+	bool rebuild_cache = false;
+	int package_count = 0;
+	int scanned_count = 0;
+	int skipped_count = 0;
+	int errors = 0;
+	int warnings = 0;
+	int info = 0;
+	int ok = 0;
+	int cache_loaded_entries = 0;
+	int cache_reused_entries = 0;
+	int cache_reparsed_entries = 0;
+	int cache_stale_entries = 0;
+	bool cache_used = false;
+	Vector<PkgLintFinding> findings;
+	Vector<PkgLintReportCategory> categories;
+
+	void Jsonize(JsonIO& jio)
+	{
+		jio("command_line", command_line)("timestamp", timestamp)("target", target)
+		   ("provider", provider)("compiler", compiler)("linker", linker)
+		   ("profile", profile)("repository", repository)("atom", atom)
+		   ("report_path", report_path)("format", format)("ci", ci)("quiet", quiet)
+		   ("summary", summary)("strict", strict)("use_cache", use_cache)
+		   ("rebuild_cache", rebuild_cache)("package_count", package_count)
+		   ("scanned_count", scanned_count)("skipped_count", skipped_count)
+		   ("errors", errors)("warnings", warnings)("info", info)("ok", ok)
+		   ("cache_loaded_entries", cache_loaded_entries)
+		   ("cache_reused_entries", cache_reused_entries)
+		   ("cache_reparsed_entries", cache_reparsed_entries)
+		   ("cache_stale_entries", cache_stale_entries)
+		   ("cache_used", cache_used)("findings", findings)("categories", categories);
+	}
 };
 
 struct PkgLintMetrics {
@@ -2546,34 +2628,54 @@ struct PkgLintMetrics {
 	int source_scan_count = 0;
 	int duplicate_packages = 0;
 	int root_count = 0;
+	int root_skipped = 0;
 };
 
-static void sLintLine(PkgLintSummary& sum, const char *level, const String& message, bool color)
+static void sLintLine(PkgLintSummary& sum, const String& level, const String& finding_code, const String& message, bool color, const String& atom = Null, const String& name = Null, const String& path = Null)
 {
 	String tag = String("[") + level + "]";
-	String code = "36";
+	String ansi = "36";
 	if(level == String("ok")) {
 		sum.ok++;
-		code = "32;1";
+		ansi = "32;1";
 	}
 	else if(level == String("warn")) {
 		sum.warnings++;
-		code = "33;1";
+		ansi = "33;1";
 	}
 	else if(level == String("info")) {
 		sum.info++;
-		code = "36";
+		ansi = "36";
 	}
 	else if(level == String("error")) {
 		sum.errors++;
-		code = "31;1";
+		ansi = "31;1";
 	}
-	Cout() << "  " << sAnsi(code, tag, color) << "  " << message << "\n";
+	PkgLintFinding& finding = sum.findings.Add();
+	finding.atom = atom;
+	finding.name = name.IsEmpty() ? atom : name;
+	finding.path = path;
+	finding.severity = level;
+	finding.code = finding_code;
+	finding.message = message;
+	if(level != "ok")
+	{
+		int qi = sum.code_counts.Find(finding_code);
+		if(qi < 0)
+			sum.code_counts.Add(finding_code, 1);
+		else
+			sum.code_counts[qi]++;
+	}
+	if(!sum.quiet)
+		Cout() << "  " << sAnsi(ansi, tag, color) << "  " << message << "\n";
 }
 
-static void sLintSubline(const String& label, const String& value)
+static void sLintSubline(PkgLintSummary& sum, const String& label, const String& value)
 {
-	Cout() << "          " << label << value << "\n";
+	if(sum.findings.GetCount())
+		sum.findings.Top().details.Add(label + value);
+	if(!sum.quiet)
+		Cout() << "          " << label << value << "\n";
 }
 
 static void sLintPrintTiming(const PkgRepository& repo, const PkgLintMetrics& metrics, double command_seconds)
@@ -2592,8 +2694,161 @@ static void sLintPrintTiming(const PkgRepository& repo, const PkgLintMetrics& me
 	Cout() << "  total elapsed: " << FormatDouble(command_seconds, 3) << " s\n";
 }
 
+static Vector<PkgLintReportCategory> sLintSortedCategories(const PkgLintSummary& sum)
+{
+	Vector<PkgLintReportCategory> out;
+	for(int i = 0; i < sum.code_counts.GetCount(); i++) {
+		PkgLintReportCategory& c = out.Add();
+		c.code = sum.code_counts.GetKey(i);
+		c.count = sum.code_counts[i];
+	}
+	Sort(out, [](const PkgLintReportCategory& a, const PkgLintReportCategory& b) {
+		if(a.count != b.count)
+			return a.count > b.count;
+		return a.code < b.code;
+	});
+	return out;
+}
+
+static void sLintPrintTopCategories(const PkgLintSummary& sum, bool color)
+{
+	Vector<PkgLintReportCategory> cats = sLintSortedCategories(sum);
+	Cout() << "Top issue categories:\n";
+	if(cats.IsEmpty()) {
+		Cout() << "  none\n";
+		return;
+	}
+	int limit = min(10, cats.GetCount());
+	for(int i = 0; i < limit; i++) {
+		const PkgLintReportCategory& c = cats[i];
+		String tag = String("  [") + AsString(c.count) + "]";
+		Cout() << "  " << sAnsi("36", tag, color) << "  " << c.code << "\n";
+	}
+}
+
+static String sLintReportFormat(const String& path)
+{
+	String ext = ToLower(GetFileExt(path));
+	if(ext == ".md" || ext == ".markdown")
+		return "markdown";
+	return "json";
+}
+
+static bool sWriteLintReportFile(const PkgLintReport& report)
+{
+	if(report.report_path.IsEmpty())
+		return true;
+	RealizeDirectory(GetFileFolder(report.report_path));
+	String format = sLintReportFormat(report.report_path);
+	if(format == "markdown") {
+		String out;
+		out << "# pkg lint report\n\n";
+		out << "- command_line: `" << report.command_line << "`\n";
+		out << "- timestamp: " << AsString(report.timestamp) << "\n";
+		out << "- report_path: `" << report.report_path << "`\n";
+		out << "- format: markdown\n";
+		out << "- target: " << (report.target.IsEmpty() ? String("[none]") : report.target) << "\n";
+		out << "- provider: " << (report.provider.IsEmpty() ? String("[none]") : report.provider) << "\n";
+		out << "- compiler: " << (report.compiler.IsEmpty() ? String("[none]") : report.compiler) << "\n";
+		out << "- linker: " << (report.linker.IsEmpty() ? String("[none]") : report.linker) << "\n";
+		out << "- package_count: " << report.package_count << "\n";
+		out << "- scanned_count: " << report.scanned_count << "\n";
+		out << "- skipped_count: " << report.skipped_count << "\n";
+		out << "- errors: " << report.errors << "\n";
+		out << "- warnings: " << report.warnings << "\n";
+		out << "- info: " << report.info << "\n";
+		out << "- ok: " << report.ok << "\n";
+		out << "- cache_used: " << (report.cache_used ? "yes" : "no") << "\n";
+		out << "- cache_loaded_entries: " << report.cache_loaded_entries << "\n";
+		out << "- cache_reused_entries: " << report.cache_reused_entries << "\n";
+		out << "- cache_reparsed_entries: " << report.cache_reparsed_entries << "\n";
+		out << "- cache_stale_entries: " << report.cache_stale_entries << "\n\n";
+		out << "## Top issue categories\n";
+		if(report.categories.IsEmpty())
+			out << "- none\n";
+		else
+			for(const PkgLintReportCategory& c : report.categories)
+				out << "- `" << c.code << "`: " << c.count << "\n";
+		out << "\n## Findings\n";
+		if(report.findings.IsEmpty())
+			out << "_none_\n";
+		else {
+			for(const PkgLintFinding& f : report.findings) {
+				out << "\n### " << f.severity << " " << f.code << "\n";
+				out << "- package: " << (f.atom.IsEmpty() ? String("[none]") : f.atom) << "\n";
+				out << "- path: " << (f.path.IsEmpty() ? String("[none]") : f.path) << "\n";
+				out << "- message: " << f.message << "\n";
+				if(!f.details.IsEmpty()) {
+					out << "- details:\n";
+					for(const String& d : f.details)
+						out << "  - " << d << "\n";
+				}
+				if(!f.candidates.IsEmpty()) {
+					out << "- candidates: " << sFmtList(f.candidates) << "\n";
+				}
+			}
+		}
+		return SaveFile(report.report_path, out);
+	}
+
+	return StoreAsJsonFile(report, report.report_path, true);
+}
+
+static bool sWriteLintReport(const PkgInvocation& inv, const PkgRepository& repo, const PkgLintSummary& sum, const PkgLintMetrics& metrics)
+{
+	if(inv.report.IsEmpty())
+		return true;
+
+	PkgLintReport report;
+	report.command_line = inv.command_line;
+	report.timestamp = GetSysTime();
+	report.target = inv.target;
+	report.provider = inv.provider;
+	report.compiler = inv.compiler;
+	report.linker = inv.linker;
+	report.profile = inv.profile;
+	report.repository = inv.repository;
+	report.atom = inv.atom;
+	report.report_path = inv.report;
+	report.format = sLintReportFormat(inv.report);
+	report.ci = inv.ci;
+	report.quiet = inv.quiet;
+	report.summary = inv.summary;
+	report.strict = inv.strict;
+	report.use_cache = inv.use_cache;
+	report.rebuild_cache = inv.rebuild_cache;
+	report.package_count = repo.packages.GetCount();
+	report.scanned_count = sum.packages;
+	report.skipped_count = metrics.root_skipped + metrics.duplicate_packages;
+	report.errors = sum.errors;
+	report.warnings = sum.warnings;
+	report.info = sum.info;
+	report.ok = sum.ok;
+	report.cache_loaded_entries = repo.cache_loaded_entries;
+	report.cache_reused_entries = repo.cache_reused_entries;
+	report.cache_reparsed_entries = repo.cache_reparsed_entries;
+	report.cache_stale_entries = repo.cache_stale_entries;
+	report.cache_used = repo.cache_used;
+	for(const PkgLintFinding& f : sum.findings) {
+		PkgLintFinding& dst = report.findings.Add();
+		dst.atom = f.atom;
+		dst.name = f.name;
+		dst.path = f.path;
+		dst.severity = f.severity;
+		dst.code = f.code;
+		dst.message = f.message;
+		for(const String& d : f.details)
+			dst.details.Add(d);
+		for(const String& c : f.candidates)
+			dst.candidates.Add(c);
+	}
+	report.categories = sLintSortedCategories(sum);
+	return sWriteLintReportFile(report);
+}
+
 static void sLintPackageMetadata(const PkgRepository& repo, const PkgPackage& p, PkgLintSummary& sum, bool color, const PkgPlan *plan, Index<String>& seen_paths, PkgLintMetrics& metrics, bool summary)
 {
+	String pkg_atom = p.atom.IsEmpty() ? p.name : p.atom;
 	String key = ToLower(UnixPath(NormalizePath(p.path)));
 	if(FindIndex(seen_paths, key) >= 0)
 	{
@@ -2603,20 +2858,21 @@ static void sLintPackageMetadata(const PkgRepository& repo, const PkgPackage& p,
 	seen_paths.Add(key);
 	sum.packages++;
 
-	Cout() << p.name << " <" << p.path << ">\n";
+	if(!sum.quiet)
+		Cout() << p.name << " <" << p.path << ">\n";
 
 	if(p.name.IsEmpty() || p.path.IsEmpty()) {
-		sLintLine(sum, "error", "empty package name or path", color);
+		sLintLine(sum, "error", "PKG-LINT-MISSING-METADATA", "empty package name or path", color, pkg_atom, p.name, p.path);
 	}
 	if(p.description.IsEmpty())
-		sLintLine(sum, "info", "description missing", color);
+		sLintLine(sum, "info", "PKG-LINT-MISSING-DESCRIPTION", "description missing", color, pkg_atom, p.name, p.path);
 
 	Index<String> source_seen;
 	for(const String& src : p.source_files)
 		if(source_seen.Find(src) < 0)
 			source_seen.Add(src);
 		else {
-			sLintLine(sum, "warn", "duplicate source file entry: " + src, color);
+			sLintLine(sum, "warn", "PKG-LINT-DUPLICATE-SOURCE", "duplicate source file entry: " + src, color, pkg_atom, p.name, p.path);
 		}
 
 	Index<String> uses_seen;
@@ -2624,7 +2880,7 @@ static void sLintPackageMetadata(const PkgRepository& repo, const PkgPackage& p,
 		if(uses_seen.Find(use) < 0)
 			uses_seen.Add(use);
 		else {
-			sLintLine(sum, "warn", "duplicate uses entry: " + use, color);
+			sLintLine(sum, "warn", "PKG-LINT-DUPLICATE-USES", "duplicate uses entry: " + use, color, pkg_atom, p.name, p.path);
 		}
 
 	if(p.path.Find("ide/Core") >= 0 || p.path.Find("uppsrc/pkg") >= 0 || p.name == "pkg") {
@@ -2639,8 +2895,8 @@ static void sLintPackageMetadata(const PkgRepository& repo, const PkgPackage& p,
 						leakage.Add(use);
 				}
 		if(!leakage.IsEmpty()) {
-			sLintLine(sum, "warn", "headless package depends on GUI-facing packages", color);
-			sLintSubline("deps: ", sFmtList(leakage));
+			sLintLine(sum, "warn", "PKG-LINT-HEADLESS-GUI-DEP", "headless package depends on GUI-facing packages", color, pkg_atom, p.name, p.path);
+			sLintSubline(sum, "deps: ", sFmtList(leakage));
 		}
 	}
 
@@ -2649,7 +2905,7 @@ static void sLintPackageMetadata(const PkgRepository& repo, const PkgPackage& p,
 		if(accepts_seen.Find(a) < 0)
 			accepts_seen.Add(a);
 		else {
-			sLintLine(sum, "warn", "duplicate acceptflags entry: " + a, color);
+			sLintLine(sum, "warn", "PKG-LINT-DUPLICATE-ACCEPTFLAG", "duplicate acceptflags entry: " + a, color, pkg_atom, p.name, p.path);
 		}
 
 	Vector<String> dot_accepts;
@@ -2657,8 +2913,8 @@ static void sLintPackageMetadata(const PkgRepository& repo, const PkgPackage& p,
 		if(a.StartsWith("."))
 			dot_accepts.Add(a);
 	if(!dot_accepts.IsEmpty()) {
-		sLintLine(sum, "warn", "acceptflags should use bare names, not dot-prefixed forms", color);
-		sLintSubline("flags: ", sFmtList(dot_accepts));
+		sLintLine(sum, "warn", "PKG-LINT-DOTTED-ACCEPTFLAG", "acceptflags should use bare names, not dot-prefixed forms", color, pkg_atom, p.name, p.path);
+		sLintSubline(sum, "flags: ", sFmtList(dot_accepts));
 	}
 
 	Vector<PkgAuditHit> hits;
@@ -2690,13 +2946,13 @@ static void sLintPackageMetadata(const PkgRepository& repo, const PkgPackage& p,
 			extra.Add(s);
 
 	if(used.IsEmpty()) {
-		sLintLine(sum, "ok", "only global/system flags", color);
+		sLintLine(sum, "ok", "PKG-LINT-GLOBAL-FLAGS", "only global/system flags", color, pkg_atom, p.name, p.path);
 	}
 	else if(missing.IsEmpty()) {
-		sLintLine(sum, "ok", "acceptflags cover scoped source flags", color);
+		sLintLine(sum, "ok", "PKG-LINT-ACCEPTFLAGS-OK", "acceptflags cover scoped source flags", color, pkg_atom, p.name, p.path);
 	}
 	else {
-		sLintLine(sum, "warn", "source uses flags missing from acceptflags", color);
+		sLintLine(sum, "warn", "PKG-LINT-MISSING-ACCEPTFLAG", "source uses flags missing from acceptflags", color, pkg_atom, p.name, p.path);
 		if(!summary) {
 			for(const String& flag : missing) {
 				PkgAuditHit best;
@@ -2708,23 +2964,38 @@ static void sLintPackageMetadata(const PkgRepository& repo, const PkgPackage& p,
 						break;
 					}
 				}
-				if(found)
-					sLintSubline("source: ", sRepoRelativePath(repo, best.path) + ":" + AsString(best.line));
-				sLintSubline("hint: ", String("add `acceptflags ") + flag + ";`");
+					if(found)
+					sLintSubline(sum, "source: ", sRepoRelativePath(repo, best.path) + ":" + AsString(best.line));
+				sLintSubline(sum, "hint: ", String("add `acceptflags ") + flag + ";`");
 			}
 		}
 	}
 
 	if(!extra.IsEmpty()) {
-		sLintLine(sum, "info", "acceptflags not seen in source", color);
+			sLintLine(sum, "info", "PKG-LINT-UNUSED-ACCEPTFLAG", "acceptflags not seen in source", color, pkg_atom, p.name, p.path);
 		if(!summary)
-			sLintSubline("flags: ", sFmtList(extra));
+			sLintSubline(sum, "flags: ", sFmtList(extra));
 	}
 
 	if(!p.mainconfig.IsEmpty()) {
-		sLintLine(sum, "info", "mainconfig entries present", color);
+		sLintLine(sum, "info", "PKG-LINT-MAINCONFIG", "mainconfig entries present", color, pkg_atom, p.name, p.path);
 		if(!summary)
-			sLintSubline("mainconfig: ", sFmtList(p.mainconfig));
+			sLintSubline(sum, "mainconfig: ", sFmtList(p.mainconfig));
+	}
+
+	if(plan && !plan->target_masked.IsEmpty()) {
+		Vector<String> masked;
+		Index<String> masked_set;
+		for(const String& s : plan->target_masked)
+			masked_set.Add(s);
+		for(const String& s : used)
+			if(masked_set.Find(s) >= 0)
+				masked.Add(s);
+		if(!masked.IsEmpty()) {
+			sLintLine(sum, "warn", "PKG-LINT-TARGET-MASKED-USE", "source uses flags masked by the target", color, pkg_atom, p.name, p.path);
+			if(!summary)
+				sLintSubline(sum, "flags: ", sFmtList(masked));
+		}
 	}
 
 	if(plan) {
@@ -2732,15 +3003,15 @@ static void sLintPackageMetadata(const PkgRepository& repo, const PkgPackage& p,
 			if(!r.selected)
 				continue;
 			if(r.external_package.IsEmpty()) {
-				sLintLine(sum, "warn", "provider requirement unresolved: " + r.capability, color);
+				sLintLine(sum, "warn", "PKG-LINT-UNKNOWN-PROVIDER", "provider requirement unresolved: " + r.capability, color, pkg_atom, p.name, p.path);
 				if(!summary)
-					sLintSubline("reason: ", r.probe_reason.IsEmpty() ? String("no external package selected") : r.probe_reason);
+					sLintSubline(sum, "reason: ", r.probe_reason.IsEmpty() ? String("no external package selected") : r.probe_reason);
 				continue;
 			}
 			if(!repo.Resolve(r.external_package).pkg) {
-				sLintLine(sum, "error", "provider package missing: " + r.external_package, color);
+				sLintLine(sum, "error", "PKG-LINT-PROVIDER-MISSING", "provider package missing: " + r.external_package, color, pkg_atom, p.name, p.path);
 				if(!summary)
-					sLintSubline("capability: ", r.capability);
+					sLintSubline(sum, "capability: ", r.capability);
 			}
 		}
 	}
@@ -2760,27 +3031,40 @@ static void sLintPrintGraphIssues(const PkgPlan& plan, PkgLintSummary& sum, bool
 		   issue.kind == "ambiguous" || issue.kind == "cycle")
 			level = "error";
 
+		String code;
 		String message;
-		if(issue.kind == "missing")
+		if(issue.kind == "missing") {
 			message = "missing dependency: " + issue.atom;
-		else if(issue.kind == "missing-set")
+			code = "PKG-LINT-MISSING-DEPENDENCY";
+		}
+		else if(issue.kind == "missing-set") {
 			message = "missing set member: " + issue.atom;
-		else if(issue.kind == "missing-provider")
+			code = "PKG-LINT-MISSING-SET-MEMBER";
+		}
+		else if(issue.kind == "missing-provider") {
 			message = "unresolved provider requirement: " + issue.atom;
-		else if(issue.kind == "ambiguous")
+			code = "PKG-LINT-UNKNOWN-PROVIDER";
+		}
+		else if(issue.kind == "ambiguous") {
 			message = "ambiguous dependency: " + issue.atom;
-		else if(issue.kind == "cycle")
+			code = "PKG-LINT-AMBIGUOUS-DEPENDENCY";
+		}
+		else if(issue.kind == "cycle") {
 			message = "dependency cycle: " + issue.reason;
-		else
+			code = "PKG-LINT-DEPENDENCY-CYCLE";
+		}
+		else {
 			message = issue.kind + ": " + issue.atom;
+			code = "PKG-LINT-DEPENDENCY";
+		}
 
-		sLintLine(sum, level, message, color);
+		sLintLine(sum, level, code, message, color, issue.atom, issue.atom, issue.from);
 		if(!summary && !issue.from.IsEmpty())
-			sLintSubline("from: ", issue.from);
+			sLintSubline(sum, "from: ", issue.from);
 		if(!summary && !issue.reason.IsEmpty())
-			sLintSubline("reason: ", issue.reason);
+			sLintSubline(sum, "reason: ", issue.reason);
 		if(!summary && !issue.candidates.IsEmpty())
-			sLintSubline("candidates: ", sFmtList(issue.candidates));
+			sLintSubline(sum, "candidates: ", sFmtList(issue.candidates));
 	}
 }
 
@@ -2830,21 +3114,38 @@ static int sLintCommand(const PkgInvocation& inv, const PkgRepository& repo, boo
 	Vector<String> roots = sLintRootQueries(inv, repo);
 	PkgState state;
 	LoadFromJsonFile(state, repo.paths.state);
+	sum.quiet = inv.summary || inv.ci || inv.quiet;
+	sum.ci = inv.ci;
 
-	Cout() << "Linting package metadata";
-	if(inv.all)
-		Cout() << " for all packages";
-	Cout() << "...\n";
-	Cout() << "Indexing packages... done, " << repo.packages.GetCount() << " packages\n\n";
+	if(!sum.quiet) {
+		Cout() << "Linting package metadata";
+		if(inv.all)
+			Cout() << " for all packages";
+		if(inv.ci)
+			Cout() << " [ci]";
+		Cout() << "...\n";
+		Cout() << "Indexing packages... done, " << repo.packages.GetCount() << " packages\n\n";
+	}
 	if(roots.IsEmpty()) {
-		sLintLine(sum, "info", "no packages selected", color);
+		sLintLine(sum, "info", "PKG-LINT-NO-PACKAGES", "no packages selected", color);
 		Cout() << "\nSummary:\n";
 		Cout() << "  0 packages, 0 error, 0 warn, 0 info, 0 ok\n";
+		if(sum.quiet)
+			sLintPrintTopCategories(sum, color);
+		if(inv.debug_timing) {
+			metrics.root_count = sum.packages;
+			metrics.analysis_seconds = phase.Seconds();
+			sLintPrintTiming(repo, metrics, command_seconds);
+		}
+		if(!sWriteLintReport(inv, repo, sum, metrics))
+			return 1;
 		return 0;
 	}
 
-	if(inv.limit > 0 && roots.GetCount() > inv.limit)
+	if(inv.limit > 0 && roots.GetCount() > inv.limit) {
+		metrics.root_skipped += roots.GetCount() - inv.limit;
 		roots.SetCount(inv.limit);
+	}
 	metrics.root_count = roots.GetCount();
 
 	for(int i = 0; i < roots.GetCount(); i++) {
@@ -2853,7 +3154,10 @@ static int sLintCommand(const PkgInvocation& inv, const PkgRepository& repo, boo
 		if(root_lookup.pkg) {
 			String root_key = ToLower(UnixPath(NormalizePath(root_lookup.pkg->path)));
 			if(FindIndex(seen_paths, root_key) >= 0)
+			{
+				metrics.root_skipped++;
 				continue;
+			}
 		}
 
 		PkgInvocation rootinv;
@@ -2893,12 +3197,12 @@ static int sLintCommand(const PkgInvocation& inv, const PkgRepository& repo, boo
 		String title = root;
 		if(!plan.atom.IsEmpty())
 			title = plan.atom;
-		if(inv.summary || inv.all)
+		if(!sum.quiet && (inv.summary || inv.all))
 			Cout() << "[" << (i + 1) << "/" << roots.GetCount() << "] " << title << "\n";
-		else
+		else if(!sum.quiet)
 			Cout() << title << "\n";
 		if(plan.graph.nodes.IsEmpty())
-			sLintLine(sum, "error", "package metadata not found", color);
+			sLintLine(sum, "error", "PKG-LINT-MISSING-METADATA", "package metadata not found", color, root_lookup.query, root_lookup.query, root_lookup.path);
 
 		if(!(inv.nodeps && root_lookup.pkg))
 			sLintPrintGraphIssues(plan, sum, color, inv.summary);
@@ -2921,7 +3225,7 @@ static int sLintCommand(const PkgInvocation& inv, const PkgRepository& repo, boo
 				sLintPackageMetadata(repo, *pkg, sum, color, &plan, seen_paths, metrics, inv.summary);
 			}
 		}
-		if(!inv.summary)
+		if(!sum.quiet)
 			Cout() << "\n";
 	}
 
@@ -2931,6 +3235,8 @@ static int sLintCommand(const PkgInvocation& inv, const PkgRepository& repo, boo
 	Cout() << "  warnings: " << sum.warnings << "\n";
 	Cout() << "  info: " << sum.info << "\n";
 	Cout() << "  ok: " << sum.ok << "\n";
+	if(sum.quiet)
+		sLintPrintTopCategories(sum, color);
 	if(inv.debug_timing) {
 		metrics.root_count = sum.packages;
 		metrics.analysis_seconds = phase.Seconds();
@@ -2938,7 +3244,11 @@ static int sLintCommand(const PkgInvocation& inv, const PkgRepository& repo, boo
 	}
 	Cout() << "\n";
 
-	return sum.errors > 0 || (inv.strict && sum.warnings > 0) ? 1 : 0;
+	bool report_ok = sWriteLintReport(inv, repo, sum, metrics);
+	if(!report_ok) {
+		Cerr() << "failed to write lint report: " << inv.report << "\n";
+	}
+	return sum.errors > 0 || (inv.strict && sum.warnings > 0) || !report_ok ? 1 : 0;
 }
 
 static Vector<String> sReadWorld(const PkgConfigPaths& paths)
@@ -3087,6 +3397,11 @@ bool ParsePkgArgs(const Vector<String>& args, PkgInvocation& inv, String& error)
 			else if(a == "--strict") inv.strict = true;
 			else if(a == "--nodeps") inv.nodeps = true;
 			else if(a == "--summary") inv.summary = true;
+			else if(a == "--quiet") inv.quiet = true;
+			else if(a == "--ci") inv.ci = true;
+			else if(a == "--report" || a.StartsWith("--report=")) {
+				inv.report = a == "--report" ? (i + 1 < args.GetCount() ? args[++i] : String()) : sOptValue(a);
+			}
 			else if(a == "--use-cache") inv.use_cache = true;
 			else if(a == "--no-cache") inv.use_cache = false;
 			else if(a == "--rebuild") inv.rebuild_cache = true;
@@ -3229,6 +3544,8 @@ bool ParsePkgArgs(const Vector<String>& args, PkgInvocation& inv, String& error)
 			inv.command = PKG_CMD_PROVIDERS;
 		else if(inv.resume)
 			inv.command = PKG_CMD_RESUME;
+		else if(inv.all || inv.strict || inv.nodeps || inv.summary || inv.quiet || inv.ci || inv.debug_timing || inv.limit > 0 || !inv.report.IsEmpty() || !inv.use_cache || inv.rebuild_cache)
+			inv.command = PKG_CMD_LINT;
 		else if(inv.ask || inv.verbose || inv.update || inv.deep || inv.newuse || inv.changed_use || inv.pretend || inv.install || inv.depclean)
 			inv.command = PKG_CMD_PLAN;
 		else
@@ -3615,8 +3932,11 @@ static void sPrintHelp(bool color)
 		<< "      --strict         treat warnings as failures for lint\n"
 		<< "      --nodeps         lint only the selected package metadata, not its dependencies\n"
 		<< "      --summary        reduce lint output to one-line package summaries\n"
+		<< "      --quiet          print only the final lint summary and categories\n"
+		<< "      --ci             concise lint mode for CI and agents\n"
 		<< "      --debug-timing   print lint timing and cache counters\n"
 		<< "      --limit N        limit lint --all to the first N packages\n"
+		<< "      --report PATH    write a JSON or Markdown lint report\n"
 		<< "      --use-cache      prefer the persistent package metadata cache\n"
 		<< "      --no-cache       ignore the persistent package metadata cache\n"
 		<< "      --rebuild        rebuild the persistent package metadata cache\n"
@@ -3635,7 +3955,7 @@ static void sPrintHelp(bool color)
 		<< "  --metadata-cache, metadata-cache [--rebuild]\n"
 		<< "  --metadata, metadata\n"
 		<< "  --list-sets\n"
-		<< "  --lint, lint [atom|@world|--all] [--strict] [--nodeps] [--summary] [--debug-timing] [--limit N]\n"
+		<< "  --lint, lint [atom|@world|--all] [--strict] [--nodeps] [--summary] [--quiet] [--ci] [--debug-timing] [--limit N] [--report PATH]\n"
 		<< "  --audit-acceptflags [atom] [--patch]\n"
 		<< "  --targets\n"
 		<< "  targets\n"

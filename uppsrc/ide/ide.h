@@ -35,6 +35,7 @@
 #endif
 
 #include <ide/MainCtrl/MethodsCtrls.h>
+#include <ide/MainCtrl/MainBootstrap.h>
 
 #define LAYOUTFILE <ide/MainCtrl/ide.lay>
 #include <CtrlCore/lay.h>

@@ -495,6 +495,8 @@ static const PkgStateRecord* sFindStateRecord(const PkgState& state, const Strin
 static String sFormatUppProjection(const PkgUppProjection& proj);
 static const PkgTargetProfile& sDefaultTargetProfile(const String& target);
 static String sTargetNameText(const String& target);
+static Vector<String> sLoadSet(const PkgConfigPaths& paths, const String& name, const String& path);
+static PkgPlan sBuildPlan(const PkgInvocation& inv, const PkgRepository& repo, const PkgState& state, bool color);
 
 static bool sSameStringList(const Vector<String>& a, const Vector<String>& b)
 {
@@ -2253,6 +2255,362 @@ static void sAuditPrintPackage(const PkgRepository& repo, const PkgPackage& p, b
 	}
 }
 
+struct PkgLintSummary {
+	int errors = 0;
+	int warnings = 0;
+	int info = 0;
+	int ok = 0;
+	int packages = 0;
+};
+
+static void sLintLine(PkgLintSummary& sum, const char *level, const String& message, bool color)
+{
+	String tag = String("[") + level + "]";
+	String code = "36";
+	if(level == String("ok")) {
+		sum.ok++;
+		code = "32;1";
+	}
+	else if(level == String("warn")) {
+		sum.warnings++;
+		code = "33;1";
+	}
+	else if(level == String("info")) {
+		sum.info++;
+		code = "36";
+	}
+	else if(level == String("error")) {
+		sum.errors++;
+		code = "31;1";
+	}
+	Cout() << "  " << sAnsi(code, tag, color) << "  " << message << "\n";
+}
+
+static void sLintSubline(const String& label, const String& value)
+{
+	Cout() << "          " << label << value << "\n";
+}
+
+static void sLintPackageMetadata(const PkgRepository& repo, const PkgPackage& p, PkgLintSummary& sum, bool color, const PkgPlan *plan, Index<String>& seen_paths)
+{
+	String key = ToLower(UnixPath(NormalizePath(p.path)));
+	if(FindIndex(seen_paths, key) >= 0)
+		return;
+	seen_paths.Add(key);
+	sum.packages++;
+
+	Cout() << p.name << " <" << p.path << ">\n";
+
+	if(p.name.IsEmpty() || p.path.IsEmpty()) {
+		sLintLine(sum, "error", "empty package name or path", color);
+	}
+	if(p.description.IsEmpty())
+		sLintLine(sum, "info", "description missing", color);
+
+	Index<String> source_seen;
+	for(const String& src : p.source_files)
+		if(source_seen.Find(src) < 0)
+			source_seen.Add(src);
+		else {
+			sLintLine(sum, "warn", "duplicate source file entry: " + src, color);
+		}
+
+	Index<String> uses_seen;
+	for(const String& use : p.uses)
+		if(uses_seen.Find(use) < 0)
+			uses_seen.Add(use);
+		else {
+			sLintLine(sum, "warn", "duplicate uses entry: " + use, color);
+		}
+
+	if(p.path.Find("ide/Core") >= 0 || p.path.Find("uppsrc/pkg") >= 0 || p.name == "pkg") {
+		static const char * const gui_deps[] = {
+			"CtrlLib", "CodeEditor", "MainCtrl", "CtrlCore", "Designer", "Browse", "Shell"
+		};
+		Vector<String> leakage;
+		for(const String& use : p.uses)
+			for(const char *dep : gui_deps)
+				if(use == dep) {
+					if(FindIndex(leakage, use) < 0)
+						leakage.Add(use);
+				}
+		if(!leakage.IsEmpty()) {
+			sLintLine(sum, "warn", "headless package depends on GUI-facing packages", color);
+			sLintSubline("deps: ", sFmtList(leakage));
+		}
+	}
+
+	Index<String> accepts_seen;
+	for(const String& a : p.accepts)
+		if(accepts_seen.Find(a) < 0)
+			accepts_seen.Add(a);
+		else {
+			sLintLine(sum, "warn", "duplicate acceptflags entry: " + a, color);
+		}
+
+	Vector<String> dot_accepts;
+	for(const String& a : p.accepts)
+		if(a.StartsWith("."))
+			dot_accepts.Add(a);
+	if(!dot_accepts.IsEmpty()) {
+		sLintLine(sum, "warn", "acceptflags should use bare names, not dot-prefixed forms", color);
+		sLintSubline("flags: ", sFmtList(dot_accepts));
+	}
+
+	Vector<PkgAuditHit> hits;
+	for(const String& src : p.source_files)
+		sAuditScanFile(src, hits);
+	Vector<PkgAuditHit> relevant_hits;
+	Vector<String> used = sAuditRelevantFlags(hits, relevant_hits);
+	Sort(used, [](const String& a, const String& b) { return a < b; });
+	Vector<String> accepted;
+	for(const String& s : p.accepts)
+		if(FindIndex(accepted, s) < 0)
+			accepted.Add(s);
+	Sort(accepted, [](const String& a, const String& b) { return a < b; });
+
+	Vector<String> missing;
+	Index<String> accepted_set;
+	for(const String& s : accepted)
+		accepted_set.Add(s);
+	for(const String& s : used)
+		if(accepted_set.Find(s) < 0)
+			missing.Add(s);
+
+	Vector<String> extra;
+	Index<String> used_set;
+	for(const String& s : used)
+		used_set.Add(s);
+	for(const String& s : accepted)
+		if(used_set.Find(s) < 0)
+			extra.Add(s);
+
+	if(used.IsEmpty()) {
+		sLintLine(sum, "ok", "only global/system flags", color);
+	}
+	else if(missing.IsEmpty()) {
+		sLintLine(sum, "ok", "acceptflags cover scoped source flags", color);
+	}
+	else {
+		sLintLine(sum, "warn", "source uses flags missing from acceptflags", color);
+		for(const String& flag : missing) {
+			PkgAuditHit best;
+			bool found = false;
+			for(const PkgAuditHit& hit : relevant_hits) {
+				if(hit.flag == flag) {
+					best = hit;
+					found = true;
+					break;
+				}
+			}
+			if(found)
+				sLintSubline("source: ", sRepoRelativePath(repo, best.path) + ":" + AsString(best.line));
+			sLintSubline("hint: ", String("add `acceptflags ") + flag + ";`");
+		}
+	}
+
+	if(!extra.IsEmpty()) {
+		sLintLine(sum, "info", "acceptflags not seen in source", color);
+		sLintSubline("flags: ", sFmtList(extra));
+	}
+
+	if(!p.mainconfig.IsEmpty()) {
+		sLintLine(sum, "info", "mainconfig entries present", color);
+		sLintSubline("mainconfig: ", sFmtList(p.mainconfig));
+	}
+
+	if(plan) {
+		for(const PkgProviderResolution& r : plan->provider_plan.resolutions) {
+			if(!r.selected)
+				continue;
+			if(r.external_package.IsEmpty()) {
+				sLintLine(sum, "warn", "provider requirement unresolved: " + r.capability, color);
+				sLintSubline("reason: ", r.probe_reason.IsEmpty() ? String("no external package selected") : r.probe_reason);
+				continue;
+			}
+			if(!repo.Resolve(r.external_package).pkg) {
+				sLintLine(sum, "error", "provider package missing: " + r.external_package, color);
+				sLintSubline("capability: ", r.capability);
+			}
+		}
+	}
+}
+
+static void sLintPrintGraphIssues(const PkgPlan& plan, PkgLintSummary& sum, bool color)
+{
+	Index<String> seen;
+	for(const PkgResolveIssue& issue : plan.graph.issues) {
+		String key = issue.kind + "|" + issue.from + "|" + issue.atom + "|" + issue.reason;
+		if(seen.Find(key) >= 0)
+			continue;
+		seen.Add(key);
+
+		String level = "warn";
+		if(issue.kind == "missing" || issue.kind == "missing-set" ||
+		   issue.kind == "ambiguous" || issue.kind == "cycle")
+			level = "error";
+
+		String message;
+		if(issue.kind == "missing")
+			message = "missing dependency: " + issue.atom;
+		else if(issue.kind == "missing-set")
+			message = "missing set member: " + issue.atom;
+		else if(issue.kind == "missing-provider")
+			message = "unresolved provider requirement: " + issue.atom;
+		else if(issue.kind == "ambiguous")
+			message = "ambiguous dependency: " + issue.atom;
+		else if(issue.kind == "cycle")
+			message = "dependency cycle: " + issue.reason;
+		else
+			message = issue.kind + ": " + issue.atom;
+
+		sLintLine(sum, level, message, color);
+		if(!issue.from.IsEmpty())
+			sLintSubline("from: ", issue.from);
+		if(!issue.reason.IsEmpty())
+			sLintSubline("reason: ", issue.reason);
+		if(!issue.candidates.IsEmpty())
+			sLintSubline("candidates: ", sFmtList(issue.candidates));
+	}
+}
+
+static Vector<String> sLintRootQueries(const PkgInvocation& inv, const PkgRepository& repo)
+{
+	Vector<String> roots;
+	auto add_root = [&](const String& s) {
+		if(!s.IsEmpty() && FindIndex(roots, s) < 0)
+			roots.Add(s);
+	};
+
+	if(inv.all || inv.atom.IsEmpty()) {
+		for(const PkgPackage& p : repo.packages)
+			add_root(p.path);
+		return pick(roots);
+	}
+
+	if(inv.atom == "@world" || inv.atom == "world") {
+		Vector<String> world = sLoadSet(repo.paths, "world", repo.paths.world);
+		for(const String& s : world)
+			add_root(s);
+		return pick(roots);
+	}
+	if(inv.atom == "@system" || inv.atom == "system") {
+		Vector<String> system = sLoadSet(repo.paths, "system", repo.paths.system_set);
+		for(const String& s : system)
+			add_root(s);
+		return pick(roots);
+	}
+	if(inv.atom == "@toolchain" || inv.atom == "toolchain") {
+		Vector<String> toolchain = sLoadSet(repo.paths, "toolchain", repo.paths.toolchain_set);
+		for(const String& s : toolchain)
+			add_root(s);
+		return pick(roots);
+	}
+
+	add_root(inv.atom);
+	return pick(roots);
+}
+
+static int sLintCommand(const PkgInvocation& inv, const PkgRepository& repo, bool color)
+{
+	PkgLintSummary sum;
+	Index<String> seen_paths;
+	Vector<String> roots = sLintRootQueries(inv, repo);
+	PkgState state;
+	LoadFromJsonFile(state, repo.paths.state);
+
+	Cout() << "Linting package metadata:\n\n";
+	if(roots.IsEmpty()) {
+		sLintLine(sum, "info", "no packages selected", color);
+		Cout() << "\nSummary:\n";
+		Cout() << "  0 packages, 0 error, 0 warn, 0 info, 0 ok\n";
+		return 0;
+	}
+
+	for(const String& root : roots) {
+		PkgLookupResult root_lookup = repo.Resolve(root);
+		if(root_lookup.pkg) {
+			String root_key = ToLower(UnixPath(NormalizePath(root_lookup.pkg->path)));
+			if(FindIndex(seen_paths, root_key) >= 0)
+				continue;
+		}
+
+		PkgInvocation rootinv;
+		rootinv.command = PKG_CMD_PLAN;
+		rootinv.atom = root;
+		rootinv.target = inv.target;
+		rootinv.provider = inv.provider;
+		rootinv.compiler = inv.compiler;
+		rootinv.linker = inv.linker;
+		rootinv.profile = inv.profile;
+		rootinv.repository = inv.repository;
+		rootinv.vcpkg_root = inv.vcpkg_root;
+		rootinv.vcpkg_triplet = inv.vcpkg_triplet;
+		rootinv.emscripten_profile = inv.emscripten_profile;
+		rootinv.jobs = inv.jobs;
+		rootinv.verbose = inv.verbose;
+		rootinv.update = inv.update;
+		rootinv.deep = inv.deep;
+		rootinv.newuse = inv.newuse;
+		rootinv.changed_use = inv.changed_use;
+		rootinv.keep_going = inv.keep_going;
+		rootinv.skip_first = inv.skip_first;
+		rootinv.probe = inv.probe;
+		rootinv.pretend = true;
+		rootinv.ask = false;
+		rootinv.resume = inv.resume;
+		rootinv.oneshot = inv.oneshot;
+		rootinv.plan = true;
+		rootinv.strict = inv.strict;
+		for(const String& s : inv.use_args)
+			rootinv.use_args.Add(s);
+		for(const String& s : inv.extra)
+			rootinv.extra.Add(s);
+		rootinv.staged = inv.staged;
+		PkgPlan plan = sBuildPlan(rootinv, repo, state, color);
+
+		String title = root;
+		if(!plan.atom.IsEmpty())
+			title = plan.atom;
+		Cout() << title << "\n";
+		if(plan.graph.nodes.IsEmpty())
+			sLintLine(sum, "error", "package metadata not found", color);
+
+		if(!(inv.nodeps && root_lookup.pkg))
+			sLintPrintGraphIssues(plan, sum, color);
+
+		if(inv.nodeps) {
+			if(root_lookup.pkg)
+				sLintPackageMetadata(repo, *root_lookup.pkg, sum, color, &plan, seen_paths);
+		}
+		else {
+			Index<String> local_seen;
+			for(const PkgGraphNode& node : plan.graph.nodes) {
+				if(!node.resolved || node.path.IsEmpty())
+					continue;
+				if(FindIndex(local_seen, node.path) >= 0)
+					continue;
+				local_seen.Add(node.path);
+				const PkgPackage* pkg = repo.Resolve(node.path).pkg;
+				if(!pkg)
+					continue;
+				sLintPackageMetadata(repo, *pkg, sum, color, &plan, seen_paths);
+			}
+		}
+		Cout() << "\n";
+	}
+
+	Cout() << "Summary:\n";
+	Cout() << "  packages scanned: " << sum.packages << "\n";
+	Cout() << "  errors: " << sum.errors << "\n";
+	Cout() << "  warnings: " << sum.warnings << "\n";
+	Cout() << "  info: " << sum.info << "\n";
+	Cout() << "  ok: " << sum.ok << "\n";
+	Cout() << "\n";
+
+	return sum.errors > 0 || (inv.strict && sum.warnings > 0) ? 1 : 0;
+}
+
 static Vector<String> sReadWorld(const PkgConfigPaths& paths)
 {
 	Vector<String> v;
@@ -2381,6 +2739,7 @@ bool ParsePkgArgs(const Vector<String>& args, PkgInvocation& inv, String& error)
 			else if(a == "--metadata") inv.metadata = true, inv.command = PKG_CMD_METADATA;
 			else if(a == "--list-sets") inv.list_sets = true, inv.command = PKG_CMD_LIST_SETS;
 			else if(a == "--audit-acceptflags") inv.command = PKG_CMD_AUDIT_ACCEPTFLAGS;
+			else if(a == "--lint") inv.command = PKG_CMD_LINT;
 			else if(a == "--targets") inv.targets = true, inv.command = PKG_CMD_TARGETS;
 			else if(a == "--providers") inv.providers = true, inv.command = PKG_CMD_PROVIDERS;
 			else if(a == "--bins") inv.bins = true, inv.command = PKG_CMD_BINS;
@@ -2394,6 +2753,8 @@ bool ParsePkgArgs(const Vector<String>& args, PkgInvocation& inv, String& error)
 			else if(a == "--deep") inv.deep = true;
 			else if(a == "--newuse") inv.newuse = true;
 			else if(a == "--changed-use") inv.changed_use = true;
+			else if(a == "--strict") inv.strict = true;
+			else if(a == "--nodeps") inv.nodeps = true;
 			else if(a == "--keep-going") inv.keep_going = true;
 			else if(a == "--skipfirst") inv.skip_first = true;
 			else if(a == "--resume") inv.resume = true;
@@ -2497,6 +2858,7 @@ bool ParsePkgArgs(const Vector<String>& args, PkgInvocation& inv, String& error)
 			else if(cmd == "explain-use") inv.command = PKG_CMD_EXPLAIN_USE;
 			else if(cmd == "explain-target") inv.command = PKG_CMD_EXPLAIN_TARGET;
 			else if(cmd == "deps") inv.command = PKG_CMD_DEPS;
+			else if(cmd == "lint") inv.command = PKG_CMD_LINT;
 			else if(cmd == "target") inv.command = PKG_CMD_TARGET;
 			else if(cmd == "eselect") inv.command = PKG_CMD_ESELECT;
 			else if(cmd == "audit-acceptflags") inv.command = PKG_CMD_AUDIT_ACCEPTFLAGS;
@@ -2529,7 +2891,7 @@ bool ParsePkgArgs(const Vector<String>& args, PkgInvocation& inv, String& error)
 	if(positional.GetCount()) {
 		int start = 0;
 		if(positional[0] == "help" || positional[0] == "version" || positional[0] == "info" || positional[0] == "doctor" ||
-		   positional[0] == "metadata" || positional[0] == "list-sets" || positional[0] == "targets" || positional[0] == "providers" || positional[0] == "bins" || positional[0] == "clean" || positional[0] == "depclean" || positional[0] == "explain-use" || positional[0] == "explain-target" || positional[0] == "deps" ||
+		   positional[0] == "metadata" || positional[0] == "list-sets" || positional[0] == "targets" || positional[0] == "providers" || positional[0] == "bins" || positional[0] == "clean" || positional[0] == "depclean" || positional[0] == "explain-use" || positional[0] == "explain-target" || positional[0] == "deps" || positional[0] == "lint" ||
 		   positional[0] == "target" || positional[0] == "eselect" || positional[0] == "audit-acceptflags" ||
 		   positional[0] == "resume" || positional[0] == "search")
 			start = 1;
@@ -2571,6 +2933,12 @@ bool ParsePkgArgs(const Vector<String>& args, PkgInvocation& inv, String& error)
 			inv.subcommand = rest.GetCount() ? rest[0] : "all";
 			for(int i = 1; i < rest.GetCount(); i++)
 				inv.extra.Add(rest[i]);
+		}
+		else if(inv.command == PKG_CMD_LINT) {
+			if(rest.GetCount())
+				inv.atom = rest[0];
+			for(int i = 1; i < rest.GetCount(); i++)
+				inv.use_args.Add(rest[i]);
 		}
 		else if(inv.command == PKG_CMD_INFO || inv.command == PKG_CMD_METADATA || inv.command == PKG_CMD_LIST_SETS || inv.command == PKG_CMD_VERSION ||
 		        inv.command == PKG_CMD_HELP || inv.command == PKG_CMD_AUDIT_ACCEPTFLAGS) {
@@ -2897,6 +3265,8 @@ static void sPrintHelp(bool color)
 		<< "  -D, --deep           resolve the full dependency graph\n"
 		<< "  -N, --newuse         include packages whose USE metadata changed\n"
 		<< "  -U, --changed-use    rebuild only if effective USE or projection changed\n"
+		<< "      --strict         treat warnings as failures for lint\n"
+		<< "      --nodeps         lint only the selected package metadata, not its dependencies\n"
 		<< "  -p, --pretend        print a plan without changing anything\n"
 		<< "      --install        execute the planned build after checks\n"
 		<< "      --keep-going     continue after independent build failures\n"
@@ -2911,6 +3281,7 @@ static void sPrintHelp(bool color)
 		<< "  --doctor, doctor [env|state|shell|providers [--probe]]\n"
 		<< "  --metadata, metadata\n"
 		<< "  --list-sets\n"
+		<< "  --lint, lint [atom|@world|--all] [--strict] [--nodeps]\n"
 		<< "  --audit-acceptflags [atom] [--patch]\n"
 		<< "  --targets\n"
 		<< "  targets\n"
@@ -4996,8 +5367,12 @@ static void sGraphAddIssue(PkgGraph& graph, const String& kind, const String& fr
 	issue.from = from;
 	issue.atom = atom;
 	issue.reason = reason;
+	Index<String> seen;
 	for(const String& s : candidates)
-		issue.candidates.Add(s);
+		if(seen.Find(s) < 0) {
+			seen.Add(s);
+			issue.candidates.Add(s);
+		}
 }
 
 static void sGraphAddEdge(PkgGraph& graph, const String& from, const String& to, const String& kind, const String& reason, bool missing = false)
@@ -5880,7 +6255,7 @@ int RunPkg(const Vector<String>& args)
 	                 inv.command == PKG_CMD_EXPLAIN_TARGET || inv.command == PKG_CMD_DEPS || inv.command == PKG_CMD_PLAN ||
 	                 inv.command == PKG_CMD_AUDIT_ACCEPTFLAGS || inv.command == PKG_CMD_ESELECT ||
 	                 inv.command == PKG_CMD_RESUME ||
-	                 inv.command == PKG_CMD_TARGET || inv.command == PKG_CMD_DOCTOR ||
+	                 inv.command == PKG_CMD_TARGET || inv.command == PKG_CMD_DOCTOR || inv.command == PKG_CMD_LINT ||
 	                 inv.command == PKG_CMD_BINS || inv.command == PKG_CMD_CLEAN || inv.command == PKG_CMD_DEPCLEAN;
 	PkgRepository repo;
 	if(need_repo)
@@ -5920,6 +6295,11 @@ int RunPkg(const Vector<String>& args)
 		sPrintDoctorCommand(inv, repo, color);
 		sFlushConsole();
 		return 0;
+	}
+	if(inv.command == PKG_CMD_LINT) {
+		int rc = sLintCommand(inv, repo, color);
+		sFlushConsole();
+		return rc;
 	}
 	if(inv.command == PKG_CMD_PROVIDERS) {
 		sPrintProvidersCommand(inv, repo, color);

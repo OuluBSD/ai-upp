@@ -58,8 +58,6 @@ int         IdeLocateLine(String old_file, int old_line, String new_file);
 
 bool IsTextFile(const String& file, int maxline = INT_MAX);
 
-void Puts(const char *s);
-
 Display& BoldDisplay();
 
 class Console : public CodeEditor {
@@ -1347,9 +1345,6 @@ public:
 	~Ide();
 };
 
-void ForAllSourceFiles(Event<const VectorMap<String, String>&> fn);
-void ForAllNests(Event<const Vector<String>&> fn);
-
 void StartIdeBackgroundThread();
 void TriggerIdeBackgroundThread(int delay_ms = 1000);
 void StartIdeMcpThread();
@@ -1368,8 +1363,6 @@ void   UppHubAuto(const String& s);
 void HighlightLine(const String& path, Vector<LineEdit::Highlight>& hln, const WString& ln);
 
 String GetGitBranchRaw(const String& dir);
-
-Index<String> GetAllNests(bool sleep = false);
 
 bool MapFlag(const VectorMap<class String, class String>& map, const char *key);
 

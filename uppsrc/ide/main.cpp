@@ -1,9 +1,5 @@
 #include "ide.h"
 
-#ifndef flagGUI
-#include <Core/Core.h>
-#endif
-
 #if defined(flagGUI) && !defined(flagV1)
 #include <DropTerm/DropTerm.h>
 #endif
@@ -12,83 +8,17 @@ using namespace Upp;
 
 #define FUNCTION_NAME UPP_FUNCTION_NAME << "(): "
 
-void DelTemps()
-{
-	FindFile ff(ConfigFile("*.tmp"));
-	while(ff) {
-		DeleteFile(ConfigFile(ff.GetName()));
-		ff.Next();
-	}
-}
-
 #ifdef PLATFORM_WIN32
 #include <mmsystem.h>
 #pragma comment( lib, "winmm.lib" )
-#include "UwpUtils.h"
+#include "MainCtrl/UwpUtils.h"
 #endif
-
-extern int MemoryProbeFlags;
 
 void Uninstall();
 
-bool SilentMode;
-
-#if defined(PLATFORM_WIN32)
-#include <wincon.h>
-
-void Puts(const char *s)
-{
-	dword dummy;
-	if(!SilentMode)
-		WriteFile(GetStdHandle(STD_OUTPUT_HANDLE), s, (int)strlen(s), &dummy, NULL);
-}
-#endif
-
-
-#ifdef PLATFORM_POSIX
-void Puts(const char *s)
-{
-	if(!SilentMode)
-		puts(s);
-}
-#endif
+extern int MemoryProbeFlags;
 
 bool splash_screen;
-
-int CommaSpace(int c)
-{
-	return c == ',' ? ' ' : c;
-}
-
-void ReduceCfgCache()
-{
-	String cfgdir = ConfigFile("cfg");
-	FindFile ff(AppendFileName(cfgdir, "*.*"));
-	while(ff) {
-		if(ff.IsFile()) {
-			String fn = ff.GetName();
-			String ext = GetFileExt(fn);
-			if(ext != ".aux" && ext != ".cfg")
-				if((Date)Time(ff.GetLastAccessTime()) < GetSysDate() - 14)
-					DeleteFile(AppendFileName(cfgdir, fn));
-		}
-		ff.Next();
-	}
-}
-
-bool IsAssembly(const String& s)
-{
-	Vector<String> varlist;
-	for(FindFile ff(ConfigFile("*.var")); ff; ff.Next())
-		if(ff.IsFile())
-			if(GetFileTitle(ff.GetName()) == s)
-				return true;
-	Vector<String> l = Split(s, ',');
-	for(int i = 0; i < l.GetCount(); i++)
-		if(FindFile(NormalizePath(l[i])).IsFolder())
-			return true;
-	return false;
-}
 
 #ifdef flagGUI
 
@@ -701,24 +631,3 @@ EXITBLOCK {
 #endif
 
 #endif // flagGUI
-
-#ifndef flagGUI
-
-namespace {
-
-void RunConsoleIde()
-{
-	if(HandleConsoleIdeArgs(CommandLine()))
-		return;
-
-	Cout() << GetConsoleIdeExperimentalNotice() << "\n";
-}
-
-}
-
-CONSOLE_APP_MAIN
-{
-	RunConsoleIde();
-}
-
-#endif

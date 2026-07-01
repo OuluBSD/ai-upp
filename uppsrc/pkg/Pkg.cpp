@@ -209,6 +209,7 @@ static const String *sEselectSlot(const PkgEselectState& st, const String& modul
 static String *sEselectSlot(PkgEselectState& st, const String& module);
 static Vector<PkgTargetProfile> sTargets();
 static void sCopyPkg(PkgPackage& dst, const PkgPackage& src);
+static void sFlushConsole();
 static bool sLoadMetadataCache(const String& path, PkgMetadataCache& cache, bool& corrupt);
 static void sStoreMetadataCache(const String& path, const PkgMetadataCache& cache);
 static Time sPkgFileStamp(const String& path);
@@ -2540,13 +2541,28 @@ struct PkgLintFinding : Moveable<PkgLintFinding> {
 	String severity;
 	String code;
 	String message;
+	String fingerprint;
+	String baseline_state;
 	Vector<String> details;
 	Vector<String> candidates;
 
 	void Jsonize(JsonIO& jio)
 	{
 		jio("atom", atom)("name", name)("path", path)("severity", severity)
-		   ("code", code)("message", message)("details", details)("candidates", candidates);
+		   ("code", code)("message", message)("fingerprint", fingerprint)
+		   ("baseline_state", baseline_state)("details", details)("candidates", candidates);
+	}
+};
+
+struct PkgLintBaseline : Moveable<PkgLintBaseline> {
+	int schema = 1;
+	String root;
+	Time timestamp;
+	Vector<PkgLintFinding> entries;
+
+	void Jsonize(JsonIO& jio)
+	{
+		jio("schema", schema)("root", root)("timestamp", timestamp)("entries", entries);
 	}
 };
 
@@ -2555,11 +2571,26 @@ struct PkgLintSummary {
 	int warnings = 0;
 	int info = 0;
 	int ok = 0;
+	int new_errors = 0;
+	int new_warnings = 0;
+	int baseline_known = 0;
+	int baseline_new = 0;
+	int baseline_resolved = 0;
 	int packages = 0;
 	bool quiet = false;
 	bool ci = false;
+	bool show_baseline = true;
+	bool fail_on_baseline = false;
+	bool update_baseline = false;
+	bool baseline_loaded = false;
+	bool baseline_corrupt = false;
+	bool baseline_present = false;
+	String baseline_path;
 	Vector<PkgLintFinding> findings;
+	Vector<PkgLintFinding> baseline_resolved_findings;
 	VectorMap<String, int> code_counts;
+	Vector<PkgLintFinding> baseline_entries;
+	VectorMap<String, int> baseline_index;
 };
 
 struct PkgLintReportCategory : Moveable<PkgLintReportCategory> {
@@ -2584,12 +2615,18 @@ struct PkgLintReport {
 	String atom;
 	String report_path;
 	String format;
+	String baseline_path;
 	bool ci = false;
 	bool quiet = false;
 	bool summary = false;
 	bool strict = false;
 	bool use_cache = true;
 	bool rebuild_cache = false;
+	bool update_baseline = false;
+	bool baseline_loaded = false;
+	bool baseline_corrupt = false;
+	bool show_baseline = true;
+	bool fail_on_baseline = false;
 	int package_count = 0;
 	int scanned_count = 0;
 	int skipped_count = 0;
@@ -2597,12 +2634,19 @@ struct PkgLintReport {
 	int warnings = 0;
 	int info = 0;
 	int ok = 0;
+	int new_errors = 0;
+	int new_warnings = 0;
+	int baseline_known = 0;
+	int baseline_new = 0;
+	int baseline_resolved = 0;
+	int baseline_entries = 0;
 	int cache_loaded_entries = 0;
 	int cache_reused_entries = 0;
 	int cache_reparsed_entries = 0;
 	int cache_stale_entries = 0;
 	bool cache_used = false;
 	Vector<PkgLintFinding> findings;
+	Vector<PkgLintFinding> resolved;
 	Vector<PkgLintReportCategory> categories;
 
 	void Jsonize(JsonIO& jio)
@@ -2610,16 +2654,23 @@ struct PkgLintReport {
 		jio("command_line", command_line)("timestamp", timestamp)("target", target)
 		   ("provider", provider)("compiler", compiler)("linker", linker)
 		   ("profile", profile)("repository", repository)("atom", atom)
-		   ("report_path", report_path)("format", format)("ci", ci)("quiet", quiet)
-		   ("summary", summary)("strict", strict)("use_cache", use_cache)
-		   ("rebuild_cache", rebuild_cache)("package_count", package_count)
-		   ("scanned_count", scanned_count)("skipped_count", skipped_count)
-		   ("errors", errors)("warnings", warnings)("info", info)("ok", ok)
+		   ("report_path", report_path)("format", format)("baseline_path", baseline_path)
+		   ("ci", ci)("quiet", quiet)("summary", summary)("strict", strict)
+		   ("use_cache", use_cache)("rebuild_cache", rebuild_cache)
+		   ("update_baseline", update_baseline)("baseline_loaded", baseline_loaded)
+		   ("baseline_corrupt", baseline_corrupt)("show_baseline", show_baseline)
+		   ("fail_on_baseline", fail_on_baseline)
+		   ("package_count", package_count)("scanned_count", scanned_count)
+		   ("skipped_count", skipped_count)("errors", errors)("warnings", warnings)
+		   ("info", info)("ok", ok)("new_errors", new_errors)("new_warnings", new_warnings)
+		   ("baseline_known", baseline_known)("baseline_new", baseline_new)
+		   ("baseline_resolved", baseline_resolved)("baseline_entries", baseline_entries)
 		   ("cache_loaded_entries", cache_loaded_entries)
 		   ("cache_reused_entries", cache_reused_entries)
 		   ("cache_reparsed_entries", cache_reparsed_entries)
 		   ("cache_stale_entries", cache_stale_entries)
-		   ("cache_used", cache_used)("findings", findings)("categories", categories);
+		   ("cache_used", cache_used)("findings", findings)("resolved", resolved)
+		   ("categories", categories);
 	}
 };
 
@@ -2630,6 +2681,90 @@ struct PkgLintMetrics {
 	int root_count = 0;
 	int root_skipped = 0;
 };
+
+static String sLintBaselineDefaultPath(const PkgConfigPaths& paths)
+{
+	return AppendFileName(paths.root, "metadata/pkg_lint_baseline.json");
+}
+
+static String sLintNormalizeFingerprintText(const String& s)
+{
+	String out;
+	out.Reserve(s.GetCount());
+	bool digit = false;
+	for(int i = 0; i < s.GetCount(); i++) {
+		int c = (unsigned char)s[i];
+		if(IsDigit(c)) {
+			if(!digit) {
+				out.Cat('#');
+				digit = true;
+			}
+			continue;
+		}
+		digit = false;
+		out.Cat(c);
+	}
+	return out;
+}
+
+static String sLintFingerprint(const PkgLintFinding& finding)
+{
+	String out;
+	out << sLintNormalizeFingerprintText(finding.code) << '\n'
+	    << sLintNormalizeFingerprintText(finding.atom) << '\n'
+	    << sLintNormalizeFingerprintText(finding.name) << '\n'
+	    << sLintNormalizeFingerprintText(finding.path) << '\n'
+	    << sLintNormalizeFingerprintText(finding.message) << '\n';
+	for(const String& d : finding.details)
+		out << sLintNormalizeFingerprintText(d) << '\n';
+	for(const String& c : finding.candidates)
+		out << sLintNormalizeFingerprintText(c) << '\n';
+	return out;
+}
+
+static void sCopyLintFinding(PkgLintFinding& dst, const PkgLintFinding& src)
+{
+	dst.atom = src.atom;
+	dst.name = src.name;
+	dst.path = src.path;
+	dst.severity = src.severity;
+	dst.code = src.code;
+	dst.message = src.message;
+	dst.fingerprint = src.fingerprint;
+	dst.baseline_state = src.baseline_state;
+	dst.details.Clear();
+	for(const String& d : src.details)
+		dst.details.Add(d);
+	dst.candidates.Clear();
+	for(const String& c : src.candidates)
+		dst.candidates.Add(c);
+}
+
+static bool sLoadLintBaseline(const String& path, PkgLintBaseline& baseline, bool& corrupt)
+{
+	corrupt = false;
+	baseline.schema = 1;
+	baseline.root.Clear();
+	baseline.timestamp = Time();
+	baseline.entries.Clear();
+	if(path.IsEmpty() || !FileExists(path))
+		return false;
+	if(!LoadFromJsonFile(baseline, path)) {
+		corrupt = true;
+		return false;
+	}
+	if(baseline.schema <= 0)
+		baseline.schema = 1;
+	return true;
+}
+
+static bool sStoreLintBaseline(const String& path, const PkgLintBaseline& baseline)
+{
+	if(path.IsEmpty())
+		return false;
+	RealizeDirectory(GetFileFolder(path));
+	return StoreAsJsonFile(baseline, path, true);
+}
 
 static void sLintLine(PkgLintSummary& sum, const String& level, const String& finding_code, const String& message, bool color, const String& atom = Null, const String& name = Null, const String& path = Null)
 {
@@ -2658,6 +2793,28 @@ static void sLintLine(PkgLintSummary& sum, const String& level, const String& fi
 	finding.severity = level;
 	finding.code = finding_code;
 	finding.message = message;
+	finding.fingerprint = sLintFingerprint(finding);
+	if(sum.baseline_loaded && finding.severity != "ok") {
+		int bi = sum.baseline_index.Find(finding.fingerprint);
+		if(bi >= 0) {
+			sum.baseline_known++;
+			finding.baseline_state = "known";
+			sum.baseline_entries[bi].baseline_state = "matched";
+		}
+		else {
+			sum.baseline_new++;
+			finding.baseline_state = "new";
+		}
+	}
+	if(finding.severity == "error" || finding.severity == "warn") {
+		bool fail = !sum.baseline_loaded || finding.baseline_state != "known" || sum.fail_on_baseline;
+		if(fail) {
+			if(finding.severity == "error")
+				sum.new_errors++;
+			else
+				sum.new_warnings++;
+		}
+	}
 	if(level != "ok")
 	{
 		int qi = sum.code_counts.Find(finding_code);
@@ -2667,7 +2824,9 @@ static void sLintLine(PkgLintSummary& sum, const String& level, const String& fi
 			sum.code_counts[qi]++;
 	}
 	if(!sum.quiet)
-		Cout() << "  " << sAnsi(ansi, tag, color) << "  " << message << "\n";
+		Cout() << "  " << sAnsi(ansi, sum.baseline_loaded && finding.severity != "ok" && sum.show_baseline
+			? String("[") + (finding.baseline_state.IsEmpty() ? String("new") : finding.baseline_state) + "]"
+			: tag, color) << "  " << message << "\n";
 }
 
 static void sLintSubline(PkgLintSummary& sum, const String& label, const String& value)
@@ -2726,6 +2885,37 @@ static void sLintPrintTopCategories(const PkgLintSummary& sum, bool color)
 	}
 }
 
+static void sLintFinalizeBaseline(PkgLintSummary& sum)
+{
+	if(!sum.baseline_loaded)
+		return;
+	sum.baseline_resolved_findings.Clear();
+	for(int i = 0; i < sum.baseline_entries.GetCount(); i++) {
+		const PkgLintFinding& b = sum.baseline_entries[i];
+		if(b.baseline_state == "matched")
+			continue;
+		PkgLintFinding& resolved = sum.baseline_resolved_findings.Add();
+		sCopyLintFinding(resolved, b);
+		resolved.severity = "resolved";
+		resolved.code = "PKG-LINT-BASELINE-RESOLVED";
+		resolved.message = "baseline finding resolved";
+		resolved.baseline_state = "resolved";
+		sum.baseline_resolved++;
+	}
+}
+
+static int sLintExitCode(const PkgInvocation& inv, const PkgLintSummary& sum, bool report_ok)
+{
+	if(inv.update_baseline)
+		return report_ok ? 0 : 1;
+	if(!sum.baseline_path.IsEmpty()) {
+		if(!inv.ci)
+			return report_ok ? 0 : 1;
+		return sum.new_errors > 0 || (inv.strict && sum.new_warnings > 0) || (inv.fail_on_baseline && sum.baseline_known > 0) || !report_ok ? 1 : 0;
+	}
+	return sum.errors > 0 || (inv.strict && sum.warnings > 0) || !report_ok ? 1 : 0;
+}
+
 static String sLintReportFormat(const String& path)
 {
 	String ext = ToLower(GetFileExt(path));
@@ -2751,6 +2941,9 @@ static bool sWriteLintReportFile(const PkgLintReport& report)
 		out << "- provider: " << (report.provider.IsEmpty() ? String("[none]") : report.provider) << "\n";
 		out << "- compiler: " << (report.compiler.IsEmpty() ? String("[none]") : report.compiler) << "\n";
 		out << "- linker: " << (report.linker.IsEmpty() ? String("[none]") : report.linker) << "\n";
+		out << "- baseline_path: " << (report.baseline_path.IsEmpty() ? String("[none]") : report.baseline_path) << "\n";
+		out << "- baseline_loaded: " << (report.baseline_loaded ? "yes" : "no") << "\n";
+		out << "- baseline_corrupt: " << (report.baseline_corrupt ? "yes" : "no") << "\n";
 		out << "- package_count: " << report.package_count << "\n";
 		out << "- scanned_count: " << report.scanned_count << "\n";
 		out << "- skipped_count: " << report.skipped_count << "\n";
@@ -2758,6 +2951,12 @@ static bool sWriteLintReportFile(const PkgLintReport& report)
 		out << "- warnings: " << report.warnings << "\n";
 		out << "- info: " << report.info << "\n";
 		out << "- ok: " << report.ok << "\n";
+		out << "- new_errors: " << report.new_errors << "\n";
+		out << "- new_warnings: " << report.new_warnings << "\n";
+		out << "- baseline_entries: " << report.baseline_entries << "\n";
+		out << "- baseline_known: " << report.baseline_known << "\n";
+		out << "- baseline_new: " << report.baseline_new << "\n";
+		out << "- baseline_resolved: " << report.baseline_resolved << "\n";
 		out << "- cache_used: " << (report.cache_used ? "yes" : "no") << "\n";
 		out << "- cache_loaded_entries: " << report.cache_loaded_entries << "\n";
 		out << "- cache_reused_entries: " << report.cache_reused_entries << "\n";
@@ -2778,6 +2977,10 @@ static bool sWriteLintReportFile(const PkgLintReport& report)
 				out << "- package: " << (f.atom.IsEmpty() ? String("[none]") : f.atom) << "\n";
 				out << "- path: " << (f.path.IsEmpty() ? String("[none]") : f.path) << "\n";
 				out << "- message: " << f.message << "\n";
+				if(!f.fingerprint.IsEmpty())
+					out << "- fingerprint: `" << f.fingerprint << "`\n";
+				if(!f.baseline_state.IsEmpty())
+					out << "- baseline: " << f.baseline_state << "\n";
 				if(!f.details.IsEmpty()) {
 					out << "- details:\n";
 					for(const String& d : f.details)
@@ -2786,6 +2989,19 @@ static bool sWriteLintReportFile(const PkgLintReport& report)
 				if(!f.candidates.IsEmpty()) {
 					out << "- candidates: " << sFmtList(f.candidates) << "\n";
 				}
+			}
+		}
+		out << "\n## Resolved baseline entries\n";
+		if(report.resolved.IsEmpty())
+			out << "_none_\n";
+		else {
+			for(const PkgLintFinding& f : report.resolved) {
+				out << "\n### resolved " << f.code << "\n";
+				out << "- package: " << (f.atom.IsEmpty() ? String("[none]") : f.atom) << "\n";
+				out << "- path: " << (f.path.IsEmpty() ? String("[none]") : f.path) << "\n";
+				out << "- message: " << f.message << "\n";
+				if(!f.fingerprint.IsEmpty())
+					out << "- fingerprint: `" << f.fingerprint << "`\n";
 			}
 		}
 		return SaveFile(report.report_path, out);
@@ -2811,12 +3027,18 @@ static bool sWriteLintReport(const PkgInvocation& inv, const PkgRepository& repo
 	report.atom = inv.atom;
 	report.report_path = inv.report;
 	report.format = sLintReportFormat(inv.report);
+	report.baseline_path = sum.baseline_path;
 	report.ci = inv.ci;
 	report.quiet = inv.quiet;
 	report.summary = inv.summary;
 	report.strict = inv.strict;
 	report.use_cache = inv.use_cache;
 	report.rebuild_cache = inv.rebuild_cache;
+	report.update_baseline = inv.update_baseline;
+	report.baseline_loaded = sum.baseline_loaded;
+	report.baseline_corrupt = sum.baseline_corrupt;
+	report.show_baseline = inv.show_baseline;
+	report.fail_on_baseline = inv.fail_on_baseline;
 	report.package_count = repo.packages.GetCount();
 	report.scanned_count = sum.packages;
 	report.skipped_count = metrics.root_skipped + metrics.duplicate_packages;
@@ -2824,6 +3046,12 @@ static bool sWriteLintReport(const PkgInvocation& inv, const PkgRepository& repo
 	report.warnings = sum.warnings;
 	report.info = sum.info;
 	report.ok = sum.ok;
+	report.new_errors = sum.new_errors;
+	report.new_warnings = sum.new_warnings;
+	report.baseline_known = sum.baseline_known;
+	report.baseline_new = sum.baseline_new;
+	report.baseline_resolved = sum.baseline_resolved;
+	report.baseline_entries = sum.baseline_entries.GetCount();
 	report.cache_loaded_entries = repo.cache_loaded_entries;
 	report.cache_reused_entries = repo.cache_reused_entries;
 	report.cache_reparsed_entries = repo.cache_reparsed_entries;
@@ -2831,19 +3059,52 @@ static bool sWriteLintReport(const PkgInvocation& inv, const PkgRepository& repo
 	report.cache_used = repo.cache_used;
 	for(const PkgLintFinding& f : sum.findings) {
 		PkgLintFinding& dst = report.findings.Add();
-		dst.atom = f.atom;
-		dst.name = f.name;
-		dst.path = f.path;
-		dst.severity = f.severity;
-		dst.code = f.code;
-		dst.message = f.message;
-		for(const String& d : f.details)
-			dst.details.Add(d);
-		for(const String& c : f.candidates)
-			dst.candidates.Add(c);
+		sCopyLintFinding(dst, f);
+	}
+	for(const PkgLintFinding& f : sum.baseline_resolved_findings) {
+		PkgLintFinding& dst = report.resolved.Add();
+		sCopyLintFinding(dst, f);
 	}
 	report.categories = sLintSortedCategories(sum);
 	return sWriteLintReportFile(report);
+}
+
+static bool sStoreLintBaselineFile(const String& path, const PkgLintSummary& sum, const PkgRepository& repo)
+{
+	if(path.IsEmpty())
+		return false;
+
+	PkgLintBaseline baseline;
+	baseline.schema = 1;
+	baseline.root = repo.root;
+	baseline.timestamp = GetSysTime();
+	Vector<PkgLintFinding> entries;
+	Index<String> seen;
+	for(const PkgLintFinding& f : sum.findings) {
+		if(f.severity == "ok")
+			continue;
+		String key = f.fingerprint.IsEmpty() ? sLintFingerprint(f) : f.fingerprint;
+		if(FindIndex(seen, key) >= 0)
+			continue;
+		seen.Add(key);
+		PkgLintFinding& dst = entries.Add();
+		sCopyLintFinding(dst, f);
+		if(dst.fingerprint.IsEmpty())
+			dst.fingerprint = key;
+	}
+	Sort(entries, [](const PkgLintFinding& a, const PkgLintFinding& b) {
+		if(a.code != b.code) return a.code < b.code;
+		if(a.atom != b.atom) return a.atom < b.atom;
+		if(a.path != b.path) return a.path < b.path;
+		if(a.message != b.message) return a.message < b.message;
+		return a.fingerprint < b.fingerprint;
+	});
+	for(const PkgLintFinding& f : entries) {
+		PkgLintFinding& dst = baseline.entries.Add();
+		sCopyLintFinding(dst, f);
+		dst.baseline_state.Clear();
+	}
+	return sStoreLintBaseline(path, baseline);
 }
 
 static void sLintPackageMetadata(const PkgRepository& repo, const PkgPackage& p, PkgLintSummary& sum, bool color, const PkgPlan *plan, Index<String>& seen_paths, PkgLintMetrics& metrics, bool summary)
@@ -3116,6 +3377,39 @@ static int sLintCommand(const PkgInvocation& inv, const PkgRepository& repo, boo
 	LoadFromJsonFile(state, repo.paths.state);
 	sum.quiet = inv.summary || inv.ci || inv.quiet;
 	sum.ci = inv.ci;
+	sum.show_baseline = inv.show_baseline;
+	sum.fail_on_baseline = inv.fail_on_baseline;
+	sum.update_baseline = inv.update_baseline;
+	sum.baseline_path = inv.baseline;
+	if(sum.baseline_path.IsEmpty() && inv.update_baseline)
+		sum.baseline_path = sLintBaselineDefaultPath(repo.paths);
+
+	if(!sum.baseline_path.IsEmpty()) {
+		PkgLintBaseline baseline;
+		bool corrupt = false;
+		sum.baseline_present = FileExists(sum.baseline_path);
+		if(sLoadLintBaseline(sum.baseline_path, baseline, corrupt)) {
+			sum.baseline_loaded = true;
+			sum.baseline_entries.Clear();
+			for(const PkgLintFinding& src : baseline.entries) {
+				PkgLintFinding& entry = sum.baseline_entries.Add();
+				sCopyLintFinding(entry, src);
+				if(entry.fingerprint.IsEmpty())
+					entry.fingerprint = sLintFingerprint(entry);
+				if(entry.baseline_state.IsEmpty())
+					entry.baseline_state = "baseline";
+				if(entry.fingerprint.IsEmpty())
+					continue;
+				if(sum.baseline_index.Find(entry.fingerprint) < 0)
+					sum.baseline_index.Add(entry.fingerprint, sum.baseline_entries.GetCount() - 1);
+			}
+		}
+		else if(corrupt) {
+			Cerr() << "pkg: lint baseline is corrupt: " << sum.baseline_path << "\n";
+			sFlushConsole();
+			return 1;
+		}
+	}
 
 	if(!sum.quiet) {
 		Cout() << "Linting package metadata";
@@ -3125,11 +3419,28 @@ static int sLintCommand(const PkgInvocation& inv, const PkgRepository& repo, boo
 			Cout() << " [ci]";
 		Cout() << "...\n";
 		Cout() << "Indexing packages... done, " << repo.packages.GetCount() << " packages\n\n";
+		if(!sum.baseline_path.IsEmpty()) {
+			Cout() << "Baseline: " << sum.baseline_path;
+			if(sum.update_baseline)
+				Cout() << " [update]";
+			else if(sum.baseline_loaded)
+				Cout() << " [loaded]";
+			else if(sum.baseline_present)
+				Cout() << " [missing or unreadable]";
+			Cout() << "\n\n";
+		}
 	}
 	if(roots.IsEmpty()) {
 		sLintLine(sum, "info", "PKG-LINT-NO-PACKAGES", "no packages selected", color);
+		sLintFinalizeBaseline(sum);
 		Cout() << "\nSummary:\n";
 		Cout() << "  0 packages, 0 error, 0 warn, 0 info, 0 ok\n";
+		if(!sum.baseline_path.IsEmpty()) {
+			Cout() << "  baseline entries: " << sum.baseline_entries.GetCount() << "\n";
+			Cout() << "  baseline known: " << sum.baseline_known << "\n";
+			Cout() << "  baseline new: " << sum.baseline_new << "\n";
+			Cout() << "  baseline resolved: " << sum.baseline_resolved << "\n";
+		}
 		if(sum.quiet)
 			sLintPrintTopCategories(sum, color);
 		if(inv.debug_timing) {
@@ -3137,9 +3448,15 @@ static int sLintCommand(const PkgInvocation& inv, const PkgRepository& repo, boo
 			metrics.analysis_seconds = phase.Seconds();
 			sLintPrintTiming(repo, metrics, command_seconds);
 		}
-		if(!sWriteLintReport(inv, repo, sum, metrics))
+		if(inv.update_baseline && !sStoreLintBaselineFile(sum.baseline_path, sum, repo)) {
+			Cerr() << "failed to write lint baseline: " << sum.baseline_path << "\n";
 			return 1;
-		return 0;
+		}
+		bool report_ok = sWriteLintReport(inv, repo, sum, metrics);
+		if(!report_ok) {
+			Cerr() << "failed to write lint report: " << inv.report << "\n";
+		}
+		return sLintExitCode(inv, sum, report_ok);
 	}
 
 	if(inv.limit > 0 && roots.GetCount() > inv.limit) {
@@ -3228,6 +3545,7 @@ static int sLintCommand(const PkgInvocation& inv, const PkgRepository& repo, boo
 		if(!sum.quiet)
 			Cout() << "\n";
 	}
+	sLintFinalizeBaseline(sum);
 
 	Cout() << "Summary:\n";
 	Cout() << "  packages scanned: " << sum.packages << "\n";
@@ -3235,6 +3553,12 @@ static int sLintCommand(const PkgInvocation& inv, const PkgRepository& repo, boo
 	Cout() << "  warnings: " << sum.warnings << "\n";
 	Cout() << "  info: " << sum.info << "\n";
 	Cout() << "  ok: " << sum.ok << "\n";
+	if(!sum.baseline_path.IsEmpty()) {
+		Cout() << "  baseline entries: " << sum.baseline_entries.GetCount() << "\n";
+		Cout() << "  baseline known: " << sum.baseline_known << "\n";
+		Cout() << "  baseline new: " << sum.baseline_new << "\n";
+		Cout() << "  baseline resolved: " << sum.baseline_resolved << "\n";
+	}
 	if(sum.quiet)
 		sLintPrintTopCategories(sum, color);
 	if(inv.debug_timing) {
@@ -3244,11 +3568,16 @@ static int sLintCommand(const PkgInvocation& inv, const PkgRepository& repo, boo
 	}
 	Cout() << "\n";
 
+	if(inv.update_baseline && !sStoreLintBaselineFile(sum.baseline_path, sum, repo)) {
+		Cerr() << "failed to write lint baseline: " << sum.baseline_path << "\n";
+		return 1;
+	}
+
 	bool report_ok = sWriteLintReport(inv, repo, sum, metrics);
 	if(!report_ok) {
 		Cerr() << "failed to write lint report: " << inv.report << "\n";
 	}
-	return sum.errors > 0 || (inv.strict && sum.warnings > 0) || !report_ok ? 1 : 0;
+	return sLintExitCode(inv, sum, report_ok);
 }
 
 static Vector<String> sReadWorld(const PkgConfigPaths& paths)
@@ -3399,6 +3728,16 @@ bool ParsePkgArgs(const Vector<String>& args, PkgInvocation& inv, String& error)
 			else if(a == "--summary") inv.summary = true;
 			else if(a == "--quiet") inv.quiet = true;
 			else if(a == "--ci") inv.ci = true;
+			else if(a == "--baseline" || a.StartsWith("--baseline=")) {
+				inv.baseline = a == "--baseline" ? (i + 1 < args.GetCount() ? args[++i] : String()) : sOptValue(a);
+			}
+			else if(a == "--update-baseline" || a.StartsWith("--update-baseline=")) {
+				inv.update_baseline = true;
+				inv.baseline = a == "--update-baseline" ? (i + 1 < args.GetCount() ? args[++i] : String()) : sOptValue(a);
+			}
+			else if(a == "--show-baseline") inv.show_baseline = true;
+			else if(a == "--hide-baseline") inv.show_baseline = false;
+			else if(a == "--fail-on-baseline") inv.fail_on_baseline = true;
 			else if(a == "--report" || a.StartsWith("--report=")) {
 				inv.report = a == "--report" ? (i + 1 < args.GetCount() ? args[++i] : String()) : sOptValue(a);
 			}
@@ -3544,7 +3883,7 @@ bool ParsePkgArgs(const Vector<String>& args, PkgInvocation& inv, String& error)
 			inv.command = PKG_CMD_PROVIDERS;
 		else if(inv.resume)
 			inv.command = PKG_CMD_RESUME;
-		else if(inv.all || inv.strict || inv.nodeps || inv.summary || inv.quiet || inv.ci || inv.debug_timing || inv.limit > 0 || !inv.report.IsEmpty() || !inv.use_cache || inv.rebuild_cache)
+		else if(inv.all || inv.strict || inv.nodeps || inv.summary || inv.quiet || inv.ci || inv.debug_timing || inv.limit > 0 || !inv.report.IsEmpty() || !inv.baseline.IsEmpty() || inv.update_baseline || !inv.use_cache || inv.rebuild_cache)
 			inv.command = PKG_CMD_LINT;
 		else if(inv.ask || inv.verbose || inv.update || inv.deep || inv.newuse || inv.changed_use || inv.pretend || inv.install || inv.depclean)
 			inv.command = PKG_CMD_PLAN;
@@ -3930,6 +4269,13 @@ static void sPrintHelp(bool color)
 		<< "  -N, --newuse         include packages whose USE metadata changed\n"
 		<< "  -U, --changed-use    rebuild only if effective USE or projection changed\n"
 		<< "      --strict         treat warnings as failures for lint\n"
+		<< "      --baseline PATH  load a lint baseline from PATH\n"
+		<< "      --update-baseline PATH\n"
+		<< "                       refresh PATH with the current lint findings\n"
+		<< "      --show-baseline  mark known and new findings in terminal output\n"
+		<< "      --hide-baseline  suppress known/new markers in terminal output\n"
+		<< "      --fail-on-baseline\n"
+		<< "                       fail CI even when a finding is already baseline-known\n"
 		<< "      --nodeps         lint only the selected package metadata, not its dependencies\n"
 		<< "      --summary        reduce lint output to one-line package summaries\n"
 		<< "      --quiet          print only the final lint summary and categories\n"
@@ -3955,7 +4301,7 @@ static void sPrintHelp(bool color)
 		<< "  --metadata-cache, metadata-cache [--rebuild]\n"
 		<< "  --metadata, metadata\n"
 		<< "  --list-sets\n"
-		<< "  --lint, lint [atom|@world|--all] [--strict] [--nodeps] [--summary] [--quiet] [--ci] [--debug-timing] [--limit N] [--report PATH]\n"
+		<< "  --lint, lint [atom|@world|--all] [--strict] [--nodeps] [--summary] [--quiet] [--ci] [--debug-timing] [--limit N] [--baseline PATH] [--update-baseline PATH] [--report PATH]\n"
 		<< "  --audit-acceptflags [atom] [--patch]\n"
 		<< "  --targets\n"
 		<< "  targets\n"

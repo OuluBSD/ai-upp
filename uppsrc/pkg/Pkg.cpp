@@ -86,7 +86,8 @@ void PkgProviderPreference::Jsonize(JsonIO& jio)
 void PkgStateRecord::Jsonize(JsonIO& jio)
 {
 	jio("atom", atom)("target", target)("toolchain", toolchain)("build_status", build_status)
-	   ("artifact_path", artifact_path)("timestamp", timestamp);
+	   ("artifact_path", artifact_path)("build_method", build_method)("command_line", command_line)
+	   ("output_path", output_path)("staged", staged)("success", success)("timestamp", timestamp);
 	jio("selected_use", selected_use);
 	jio("declared_use", declared_use);
 	jio("effective_use", effective_use);
@@ -106,7 +107,8 @@ void PkgBuildStep::Jsonize(JsonIO& jio)
 	jio("atom", atom)("path", path)("reason", reason)("command", command)("result", result)
 	   ("exit_code", exit_code)("requested", requested)("provider_added", provider_added)
 	   ("set_member", set_member)("root", root)("executed", executed)("completed", completed)
-	   ("skipped", skipped)("failed", failed);
+	   ("skipped", skipped)("failed", failed)("output_path", output_path)
+	   ("build_method", build_method)("staged", staged);
 }
 
 void PkgTransaction::Jsonize(JsonIO& jio)
@@ -114,7 +116,8 @@ void PkgTransaction::Jsonize(JsonIO& jio)
 	jio("command_line", command_line)("target", target)("provider", provider)("compiler", compiler)
 	   ("linker", linker)("toolchain", toolchain)("build_method", build_method)("result", result)
 	   ("jobs", jobs)("failed_index", failed_index)("pretend", pretend)("ask", ask)
-	   ("resume", resume)("keep_going", keep_going)("skip_first", skip_first);
+	   ("resume", resume)("staged", staged)("staged_runner", staged_runner)
+	   ("keep_going", keep_going)("skip_first", skip_first);
 	jio("requested_atoms", requested_atoms);
 	jio("completed_steps", completed_steps);
 	jio("resume_data", resume_data);
@@ -2380,6 +2383,7 @@ bool ParsePkgArgs(const Vector<String>& args, PkgInvocation& inv, String& error)
 			else if(a == "--audit-acceptflags") inv.command = PKG_CMD_AUDIT_ACCEPTFLAGS;
 			else if(a == "--targets") inv.targets = true, inv.command = PKG_CMD_TARGETS;
 			else if(a == "--providers") inv.providers = true, inv.command = PKG_CMD_PROVIDERS;
+			else if(a == "--bins") inv.bins = true, inv.command = PKG_CMD_BINS;
 			else if(a == "--brief") inv.brief = true;
 			else if(a == "--pretend") inv.pretend = true;
 			else if(a == "--ask") inv.ask = true;
@@ -2395,6 +2399,7 @@ bool ParsePkgArgs(const Vector<String>& args, PkgInvocation& inv, String& error)
 			else if(a == "--plan") inv.plan = true;
 			else if(a == "--install") inv.install = true;
 			else if(a == "--probe") inv.probe = true;
+			else if(a == "--staged") inv.staged = true;
 			else if(a == "--patch") inv.audit_patch = true;
 			else if(a == "--search") inv.command = PKG_CMD_SEARCH;
 			else if(a == "--color" || a.StartsWith("--color=")) {
@@ -2484,6 +2489,8 @@ bool ParsePkgArgs(const Vector<String>& args, PkgInvocation& inv, String& error)
 			else if(cmd == "list-sets") inv.command = PKG_CMD_LIST_SETS;
 			else if(cmd == "targets") inv.command = PKG_CMD_TARGETS;
 			else if(cmd == "providers") inv.command = PKG_CMD_PROVIDERS;
+			else if(cmd == "bins") inv.command = PKG_CMD_BINS;
+			else if(cmd == "clean") inv.command = PKG_CMD_CLEAN;
 			else if(cmd == "explain-use") inv.command = PKG_CMD_EXPLAIN_USE;
 			else if(cmd == "explain-target") inv.command = PKG_CMD_EXPLAIN_TARGET;
 			else if(cmd == "deps") inv.command = PKG_CMD_DEPS;
@@ -2519,7 +2526,7 @@ bool ParsePkgArgs(const Vector<String>& args, PkgInvocation& inv, String& error)
 	if(positional.GetCount()) {
 		int start = 0;
 		if(positional[0] == "help" || positional[0] == "version" || positional[0] == "info" || positional[0] == "doctor" ||
-		   positional[0] == "metadata" || positional[0] == "list-sets" || positional[0] == "targets" || positional[0] == "providers" || positional[0] == "explain-use" || positional[0] == "explain-target" || positional[0] == "deps" ||
+		   positional[0] == "metadata" || positional[0] == "list-sets" || positional[0] == "targets" || positional[0] == "providers" || positional[0] == "bins" || positional[0] == "clean" || positional[0] == "explain-use" || positional[0] == "explain-target" || positional[0] == "deps" ||
 		   positional[0] == "target" || positional[0] == "eselect" || positional[0] == "audit-acceptflags" ||
 		   positional[0] == "resume" || positional[0] == "search")
 			start = 1;
@@ -2564,6 +2571,12 @@ bool ParsePkgArgs(const Vector<String>& args, PkgInvocation& inv, String& error)
 		}
 		else if(inv.command == PKG_CMD_INFO || inv.command == PKG_CMD_METADATA || inv.command == PKG_CMD_LIST_SETS || inv.command == PKG_CMD_VERSION ||
 		        inv.command == PKG_CMD_HELP || inv.command == PKG_CMD_AUDIT_ACCEPTFLAGS) {
+			if(rest.GetCount())
+				inv.atom = rest[0];
+			for(int i = 1; i < rest.GetCount(); i++)
+				inv.extra.Add(rest[i]);
+		}
+		else if(inv.command == PKG_CMD_BINS || inv.command == PKG_CMD_CLEAN) {
 			if(rest.GetCount())
 				inv.atom = rest[0];
 			for(int i = 1; i < rest.GetCount(); i++)
@@ -2899,6 +2912,8 @@ static void sPrintHelp(bool color)
 		<< "  --targets\n"
 		<< "  targets\n"
 		<< "  --providers [capability] [--probe]\n"
+		<< "  --bins, bins\n"
+		<< "  clean <atom> [--pretend|--ask]\n"
 		<< "  --provider <portable|system|...>\n"
 		<< "  -s, --search <query>\n"
 		<< "  deps <atom> [USE flags...] --plan\n"
@@ -3607,6 +3622,7 @@ static void sPrintInfo(const PkgRepository& repo, const PkgInvocation& inv)
 	Cout() << "Selected vcpkg triplet: " << (eselect.vcpkg_triplet.IsEmpty() ? String("[none]") : eselect.vcpkg_triplet) << "\n";
 	Cout() << "Selected emscripten profile: " << (eselect.emscripten_profile.IsEmpty() ? String("[none]") : eselect.emscripten_profile) << "\n";
 	Cout() << "Doctor: run `pkg doctor` for environment diagnostics.\n";
+	Cout() << "Artifacts: run `pkg bins` to inspect recorded build outputs.\n";
 }
 
 struct PkgDoctorSummary {
@@ -3828,6 +3844,9 @@ static void sPrintResumeState(const PkgTransaction& tx)
 	Cout() << "  toolchain: " << (tx.toolchain.IsEmpty() ? String("[none]") : tx.toolchain) << "\n";
 	Cout() << "  build_method: " << (tx.build_method.IsEmpty() ? String("[none]") : tx.build_method) << "\n";
 	Cout() << "  jobs: " << tx.jobs << "\n";
+	Cout() << "  staged: " << (tx.staged ? String("yes") : String("no")) << "\n";
+	if(!tx.staged_runner.IsEmpty())
+		Cout() << "  staged_runner: " << tx.staged_runner << "\n";
 	Cout() << "  requested_atoms: " << sFmtList(tx.requested_atoms) << "\n";
 	Cout() << "  completed_steps: " << sFmtList(tx.completed_steps) << "\n";
 	Cout() << "  result: " << tx.result << "\n";
@@ -3844,24 +3863,32 @@ static void sPrintResumeState(const PkgTransaction& tx)
 		Cout() << "  resume_data: " << sFmtList(tx.resume_data) << "\n";
 }
 
-static void sWriteState(const PkgRepository& repo, const PkgPlan& plan, const String& build_status = "planned")
+static String sBuildArtifactPath(const String& root, const PkgBuildStep& step);
+static void sWriteState(const PkgRepository& repo, const PkgPlan& plan, const PkgTransaction& tx, const String& build_status = "built")
 {
 	PkgState state;
 	LoadFromJsonFile(state, repo.paths.state);
 	state.target = sTargetNameText(plan.target);
 	if(state.toolchain.IsEmpty())
 		state.toolchain = sDefaultTargetProfile(plan.target).toolchain;
-	if(plan.items.IsEmpty())
+	if(tx.steps.IsEmpty())
 		return;
 
 	RealizeDirectory(repo.paths.ai_dir);
-	for(const PkgPlanItem& item : plan.items) {
+	for(const PkgBuildStep& step : tx.steps) {
+		if(!step.executed && !step.completed && !step.failed)
+			continue;
 		PkgStateRecord& rec = state.records.Add();
-		rec.atom = item.atom;
+		rec.atom = step.atom;
 		rec.target = state.target;
 		rec.toolchain = state.toolchain;
-		rec.build_status = build_status;
-		rec.artifact_path = repo.root + "/bin/build.exe";
+		rec.build_status = step.completed && !step.failed ? "built" : step.failed ? "failed" : build_status;
+		rec.artifact_path = Nvl(step.output_path, sBuildArtifactPath(repo.root, step));
+		rec.build_method = tx.build_method;
+		rec.command_line = step.command;
+		rec.output_path = rec.artifact_path;
+		rec.staged = tx.staged;
+		rec.success = step.completed && !step.failed;
 		rec.timestamp = GetSysTime();
 		for(const String& s : plan.use.requested)
 			rec.selected_use.Add(s);
@@ -3873,7 +3900,7 @@ static void sWriteState(const PkgRepository& repo, const PkgPlan& plan, const St
 			rec.effective_uppflags.Add(s);
 		for(const String& s : plan.providers)
 			rec.providers.Add(s);
-		if(const PkgPackage* p = repo.Resolve(item.atom).pkg)
+		if(const PkgPackage* p = repo.Resolve(step.atom).pkg)
 			for(const String& s : p->accepts)
 				rec.accepted_flags.Add(s);
 	}
@@ -4047,17 +4074,33 @@ static bool sRunBuildCommand(const String& buildexe, const String& method, int j
 	return p.GetExitCode() == 0;
 }
 
-static bool sWouldOverwriteRunningExecutable(const PkgBuildStep& step, String& reason)
+static String sBuildArtifactPath(const String& root, const PkgBuildStep& step)
+{
+	String name = step.atom;
+	if(name.IsEmpty())
+		name = step.path;
+	if(name.IsEmpty())
+		return String();
+	if(name.EndsWith(".upp") || name.EndsWith(".xupp"))
+		name = GetFileTitle(name);
+	else if(name.Find('/') >= 0 || name.Find('\\') >= 0)
+		name = GetFileTitle(name);
+	if(name.IsEmpty())
+		return String();
+	return AppendFileName(AppendFileName(root, "bin"), GetFileTitle(name) + GetExeExt());
+}
+
+static bool sWouldOverwriteRunningExecutable(const String& root, const PkgBuildStep& step, String& reason)
 {
 #ifdef flagWIN32
 	String running = NormalizePath(GetExeFilePath());
 	if(running.IsEmpty() || step.path.IsEmpty())
 		return false;
-	String out = NormalizePath(GetExeDirFile(GetFileTitle(step.path) + GetExeExt()));
+	String out = NormalizePath(sBuildArtifactPath(root, step));
 	if(out.IsEmpty())
 		return false;
 	if(ToLower(running) == ToLower(out)) {
-		reason = "Refusing to rebuild running executable " + out + " on Windows; run from a copied executable or add output redirection/staging first.";
+		reason = "Refusing to rebuild running executable " + out + " on Windows; use a copied runner or staged build output.";
 		return true;
 	}
 #endif
@@ -4067,7 +4110,7 @@ static bool sWouldOverwriteRunningExecutable(const PkgBuildStep& step, String& r
 
 static const PkgGraphNode* sFindGraphNode(const PkgGraph& graph, const String& key);
 
-static Vector<PkgBuildStep> sTransactionSteps(const PkgPlan& plan)
+static Vector<PkgBuildStep> sTransactionSteps(const PkgRepository& repo, const PkgPlan& plan)
 {
 	Vector<PkgBuildStep> steps;
 	for(const String& key : plan.graph.order) {
@@ -4077,6 +4120,7 @@ static Vector<PkgBuildStep> sTransactionSteps(const PkgPlan& plan)
 		PkgBuildStep& step = steps.Add();
 		step.atom = node->atom.IsEmpty() ? node->path : node->atom;
 		step.path = node->path;
+		step.output_path = sBuildArtifactPath(repo.root, step);
 		step.reason = node->reason;
 		step.requested = node->requested;
 		step.provider_added = node->provider_added;
@@ -4084,6 +4128,71 @@ static Vector<PkgBuildStep> sTransactionSteps(const PkgPlan& plan)
 		step.root = node->requested || node->set_member || node->provider_added;
 	}
 	return steps;
+}
+
+static String sStageRunnerPath()
+{
+	return ForceExt(GetTempFileName("pkg-run"), GetExeExt());
+}
+
+static String sStageCleanupCommand(const String& path)
+{
+	String cmd;
+	cmd << "ping 127.0.0.1 -n 2 >nul & del /f /q \"" << path << "\"";
+	return cmd;
+}
+
+static void sScheduleStageCleanup(const String& path)
+{
+#ifdef flagWIN32
+	if(path.IsEmpty() || !FileExists(path))
+		return;
+	LocalProcess p;
+	p.NoConvertCharset();
+	Vector<String> args;
+	args.Add("/c");
+	args.Add(sStageCleanupCommand(path));
+	if(p.Start2("cmd", args))
+		p.Detach();
+#else
+	(void)path;
+#endif
+}
+
+static bool sLaunchStagedRunner(const PkgInvocation& inv, const PkgRepository& repo, const PkgPlan& plan, const String& buildexe, String& staged_runner, String& reason)
+{
+#ifdef flagWIN32
+	staged_runner = sStageRunnerPath();
+	if(staged_runner.IsEmpty()) {
+		reason = "unable to create staged runner path";
+		return false;
+	}
+	if(!FileCopy(GetExeFilePath(), staged_runner)) {
+		reason = "unable to copy current executable to staged runner: " + staged_runner;
+		return false;
+	}
+	Vector<String> args;
+	for(const String& s : inv.argv)
+		args.Add(s);
+	args.Add("--staged");
+	LocalProcess p;
+	p.NoConvertCharset();
+	if(!p.Start2(staged_runner, args, nullptr, repo.root)) {
+		reason = "unable to launch staged runner: " + staged_runner;
+		DeleteFile(staged_runner);
+		return false;
+	}
+	p.Detach();
+	Cout() << "[staged] copied runner: " << staged_runner << "\n";
+	Cout() << "[staged] delegated command: " << staged_runner << " " << sJoin(args) << "\n";
+	Cout() << "[staged] cleanup will be attempted after the runner exits.\n";
+	(void)buildexe;
+	(void)plan;
+	return true;
+#else
+	(void)inv; (void)repo; (void)plan; (void)buildexe; (void)staged_runner; (void)reason;
+	return false;
+#endif
 }
 
 static bool sPlanHasBlockingRows(const PkgPlan& plan, String& reason)
@@ -4141,12 +4250,14 @@ static PkgExecutionResult sExecuteTransaction(const PkgInvocation& inv, const Pk
 	tx.pretend = inv.pretend;
 	tx.ask = inv.ask;
 	tx.resume = resume_mode;
+	tx.staged = inv.staged;
+	tx.staged_runner = inv.staged ? GetExeFilePath() : String();
 	tx.keep_going = inv.keep_going;
 	tx.skip_first = inv.skip_first;
 	tx.build_method = sSelectBuildMethod(repo, plan, inv);
 	tx.timestamp = GetSysTime();
 	tx.requested_atoms.Add(plan.atom);
-	tx.steps = sTransactionSteps(plan);
+	tx.steps = sTransactionSteps(repo, plan);
 
 	if(resume_mode) {
 		PkgTransaction prev;
@@ -4190,6 +4301,8 @@ static PkgExecutionResult sExecuteTransaction(const PkgInvocation& inv, const Pk
 		tx.ask = inv.ask;
 		tx.keep_going = inv.keep_going;
 		tx.skip_first = inv.skip_first;
+		tx.staged = prev.staged;
+		tx.staged_runner = prev.staged_runner;
 		tx.timestamp = GetSysTime();
 		result.resumed = true;
 		tx.command_line = inv.command_line;
@@ -4255,6 +4368,9 @@ static PkgExecutionResult sExecuteTransaction(const PkgInvocation& inv, const Pk
 		return result;
 	}
 
+	for(PkgBuildStep& step : tx.steps)
+		step.output_path = Nvl(step.output_path, sBuildArtifactPath(repo.root, step));
+
 	int start = 0;
 	if(tx.resume && tx.skip_first)
 		start = min(tx.failed_index + 1, tx.steps.GetCount());
@@ -4277,12 +4393,27 @@ static PkgExecutionResult sExecuteTransaction(const PkgInvocation& inv, const Pk
 		PkgBuildStep& step = tx.steps[i];
 		String step_target = step.path.IsEmpty() ? step.atom : step.path;
 		String self_reason;
-		if(sWouldOverwriteRunningExecutable(step, self_reason)) {
+		if(sWouldOverwriteRunningExecutable(repo.root, step, self_reason)) {
+			if(!inv.staged && sLaunchStagedRunner(inv, repo, plan, buildexe, tx.staged_runner, self_reason)) {
+				tx.staged = true;
+				tx.result = "staged";
+				tx.failed_index = -1;
+				tx.failed_step = PkgBuildStep();
+				sTransactionTail(tx, PkgBuildStep(), true);
+				sStoreTransaction(repo, tx);
+				result.ok = true;
+				result.executed = false;
+				result.staged = true;
+				result.staged_runner = tx.staged_runner;
+				result.message = "staged";
+				return result;
+			}
 			Cout() << sAnsi("31;1", "[refused]", color) << " " << self_reason << "\n";
 			tx.result = "refused";
 			tx.failed_index = i;
 			tx.failed_step = step;
 			sTransactionTail(tx, step, false);
+			sStoreTransaction(repo, tx);
 			result.ok = false;
 			result.executed = false;
 			result.failed_index = i;
@@ -4301,6 +4432,7 @@ static PkgExecutionResult sExecuteTransaction(const PkgInvocation& inv, const Pk
 			cmd_args.Add("-j" + AsString(tx.jobs));
 		cmd_args.Add(step_target);
 		step.command = buildexe + " " + sJoin(cmd_args);
+		step.build_method = tx.build_method;
 		step.executed = true;
 		step.result = "running";
 		String cmd_output;
@@ -4308,6 +4440,7 @@ static PkgExecutionResult sExecuteTransaction(const PkgInvocation& inv, const Pk
 		step.exit_code = ok ? 0 : 1;
 		step.completed = ok;
 		step.failed = !ok;
+		step.staged = tx.staged;
 		step.result = ok ? "success" : "failed";
 		if(ok) {
 			tx.completed_steps.Add(step.atom);
@@ -4335,7 +4468,9 @@ static PkgExecutionResult sExecuteTransaction(const PkgInvocation& inv, const Pk
 		sTransactionTail(tx, tx.failed_step, false);
 		sStoreTransaction(repo, tx);
 		if(!resume_mode)
-			sWriteState(repo, plan, "failed");
+			sWriteState(repo, plan, tx, "failed");
+		if(tx.staged)
+			sScheduleStageCleanup(tx.staged_runner.IsEmpty() ? GetExeFilePath() : tx.staged_runner);
 		Cout() << "Saved resume state at: " << sBuildTransactionPath(repo) << "\n";
 		result.ok = false;
 		result.executed = true;
@@ -4356,7 +4491,9 @@ static PkgExecutionResult sExecuteTransaction(const PkgInvocation& inv, const Pk
 	sTransactionTail(tx, PkgBuildStep(), true);
 	sStoreTransaction(repo, tx);
 	if(!resume_mode)
-		sWriteState(repo, plan, "built");
+		sWriteState(repo, plan, tx, "built");
+	if(tx.staged)
+		sScheduleStageCleanup(tx.staged_runner.IsEmpty() ? GetExeFilePath() : tx.staged_runner);
 	Cout() << "Build plan completed successfully.\n";
 	result.ok = true;
 	result.executed = true;
@@ -4388,6 +4525,129 @@ static bool sLoadTransaction(const PkgRepository& repo, PkgTransaction& tx)
 		return false;
 	LoadFromJsonFile(tx, path);
 	return true;
+}
+
+static bool sRecordMatchesQuery(const PkgStateRecord& rec, const String& query)
+{
+	String q = TrimBoth(query);
+	if(q.IsEmpty())
+		return true;
+	String h = ToLower(rec.atom + " " + rec.target + " " + rec.toolchain + " " + rec.build_method + " " + rec.artifact_path + " " + rec.output_path + " " + rec.command_line);
+	return h.Find(ToLower(q)) >= 0;
+}
+
+static void sPrintBins(const PkgInvocation& inv, const PkgRepository& repo, bool color)
+{
+	PkgState state;
+	LoadFromJsonFile(state, repo.paths.state);
+	Vector<const PkgStateRecord*> bins;
+	Index<String> seen;
+	for(int i = state.records.GetCount() - 1; i >= 0; --i) {
+		const PkgStateRecord& rec = state.records[i];
+		if(rec.build_status == "planned")
+			continue;
+		if(!sRecordMatchesQuery(rec, inv.atom))
+			continue;
+		String key = rec.atom + "\n" + rec.target + "\n" + rec.build_method + "\n" + Nvl(rec.output_path, rec.artifact_path);
+		if(seen.Find(key) >= 0)
+			continue;
+		seen.Add(key);
+		bins.Add(&rec);
+	}
+	Sort(bins, [](const PkgStateRecord* a, const PkgStateRecord* b) {
+		if(a->atom != b->atom)
+			return a->atom < b->atom;
+		if(a->target != b->target)
+			return a->target < b->target;
+		return a->timestamp > b->timestamp;
+	});
+
+	Cout() << "Known build artifacts:\n\n";
+	if(bins.IsEmpty()) {
+		Cout() << "  No build artifacts recorded yet.\n";
+		return;
+	}
+	for(const PkgStateRecord* rec : bins) {
+		if(!rec)
+			continue;
+		String status = rec->success || rec->build_status == "built" ? "ok" : rec->build_status == "failed" ? "warn" : "info";
+		String code = status == "ok" ? "32;1" : status == "warn" ? "33;1" : "36";
+		Cout() << "  " << sAnsi(code, String("[") + status + "]", color) << " " << rec->atom << "\n";
+		Cout() << "       target: " << (rec->target.IsEmpty() ? String("[none]") : rec->target) << "\n";
+		Cout() << "       method: " << (rec->build_method.IsEmpty() ? String("[none]") : rec->build_method) << "\n";
+		Cout() << "       path: " << Nvl(rec->output_path, rec->artifact_path) << "\n";
+		if(!rec->command_line.IsEmpty())
+			Cout() << "       command: " << rec->command_line << "\n";
+		if(rec->staged)
+			Cout() << "       staged: yes\n";
+		if(!rec->build_status.IsEmpty())
+			Cout() << "       status: " << rec->build_status << "\n";
+		if(!rec->selected_use.IsEmpty() || !rec->effective_use.IsEmpty()) {
+			const Vector<String>& use = rec->effective_use.IsEmpty() ? rec->selected_use : rec->effective_use;
+			Cout() << "       USE: " << sFmtList(use) << "\n";
+		}
+		if(!rec->providers.IsEmpty())
+			Cout() << "       providers: " << sFmtList(rec->providers) << "\n";
+		Cout() << "\n";
+	}
+}
+
+static Vector<const PkgStateRecord*> sSelectCleanTargets(const PkgState& state, const String& query)
+{
+	Vector<const PkgStateRecord*> out;
+	Index<String> seen;
+	for(int i = state.records.GetCount() - 1; i >= 0; --i) {
+		const PkgStateRecord& rec = state.records[i];
+		if(!(rec.success || rec.build_status == "built"))
+			continue;
+		String path = Nvl(rec.output_path, rec.artifact_path);
+		if(path.IsEmpty() || !FileExists(path))
+			continue;
+		if(!sRecordMatchesQuery(rec, query))
+			continue;
+		if(seen.Find(path) >= 0)
+			continue;
+		seen.Add(path);
+		out.Add(&rec);
+	}
+	return pick(out);
+}
+
+static void sCleanArtifacts(const PkgInvocation& inv, const PkgRepository& repo, bool color)
+{
+	PkgState state;
+	LoadFromJsonFile(state, repo.paths.state);
+	Vector<const PkgStateRecord*> targets = sSelectCleanTargets(state, inv.atom);
+	if(targets.IsEmpty()) {
+		Cout() << "No recorded artifacts match: " << (inv.atom.IsEmpty() ? String("[all]") : inv.atom) << "\n";
+		return;
+	}
+
+	Cout() << "Cleaning recorded artifacts:\n\n";
+	for(const PkgStateRecord* rec : targets) {
+		if(!rec)
+			continue;
+		String path = Nvl(rec->output_path, rec->artifact_path);
+		Cout() << "  " << sAnsi("33;1", "[remove]", color) << " " << rec->atom << "\n";
+		Cout() << "       path: " << path << "\n";
+		if(inv.pretend)
+			Cout() << "       action: pretend only\n";
+		else if(inv.ask) {
+			Cout() << "       action: confirm required\n";
+			if(!sPromptYesNo()) {
+				Cout() << "       skipped\n\n";
+				continue;
+			}
+			if(DeleteFile(path))
+				Cout() << "       removed\n";
+			else
+				Cout() << "       remove failed\n";
+		}
+		else {
+			Cout() << "       action: use --pretend or --ask\n";
+		}
+		Cout() << "\n";
+	}
 }
 
 static int sUppScopeFromText(const String& scope)
@@ -5343,6 +5603,9 @@ int RunPkg(const Vector<String>& args)
 		return 1;
 	}
 	inv.command_line = sJoin(args);
+	inv.argv.Clear();
+	for(const String& s : args)
+		inv.argv.Add(s);
 	bool color = sUseColor(inv);
 	(void)color;
 
@@ -5367,7 +5630,8 @@ int RunPkg(const Vector<String>& args)
 	                 inv.command == PKG_CMD_EXPLAIN_TARGET || inv.command == PKG_CMD_DEPS || inv.command == PKG_CMD_PLAN ||
 	                 inv.command == PKG_CMD_AUDIT_ACCEPTFLAGS || inv.command == PKG_CMD_ESELECT ||
 	                 inv.command == PKG_CMD_RESUME ||
-	                 inv.command == PKG_CMD_TARGET || inv.command == PKG_CMD_DOCTOR;
+	                 inv.command == PKG_CMD_TARGET || inv.command == PKG_CMD_DOCTOR ||
+	                 inv.command == PKG_CMD_BINS || inv.command == PKG_CMD_CLEAN;
 	PkgRepository repo;
 	if(need_repo)
 		repo.Discover();
@@ -5379,6 +5643,16 @@ int RunPkg(const Vector<String>& args)
 	}
 	if(inv.command == PKG_CMD_TARGETS) {
 		sListTargets();
+		sFlushConsole();
+		return 0;
+	}
+	if(inv.command == PKG_CMD_BINS) {
+		sPrintBins(inv, repo, color);
+		sFlushConsole();
+		return 0;
+	}
+	if(inv.command == PKG_CMD_CLEAN) {
+		sCleanArtifacts(inv, repo, color);
 		sFlushConsole();
 		return 0;
 	}

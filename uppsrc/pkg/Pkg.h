@@ -26,6 +26,8 @@ enum PkgCommandKind {
 	PKG_CMD_DEPS,
 	PKG_CMD_EXPLAIN_USE,
 	PKG_CMD_EXPLAIN_TARGET,
+	PKG_CMD_BINS,
+	PKG_CMD_CLEAN,
 	PKG_CMD_TARGET,
 	PKG_CMD_ESELECT,
 	PKG_CMD_AUDIT_ACCEPTFLAGS,
@@ -268,12 +270,17 @@ struct PkgStateRecord : Moveable<PkgStateRecord> {
 	String toolchain;
 	String build_status;
 	String artifact_path;
+	String build_method;
+	String command_line;
+	String output_path;
 	Vector<String> selected_use;
 	Vector<String> declared_use;
 	Vector<String> effective_use;
 	Vector<String> effective_uppflags;
 	Vector<String> accepted_flags;
 	Vector<String> providers;
+	bool staged = false;
+	bool success = false;
 	Time timestamp;
 
 	void Jsonize(JsonIO& jio);
@@ -290,6 +297,8 @@ struct PkgState : Moveable<PkgState> {
 struct PkgBuildStep : Moveable<PkgBuildStep> {
 	String atom;
 	String path;
+	String output_path;
+	String build_method;
 	String reason;
 	String command;
 	String result;
@@ -302,6 +311,7 @@ struct PkgBuildStep : Moveable<PkgBuildStep> {
 	bool completed = false;
 	bool skipped = false;
 	bool failed = false;
+	bool staged = false;
 
 	void Jsonize(JsonIO& jio);
 };
@@ -310,9 +320,11 @@ struct PkgExecutionResult : Moveable<PkgExecutionResult> {
 	bool ok = false;
 	bool executed = false;
 	bool resumed = false;
+	bool staged = false;
 	int failed_index = -1;
 	String failed_atom;
 	String message;
+	String staged_runner;
 	Vector<String> completed_steps;
 	Vector<String> resume_data;
 	PkgBuildStep failed_step;
@@ -332,8 +344,10 @@ struct PkgTransaction : Moveable<PkgTransaction> {
 	bool pretend = false;
 	bool ask = false;
 	bool resume = false;
+	bool staged = false;
 	bool keep_going = false;
 	bool skip_first = false;
+	String staged_runner;
 	Vector<String> requested_atoms;
 	Vector<String> completed_steps;
 	Vector<String> resume_data;
@@ -467,6 +481,7 @@ struct PkgInvocation {
 	String value;
 	String module;
 	String subcommand;
+	Vector<String> argv;
 	String root;
 	String sysroot;
 	String command_line;
@@ -496,6 +511,9 @@ struct PkgInvocation {
 	bool search = false;
 	bool install = false;
 	bool audit_patch = false;
+	bool bins = false;
+	bool clean = false;
+	bool staged = false;
 };
 
 bool ParsePkgArgs(const Vector<String>& args, PkgInvocation& inv, String& error);

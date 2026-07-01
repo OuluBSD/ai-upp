@@ -134,6 +134,24 @@ void PkgEselectState::Jsonize(JsonIO& jio)
 	jio("emscripten_profile", emscripten_profile);
 }
 
+void PkgPackage::Jsonize(JsonIO& jio)
+{
+	jio("atom", atom)("name", name)("nest", nest)("path", path)("dir", dir);
+	jio("description", description);
+	jio("accepts", accepts)("uses", uses)("mainconfig", mainconfig);
+	jio("source_files", source_files)("mtime", mtime);
+}
+
+void PkgMetadataCacheEntry::Jsonize(JsonIO& jio)
+{
+	jio("path", path)("size", size)("mtime", mtime)("pkg", pkg);
+}
+
+void PkgMetadataCache::Jsonize(JsonIO& jio)
+{
+	jio("schema", schema)("root", root)("entries", entries)("saved_at", saved_at);
+}
+
 static String sTrimPath(const String& path);
 static String sEselectRoot(const PkgInvocation& inv)
 {
@@ -190,6 +208,12 @@ static const char * const sEselectModules[] = {
 static const String *sEselectSlot(const PkgEselectState& st, const String& module);
 static String *sEselectSlot(PkgEselectState& st, const String& module);
 static Vector<PkgTargetProfile> sTargets();
+static void sCopyPkg(PkgPackage& dst, const PkgPackage& src);
+static bool sLoadMetadataCache(const String& path, PkgMetadataCache& cache, bool& corrupt);
+static void sStoreMetadataCache(const String& path, const PkgMetadataCache& cache);
+static Time sPkgFileStamp(const String& path);
+static int64 sPkgFileSize(const String& path);
+static int sFindMetadataCacheEntry(const Vector<PkgMetadataCacheEntry>& entries, const String& path);
 
 static String sJoin(const Vector<String>& v, const char *sep = " ")
 {
@@ -259,6 +283,8 @@ PkgConfigPaths FindPkgConfigPaths(const String& root)
 	PkgConfigPaths p;
 	p.root = root;
 	p.ai_dir = AppendFileName(root, ".ai-upp");
+	p.cache_dir = AppendFileName(p.ai_dir, "cache");
+	p.metadata_cache = AppendFileName(p.cache_dir, "package-metadata.json");
 	p.sets_dir = AppendFileName(p.ai_dir, "sets");
 	p.system_set = AppendFileName(p.sets_dir, "system");
 	p.toolchain_set = AppendFileName(p.sets_dir, "toolchain");
@@ -480,6 +506,14 @@ void PkgRepository::Discover()
 	paths = FindPkgConfigPaths(root);
 	packages.Clear();
 	nests.Clear();
+	cache_used = false;
+	cache_ok = false;
+	cache_corrupt = false;
+	cache_loaded_entries = 0;
+	cache_reused_entries = 0;
+	cache_reparsed_entries = 0;
+	cache_stale_entries = 0;
+	cache_schema = 0;
 	resolve_cache.Clear();
 	resolve_atom_index.Clear();
 	resolve_name_index.Clear();
@@ -494,33 +528,86 @@ void PkgRepository::Discover()
 	loaded_packages = 0;
 	Vector<String> upp = FindAllPaths(root, "*.upp");
 	discover_paths = upp.GetCount();
+	cache_used = use_cache;
+
+	PkgMetadataCache cache;
+	bool cache_is_corrupt = false;
+	if(use_cache && !rebuild_cache) {
+		if(sLoadMetadataCache(paths.metadata_cache, cache, cache_is_corrupt)) {
+			cache_ok = true;
+			cache_schema = cache.schema;
+			cache_loaded_entries = cache.entries.GetCount();
+		}
+		else {
+			cache_corrupt = cache_is_corrupt;
+			cache_ok = !FileExists(paths.metadata_cache);
+			if(cache_corrupt)
+				Cerr() << "pkg: metadata cache is corrupt, rebuilding in memory: " << paths.metadata_cache << "\n";
+		}
+	}
+
+	bool cache_changed = false;
 	for(const String& upp_path : upp) {
 		String nest;
 		String atom = sPackageAtomFromUpp(root, upp_path, nest);
 		if(atom.IsEmpty())
 			continue;
+		int64 size = sPkgFileSize(upp_path);
+		Time mtime = FileGetTime(upp_path);
 		PkgPackage p;
-		Package pkg;
-		if(!pkg.Load(upp_path))
-			continue;
-		p.atom = atom;
-		p.name = sPackageNameFromPath(atom, nest);
-		p.nest = nest;
-		p.path = upp_path;
-		p.dir = GetFileFolder(upp_path);
-		p.description = pkg.description;
-		p.accepts.Clear();
-		for(int i = 0; i < pkg.accepts.GetCount(); i++)
-			p.accepts.Add(pkg.accepts[i]);
-		p.mtime = pkg.time;
-		for(int i = 0; i < pkg.uses.GetCount(); i++)
-			p.uses.Add(pkg.uses[i].text);
-		for(int i = 0; i < pkg.config.GetCount(); i++)
-			if(!pkg.config[i].name.IsEmpty())
-				p.mainconfig.Add(pkg.config[i].name);
-		Vector<String> sources = sExpandSourceFiles(p.dir);
-		for(const String& s : sources)
-			p.source_files.Add(s);
+		bool reused = false;
+		if(use_cache && !rebuild_cache && cache_ok) {
+			int ci = sFindMetadataCacheEntry(cache.entries, upp_path);
+			if(ci >= 0) {
+				const PkgMetadataCacheEntry& ce = cache.entries[ci];
+				if(ce.size == size && ce.mtime == mtime && sPackageResolvePath(ce.path) == sPackageResolvePath(upp_path)) {
+					sCopyPkg(p, ce.pkg);
+					reused = true;
+					cache_reused_entries++;
+				}
+				else
+					cache_stale_entries++;
+			}
+			else
+				cache_stale_entries++;
+		}
+		if(!reused) {
+			Package pkg;
+			if(!pkg.Load(upp_path))
+				continue;
+			p.atom = atom;
+			p.name = sPackageNameFromPath(atom, nest);
+			p.nest = nest;
+			p.path = upp_path;
+			p.dir = GetFileFolder(upp_path);
+			p.description = pkg.description;
+			p.accepts.Clear();
+			for(int i = 0; i < pkg.accepts.GetCount(); i++)
+				p.accepts.Add(pkg.accepts[i]);
+			p.mtime = pkg.time;
+			for(int i = 0; i < pkg.uses.GetCount(); i++)
+				p.uses.Add(pkg.uses[i].text);
+			for(int i = 0; i < pkg.config.GetCount(); i++)
+				if(!pkg.config[i].name.IsEmpty())
+					p.mainconfig.Add(pkg.config[i].name);
+			Vector<String> sources = sExpandSourceFiles(p.dir);
+			for(const String& s : sources)
+				p.source_files.Add(s);
+			cache_reparsed_entries++;
+			cache_changed = true;
+		}
+		else {
+			p.atom = atom;
+			if(p.name.IsEmpty())
+				p.name = sPackageNameFromPath(atom, nest);
+			if(p.nest.IsEmpty())
+				p.nest = nest;
+			p.path = upp_path;
+			if(p.dir.IsEmpty())
+				p.dir = GetFileFolder(upp_path);
+			if(!p.mtime.IsValid())
+				p.mtime = mtime;
+		}
 		packages.Add(pick(p));
 		if(FindIndex(nests, nest) < 0)
 			nests.Add(nest);
@@ -534,6 +621,22 @@ void PkgRepository::Discover()
 	}
 	loaded_packages = packages.GetCount();
 	discover_seconds = ts.Seconds();
+
+	if(use_cache && (cache_changed || rebuild_cache || !cache_ok)) {
+		cache.schema = 1;
+		cache.root = root;
+		cache.saved_at = GetSysTime();
+		cache.entries.Clear();
+		for(const PkgPackage& p : packages) {
+			PkgMetadataCacheEntry& e = cache.entries.Add();
+			e.path = p.path;
+			e.size = sPkgFileSize(p.path);
+			e.mtime = sPkgFileStamp(p.path);
+			sCopyPkg(e.pkg, p);
+		}
+		sStoreMetadataCache(paths.metadata_cache, cache);
+		cache_ok = true;
+	}
 }
 
 static int sPkgScore(const PkgPackage& p, const String& atom)
@@ -710,6 +813,68 @@ static String sPlanLabel(const PkgPlanItem& item)
 bool PkgRepository::HasPackage(const String& atom) const
 {
 	return Resolve(atom).pkg != nullptr;
+}
+
+static void sCopyPkg(PkgPackage& dst, const PkgPackage& src)
+{
+	dst.atom = src.atom;
+	dst.name = src.name;
+	dst.nest = src.nest;
+	dst.path = src.path;
+	dst.dir = src.dir;
+	dst.description = src.description;
+	dst.accepts.Clear();
+	for(const String& s : src.accepts)
+		dst.accepts.Add(s);
+	dst.uses.Clear();
+	for(const String& s : src.uses)
+		dst.uses.Add(s);
+	dst.mainconfig.Clear();
+	for(const String& s : src.mainconfig)
+		dst.mainconfig.Add(s);
+	dst.source_files.Clear();
+	for(const String& s : src.source_files)
+		dst.source_files.Add(s);
+	dst.mtime = src.mtime;
+}
+
+static Time sPkgFileStamp(const String& path)
+{
+	return FileGetTime(path);
+}
+
+static int64 sPkgFileSize(const String& path)
+{
+	return GetFileLength(path);
+}
+
+static int sFindMetadataCacheEntry(const Vector<PkgMetadataCacheEntry>& entries, const String& path)
+{
+	String key = sPackageResolvePath(path);
+	for(int i = 0; i < entries.GetCount(); i++)
+		if(sPackageResolvePath(entries[i].path) == key)
+			return i;
+	return -1;
+}
+
+static bool sLoadMetadataCache(const String& path, PkgMetadataCache& cache, bool& corrupt)
+{
+	corrupt = false;
+	if(!FileExists(path))
+		return false;
+	if(!LoadFromJsonFile(cache, path)) {
+		corrupt = true;
+		return false;
+	}
+	if(cache.schema <= 0)
+		cache.schema = 1;
+	return true;
+}
+
+static void sStoreMetadataCache(const String& path, const PkgMetadataCache& cache)
+{
+	RealizeDirectory(GetFileFolder(path));
+	StoreAsJsonFile(cache, path, true);
 }
 
 static Vector<PkgUsePolicy> sUsePolicies()
@@ -2377,7 +2542,7 @@ struct PkgLintSummary {
 };
 
 struct PkgLintMetrics {
-	double total_seconds = 0.0;
+	double analysis_seconds = 0.0;
 	int source_scan_count = 0;
 	int duplicate_packages = 0;
 	int root_count = 0;
@@ -2411,10 +2576,11 @@ static void sLintSubline(const String& label, const String& value)
 	Cout() << "          " << label << value << "\n";
 }
 
-static void sLintPrintTiming(const PkgRepository& repo, const PkgLintMetrics& metrics)
+static void sLintPrintTiming(const PkgRepository& repo, const PkgLintMetrics& metrics, double command_seconds)
 {
 	Cout() << "\nTiming:\n";
-	Cout() << "  package discovery time: " << FormatDouble(repo.discover_seconds, 3) << " s\n";
+	Cout() << "  metadata discovery time: " << FormatDouble(repo.discover_seconds, 3) << " s\n";
+	Cout() << "  lint analysis time: " << FormatDouble(metrics.analysis_seconds, 3) << " s\n";
 	Cout() << "  package metadata load count: " << repo.loaded_packages << "\n";
 	Cout() << "  .upp parse count: " << repo.discover_paths << "\n";
 	Cout() << "  dependency graph resolve count: " << repo.resolve_calls << "\n";
@@ -2423,7 +2589,7 @@ static void sLintPrintTiming(const PkgRepository& repo, const PkgLintMetrics& me
 	Cout() << "  source scan count: " << metrics.source_scan_count << "\n";
 	Cout() << "  total packages visited: " << metrics.root_count << "\n";
 	Cout() << "  duplicate package loads: " << metrics.duplicate_packages << "\n";
-	Cout() << "  total elapsed: " << FormatDouble(metrics.total_seconds, 3) << " s\n";
+	Cout() << "  total elapsed: " << FormatDouble(command_seconds, 3) << " s\n";
 }
 
 static void sLintPackageMetadata(const PkgRepository& repo, const PkgPackage& p, PkgLintSummary& sum, bool color, const PkgPlan *plan, Index<String>& seen_paths, PkgLintMetrics& metrics, bool summary)
@@ -2655,9 +2821,9 @@ static Vector<String> sLintRootQueries(const PkgInvocation& inv, const PkgReposi
 	return pick(roots);
 }
 
-static int sLintCommand(const PkgInvocation& inv, const PkgRepository& repo, bool color)
+static int sLintCommand(const PkgInvocation& inv, const PkgRepository& repo, bool color, double command_seconds)
 {
-	TimeStop total;
+	TimeStop phase;
 	PkgLintSummary sum;
 	PkgLintMetrics metrics;
 	Index<String> seen_paths;
@@ -2767,8 +2933,8 @@ static int sLintCommand(const PkgInvocation& inv, const PkgRepository& repo, boo
 	Cout() << "  ok: " << sum.ok << "\n";
 	if(inv.debug_timing) {
 		metrics.root_count = sum.packages;
-		metrics.total_seconds = total.Seconds();
-		sLintPrintTiming(repo, metrics);
+		metrics.analysis_seconds = phase.Seconds();
+		sLintPrintTiming(repo, metrics, command_seconds);
 	}
 	Cout() << "\n";
 
@@ -2901,6 +3067,7 @@ bool ParsePkgArgs(const Vector<String>& args, PkgInvocation& inv, String& error)
 			else if(a == "--info") inv.info = true, inv.command = PKG_CMD_INFO;
 			else if(a == "--doctor") inv.doctor = true, inv.command = PKG_CMD_DOCTOR;
 			else if(a == "--metadata") inv.metadata = true, inv.command = PKG_CMD_METADATA;
+			else if(a == "--metadata-cache") inv.metadata_cache = true, inv.command = PKG_CMD_METADATA_CACHE;
 			else if(a == "--list-sets") inv.list_sets = true, inv.command = PKG_CMD_LIST_SETS;
 			else if(a == "--audit-acceptflags") inv.command = PKG_CMD_AUDIT_ACCEPTFLAGS;
 			else if(a == "--lint") inv.command = PKG_CMD_LINT;
@@ -2920,6 +3087,9 @@ bool ParsePkgArgs(const Vector<String>& args, PkgInvocation& inv, String& error)
 			else if(a == "--strict") inv.strict = true;
 			else if(a == "--nodeps") inv.nodeps = true;
 			else if(a == "--summary") inv.summary = true;
+			else if(a == "--use-cache") inv.use_cache = true;
+			else if(a == "--no-cache") inv.use_cache = false;
+			else if(a == "--rebuild") inv.rebuild_cache = true;
 			else if(a == "--keep-going") inv.keep_going = true;
 			else if(a == "--skipfirst") inv.skip_first = true;
 			else if(a == "--resume") inv.resume = true;
@@ -3025,6 +3195,7 @@ bool ParsePkgArgs(const Vector<String>& args, PkgInvocation& inv, String& error)
 			else if(cmd == "info") inv.command = PKG_CMD_INFO;
 			else if(cmd == "doctor") inv.command = PKG_CMD_DOCTOR;
 			else if(cmd == "metadata") inv.command = PKG_CMD_METADATA;
+			else if(cmd == "metadata-cache") inv.command = PKG_CMD_METADATA_CACHE;
 			else if(cmd == "list-sets") inv.command = PKG_CMD_LIST_SETS;
 			else if(cmd == "targets") inv.command = PKG_CMD_TARGETS;
 			else if(cmd == "providers") inv.command = PKG_CMD_PROVIDERS;
@@ -3069,7 +3240,7 @@ bool ParsePkgArgs(const Vector<String>& args, PkgInvocation& inv, String& error)
 		if(positional[0] == "help" || positional[0] == "version" || positional[0] == "info" || positional[0] == "doctor" ||
 		   positional[0] == "metadata" || positional[0] == "list-sets" || positional[0] == "targets" || positional[0] == "providers" || positional[0] == "bins" || positional[0] == "clean" || positional[0] == "depclean" || positional[0] == "explain-use" || positional[0] == "explain-target" || positional[0] == "deps" || positional[0] == "lint" ||
 		   positional[0] == "target" || positional[0] == "eselect" || positional[0] == "audit-acceptflags" ||
-		   positional[0] == "resume" || positional[0] == "search")
+		   positional[0] == "resume" || positional[0] == "search" || positional[0] == "metadata-cache")
 			start = 1;
 
 		Vector<String> rest;
@@ -3446,6 +3617,9 @@ static void sPrintHelp(bool color)
 		<< "      --summary        reduce lint output to one-line package summaries\n"
 		<< "      --debug-timing   print lint timing and cache counters\n"
 		<< "      --limit N        limit lint --all to the first N packages\n"
+		<< "      --use-cache      prefer the persistent package metadata cache\n"
+		<< "      --no-cache       ignore the persistent package metadata cache\n"
+		<< "      --rebuild        rebuild the persistent package metadata cache\n"
 		<< "  -p, --pretend        print a plan without changing anything\n"
 		<< "      --install        execute the planned build after checks\n"
 		<< "      --keep-going     continue after independent build failures\n"
@@ -3458,6 +3632,7 @@ static void sPrintHelp(bool color)
 		<< "  --version, version\n"
 		<< "  --info, info\n"
 		<< "  --doctor, doctor [env|state|shell|providers [--probe]]\n"
+		<< "  --metadata-cache, metadata-cache [--rebuild]\n"
 		<< "  --metadata, metadata\n"
 		<< "  --list-sets\n"
 		<< "  --lint, lint [atom|@world|--all] [--strict] [--nodeps] [--summary] [--debug-timing] [--limit N]\n"
@@ -4144,6 +4319,24 @@ static void sPrintMetadata(const PkgRepository& repo, const PkgInvocation& inv)
 	}
 }
 
+static void sPrintMetadataCache(const PkgRepository& repo, const PkgInvocation& inv)
+{
+	Cout() << "Metadata cache:\n";
+	Cout() << "  path: " << repo.paths.metadata_cache << "\n";
+	Cout() << "  enabled: " << (repo.use_cache ? "yes" : "no") << "\n";
+	Cout() << "  rebuild requested: " << (repo.rebuild_cache ? "yes" : "no") << "\n";
+	Cout() << "  exists: " << (FileExists(repo.paths.metadata_cache) ? "yes" : "no") << "\n";
+	Cout() << "  schema: " << repo.cache_schema << "\n";
+	Cout() << "  loaded entries: " << repo.cache_loaded_entries << "\n";
+	Cout() << "  reused entries: " << repo.cache_reused_entries << "\n";
+	Cout() << "  reparsed entries: " << repo.cache_reparsed_entries << "\n";
+	Cout() << "  stale entries: " << repo.cache_stale_entries << "\n";
+	Cout() << "  corrupt: " << (repo.cache_corrupt ? "yes" : "no") << "\n";
+	Cout() << "  ok: " << (repo.cache_ok ? "yes" : "no") << "\n";
+	if(inv.rebuild_cache)
+		Cout() << "  status: rebuilt or refreshed during discovery\n";
+}
+
 static void sPrintInfo(const PkgRepository& repo, const PkgInvocation& inv)
 {
 	Vector<String> world = sLoadSet(repo.paths, "world", repo.paths.world);
@@ -4327,6 +4520,32 @@ static void sPrintDoctorState(PkgDoctorSummary& sum, const PkgConfigPaths& paths
 	}
 }
 
+static void sPrintDoctorCache(PkgDoctorSummary& sum, const PkgRepository& repo, bool color)
+{
+	Cout() << "Metadata cache:\n";
+	if(!FileExists(repo.paths.metadata_cache)) {
+		sDoctorLine(sum, "warn", repo.paths.metadata_cache + " missing", color);
+		return;
+	}
+	PkgMetadataCache cache;
+	if(!LoadFromJsonFile(cache, repo.paths.metadata_cache)) {
+		sDoctorLine(sum, "error", repo.paths.metadata_cache + " exists but failed to parse", color);
+		return;
+	}
+	sDoctorLine(sum, "ok", repo.paths.metadata_cache + " parsed", color);
+	sDoctorSubline("schema: ", AsString(cache.schema));
+	sDoctorSubline("entries: ", AsString(cache.entries.GetCount()));
+	if(!cache.root.IsEmpty())
+		sDoctorSubline("root: ", cache.root);
+	if(cache.saved_at.IsValid())
+		sDoctorSubline("saved_at: ", Format(cache.saved_at));
+	sDoctorSubline("reused entries: ", AsString(repo.cache_reused_entries));
+	sDoctorSubline("reparsed entries: ", AsString(repo.cache_reparsed_entries));
+	sDoctorSubline("stale entries: ", AsString(repo.cache_stale_entries));
+	if(repo.cache_corrupt)
+		sDoctorSubline("warning: ", "previous cache load failed and was rebuilt");
+}
+
 static int sProviderDoctorLevel(const String& status)
 {
 	if(status == "available")
@@ -4381,12 +4600,14 @@ static void sPrintDoctorCommand(const PkgInvocation& inv, const PkgRepository& r
 		sPrintDoctorShell(sum, color);
 	if(section.IsEmpty() || section == "all" || section == "state")
 		sPrintDoctorState(sum, paths, color);
+	if(section.IsEmpty() || section == "all" || section == "cache")
+		sPrintDoctorCache(sum, repo, color);
 	if(section.IsEmpty() || section == "all" || section == "providers")
 		sPrintDoctorProviders(sum, inv, repo, color);
 
-	if(!section.IsEmpty() && section != "all" && section != "env" && section != "shell" && section != "state" && section != "providers") {
+	if(!section.IsEmpty() && section != "all" && section != "env" && section != "shell" && section != "state" && section != "cache" && section != "providers") {
 		sDoctorLine(sum, "warn", "unknown doctor subcommand: " + inv.subcommand, color);
-		Cout() << "  available sections: env shell state providers all\n";
+		Cout() << "  available sections: env shell state cache providers all\n";
 	}
 
 	Cout() << "\nSummary:\n";
@@ -6412,6 +6633,7 @@ int RunPkg(const Vector<String>& args)
 		inv.argv.Add(s);
 	bool color = sUseColor(inv);
 	(void)color;
+	TimeStop command_total;
 
 	if(inv.command == PKG_CMD_HELP) {
 		sPrintHelp(color);
@@ -6435,8 +6657,11 @@ int RunPkg(const Vector<String>& args)
 	                 inv.command == PKG_CMD_AUDIT_ACCEPTFLAGS || inv.command == PKG_CMD_ESELECT ||
 	                 inv.command == PKG_CMD_RESUME ||
 	                 inv.command == PKG_CMD_TARGET || inv.command == PKG_CMD_DOCTOR || inv.command == PKG_CMD_LINT ||
+	                 inv.command == PKG_CMD_METADATA_CACHE ||
 	                 inv.command == PKG_CMD_BINS || inv.command == PKG_CMD_CLEAN || inv.command == PKG_CMD_DEPCLEAN;
 	PkgRepository repo;
+	repo.use_cache = inv.use_cache;
+	repo.rebuild_cache = inv.rebuild_cache;
 	if(need_repo)
 		repo.Discover();
 
@@ -6476,7 +6701,7 @@ int RunPkg(const Vector<String>& args)
 		return 0;
 	}
 	if(inv.command == PKG_CMD_LINT) {
-		int rc = sLintCommand(inv, repo, color);
+		int rc = sLintCommand(inv, repo, color, command_total.Seconds());
 		sFlushConsole();
 		return rc;
 	}
@@ -6487,6 +6712,11 @@ int RunPkg(const Vector<String>& args)
 	}
 	if(inv.command == PKG_CMD_METADATA) {
 		sPrintMetadata(repo, inv);
+		sFlushConsole();
+		return 0;
+	}
+	if(inv.command == PKG_CMD_METADATA_CACHE) {
+		sPrintMetadataCache(repo, inv);
 		sFlushConsole();
 		return 0;
 	}

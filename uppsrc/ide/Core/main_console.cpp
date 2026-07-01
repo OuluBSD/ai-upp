@@ -4,15 +4,19 @@
 namespace Upp {
 
 #ifndef flagGUI
-namespace {
+
 void RunConsoleIde()
 {
 	if(HandleConsoleIdeArgs(CommandLine()))
 		return;
 	Cout() << GetConsoleIdeExperimentalNotice() << "\n";
+}
+
 CONSOLE_APP_MAIN
 {
 	RunConsoleIde();
+}
+
 #endif
 
 } // namespace Upp

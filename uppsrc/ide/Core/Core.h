@@ -25,6 +25,18 @@ bool   SaveChangedFile(const char *path, String data, bool delete_empty = false)
 
 bool IsDoc(String s);
 
+void ForAllSourceFiles(Event<const VectorMap<String, String>&> fn);
+void ForAllNests(Event<const Vector<String>&> fn);
+void SetAllSourceFiles(VectorMap<String, String> files, Vector<String> nests);
+Index<String> GetAllNests(bool sleep = false);
+
+void DelTemps();
+extern bool SilentMode;
+void Puts(const char *s);
+int  CommaSpace(int c);
+void ReduceCfgCache();
+bool IsAssembly(const String& s);
+
 void CopyFile(const String& dst, const String& src, bool brc = false);
 void CopyFolder(const char *_dst, const char *_src, Index<String>& used, bool all, bool brc = false);
 

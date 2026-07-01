@@ -22,6 +22,7 @@ enum PkgCommandKind {
 	PKG_CMD_TARGETS,
 	PKG_CMD_PROVIDERS,
 	PKG_CMD_SEARCH,
+	PKG_CMD_LINT,
 	PKG_CMD_PLAN,
 	PKG_CMD_DEPS,
 	PKG_CMD_EXPLAIN_USE,
@@ -496,6 +497,8 @@ struct PkgInvocation {
 	bool deep = false;
 	bool newuse = false;
 	bool changed_use = false;
+	bool strict = false;
+	bool nodeps = false;
 	bool keep_going = false;
 	bool skip_first = false;
 	bool probe = false;

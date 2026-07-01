@@ -87,7 +87,7 @@ void PkgStateRecord::Jsonize(JsonIO& jio)
 {
 	jio("atom", atom)("target", target)("toolchain", toolchain)("build_status", build_status)
 	   ("artifact_path", artifact_path)("build_method", build_method)("command_line", command_line)
-	   ("output_path", output_path)("staged", staged)("success", success)("timestamp", timestamp);
+	   ("output_path", output_path)("staged", staged)("success", success)("owned", owned)("timestamp", timestamp);
 	jio("selected_use", selected_use);
 	jio("declared_use", declared_use);
 	jio("effective_use", effective_use);
@@ -2384,6 +2384,8 @@ bool ParsePkgArgs(const Vector<String>& args, PkgInvocation& inv, String& error)
 			else if(a == "--targets") inv.targets = true, inv.command = PKG_CMD_TARGETS;
 			else if(a == "--providers") inv.providers = true, inv.command = PKG_CMD_PROVIDERS;
 			else if(a == "--bins") inv.bins = true, inv.command = PKG_CMD_BINS;
+			else if(a == "--depclean") inv.depclean = true, inv.command = PKG_CMD_DEPCLEAN;
+			else if(a == "--all") inv.all = true;
 			else if(a == "--brief") inv.brief = true;
 			else if(a == "--pretend") inv.pretend = true;
 			else if(a == "--ask") inv.ask = true;
@@ -2491,6 +2493,7 @@ bool ParsePkgArgs(const Vector<String>& args, PkgInvocation& inv, String& error)
 			else if(cmd == "providers") inv.command = PKG_CMD_PROVIDERS;
 			else if(cmd == "bins") inv.command = PKG_CMD_BINS;
 			else if(cmd == "clean") inv.command = PKG_CMD_CLEAN;
+			else if(cmd == "depclean") inv.command = PKG_CMD_DEPCLEAN;
 			else if(cmd == "explain-use") inv.command = PKG_CMD_EXPLAIN_USE;
 			else if(cmd == "explain-target") inv.command = PKG_CMD_EXPLAIN_TARGET;
 			else if(cmd == "deps") inv.command = PKG_CMD_DEPS;
@@ -2517,7 +2520,7 @@ bool ParsePkgArgs(const Vector<String>& args, PkgInvocation& inv, String& error)
 			inv.command = PKG_CMD_PROVIDERS;
 		else if(inv.resume)
 			inv.command = PKG_CMD_RESUME;
-		else if(inv.ask || inv.verbose || inv.update || inv.deep || inv.newuse || inv.changed_use || inv.pretend || inv.install)
+		else if(inv.ask || inv.verbose || inv.update || inv.deep || inv.newuse || inv.changed_use || inv.pretend || inv.install || inv.depclean)
 			inv.command = PKG_CMD_PLAN;
 		else
 			inv.command = PKG_CMD_HELP;
@@ -2526,7 +2529,7 @@ bool ParsePkgArgs(const Vector<String>& args, PkgInvocation& inv, String& error)
 	if(positional.GetCount()) {
 		int start = 0;
 		if(positional[0] == "help" || positional[0] == "version" || positional[0] == "info" || positional[0] == "doctor" ||
-		   positional[0] == "metadata" || positional[0] == "list-sets" || positional[0] == "targets" || positional[0] == "providers" || positional[0] == "bins" || positional[0] == "clean" || positional[0] == "explain-use" || positional[0] == "explain-target" || positional[0] == "deps" ||
+		   positional[0] == "metadata" || positional[0] == "list-sets" || positional[0] == "targets" || positional[0] == "providers" || positional[0] == "bins" || positional[0] == "clean" || positional[0] == "depclean" || positional[0] == "explain-use" || positional[0] == "explain-target" || positional[0] == "deps" ||
 		   positional[0] == "target" || positional[0] == "eselect" || positional[0] == "audit-acceptflags" ||
 		   positional[0] == "resume" || positional[0] == "search")
 			start = 1;
@@ -2576,7 +2579,7 @@ bool ParsePkgArgs(const Vector<String>& args, PkgInvocation& inv, String& error)
 			for(int i = 1; i < rest.GetCount(); i++)
 				inv.extra.Add(rest[i]);
 		}
-		else if(inv.command == PKG_CMD_BINS || inv.command == PKG_CMD_CLEAN) {
+		else if(inv.command == PKG_CMD_BINS || inv.command == PKG_CMD_CLEAN || inv.command == PKG_CMD_DEPCLEAN) {
 			if(rest.GetCount())
 				inv.atom = rest[0];
 			for(int i = 1; i < rest.GetCount(); i++)
@@ -2913,7 +2916,8 @@ static void sPrintHelp(bool color)
 		<< "  targets\n"
 		<< "  --providers [capability] [--probe]\n"
 		<< "  --bins, bins\n"
-		<< "  clean <atom> [--pretend|--ask]\n"
+		<< "  clean <atom> [--all] [--pretend|--ask]\n"
+		<< "  --depclean [--pretend|--ask]\n"
 		<< "  --provider <portable|system|...>\n"
 		<< "  -s, --search <query>\n"
 		<< "  deps <atom> [USE flags...] --plan\n"
@@ -2924,7 +2928,8 @@ static void sPrintHelp(bool color)
 		<< "  resume [--pretend] [--skipfirst] [--keep-going]\n"
 		<< "  audit-acceptflags [atom] [--patch]  global/platform flags are skipped\n"
 		<< "  -avuDN @world\n\n"
-		<< "Recognized sets: @world, @system, @toolchain\n";
+		<< "Recognized sets: @world, @system, @toolchain\n"
+		<< "Cleanup: use pkg clean or pkg --depclean for safe artifact removal.\n";
 	(void)color;
 }
 
@@ -3623,6 +3628,7 @@ static void sPrintInfo(const PkgRepository& repo, const PkgInvocation& inv)
 	Cout() << "Selected emscripten profile: " << (eselect.emscripten_profile.IsEmpty() ? String("[none]") : eselect.emscripten_profile) << "\n";
 	Cout() << "Doctor: run `pkg doctor` for environment diagnostics.\n";
 	Cout() << "Artifacts: run `pkg bins` to inspect recorded build outputs.\n";
+	Cout() << "Cleanup: run `pkg clean` or `pkg --depclean` for conservative removal.\n";
 }
 
 struct PkgDoctorSummary {
@@ -3732,6 +3738,19 @@ static void sPrintDoctorState(PkgDoctorSummary& sum, const PkgConfigPaths& paths
 			sDoctorSubline("target: ", state.target);
 		if(!state.toolchain.IsEmpty())
 			sDoctorSubline("toolchain: ", state.toolchain);
+		int artifacts = 0;
+		int failed = 0;
+		for(const PkgStateRecord& rec : state.records) {
+			if(!(rec.success || rec.build_status == "built" || rec.build_status == "failed"))
+				continue;
+			artifacts++;
+			if(!(rec.success || rec.build_status == "built"))
+				failed++;
+		}
+		sDoctorSubline("artifacts: ", AsString(artifacts));
+		if(failed > 0)
+			sDoctorSubline("failed artifacts: ", AsString(failed));
+		sDoctorSubline("cleanup: ", "pkg clean / pkg --depclean");
 	}
 
 	PkgEselectState eselect;
@@ -3889,6 +3908,7 @@ static void sWriteState(const PkgRepository& repo, const PkgPlan& plan, const Pk
 		rec.output_path = rec.artifact_path;
 		rec.staged = tx.staged;
 		rec.success = step.completed && !step.failed;
+		rec.owned = true;
 		rec.timestamp = GetSysTime();
 		for(const String& s : plan.use.requested)
 			rec.selected_use.Add(s);
@@ -4536,6 +4556,201 @@ static bool sRecordMatchesQuery(const PkgStateRecord& rec, const String& query)
 	return h.Find(ToLower(q)) >= 0;
 }
 
+static String sCleanupPath(const PkgStateRecord& rec)
+{
+	String path = Nvl(rec.output_path, rec.artifact_path);
+	return NormalizePath(path);
+}
+
+static String sCurrentExecutablePath()
+{
+	return NormalizePath(GetExeFilePath());
+}
+
+static String sBinArtifactRoot(const PkgRepository& repo)
+{
+	return NormalizePath(AppendFileName(repo.paths.root, "bin"));
+}
+
+static bool sPathIsOwnedArtifact(const PkgRepository& repo, const PkgStateRecord& rec)
+{
+	String path = sCleanupPath(rec);
+	if(path.IsEmpty())
+		return false;
+	String root = sBinArtifactRoot(repo);
+	if(root.IsEmpty())
+		return false;
+	if(!path.StartsWith(root))
+		return false;
+	return true;
+}
+
+static bool sCleanupIsCurrentExecutable(const PkgRepository& repo, const PkgStateRecord& rec)
+{
+	String path = sCleanupPath(rec);
+	String current = sCurrentExecutablePath();
+	if(path.IsEmpty() || current.IsEmpty())
+		return false;
+	return ToLower(path) == ToLower(current);
+}
+
+static bool sCleanupIsProtectedTool(const PkgStateRecord& rec)
+{
+	String path = sCleanupPath(rec);
+	if(path.IsEmpty())
+		return false;
+	String title = ToLower(GetFileTitle(path));
+	return title == "build" || title == "build.exe" || title == "pkg" || title == "pkg.exe" || title == "umk" || title == "umk.exe";
+}
+
+static void sRemoveStateRecordPaths(PkgState& state, const Vector<String>& removed)
+{
+	if(removed.IsEmpty())
+		return;
+	for(int i = state.records.GetCount() - 1; i >= 0; --i) {
+		String path = sCleanupPath(state.records[i]);
+		if(!path.IsEmpty() && FindIndex(removed, path) >= 0)
+			state.records.Remove(i);
+	}
+}
+
+struct PkgCleanupEntry : Moveable<PkgCleanupEntry> {
+	const PkgStateRecord *rec = nullptr;
+	String path;
+	String reason;
+	bool removable = false;
+	bool current = false;
+	bool owned = false;
+};
+
+static String sCleanupRemoveTag(const PkgCleanupEntry& e)
+{
+	if(e.current)
+		return "[keep         ]";
+	if(e.removable)
+		return "[clean  R     ]";
+	return "[keep         ]";
+}
+
+static Vector<PkgCleanupEntry> sCollectCleanupEntries(const PkgRepository& repo, const PkgState& state, const String& query, bool all, const Vector<String>& live_paths, bool depclean)
+{
+	Vector<PkgCleanupEntry> entries;
+	Index<String> seen;
+	for(int i = state.records.GetCount() - 1; i >= 0; --i) {
+		const PkgStateRecord& rec = state.records[i];
+		String path = sCleanupPath(rec);
+		if(!path.IsEmpty() && seen.Find(path) >= 0)
+			continue;
+		if(!path.IsEmpty())
+			seen.Add(path);
+		PkgCleanupEntry& e = entries.Add();
+		e.rec = &rec;
+		e.path = path;
+		e.current = sCleanupIsCurrentExecutable(repo, rec);
+		e.owned = sPathIsOwnedArtifact(repo, rec);
+		if(!rec.success && rec.build_status != "built") {
+			e.reason = "not a successful built artifact";
+			continue;
+		}
+		if(!e.owned) {
+			e.reason = "artifact is not owned by pkg";
+			continue;
+		}
+		if(e.path.IsEmpty()) {
+			e.reason = "no recorded artifact path";
+			continue;
+		}
+		if(!FileExists(e.path)) {
+			e.reason = "artifact file is missing";
+			continue;
+		}
+		if(e.current) {
+			e.reason = "current executable";
+			continue;
+		}
+		if(sCleanupIsProtectedTool(rec)) {
+			e.reason = "protected tool artifact";
+			continue;
+		}
+		if(!all && !sRecordMatchesQuery(rec, query)) {
+			e.reason = "does not match query";
+			continue;
+		}
+		if(depclean && live_paths.IsEmpty()) {
+			e.reason = "dependency graph unavailable";
+			continue;
+		}
+		if(depclean && !live_paths.IsEmpty() && FindIndex(live_paths, e.path) >= 0) {
+			e.reason = "kept by current dependency graph";
+			continue;
+		}
+		e.removable = true;
+		e.reason = depclean ? "stale artifact" : "recorded artifact";
+	}
+	return pick(entries);
+}
+
+static void sPrintCleanupEntries(const Vector<PkgCleanupEntry>& entries, bool color, bool depclean)
+{
+	int remove = 0;
+	int keep = 0;
+	Cout() << (depclean ? "Dependency cleanup plan:\n\n" : "Cleanup plan:\n\n");
+	for(const PkgCleanupEntry& e : entries) {
+		String tag = e.removable ? sCleanupRemoveTag(e) : "[keep         ]";
+		String code = e.removable ? "33;1" : "36";
+		if(e.current)
+			code = "32;1";
+		Cout() << "  " << sAnsi(code, tag, color) << " " << (e.rec ? e.rec->atom : String("[none]")) << "\n";
+		Cout() << "       path: " << (e.path.IsEmpty() ? String("[none]") : e.path) << "\n";
+		Cout() << "       reason: " << e.reason << "\n";
+		if(e.removable)
+			remove++;
+		else
+			keep++;
+	}
+	Cout() << "\nTotal: " << remove << " remove, " << keep << " keep, 0 errors\n";
+}
+
+static bool sApplyCleanupEntries(const PkgRepository& repo, Vector<PkgCleanupEntry>& entries, bool color, bool ask, bool dry_run, bool depclean)
+{
+	(void)depclean;
+	Vector<String> removed_paths;
+	bool any_removed = false;
+	for(const PkgCleanupEntry& e : entries) {
+		if(!e.removable)
+			continue;
+		if(dry_run)
+			continue;
+		if(!ask)
+			continue;
+		Cout() << "  " << sAnsi("33;1", "[remove]", color) << " " << (e.rec ? e.rec->atom : String("[none]")) << "\n";
+		Cout() << "       path: " << (e.path.IsEmpty() ? String("[none]") : e.path) << "\n";
+		Cout() << "       action: confirm required\n";
+		if(!sPromptYesNo()) {
+			Cout() << "       skipped\n\n";
+			continue;
+		}
+		if(DeleteFile(e.path)) {
+			Cout() << "       removed\n\n";
+			removed_paths.Add(e.path);
+			any_removed = true;
+		}
+		else {
+			Cout() << "       remove failed\n\n";
+		}
+	}
+	if(any_removed) {
+		PkgState state;
+		LoadFromJsonFile(state, repo.paths.state);
+		sRemoveStateRecordPaths(state, removed_paths);
+		RealizeDirectory(repo.paths.ai_dir);
+		StoreAsJsonFile(state, repo.paths.state, true);
+	}
+	return any_removed;
+}
+
+static PkgPlan sBuildPlan(const PkgInvocation& inv, const PkgRepository& repo, const PkgState& state, bool color);
+
 static void sPrintBins(const PkgInvocation& inv, const PkgRepository& repo, bool color)
 {
 	PkgState state;
@@ -4592,62 +4807,97 @@ static void sPrintBins(const PkgInvocation& inv, const PkgRepository& repo, bool
 	}
 }
 
-static Vector<const PkgStateRecord*> sSelectCleanTargets(const PkgState& state, const String& query)
+static bool sIsCleanupQueryAll(const PkgInvocation& inv)
 {
-	Vector<const PkgStateRecord*> out;
-	Index<String> seen;
-	for(int i = state.records.GetCount() - 1; i >= 0; --i) {
-		const PkgStateRecord& rec = state.records[i];
-		if(!(rec.success || rec.build_status == "built"))
-			continue;
-		String path = Nvl(rec.output_path, rec.artifact_path);
-		if(path.IsEmpty() || !FileExists(path))
-			continue;
-		if(!sRecordMatchesQuery(rec, query))
-			continue;
-		if(seen.Find(path) >= 0)
-			continue;
-		seen.Add(path);
-		out.Add(&rec);
-	}
-	return pick(out);
+	return inv.all;
 }
 
-static void sCleanArtifacts(const PkgInvocation& inv, const PkgRepository& repo, bool color)
+static Vector<String> sDepcleanLivePaths(const PkgInvocation& inv, const PkgRepository& repo, const PkgState& state, const PkgPlan& plan)
+{
+	Vector<String> live;
+	Index<String> seen;
+	auto add_path = [&](const String& path) {
+		String p = NormalizePath(path);
+		if(p.IsEmpty())
+			return;
+		if(seen.Find(p) >= 0)
+			return;
+		seen.Add(p);
+		live.Add(p);
+	};
+
+	for(const String& s : sLoadSet(repo.paths, "world", repo.paths.world))
+		add_path(repo.Resolve(s).path);
+	for(const String& s : sLoadSet(repo.paths, "system", repo.paths.system_set))
+		add_path(repo.Resolve(s).path);
+	for(const String& s : sLoadSet(repo.paths, "toolchain", repo.paths.toolchain_set))
+		add_path(repo.Resolve(s).path);
+	for(const PkgGraphNode& node : plan.graph.nodes) {
+		if(!node.resolved)
+			continue;
+		add_path(node.path.IsEmpty() ? node.atom : node.path);
+	}
+	(void)inv;
+	(void)state;
+	return pick(live);
+}
+
+static void sCleanupArtifacts(const PkgInvocation& inv, const PkgRepository& repo, bool color, bool depclean)
 {
 	PkgState state;
 	LoadFromJsonFile(state, repo.paths.state);
-	Vector<const PkgStateRecord*> targets = sSelectCleanTargets(state, inv.atom);
-	if(targets.IsEmpty()) {
-		Cout() << "No recorded artifacts match: " << (inv.atom.IsEmpty() ? String("[all]") : inv.atom) << "\n";
+	PkgPlan plan;
+	Vector<String> live_paths;
+	if(depclean) {
+		PkgInvocation depinv;
+		depinv.command = PKG_CMD_PLAN;
+		depinv.atom = "@world";
+		depinv.target = inv.target;
+		depinv.provider = inv.provider;
+		depinv.compiler = inv.compiler;
+		depinv.linker = inv.linker;
+		depinv.profile = inv.profile;
+		depinv.root = inv.root;
+		depinv.sysroot = inv.sysroot;
+		for(const String& s : inv.use_args)
+			depinv.use_args.Add(s);
+		depinv.ask = false;
+		depinv.pretend = true;
+		depinv.verbose = false;
+		depinv.install = false;
+		depinv.depclean = false;
+		depinv.update = inv.update;
+		depinv.deep = inv.deep;
+		depinv.newuse = inv.newuse;
+		depinv.changed_use = inv.changed_use;
+		plan = sBuildPlan(depinv, repo, state, color);
+		live_paths = sDepcleanLivePaths(inv, repo, state, plan);
+	}
+
+	bool query_all = sIsCleanupQueryAll(inv);
+	bool has_query = !TrimBoth(inv.atom).IsEmpty();
+	if(!depclean && !query_all && !has_query) {
+		Cout() << "Specify a package name or --all.\n";
 		return;
 	}
 
-	Cout() << "Cleaning recorded artifacts:\n\n";
-	for(const PkgStateRecord* rec : targets) {
-		if(!rec)
-			continue;
-		String path = Nvl(rec->output_path, rec->artifact_path);
-		Cout() << "  " << sAnsi("33;1", "[remove]", color) << " " << rec->atom << "\n";
-		Cout() << "       path: " << path << "\n";
-		if(inv.pretend)
-			Cout() << "       action: pretend only\n";
-		else if(inv.ask) {
-			Cout() << "       action: confirm required\n";
-			if(!sPromptYesNo()) {
-				Cout() << "       skipped\n\n";
-				continue;
-			}
-			if(DeleteFile(path))
-				Cout() << "       removed\n";
-			else
-				Cout() << "       remove failed\n";
-		}
-		else {
-			Cout() << "       action: use --pretend or --ask\n";
-		}
-		Cout() << "\n";
+	Vector<PkgCleanupEntry> entries = sCollectCleanupEntries(repo, state, inv.atom, depclean ? true : query_all, live_paths, depclean);
+	if(entries.IsEmpty()) {
+		Cout() << "No recorded artifacts match: " << (depclean ? String("[depclean]") : (query_all ? String("[all]") : inv.atom)) << "\n";
+		return;
 	}
+
+	sPrintCleanupEntries(entries, color, depclean);
+	if(inv.pretend)
+		return;
+
+	if(!inv.ask) {
+		Cout() << "\nUse --ask to delete the removable artifacts.\n";
+		return;
+	}
+
+	if(!sApplyCleanupEntries(repo, entries, color, true, false, depclean))
+		Cout() << "\nNo artifacts were removed.\n";
 }
 
 static int sUppScopeFromText(const String& scope)
@@ -5631,7 +5881,7 @@ int RunPkg(const Vector<String>& args)
 	                 inv.command == PKG_CMD_AUDIT_ACCEPTFLAGS || inv.command == PKG_CMD_ESELECT ||
 	                 inv.command == PKG_CMD_RESUME ||
 	                 inv.command == PKG_CMD_TARGET || inv.command == PKG_CMD_DOCTOR ||
-	                 inv.command == PKG_CMD_BINS || inv.command == PKG_CMD_CLEAN;
+	                 inv.command == PKG_CMD_BINS || inv.command == PKG_CMD_CLEAN || inv.command == PKG_CMD_DEPCLEAN;
 	PkgRepository repo;
 	if(need_repo)
 		repo.Discover();
@@ -5652,7 +5902,12 @@ int RunPkg(const Vector<String>& args)
 		return 0;
 	}
 	if(inv.command == PKG_CMD_CLEAN) {
-		sCleanArtifacts(inv, repo, color);
+		sCleanupArtifacts(inv, repo, color, false);
+		sFlushConsole();
+		return 0;
+	}
+	if(inv.command == PKG_CMD_DEPCLEAN) {
+		sCleanupArtifacts(inv, repo, color, true);
 		sFlushConsole();
 		return 0;
 	}

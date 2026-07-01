@@ -585,6 +585,10 @@ struct PkgInvocation {
 	int limit = 0;
 	bool use_cache = true;
 	bool rebuild_cache = false;
+	String baseline;
+	bool update_baseline = false;
+	bool show_baseline = true;
+	bool fail_on_baseline = false;
 };
 
 bool ParsePkgArgs(const Vector<String>& args, PkgInvocation& inv, String& error);

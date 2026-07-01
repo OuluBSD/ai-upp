@@ -18,6 +18,7 @@ enum PkgCommandKind {
 	PKG_CMD_INFO,
 	PKG_CMD_DOCTOR,
 	PKG_CMD_METADATA,
+	PKG_CMD_METADATA_CACHE,
 	PKG_CMD_LIST_SETS,
 	PKG_CMD_TARGETS,
 	PKG_CMD_PROVIDERS,
@@ -193,6 +194,26 @@ struct PkgPackage : Moveable<PkgPackage> {
 	Vector<String> mainconfig;
 	Vector<String> source_files;
 	Time mtime;
+
+	void Jsonize(JsonIO& jio);
+};
+
+struct PkgMetadataCacheEntry : Moveable<PkgMetadataCacheEntry> {
+	String path;
+	int64 size = 0;
+	Time mtime;
+	PkgPackage pkg;
+
+	void Jsonize(JsonIO& jio);
+};
+
+struct PkgMetadataCache : Moveable<PkgMetadataCache> {
+	int schema = 1;
+	String root;
+	Vector<PkgMetadataCacheEntry> entries;
+	Time saved_at;
+
+	void Jsonize(JsonIO& jio);
 };
 
 struct PkgLookupResult : Moveable<PkgLookupResult> {
@@ -387,6 +408,8 @@ struct PkgEselectState : Moveable<PkgEselectState> {
 struct PkgConfigPaths {
 	String root;
 	String ai_dir;
+	String cache_dir;
+	String metadata_cache;
 	String sets_dir;
 	String system_set;
 	String toolchain_set;
@@ -474,6 +497,16 @@ struct PkgRepository {
 	mutable VectorMap<String, PkgResolveCacheEntry> resolve_cache;
 	int discover_paths = 0;
 	int loaded_packages = 0;
+	int cache_loaded_entries = 0;
+	int cache_reused_entries = 0;
+	int cache_reparsed_entries = 0;
+	int cache_stale_entries = 0;
+	int cache_schema = 0;
+	bool cache_ok = false;
+	bool cache_corrupt = false;
+	bool cache_used = false;
+	bool use_cache = true;
+	bool rebuild_cache = false;
 	mutable int resolve_calls = 0;
 	mutable int resolve_cache_hits = 0;
 	mutable int resolve_index_hits = 0;
@@ -531,6 +564,7 @@ struct PkgInvocation {
 	bool oneshot = false;
 	bool plan = false;
 	bool metadata = false;
+	bool metadata_cache = false;
 	bool brief = false;
 	bool list_sets = false;
 	bool targets = false;
@@ -546,6 +580,8 @@ struct PkgInvocation {
 	bool all = false;
 	bool staged = false;
 	int limit = 0;
+	bool use_cache = true;
+	bool rebuild_cache = false;
 };
 
 bool ParsePkgArgs(const Vector<String>& args, PkgInvocation& inv, String& error);

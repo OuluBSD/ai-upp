@@ -9,6 +9,8 @@ file
 	Session.h,
 	GdbAdapter.h,
 	GdbAdapter.cpp,
+	LldbAdapter.h,
+	LldbAdapter.cpp,
 	Backend.h,
 	Backend.cpp,
 	main.cpp;

@@ -18,6 +18,7 @@ using namespace Upp;
 #include "OcrLayer.h"
 #include "ModelRuntime.h"
 #include "FrameSource.h"
+#include "ImageSequenceImporter.h"
 #include "PipelineRunner.h"
 #include "PipelineCache.h"
 

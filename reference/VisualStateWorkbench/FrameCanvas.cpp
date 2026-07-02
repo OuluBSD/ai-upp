@@ -43,9 +43,10 @@ void FrameCanvas::Paint(Draw& w)
 
 	// Session info line
 	if(session_) {
-		String info = Format("Session: %s  %dx%d  src: %s",
+		String frame_str = current_frame_ >= 0 ? Format("  frame: %d", current_frame_) : "";
+		String info = Format("Session: %s  %dx%d  src: %s%s",
 		                     session_->session_id, session_->frame_width,
-		                     session_->frame_height, session_->source_type);
+		                     session_->frame_height, session_->source_type, frame_str);
 		w.DrawText(8, 4, info, StdFont(), SColorText());
 	} else {
 		w.DrawText(8, 4, "No session loaded — drag to create annotation", StdFont(), SColorShadow());

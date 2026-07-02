@@ -14,6 +14,10 @@ public:
 	// Session
 	void SetSession(const VsmSession* session) { session_ = session; }
 
+	// Frame navigation
+	void SetFrame(int frame) { current_frame_ = frame; Refresh(); }
+	int  GetCurrentFrame() const { return current_frame_; }
+
 	// Overlay data (all optional)
 	void SetChangedRegions(const Vector<VsmChangedRect>& regions);
 	void SetAnnotationLayer(VsmAnnotationLayer* layer) { ann_layer_ = layer; Refresh(); }
@@ -47,6 +51,7 @@ private:
 	enum DragMode { DRAG_NONE, DRAG_CREATE, DRAG_MOVE };
 
 	const VsmSession*                    session_      = nullptr;
+	int                                  current_frame_ = -1;
 	VsmAnnotationLayer*                  ann_layer_    = nullptr;
 	const Vector<VsmTemplateMatchResult>* tmpl_results_ = nullptr;
 	const Vector<VsmOcrResult>*          ocr_results_  = nullptr;

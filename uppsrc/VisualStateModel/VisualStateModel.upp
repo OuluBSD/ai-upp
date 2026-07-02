@@ -31,6 +31,8 @@ file
 	ModelRuntime.cpp,
 	FrameSource.h,
 	FrameSource.cpp,
+	ImageSequenceImporter.h,
+	ImageSequenceImporter.cpp,
 	PipelineRunner.h,
 	PipelineRunner.cpp,
 	PipelineCache.h,

@@ -1,0 +1,10 @@
+description "VisualStateModel image sequence importer — CLI tool\377";
+
+uses
+	VisualStateModel;
+
+file
+	main.cpp;
+
+mainconfig
+	"" = "";

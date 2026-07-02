@@ -4,7 +4,8 @@ uses
 	Core,
 	CtrlLib,
 	Docking,
-	VisualStateModel;
+	VisualStateModel,
+	plugin/jpg;
 
 file
 	main.cpp,
@@ -18,7 +19,9 @@ file
 	DebugTab.h,
 	DebugTab.cpp,
 	DockPanels.h,
-	DockPanels.cpp;
+	DockPanels.cpp,
+	JpegSequenceImporter.h,
+	JpegSequenceImporter.cpp;
 
 mainconfig
 	"" = "GUI",

@@ -2,29 +2,6 @@
 
 using namespace Upp;
 
-class PlannedDbgBackendSession : public DbgBackendSession {
-	String backend_name;
-
-public:
-	explicit PlannedDbgBackendSession(const String& name) : backend_name(name) {}
-
-	String GetBackendName() const override { return backend_name; }
-
-	DbgRunResult Run(const DbgLaunchRequest& request) override
-	{
-		DbgRunResult result;
-		result.backend_name = backend_name;
-		result.exit_code = 1;
-		result.error = backend_name + " backend is not implemented yet";
-		result.transcript << "executable: " << request.executable_path << '\n';
-		if(!request.working_directory.IsEmpty())
-			result.transcript << "cwd: " << request.working_directory << '\n';
-		for(int i = 0; i < request.arguments.GetCount(); i++)
-			result.transcript << "arg[" << i << "]: " << request.arguments[i] << '\n';
-		return result;
-	}
-};
-
 Vector<DbgBackendInfo> GetPlannedDbgBackends()
 {
 	Vector<DbgBackendInfo> backends;
@@ -118,23 +95,8 @@ static int RunBackendCommand(const DbgBackendInfo& backend, const Vector<String>
 	for(int i = pos + 2; i < args.GetCount(); i++)
 		request.arguments.Add(args[i]);
 
-	DbgRunResult result;
-	if(backend.name == "gdb") {
-		GdbBackendSession session;
-		result = session.Run(request);
-	}
-	else if(backend.name == "lldb") {
-		LldbBackendSession session;
-		result = session.Run(request);
-	}
-	else if(backend.name == "vs") {
-		VsBackendSession session;
-		result = session.Run(request);
-	}
-	else {
-		PlannedDbgBackendSession session(backend.name);
-		result = session.Run(request);
-	}
+	One<DbgBackendSession> session = CreateDbgBackendSession(backend.name);
+	DbgRunResult result = session ? session->Run(request) : DbgRunResult();
 	if(!result.error.IsEmpty())
 		Cerr() << "dbg: " << result.error << "\n";
 	return IsNull(result.exit_code) ? 1 : result.exit_code;

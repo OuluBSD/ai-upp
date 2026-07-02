@@ -117,6 +117,9 @@ public:
 
 	void Reset() { state_ = VsmModelState(); history_.Clear(); divergences_.Clear(); }
 
+	// Write divergences_ as a JSON array to path.
+	bool SaveDivergenceReport(const String& path);
+
 private:
 	CoreLog                    log_;
 	Vector<VsmModelRule>       rules_;

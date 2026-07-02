@@ -49,6 +49,15 @@ CONSOLE_APP_MAIN
 	if(!replay.GetDivergences().IsEmpty())
 		Cout() << "Divergences found: " << replay.GetDivergences().GetCount() << "\n";
 
+	// Save replay divergences as divergences.json so WriteIndex picks them up
+	if(!replay.GetDivergences().IsEmpty()) {
+		RealizeDirectory(out_dir);
+		SaveFile(AppendFileName(out_dir, "divergences.json"),
+		         StoreAsJson(replay.GetDivergences(), true));
+		Cout() << "Divergences saved: " << replay.GetDivergences().GetCount()
+		       << " record(s) → divergences.json\n";
+	}
+
 	// Write report
 	VsmReportWriter writer;
 	writer.SetLog(&app_log);

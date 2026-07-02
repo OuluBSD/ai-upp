@@ -49,6 +49,8 @@ private:
 
 	// ---- Session storage + annotation layer + pipeline + rules + model runtime
 	VsmSessionStore           session_store_;
+	VsmSessionStoreSource     src_source_;     // for sessions opened via OnOpenSession
+	bool                      has_src_session_ = false;
 	VsmAnnotationLayer        annotation_layer_;
 	String                    annotation_path_;
 	VsmPreprocessPipeline     current_pipeline_;
@@ -85,6 +87,9 @@ private:
 	void OnResetReplay();
 	void RefreshAfterStep();
 	void RebuildRegionsList();
+	void OnOpenSession();
+	void OnImportImageSequence();
+	void OpenSessionPath(const String& path);
 
 	// ---- Tab/toolbar
 	void UpdateToolBar(Bar& bar);

@@ -4873,7 +4873,7 @@ static void sPrintHelp(bool color)
 		<< "      --ci             deprecated alias for --check (local lint only)\n"
 		<< "      --debug-timing   print lint timing and cache counters\n"
 		<< "      --limit N        limit lint --all to the first N packages\n"
-		<< "      --report PATH    write a JSON or Markdown lint report\n"
+		<< "      --report PATH    write a JSON or Markdown lint or selftest report\n"
 		<< "      --use-cache      prefer the persistent package metadata cache\n"
 		<< "      --no-cache       ignore the persistent package metadata cache\n"
 		<< "      --rebuild        rebuild the persistent package metadata cache\n"
@@ -4889,7 +4889,7 @@ static void sPrintHelp(bool color)
 		<< "  --version, version\n"
 		<< "  --info, info\n"
 		<< "  --doctor, doctor [env|state|shell|cache|config|providers [--probe]]\n"
-		<< "  --selftest, selftest [quick|doctor|cache|plan|lint|all]\n"
+		<< "  --selftest, selftest [quick|doctor|cache|plan|lint|all] [--report PATH]\n"
 		<< "  --metadata-cache, metadata-cache [--rebuild]\n"
 		<< "  --metadata, metadata\n"
 		<< "  --list-sets\n"
@@ -4910,7 +4910,7 @@ static void sPrintHelp(bool color)
 		<< "  eselect ...\n"
 		<< "  resume [--pretend] [--skipfirst] [--keep-going]\n"
 		<< "  audit-acceptflags [atom] [--patch]  global/platform flags are skipped\n"
-		<< "  selftest [quick|doctor|cache|plan|lint|all]\n"
+		<< "  selftest [quick|doctor|cache|plan|lint|all] [--report PATH]\n"
 		<< "  -avuDN @world\n\n"
 		<< "Recognized sets: @world, @system, @toolchain\n"
 		<< "Cleanup: use pkg clean or pkg --depclean for safe artifact removal.\n";
@@ -5661,6 +5661,64 @@ struct PkgDoctorSummary {
 	int error = 0;
 };
 
+struct PkgSelftestCheck : Moveable<PkgSelftestCheck> {
+	String name;
+	String status;
+	String message;
+	double seconds = 0;
+	Vector<String> details;
+
+	void Jsonize(JsonIO& jio)
+	{
+		jio("name", name)("status", status)("message", message)("seconds", seconds);
+		jio("details", details);
+	}
+};
+
+struct PkgSelftestRuntimePath : Moveable<PkgSelftestRuntimePath> {
+	bool windows = false;
+	bool ok = false;
+	String status;
+	String message;
+	Vector<String> expected;
+	Vector<String> missing;
+
+	void Jsonize(JsonIO& jio)
+	{
+		jio("windows", windows)("ok", ok)("status", status)("message", message);
+		jio("expected", expected)("missing", missing);
+	}
+};
+
+struct PkgSelftestReport : Moveable<PkgSelftestReport> {
+	String command_line;
+	String report_path;
+	String format;
+	String group;
+	String note;
+	String exit_basis;
+	Time timestamp;
+	double total_seconds = 0;
+	int ok = 0;
+	int warn = 0;
+	int info = 0;
+	int error = 0;
+	bool strict = false;
+	PkgSelftestRuntimePath runtime_path;
+	Vector<PkgSelftestCheck> checks;
+
+	void Jsonize(JsonIO& jio)
+	{
+		jio("command_line", command_line)("report_path", report_path)("format", format);
+		jio("group", group)("note", note)("exit_basis", exit_basis)("timestamp", timestamp);
+		jio("total_seconds", total_seconds);
+		jio("ok", ok)("warn", warn)("info", info)("error", error);
+		jio("strict", strict);
+		jio("runtime_path", runtime_path);
+		jio("checks", checks);
+	}
+};
+
 static void sDoctorLine(PkgDoctorSummary& sum, const char *level, const String& message, bool color)
 {
 	String tag = String("[") + level + "]";
@@ -5689,6 +5747,32 @@ static void sDoctorSubline(const String& label, const String& value)
 	Cout() << "          " << label << value << "\n";
 }
 
+static int sSelftestAddCheck(PkgSelftestReport& report, const String& name, const String& status, const String& message, double seconds)
+{
+	PkgSelftestCheck& check = report.checks.Add();
+	check.name = name;
+	check.status = status;
+	check.message = message;
+	check.seconds = seconds;
+	if(status == "ok")
+		report.ok++;
+	else if(status == "warn")
+		report.warn++;
+	else if(status == "info")
+		report.info++;
+	else if(status == "error")
+		report.error++;
+	else
+		report.info++;
+	return report.checks.GetCount() - 1;
+}
+
+static void sSelftestAddDetail(PkgSelftestReport& report, int check_index, const String& detail)
+{
+	if(check_index >= 0 && check_index < report.checks.GetCount())
+		report.checks[check_index].details.Add(detail);
+}
+
 static bool sDoctorPathSuffixPresent(const String& path, const String& suffix)
 {
 	String needle = ToLower(UnixPath(suffix));
@@ -5701,29 +5785,48 @@ static bool sDoctorPathSuffixPresent(const String& path, const String& suffix)
 	return false;
 }
 
+static PkgSelftestRuntimePath sDiagnoseRuntimePath()
+{
+	PkgSelftestRuntimePath rt;
+#ifdef flagWIN32
+	rt.windows = true;
+	String path = GetEnv("PATH");
+	rt.expected.Add("...\\bin\\clang\\bin");
+	if(!sDoctorPathSuffixPresent(path, "bin\\clang\\bin"))
+		rt.missing.Add("...\\bin\\clang\\bin");
+	rt.expected.Add("...\\bin\\clang\\x86_64-w64-mingw32\\bin");
+	if(!sDoctorPathSuffixPresent(path, "bin\\clang\\x86_64-w64-mingw32\\bin"))
+		rt.missing.Add("...\\bin\\clang\\x86_64-w64-mingw32\\bin");
+	rt.ok = rt.missing.IsEmpty();
+	rt.status = rt.windows ? (rt.ok ? "ok" : "warn") : "info";
+	rt.message = rt.ok ? "clang runtime DLL paths appear to be present in PATH"
+	                   : "clang runtime DLL path may be missing";
+#else
+	rt.ok = true;
+	rt.status = "info";
+	rt.message = "Windows clang runtime DLL path check skipped on this platform";
+#endif
+	return rt;
+}
+
 static void sPrintDoctorEnvironment(PkgDoctorSummary& sum, bool color)
 {
 	Cout() << "Environment:\n";
 	sDoctorLine(sum, "ok", "executable found: bin\\pkg.exe", color);
-#ifdef flagWIN32
-	Vector<String> missing;
-	String path = GetEnv("PATH");
-	if(!sDoctorPathSuffixPresent(path, "bin\\clang\\bin"))
-		missing.Add("...\\bin\\clang\\bin");
-	if(!sDoctorPathSuffixPresent(path, "bin\\clang\\x86_64-w64-mingw32\\bin"))
-		missing.Add("...\\bin\\clang\\x86_64-w64-mingw32\\bin");
-	if(missing.IsEmpty()) {
-		sDoctorLine(sum, "ok", "clang runtime DLL paths appear to be present in PATH", color);
+	PkgSelftestRuntimePath rt = sDiagnoseRuntimePath();
+	if(rt.windows) {
+		if(rt.ok) {
+			sDoctorLine(sum, "ok", rt.message, color);
+		}
+		else {
+			sDoctorLine(sum, "warn", rt.message, color);
+			for(const String& m : rt.missing)
+				sDoctorSubline("expected: ", m);
+			sDoctorSubline("symptom: ", "libc++.dll or libunwind.dll loader error");
+		}
 	}
-	else {
-		sDoctorLine(sum, "warn", "clang runtime DLL path may be missing", color);
-		for(const String& m : missing)
-			sDoctorSubline("expected: ", m);
-		sDoctorSubline("symptom: ", "libc++.dll or libunwind.dll loader error");
-	}
-#else
-	sDoctorLine(sum, "info", "Windows clang runtime DLL path check skipped on this platform", color);
-#endif
+	else
+		sDoctorLine(sum, "info", rt.message, color);
 }
 
 static void sPrintDoctorShell(PkgDoctorSummary& sum, bool color)
@@ -5951,69 +6054,175 @@ static void sPrintDoctorCommand(const PkgInvocation& inv, const PkgRepository& r
 
 static bool sPlanHasBlockingRows(const PkgPlan& plan, String& reason);
 
-static void sSelftestVersionHelp(PkgDoctorSummary& sum, bool color)
+static String sSelftestReportFormat(const String& path)
 {
-	sDoctorLine(sum, "ok", "version command path", color);
-	sDoctorLine(sum, "ok", "help command path", color);
+	return sLintReportFormat(path);
 }
 
-static void sSelftestDoctor(PkgDoctorSummary& sum, bool color)
+static bool sWriteSelftestReportFile(const PkgSelftestReport& report)
 {
-#ifdef flagWIN32
-	Vector<String> missing;
-	String path = GetEnv("PATH");
-	if(!sDoctorPathSuffixPresent(path, "bin\\clang\\bin"))
-		missing.Add("...\\bin\\clang\\bin");
-	if(!sDoctorPathSuffixPresent(path, "bin\\clang\\x86_64-w64-mingw32\\bin"))
-		missing.Add("...\\bin\\clang\\x86_64-w64-mingw32\\bin");
-	if(missing.IsEmpty())
-		sDoctorLine(sum, "ok", "doctor environment", color);
-	else {
-		sDoctorLine(sum, "warn", "doctor environment: clang runtime DLL path may be missing", color);
-		for(const String& m : missing)
-			sDoctorSubline("expected: ", m);
+	if(report.report_path.IsEmpty())
+		return true;
+	RealizeDirectory(GetFileFolder(report.report_path));
+	String format = sSelftestReportFormat(report.report_path);
+	if(format == "markdown") {
+		String out;
+		out << "# pkg selftest report\n\n";
+		out << "- note: local selftest, not project CI\n";
+		out << "- command_line: `" << report.command_line << "`\n";
+		out << "- timestamp: " << AsString(report.timestamp) << "\n";
+		out << "- report_path: `" << report.report_path << "`\n";
+		out << "- format: markdown\n";
+		out << "- group: " << (report.group.IsEmpty() ? String("[none]") : report.group) << "\n";
+		out << "- exit_basis: " << (report.exit_basis.IsEmpty() ? String("[none]") : report.exit_basis) << "\n";
+		out << "- strict: " << (report.strict ? "yes" : "no") << "\n";
+		out << "- total_seconds: " << FormatDouble(report.total_seconds, 3) << "\n";
+		out << "- ok: " << report.ok << "\n";
+		out << "- warn: " << report.warn << "\n";
+		out << "- info: " << report.info << "\n";
+		out << "- error: " << report.error << "\n";
+		out << "- runtime_path: " << (report.runtime_path.status.IsEmpty() ? String("info") : report.runtime_path.status) << "\n";
+		out << "- runtime_path_message: " << report.runtime_path.message << "\n";
+		if(!report.runtime_path.expected.IsEmpty())
+			out << "- runtime_path_expected: " << sFmtList(report.runtime_path.expected) << "\n";
+		if(!report.runtime_path.missing.IsEmpty())
+			out << "- runtime_path_missing: " << sFmtList(report.runtime_path.missing) << "\n";
+		out << "\n## Checks\n";
+		if(report.checks.IsEmpty())
+			out << "_none_\n";
+		else {
+			for(const PkgSelftestCheck& c : report.checks) {
+				out << "\n### " << c.status << " " << c.name << "\n";
+				out << "- message: " << c.message << "\n";
+				out << "- seconds: " << FormatDouble(c.seconds, 3) << "\n";
+				if(c.details.IsEmpty())
+					out << "- details: [none]\n";
+				else {
+					out << "- details:\n";
+					for(const String& d : c.details)
+						out << "  - " << d << "\n";
+				}
+			}
+		}
+		return SaveFile(report.report_path, out);
 	}
+
+	return StoreAsJsonFile(report, report.report_path, true);
+}
+
+static void sSelftestVersionHelp(PkgDoctorSummary& sum, PkgSelftestReport& report, bool color)
+{
+	int idx = sSelftestAddCheck(report, "version command path", "ok", "version command path", 0.0);
+	sDoctorLine(sum, "ok", "version command path", color);
+	sSelftestAddDetail(report, idx, "version command should exit cleanly");
+	idx = sSelftestAddCheck(report, "help command path", "ok", "help command path", 0.0);
+	sDoctorLine(sum, "ok", "help command path", color);
+	sSelftestAddDetail(report, idx, "help text should remain available without side effects");
+}
+
+static void sSelftestDoctor(PkgDoctorSummary& sum, PkgSelftestReport& report, bool color)
+{
+	PkgSelftestRuntimePath rt = sDiagnoseRuntimePath();
+	report.runtime_path.windows = rt.windows;
+	report.runtime_path.ok = rt.ok;
+	report.runtime_path.status = rt.status;
+	report.runtime_path.message = rt.message;
+	Swap(report.runtime_path.expected, rt.expected);
+	Swap(report.runtime_path.missing, rt.missing);
+	if(rt.windows) {
+		if(rt.ok) {
+			int idx = sSelftestAddCheck(report, "doctor environment", "ok", rt.message, 0.0);
+			sDoctorLine(sum, "ok", "doctor environment", color);
+			sSelftestAddDetail(report, idx, "clang runtime DLL paths appear to be present in PATH");
+		}
+		else {
+			int idx = sSelftestAddCheck(report, "doctor environment", "warn", rt.message, 0.0);
+			sDoctorLine(sum, "warn", "doctor environment: clang runtime DLL path may be missing", color);
+			for(const String& m : rt.missing) {
+				sDoctorSubline("expected: ", m);
+				sSelftestAddDetail(report, idx, "expected: " + m);
+			}
+			sDoctorSubline("symptom: ", "libc++.dll or libunwind.dll loader error");
+			sSelftestAddDetail(report, idx, "symptom: libc++.dll or libunwind.dll loader error");
+		}
+	}
+	else {
+		int idx = sSelftestAddCheck(report, "doctor environment", "info", rt.message, 0.0);
+		sDoctorLine(sum, "info", "doctor environment is Windows-specific", color);
+		sSelftestAddDetail(report, idx, rt.message);
+	}
+
 	if(!GetEnv("PSModulePath").IsEmpty()) {
+		int idx = sSelftestAddCheck(report, "doctor shell", "warn", "PowerShell treats @world specially", 0.0);
 		sDoctorLine(sum, "warn", "doctor shell: PowerShell treats @world specially", color);
 		sDoctorSubline("use: ", "cmd /c \"bin\\pkg.exe -pv @world\"");
 		sDoctorSubline("or: ", "quote or escape @world before passing it to pkg");
+		sSelftestAddDetail(report, idx, "use: cmd /c \"bin\\pkg.exe -pv @world\"");
+		sSelftestAddDetail(report, idx, "or: quote or escape @world before passing it to pkg");
 	}
-	else
+	else {
+		int idx = sSelftestAddCheck(report, "doctor shell", "info", "Windows shells may need @world quoted or escaped", 0.0);
 		sDoctorLine(sum, "info", "doctor shell: Windows shells may need @world quoted or escaped", color);
-#else
-	sDoctorLine(sum, "info", "doctor environment is Windows-specific", color);
-#endif
+		sDoctorSubline("use: ", "cmd /c \"bin\\pkg.exe -pv @world\"");
+		sDoctorSubline("or: ", "quote or escape @world before passing it to pkg");
+		sSelftestAddDetail(report, idx, "use: cmd /c \"bin\\pkg.exe -pv @world\"");
+		sSelftestAddDetail(report, idx, "or: quote or escape @world before passing it to pkg");
+	}
 }
 
-static void sSelftestCache(PkgDoctorSummary& sum, const PkgRepository& repo, bool color)
+static void sSelftestCache(PkgDoctorSummary& sum, PkgSelftestReport& report, const PkgRepository& repo, bool color)
 {
+	String msg;
+	String status;
+	if(repo.cache_corrupt) {
+		status = "warn";
+		msg = "doctor cache: cache is corrupt but recoverable";
+	}
+	else if(repo.cache_ok) {
+		status = "ok";
+		msg = "doctor cache: cache is readable";
+	}
+	else {
+		status = "warn";
+		msg = "doctor cache: cache is missing or not reusable";
+	}
+	int idx = sSelftestAddCheck(report, "doctor cache", status, msg, 0.0);
+	sDoctorLine(sum, status, msg, color);
 	if(repo.cache_corrupt)
-		sDoctorLine(sum, "warn", "doctor cache: cache is corrupt but recoverable", color);
+		sSelftestAddDetail(report, idx, "cache is corrupt but recoverable");
 	else if(repo.cache_ok)
-		sDoctorLine(sum, "ok", "doctor cache: cache is readable", color);
+		sSelftestAddDetail(report, idx, "cache is readable");
 	else
-		sDoctorLine(sum, "warn", "doctor cache: cache is missing or not reusable", color);
+		sSelftestAddDetail(report, idx, "cache is missing or not reusable");
 
-	if(repo.cache_ok)
-		sDoctorLine(sum, "ok", "metadata cache", color);
-	else
-		sDoctorLine(sum, "warn", "metadata cache", color);
+	status = repo.cache_ok ? "ok" : "warn";
+	msg = "metadata cache";
+	idx = sSelftestAddCheck(report, "metadata cache", status, msg, 0.0);
+	sDoctorLine(sum, status, msg, color);
+	sSelftestAddDetail(report, idx, repo.cache_ok ? "cache available for reuse" : "cache unavailable or disabled");
 }
 
-static void sSelftestSearch(PkgDoctorSummary& sum, const PkgRepository& repo, bool color, bool verbose)
+static void sSelftestSearch(PkgDoctorSummary& sum, PkgSelftestReport& report, const PkgRepository& repo, bool color, bool verbose)
 {
+	TimeStop ts;
 	Vector<const PkgPackage*> matches = repo.Search("pkg");
 	if(matches.GetCount()) {
+		int idx = sSelftestAddCheck(report, "search pkg", "ok", "search pkg", ts.Seconds());
 		sDoctorLine(sum, "ok", "search pkg", color);
 		if(verbose)
 			sDoctorSubline("matches: ", AsString(matches.GetCount()));
+		sSelftestAddDetail(report, idx, "matches: " + AsString(matches.GetCount()));
 	}
-	else
+	else {
+		int idx = sSelftestAddCheck(report, "search pkg", "error", "search pkg returned no results", ts.Seconds());
 		sDoctorLine(sum, "error", "search pkg returned no results", color);
+		sSelftestAddDetail(report, idx, "search pkg returned no results");
+	}
 }
 
-static void sSelftestPlan(PkgDoctorSummary& sum, const PkgInvocation& inv, const PkgRepository& repo, const PkgLocalPolicy& policy, bool color, bool verbose)
+static void sSelftestPlan(PkgDoctorSummary& sum, PkgSelftestReport& report, const PkgInvocation& inv, const PkgRepository& repo, const PkgLocalPolicy& policy, bool color, bool verbose)
 {
+	TimeStop ts;
 	PkgState state;
 	LoadFromJsonFile(state, repo.paths.state);
 
@@ -6027,18 +6236,32 @@ static void sSelftestPlan(PkgDoctorSummary& sum, const PkgInvocation& inv, const
 	planinv.verbose = verbose;
 	PkgPlan plan = sBuildPlan(planinv, repo, state, policy, color);
 	String reason;
-	if(plan.graph.nodes.IsEmpty())
-		sDoctorLine(sum, "error", "plan pkg: no packages selected", color);
+	String status;
+	String message;
+	if(plan.graph.nodes.IsEmpty()) {
+		status = "error";
+		message = "plan pkg: no packages selected";
+	}
 	else if(sPlanHasBlockingRows(plan, reason)) {
-		sDoctorLine(sum, "warn", "plan pkg: blockers present", color);
-		if(verbose)
-			sDoctorSubline("reason: ", reason);
+		status = "warn";
+		message = "plan pkg: blockers present";
 	}
 	else {
-		sDoctorLine(sum, "ok", "plan pkg", color);
-		if(verbose)
-			sDoctorSubline("graph: ", AsString(plan.graph.nodes.GetCount()) + " nodes");
+		status = "ok";
+		message = "plan pkg";
 	}
+	int idx = sSelftestAddCheck(report, "plan pkg", status, message, ts.Seconds());
+	sDoctorLine(sum, status, message, color);
+	if(status == "warn" && verbose)
+		sDoctorSubline("reason: ", reason);
+	else if(status == "ok" && verbose)
+		sDoctorSubline("graph: ", AsString(plan.graph.nodes.GetCount()) + " nodes");
+	if(verbose && !reason.IsEmpty())
+		sSelftestAddDetail(report, idx, String("reason: ") + reason);
+	else if(verbose)
+		sSelftestAddDetail(report, idx, String("graph: ") + AsString(plan.graph.nodes.GetCount()) + " nodes");
+	else if(!reason.IsEmpty())
+		sSelftestAddDetail(report, idx, reason);
 
 	PkgInvocation miss;
 	sCopyInvocation(miss, planinv);
@@ -6046,16 +6269,22 @@ static void sSelftestPlan(PkgDoctorSummary& sum, const PkgInvocation& inv, const
 	PkgLookupResult miss_lookup = repo.Resolve(miss.atom);
 	PkgPlan miss_plan = sBuildPlan(miss, repo, state, policy, color);
 	if(!miss_lookup.pkg || sPlanHasBlockingRows(miss_plan, reason)) {
+		int midx = sSelftestAddCheck(report, "missing package guard", "ok", "missing package guard", 0.0);
 		sDoctorLine(sum, "ok", "missing package guard", color);
 		if(verbose)
 			sDoctorSubline("atom: ", miss.atom);
+		sSelftestAddDetail(report, midx, "atom: " + miss.atom);
 	}
-	else
+	else {
+		int midx = sSelftestAddCheck(report, "missing package guard", "warn", "missing package guard: package unexpectedly buildable", 0.0);
 		sDoctorLine(sum, "warn", "missing package guard: package unexpectedly buildable", color);
+		sSelftestAddDetail(report, midx, "package unexpectedly buildable");
+	}
 }
 
-static void sSelftestProviders(PkgDoctorSummary& sum, const PkgInvocation& inv, const PkgRepository& repo, const PkgLocalPolicy& policy, bool color, bool verbose)
+static void sSelftestProviders(PkgDoctorSummary& sum, PkgSelftestReport& report, const PkgInvocation& inv, const PkgRepository& repo, const PkgLocalPolicy& policy, bool color, bool verbose)
 {
+	TimeStop ts;
 	PkgInvocation provinv;
 	sCopyInvocation(provinv, inv);
 	provinv.command = PKG_CMD_PROVIDERS;
@@ -6082,10 +6311,15 @@ static void sSelftestProviders(PkgDoctorSummary& sum, const PkgInvocation& inv, 
 		else
 			unknown++;
 	}
-	if(pp.resolutions.IsEmpty())
-		sDoctorLine(sum, "warn", "provider probes are read-only but no catalog entries were resolved", color);
-	else
-		sDoctorLine(sum, "info", "provider probes are read-only", color);
+	String status = pp.resolutions.IsEmpty() ? "warn" : "info";
+	String message = pp.resolutions.IsEmpty() ? "provider probes are read-only but no catalog entries were resolved"
+	                                           : "provider probes are read-only";
+	int idx = sSelftestAddCheck(report, "provider probes", status, message, ts.Seconds());
+	sDoctorLine(sum, status, message, color);
+	sSelftestAddDetail(report, idx, String("available: ") + AsString(available));
+	sSelftestAddDetail(report, idx, String("missing: ") + AsString(missing));
+	sSelftestAddDetail(report, idx, String("manual: ") + AsString(manual));
+	sSelftestAddDetail(report, idx, String("unknown: ") + AsString(unknown));
 	if(verbose) {
 		sDoctorSubline("available: ", AsString(available));
 		sDoctorSubline("missing: ", AsString(missing));
@@ -6094,8 +6328,9 @@ static void sSelftestProviders(PkgDoctorSummary& sum, const PkgInvocation& inv, 
 	}
 }
 
-static void sSelftestLint(PkgDoctorSummary& sum, const PkgInvocation& inv, const PkgRepository& repo, const PkgLocalPolicy& policy, bool color, bool verbose)
+static void sSelftestLint(PkgDoctorSummary& sum, PkgSelftestReport& report, const PkgInvocation& inv, const PkgRepository& repo, const PkgLocalPolicy& policy, bool color, bool verbose)
 {
+	TimeStop ts;
 	String report_path = ForceExt(GetTempFileName("pkg-selftest-lint"), ".json");
 	PkgInvocation lint;
 	sCopyInvocation(lint, inv);
@@ -6112,59 +6347,87 @@ static void sSelftestLint(PkgDoctorSummary& sum, const PkgInvocation& inv, const
 	lint.update_baseline = false;
 	lint.report = report_path;
 	int rc = sLintCommand(lint, repo, policy, color, 0.0);
-	PkgLintReport report;
-	bool ok = FileExists(report_path) && LoadFromJsonFile(report, report_path);
+	PkgLintReport report_lint;
+	bool ok = FileExists(report_path) && LoadFromJsonFile(report_lint, report_path);
 	DeleteFile(report_path);
 	if(!ok) {
+		int idx = sSelftestAddCheck(report, "lint quick", "error", "lint quick: unable to read temporary report", ts.Seconds());
 		sDoctorLine(sum, "error", "lint quick: unable to read temporary report", color);
+		sSelftestAddDetail(report, idx, "temporary lint report could not be read");
 		return;
 	}
 	String msg;
-	msg << "lint quick: " << report.errors << " errors, " << report.warnings << " warnings";
-	if(report.errors > 0 || report.warnings > 0)
-		sDoctorLine(sum, "warn", msg, color);
-	else
-		sDoctorLine(sum, "ok", msg, color);
-	if(report.errors == 0 && report.warnings == 0 && rc != 0)
+	msg << "lint quick: " << report_lint.errors << " errors, " << report_lint.warnings << " warnings";
+	String status = report_lint.errors > 0 || report_lint.warnings > 0 ? "warn" : "ok";
+	int idx = sSelftestAddCheck(report, "lint quick", status, msg, ts.Seconds());
+	sDoctorLine(sum, status, msg, color);
+	sSelftestAddDetail(report, idx, "baseline: " + (report_lint.baseline_path.IsEmpty() ? String("[none]") : report_lint.baseline_path));
+	sSelftestAddDetail(report, idx, String("cache used: ") + (report_lint.cache_used ? "yes" : "no"));
+	if(report_lint.errors == 0 && report_lint.warnings == 0 && rc != 0) {
+		int eidx = sSelftestAddCheck(report, "lint quick exit code", "error", "lint quick returned a nonzero exit code despite zero findings", 0.0);
 		sDoctorLine(sum, "error", "lint quick returned a nonzero exit code despite zero findings", color);
-	if(verbose) {
-		sDoctorSubline("baseline: ", report.baseline_path.IsEmpty() ? String("[none]") : report.baseline_path);
-		sDoctorSubline("cache used: ", report.cache_used ? "yes" : "no");
+		sSelftestAddDetail(report, eidx, "expected exit 0 for zero findings");
 	}
+}
+
+static bool sWriteSelftestReport(const PkgSelftestReport& report)
+{
+	bool ok = sWriteSelftestReportFile(report);
+	if(!ok)
+		Cerr() << "failed to write selftest report: " << report.report_path << "\n";
+	return ok;
 }
 
 static int sSelftestCommand(const PkgInvocation& inv, const PkgRepository& repo, const PkgLocalPolicy& policy, bool color)
 {
 	PkgDoctorSummary sum;
+	PkgSelftestReport report;
+	TimeStop total;
+	report.command_line = inv.command_line;
+	report.timestamp = GetSysTime();
+	report.report_path = inv.report;
+	report.format = sSelftestReportFormat(inv.report);
+	report.note = "local selftest, not project CI";
+	report.strict = inv.strict;
 	String group = ToLower(TrimBoth(inv.subcommand));
 	if(group.IsEmpty())
 		group = "quick";
+	report.group = group;
 
 	Cout() << "pkg selftest\n\n";
 	if(group == "quick" || group == "all") {
-		sSelftestVersionHelp(sum, color);
-		sSelftestDoctor(sum, color);
-		sSelftestCache(sum, repo, color);
-		sSelftestSearch(sum, repo, color, inv.verbose);
-		sSelftestPlan(sum, inv, repo, policy, color, inv.verbose);
-		sSelftestProviders(sum, inv, repo, policy, color, inv.verbose);
-		sSelftestLint(sum, inv, repo, policy, color, inv.verbose);
+		sSelftestVersionHelp(sum, report, color);
+		sSelftestDoctor(sum, report, color);
+		sSelftestCache(sum, report, repo, color);
+		sSelftestSearch(sum, report, repo, color, inv.verbose);
+		sSelftestPlan(sum, report, inv, repo, policy, color, inv.verbose);
+		sSelftestProviders(sum, report, inv, repo, policy, color, inv.verbose);
+		sSelftestLint(sum, report, inv, repo, policy, color, inv.verbose);
 	}
 	else if(group == "doctor")
-		sSelftestDoctor(sum, color);
+		sSelftestDoctor(sum, report, color);
 	else if(group == "cache")
-		sSelftestCache(sum, repo, color);
+		sSelftestCache(sum, report, repo, color);
 	else if(group == "plan")
-		sSelftestPlan(sum, inv, repo, policy, color, inv.verbose);
+		sSelftestPlan(sum, report, inv, repo, policy, color, inv.verbose);
 	else if(group == "lint")
-		sSelftestLint(sum, inv, repo, policy, color, inv.verbose);
+		sSelftestLint(sum, report, inv, repo, policy, color, inv.verbose);
 	else {
 		sDoctorLine(sum, "error", "unknown selftest group: " + inv.subcommand, color);
 		Cout() << "  available groups: quick doctor cache plan lint all\n";
+		sSelftestAddCheck(report, "selftest group", "error", "unknown selftest group: " + inv.subcommand, 0.0);
 	}
 
 	Cout() << "\nSummary:\n";
 	Cout() << "  " << sum.ok << " ok, " << sum.warn << " warn, " << sum.error << " error\n";
+	report.ok = sum.ok;
+	report.warn = sum.warn;
+	report.info = sum.info;
+	report.error = sum.error;
+	report.exit_basis = inv.strict ? "warnings and errors" : "errors only";
+	report.total_seconds = total.Seconds();
+	if(!inv.report.IsEmpty())
+		sWriteSelftestReport(report);
 	return sum.error > 0 || (inv.strict && sum.warn > 0) ? 1 : 0;
 }
 

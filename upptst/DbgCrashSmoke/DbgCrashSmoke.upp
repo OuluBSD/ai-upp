@@ -1,0 +1,10 @@
+uses
+	Core;
+
+file
+	AGENTS.md,
+	DbgCrashSmoke.h,
+	main.cpp;
+
+mainconfig
+	"" = "";

@@ -178,4 +178,61 @@ String VsmMakeSampleJson()
 		"]}";
 }
 
+// ---------------------------------------------------------------------------
+// VsmGroundTruthComparison
+
+VsmComparisonResult VsmGroundTruthComparison::Compare(
+	const VsmGroundTruthSession& expected,
+	const Vector<VsmDivergence>& observed)
+{
+	VsmComparisonResult result;
+
+	// Track which observed entries have been consumed
+	Vector<bool> used;
+	for(int i = 0; i < observed.GetCount(); i++) used.Add(false);
+
+	for(const VsmDivergence& exp : expected.divergences) {
+		bool found = false;
+		for(int j = 0; j < observed.GetCount(); j++) {
+			if(used[j]) continue;
+			if(exp.expected_json != observed[j].expected_json) continue;
+			int diff = exp.frame - observed[j].frame;
+			if(diff < 0) diff = -diff;
+			if(diff > 5) continue;
+
+			VsmComparisonEntry& e = result.entries.Add();
+			e.event_name     = exp.expected_json;
+			e.expected_frame = exp.frame;
+			e.observed_frame = observed[j].frame;
+			e.status         = "matched";
+			used[j] = true;
+			found   = true;
+			result.matched++;
+			break;
+		}
+		if(!found) {
+			VsmComparisonEntry& e = result.entries.Add();
+			e.event_name     = exp.expected_json;
+			e.expected_frame = exp.frame;
+			e.observed_frame = -1;
+			e.status         = "missing";
+			result.missing++;
+		}
+	}
+
+	// Remaining unmatched observed divergences are unexpected
+	for(int j = 0; j < observed.GetCount(); j++) {
+		if(!used[j]) {
+			VsmComparisonEntry& e = result.entries.Add();
+			e.event_name     = observed[j].expected_json;
+			e.expected_frame = -1;
+			e.observed_frame = observed[j].frame;
+			e.status         = "unexpected";
+			result.unexpected++;
+		}
+	}
+
+	return result;
+}
+
 } // namespace Upp

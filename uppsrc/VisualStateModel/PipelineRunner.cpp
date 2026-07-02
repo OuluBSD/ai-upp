@@ -345,6 +345,32 @@ VsmPipelineRunSummary VsmObservationPipeline::RunFromSource(VsmFrameSource& src)
 }
 
 // ---------------------------------------------------------------------------
+// RunWithGroundTruth
+
+VsmPipelineRunWithGTSummary VsmObservationPipeline::RunWithGroundTruth(
+	VsmFrameSource& src, VsmGroundTruthSession& gt)
+{
+	VsmPipelineRunWithGTSummary result;
+	static_cast<VsmPipelineRunSummary&>(result) = RunFromSource(src);
+
+	if(model_rt_) {
+		VsmGroundTruthComparison cmp_engine;
+		result.comparison = cmp_engine.Compare(gt, model_rt_->GetDivergences());
+
+		if(store_) {
+			String path = AppendFileName(store_->GetPaths().root, "comparison_result.json");
+			SaveFile(path, StoreAsJson(result.comparison, true));
+			LogInfo(log_, "Pipeline", Format(
+			    "Comparison saved: %d matched, %d missing, %d unexpected → %s",
+			    result.comparison.matched, result.comparison.missing,
+			    result.comparison.unexpected, path));
+		}
+	}
+
+	return result;
+}
+
+// ---------------------------------------------------------------------------
 // SaveOutputs
 
 bool VsmObservationPipeline::SaveOutputs(const String& session_root, const String& run_id)

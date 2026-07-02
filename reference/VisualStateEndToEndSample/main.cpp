@@ -262,6 +262,62 @@ CONSOLE_APP_MAIN
 		}
 	}
 
+	// 10b. Ground-truth comparison
+	// Set up a fresh model with a VALIDATE rule that produces divergences
+	// when OCR returns "Login" (expected_value intentionally different).
+	{
+		VsmModelRuntime gt_model;
+		gt_model.SetLog(&log);
+		VsmModelRule gtmr1;
+		gtmr1.rule_id = "gt-mr-001"; gtmr1.type = VSM_MR_SET_PROP_FROM_OCR;
+		gtmr1.object_id = "app-screen"; gtmr1.property_key = "screen";
+		gtmr1.source_rule_id = "ocr-001";
+		gt_model.AddRule(gtmr1);
+		VsmModelRule gtmr2;
+		gtmr2.rule_id = "gt-mr-002"; gtmr2.type = VSM_MR_VALIDATE_PROP;
+		gtmr2.object_id = "app-screen"; gtmr2.property_key = "screen";
+		// OCR returns "Login"; VALIDATE expects "Dashboard" → always diverges
+		gtmr2.expected_value = "Dashboard";
+		gtmr2.source_rule_id = "ocr-001";
+		gt_model.AddRule(gtmr2);
+
+		// Pipeline for the GT run
+		VsmObservationPipeline gt_pipe;
+		gt_pipe.SetLog(&log);
+		gt_pipe.SetSessionStore(&store);
+		gt_pipe.SetAnnotationLayer(&ann);
+		gt_pipe.SetPreprocessPipeline(&pipeline);
+		gt_pipe.SetTemplateRules(&tmpl_rules);
+		gt_pipe.SetTemplateMatcher(&matcher);
+		gt_pipe.SetOcrRules(&ocr_rules);
+		gt_pipe.SetOcrEngine(&fake_ocr);
+		gt_pipe.SetModelRuntime(&gt_model);
+
+		// Ground truth: 2 expected divergences matching what the GT run will produce.
+		// ApplyValidateProp builds expected_json as "\"" + expected_value + "\""
+		// so with expected_value="Dashboard": expected_json = "\"Dashboard\""
+		VsmGroundTruthSession gt;
+		for(int i = 0; i < 2; i++) {
+			VsmDivergence& gd = gt.divergences.Add();
+			gd.expected_json = "\"Dashboard\"";
+			gd.severity      = "warning";
+		}
+
+		// Frame source replaying the session images from the store
+		VsmSessionStoreSource gt_src;
+		gt_src.SetLog(&log);
+		if(gt_src.Open(session_root)) {
+			VsmPipelineRunWithGTSummary gt_sum = gt_pipe.RunWithGroundTruth(gt_src, gt);
+			const VsmComparisonResult& cmp = gt_sum.comparison;
+			Check(cmp.matched >= 1, "ground-truth comparison: matched >= 1");
+			Cout() << "OK: ground-truth comparison: " << cmp.matched
+			       << " matched, " << cmp.missing << " missing, "
+			       << cmp.unexpected << " unexpected\n";
+		} else {
+			Check(false, "ground-truth comparison: session source open");
+		}
+	}
+
 	// 11. Write pipeline run outputs
 	pipe.SaveOutputs(session_root, summary.run_id);
 	Cout() << "\nRun outputs: " << AppendFileName(AppendFileName(session_root, "runs"), summary.run_id) << "\n";

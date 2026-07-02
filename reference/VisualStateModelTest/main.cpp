@@ -875,6 +875,92 @@ static void TestSessionStorage()
 }
 
 // ---------------------------------------------------------------------------
+// Test: VsmSessionStoreSource and RunFromSource
+
+static void TestFrameSource()
+{
+	Cout() << "\n=== Frame source (VsmSessionStoreSource) ===\n";
+
+	AppLog log;
+	log.SetForwardToUppLog(false);
+
+	// Build a session with 3 real vsm frames
+	String root = AppendFileName(GetTempPath(), "vsm_framesrc_test");
+	if(DirectoryExists(root)) DeleteFolderDeep(root);
+
+	VsmSessionStore store;
+	store.SetLog(&log);
+	if(!store.Create(root, "framesrc-001", 32, 32)) { Fail("FrameSource: store Create"); return; }
+
+	VsmImageBuffer f0 = VsmImageBuffer::MakeSolid(32, 32, 100, 1);
+	VsmImageBuffer f1 = VsmImageBuffer::MakeSolid(32, 32, 150, 1);
+	VsmImageBuffer f2 = VsmImageBuffer::MakeCheckerboard(32, 32, 4);
+	store.SaveFrameImage(0, f0);
+	store.SaveFrameImage(1, f1);
+	store.SaveFrameImage(2, f2);
+	store.SaveManifest();
+
+	// Open with VsmSessionStoreSource
+	VsmSessionStoreSource src;
+	src.SetLog(&log);
+	if(!src.Open(root)) { Fail("FrameSource: Open"); return; }
+	if(!src.IsReady()) { Fail("FrameSource: IsReady"); return; }
+	if(src.GetWidth() != 32 || src.GetHeight() != 32) { Fail("FrameSource: dimensions"); return; }
+	if(src.GetFrameCount() != 3) { Fail("FrameSource: GetFrameCount"); return; }
+	Cout() << "Open: OK — " << src.GetSourceInfo() << "\n";
+	Cout() << "Dimensions: " << src.GetWidth() << "x" << src.GetHeight() << " OK\n";
+
+	// Read all frames
+	VsmImageBuffer out; int64 ts_ms = 0;
+	int frames_read = 0;
+	while(src.ReadFrame(out, ts_ms)) {
+		if(out.width != 32 || out.height != 32) { Fail("FrameSource: frame dimensions"); return; }
+		frames_read++;
+	}
+	if(frames_read != 3) { Fail("FrameSource: expected 3 frames"); return; }
+	Cout() << "ReadFrame: " << frames_read << " frames OK\n";
+
+	// End-of-stream: ReadFrame should return false
+	if(src.ReadFrame(out, ts_ms)) { Fail("FrameSource: expected end-of-stream"); return; }
+	Cout() << "End-of-stream: OK\n";
+
+	// Close / reopen
+	src.Close();
+	if(src.IsReady()) { Fail("FrameSource: IsReady after Close"); return; }
+	if(!src.Open(root)) { Fail("FrameSource: reopen after Close"); return; }
+	Cout() << "Close/reopen: OK\n";
+
+	// Run pipeline from source
+	VsmAnnotationLayer ann;
+	ann.schema = 1; ann.session_id = "framesrc-001";
+	VsmRegionAnnotation& a = ann.annotations.Add();
+	a.id = "ann-fs"; a.name = "FullFrame"; a.x = 0; a.y = 0; a.w = 32; a.h = 32;
+
+	VsmFakeOcrEngine fake_ocr("FrameTest", 0.88);
+	Vector<VsmOcrRule> ocr_rules;
+	VsmOcrRule& r = ocr_rules.Add();
+	r.rule_id = "ocr-fs"; r.annotation_id = "ann-fs";
+	r.expectation.mode = VSM_EXPECT_EXACT;
+	r.expectation.expected_text = "FrameTest";
+	r.confidence_threshold = 0.5;
+
+	VsmObservationPipeline pipe;
+	pipe.SetLog(&log);
+	pipe.SetAnnotationLayer(&ann);
+	pipe.SetOcrRules(&ocr_rules);
+	pipe.SetOcrEngine(&fake_ocr);
+
+	VsmPipelineRunSummary sum = pipe.RunFromSource(src);
+	if(!sum.success) { Fail("FrameSource: RunFromSource not success"); return; }
+	if(sum.frames_processed != 3) { Fail("FrameSource: RunFromSource frames processed"); return; }
+	if(sum.observations_made == 0) { Fail("FrameSource: RunFromSource no observations"); return; }
+	Cout() << "RunFromSource: frames=" << sum.frames_processed
+	       << " obs=" << sum.observations_made << " OK\n";
+
+	DeleteFolderDeep(root);
+}
+
+// ---------------------------------------------------------------------------
 
 CONSOLE_APP_MAIN
 {
@@ -894,6 +980,7 @@ CONSOLE_APP_MAIN
 	TestAnnotation();
 	TestImageAssets();
 	TestSessionStorage();
+	TestFrameSource();
 
 	if(GetExitCode() == 0)
 		Cout() << "\nAll VisualStateModel checks passed.\n";

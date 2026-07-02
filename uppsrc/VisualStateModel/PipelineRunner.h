@@ -70,9 +70,13 @@ public:
 	void SetOcrEngine(VsmOcrEngine* eng)                        { ocr_engine_  = eng;       }
 	void SetModelRuntime(VsmModelRuntime* runtime)              { model_rt_    = runtime;   }
 
-	// Run the full pipeline over the session.
-	// Returns summary with counters.
+	// Run the full pipeline over the session (change-event based).
 	VsmPipelineRunSummary Run();
+
+	// Alternate entry: drive pipeline frame-by-frame from a VsmFrameSource.
+	// Each frame generates a full-frame VsmChangedRect for the annotation/rules pass.
+	// Saves frames to store_ if set.
+	VsmPipelineRunSummary RunFromSource(VsmFrameSource& src);
 
 	const Vector<VsmObservation>&  GetObservations()  const { return observations_;  }
 	const VsmPipelineDiagnostics&  GetDiagnostics()   const { return diagnostics_;   }

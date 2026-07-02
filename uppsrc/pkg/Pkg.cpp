@@ -3479,10 +3479,11 @@ static void sLintFinalizeBaseline(PkgLintSummary& sum)
 
 static int sLintExitCode(const PkgInvocation& inv, const PkgLintSummary& sum, bool report_ok)
 {
+	bool check = inv.check || inv.ci;
 	if(inv.update_baseline)
 		return report_ok ? 0 : 1;
 	if(!sum.baseline_path.IsEmpty()) {
-		if(!inv.ci)
+		if(!check)
 			return report_ok ? 0 : 1;
 		return sum.new_errors > 0 || (inv.strict && sum.new_warnings > 0) || (inv.fail_on_baseline && sum.baseline_known > 0) || !report_ok ? 1 : 0;
 	}
@@ -3944,12 +3945,13 @@ static int sLintCommand(const PkgInvocation& inv, const PkgRepository& repo, con
 	TimeStop phase;
 	PkgLintSummary sum;
 	PkgLintMetrics metrics;
+	bool check = inv.check || inv.ci;
 	Index<String> seen_paths;
 	Vector<String> roots = sLintRootQueries(inv, repo);
 	PkgState state;
 	LoadFromJsonFile(state, repo.paths.state);
-	sum.quiet = inv.summary || inv.ci || inv.quiet;
-	sum.ci = inv.ci;
+	sum.quiet = inv.summary || check || inv.quiet;
+	sum.ci = check;
 	sum.show_baseline = inv.show_baseline;
 	sum.fail_on_baseline = inv.fail_on_baseline;
 	sum.update_baseline = inv.update_baseline;
@@ -3993,8 +3995,8 @@ static int sLintCommand(const PkgInvocation& inv, const PkgRepository& repo, con
 		Cout() << "Linting package metadata";
 		if(inv.all)
 			Cout() << " for all packages";
-		if(inv.ci)
-			Cout() << " [ci]";
+		if(check)
+			Cout() << " [check]";
 		Cout() << "...\n";
 		Cout() << "Indexing packages... done, " << repo.packages.GetCount() << " packages\n\n";
 		if(!sum.baseline_path.IsEmpty()) {
@@ -4008,6 +4010,8 @@ static int sLintCommand(const PkgInvocation& inv, const PkgRepository& repo, con
 			Cout() << "\n\n";
 		}
 	}
+	if(inv.ci)
+		Cerr() << "pkg: lint --ci is experimental; use --check for local batch lint policy.\n";
 	if(roots.IsEmpty()) {
 		sLintLine(sum, "info", "PKG-LINT-NO-PACKAGES", "no packages selected", color);
 		sLintFinalizeBaseline(sum);
@@ -4305,6 +4309,7 @@ bool ParsePkgArgs(const Vector<String>& args, PkgInvocation& inv, String& error)
 			else if(a == "--nodeps") inv.nodeps = true;
 			else if(a == "--summary") inv.summary = true;
 			else if(a == "--quiet") inv.quiet = true;
+			else if(a == "--check") inv.check = true;
 			else if(a == "--ci") inv.ci = true;
 			else if(a == "--baseline" || a.StartsWith("--baseline=")) {
 				inv.baseline = a == "--baseline" ? (i + 1 < args.GetCount() ? args[++i] : String()) : sOptValue(a);
@@ -4461,7 +4466,7 @@ bool ParsePkgArgs(const Vector<String>& args, PkgInvocation& inv, String& error)
 			inv.command = PKG_CMD_PROVIDERS;
 		else if(inv.resume)
 			inv.command = PKG_CMD_RESUME;
-		else if(inv.all || inv.strict || inv.nodeps || inv.summary || inv.quiet || inv.ci || inv.debug_timing || inv.limit > 0 || !inv.report.IsEmpty() || !inv.baseline.IsEmpty() || inv.update_baseline || !inv.use_cache || inv.rebuild_cache)
+		else if(inv.all || inv.strict || inv.nodeps || inv.summary || inv.quiet || inv.check || inv.ci || inv.debug_timing || inv.limit > 0 || !inv.report.IsEmpty() || !inv.baseline.IsEmpty() || inv.update_baseline || !inv.use_cache || inv.rebuild_cache)
 			inv.command = PKG_CMD_LINT;
 		else if(inv.ask || inv.verbose || inv.update || inv.deep || inv.newuse || inv.changed_use || inv.pretend || inv.install || inv.depclean)
 			inv.command = PKG_CMD_PLAN;
@@ -4847,6 +4852,7 @@ static void sPrintHelp(bool color)
 		<< "  -N, --newuse         include packages whose USE metadata changed\n"
 		<< "  -U, --changed-use    rebuild only if effective USE or projection changed\n"
 		<< "      --strict         treat warnings as failures for lint\n"
+		<< "      --check          local lint check mode; concise and non-interactive\n"
 		<< "      --baseline PATH  load a lint baseline from PATH\n"
 		<< "      --update-baseline PATH\n"
 		<< "                       refresh PATH with the current lint findings\n"
@@ -4857,7 +4863,7 @@ static void sPrintHelp(bool color)
 		<< "      --nodeps         lint only the selected package metadata, not its dependencies\n"
 		<< "      --summary        reduce lint output to one-line package summaries\n"
 		<< "      --quiet          print only the final lint summary and categories\n"
-		<< "      --ci             concise lint mode for CI and agents\n"
+		<< "      --ci             deprecated alias for --check (local lint only)\n"
 		<< "      --debug-timing   print lint timing and cache counters\n"
 		<< "      --limit N        limit lint --all to the first N packages\n"
 		<< "      --report PATH    write a JSON or Markdown lint report\n"
@@ -4879,7 +4885,7 @@ static void sPrintHelp(bool color)
 		<< "  --metadata-cache, metadata-cache [--rebuild]\n"
 		<< "  --metadata, metadata\n"
 		<< "  --list-sets\n"
-		<< "  --lint, lint [atom|@world|--all] [--strict] [--nodeps] [--summary] [--quiet] [--ci] [--debug-timing] [--limit N] [--baseline PATH] [--update-baseline PATH] [--report PATH]\n"
+		<< "  --lint, lint [atom|@world|--all] [--strict] [--nodeps] [--summary] [--quiet] [--check] [--ci] [--debug-timing] [--limit N] [--baseline PATH] [--update-baseline PATH] [--report PATH]\n"
 		<< "  --audit-acceptflags [atom] [--patch]\n"
 		<< "  --targets\n"
 		<< "  targets\n"
@@ -5633,6 +5639,7 @@ static void sPrintInfo(const PkgRepository& repo, const PkgInvocation& inv, cons
 	Cout() << "Selected emscripten profile: " << (eff.emscripten_profile.IsEmpty() ? String("[none]") : eff.emscripten_profile) << "\n";
 	Cout() << "Selected USE: " << sFormatUseList(sMergeUseArgs(Split(policy.make_use, CharFilterWhitespace), eff.use_args)) << "\n";
 	Cout() << "Doctor: run `pkg doctor` for environment diagnostics.\n";
+	Cout() << "Lint check: use `pkg lint --check` for local batch policy; `--ci` is a compatibility alias.\n";
 	Cout() << "Artifacts: run `pkg bins` to inspect recorded build outputs.\n";
 	Cout() << "Cleanup: run `pkg clean` or `pkg --depclean` for conservative removal.\n";
 }

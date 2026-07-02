@@ -961,6 +961,65 @@ static void TestFrameSource()
 }
 
 // ---------------------------------------------------------------------------
+// Test: MJPEG boundary parser
+
+static void TestMjpegParser()
+{
+	Cout() << "\n=== MJPEG boundary parser ===\n";
+
+	AppLog log;
+	log.SetForwardToUppLog(false);
+
+	// Build a synthetic 3-frame MJPEG stream
+	String boundary = "myboundary";
+	String fake_jpeg = "FAKE_JPEG_DATA_0123456789";
+	String stream = VsmMakeSyntheticMjpeg(boundary, fake_jpeg, 3);
+	if(stream.IsEmpty()) { Fail("VsmMakeSyntheticMjpeg returned empty"); return; }
+	Cout() << "Synthetic stream: " << stream.GetCount() << " bytes OK\n";
+
+	VsmMjpegParser parser;
+	parser.SetLog(&log);
+	parser.Reset(boundary);
+
+	// Feed in one chunk
+	parser.Feed(stream);
+
+	// Extract all payloads
+	int count = 0;
+	String payload;
+	VsmMjpegPartHeader header;
+	while(parser.ExtractNextPayload(payload, header)) {
+		count++;
+		if(payload != fake_jpeg) { Fail("Payload content mismatch"); return; }
+		if(header.content_type != "image/jpeg") { Fail("Content-Type mismatch"); return; }
+		if(header.content_length != (int)fake_jpeg.GetCount())
+			{ Fail("Content-Length mismatch"); return; }
+	}
+	if(count != 3) { Fail("Expected 3 payloads"); return; }
+	Cout() << "Extracted 3 payloads, all correct OK\n";
+	Cout() << "PayloadCount: " << parser.GetPayloadCount() << " OK\n";
+
+	// Incremental feed test: split stream into 10-byte chunks
+	parser.Reset(boundary);
+	int ichunk = 0;
+	int total = stream.GetCount();
+	while(ichunk < total) {
+		int n = min(10, total - ichunk);
+		parser.Feed(stream.Mid(ichunk, n));
+		ichunk += n;
+	}
+	int count2 = 0;
+	while(parser.ExtractNextPayload(payload, header)) count2++;
+	if(count2 != 3) { Fail("Incremental feed: expected 3 payloads"); return; }
+	Cout() << "Incremental feed (10-byte chunks): " << count2 << " payloads OK\n";
+
+	// Empty boundary reset
+	parser.Reset("otherbnd");
+	if(parser.GetPayloadCount() != 0) { Fail("Reset did not clear payload count"); return; }
+	Cout() << "Reset: OK\n";
+}
+
+// ---------------------------------------------------------------------------
 
 CONSOLE_APP_MAIN
 {
@@ -981,6 +1040,7 @@ CONSOLE_APP_MAIN
 	TestImageAssets();
 	TestSessionStorage();
 	TestFrameSource();
+	TestMjpegParser();
 
 	if(GetExitCode() == 0)
 		Cout() << "\nAll VisualStateModel checks passed.\n";

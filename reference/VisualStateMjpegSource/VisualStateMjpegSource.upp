@@ -1,0 +1,10 @@
+description "VisualStateModel MJPEG source prototype\377";
+
+uses
+	VisualStateModel;
+
+file
+	main.cpp;
+
+mainconfig
+	"" = "";

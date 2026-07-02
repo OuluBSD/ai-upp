@@ -38,4 +38,6 @@ public:
 	virtual void         Cancel() {}
 };
 
+void AppendDbgLaunchRequestTranscript(String& transcript, const DbgLaunchRequest& request);
+
 #endif

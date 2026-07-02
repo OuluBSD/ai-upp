@@ -13,10 +13,6 @@ DbgRunResult GdbBackendSession::Run(const DbgLaunchRequest& request)
 	result.backend_name = "gdb";
 	result.exit_code = 1;
 	result.error = "gdb backend is not implemented yet";
-	result.transcript << "executable: " << request.executable_path << '\n';
-	if(!request.working_directory.IsEmpty())
-		result.transcript << "cwd: " << request.working_directory << '\n';
-	for(int i = 0; i < request.arguments.GetCount(); i++)
-		result.transcript << "arg[" << i << "]: " << request.arguments[i] << '\n';
+	AppendDbgLaunchRequestTranscript(result.transcript, request);
 	return result;
 }

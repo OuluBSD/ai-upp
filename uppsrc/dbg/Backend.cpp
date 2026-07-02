@@ -70,6 +70,70 @@ static int FindArg(const Vector<String>& args, const char *needle)
 	return -1;
 }
 
+static bool ParseRunCommand(const Vector<String>& args, int pos, const String& backend_name, DbgLaunchRequest& request, String& error)
+{
+	bool parsing_run_options = true;
+
+	for(int i = pos; i < args.GetCount(); i++) {
+		const String& arg = args[i];
+
+		if(parsing_run_options) {
+			if(arg == "--") {
+				parsing_run_options = false;
+				continue;
+			}
+			if(arg == "--cwd") {
+				if(i + 1 >= args.GetCount()) {
+					error = "dbg: missing value for --cwd";
+					return false;
+				}
+				request.working_directory = args[++i];
+				continue;
+			}
+			if(arg == "--env") {
+				if(i + 1 >= args.GetCount()) {
+					error = "dbg: missing value for --env";
+					return false;
+				}
+				String env = args[++i];
+				int eq = env.Find('=');
+				if(eq < 1 || eq + 1 >= env.GetCount()) {
+					error = "dbg: invalid --env value '" + env + "'";
+					return false;
+				}
+				request.environment.Add(env.Left(eq), env.Mid(eq + 1));
+				continue;
+			}
+			if(arg == "--quiet") {
+				request.quiet = true;
+				continue;
+			}
+			if(arg == "--verbose") {
+				request.quiet = false;
+				continue;
+			}
+			if(arg.StartsWith("--")) {
+				error = "dbg: unknown run option '" + arg + "' for '" + backend_name + "'";
+				return false;
+			}
+
+			request.executable_path = arg;
+			parsing_run_options = false;
+			continue;
+		}
+
+		if(arg != "--")
+			request.arguments.Add(arg);
+	}
+
+	if(request.executable_path.IsEmpty()) {
+		error = "dbg: missing executable path for '" + backend_name + "'";
+		return false;
+	}
+
+	return true;
+}
+
 static int RunBackendCommand(const DbgBackendInfo& backend, const Vector<String>& args, int pos)
 {
 	if(pos >= args.GetCount()) {
@@ -91,9 +155,11 @@ static int RunBackendCommand(const DbgBackendInfo& backend, const Vector<String>
 	}
 
 	DbgLaunchRequest request;
-	request.executable_path = args[pos + 1];
-	for(int i = pos + 2; i < args.GetCount(); i++)
-		request.arguments.Add(args[i]);
+	String error;
+	if(!ParseRunCommand(args, pos + 1, backend.name, request, error)) {
+		Cerr() << error << "\n";
+		return 1;
+	}
 
 	One<DbgBackendSession> session = CreateDbgBackendSession(backend.name);
 	DbgRunResult result = session ? session->Run(request) : DbgRunResult();

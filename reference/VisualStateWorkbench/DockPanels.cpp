@@ -77,8 +77,13 @@ ModelStatePanel::ModelStatePanel()
 	transitions_list_.AddColumn("→ Value");
 	transitions_list_.AddColumn("Event", 80);
 
-	divergences_list_.AddColumn("Message");
+	divergences_list_.AddColumn("Frame",    60);
+	divergences_list_.AddColumn("Region",   90);
 	divergences_list_.AddColumn("Severity", 60);
+	divergences_list_.AddColumn("Message");
+	divergences_list_.WhenSel = [=] { OnDivergenceSel(); };
+
+	divergence_detail_.SetReadOnly();
 
 	run_sample_btn_.SetLabel("Run Sample Events");
 
@@ -86,7 +91,11 @@ ModelStatePanel::ModelStatePanel()
 	objects_area_.Add(props_list_.HSizePos(0,0).TopPos(124,100));
 
 	transitions_area_.Add(transitions_list_.SizePos());
-	divergences_area_.Add(divergences_list_.SizePos());
+
+	divergences_split_.Vert();
+	divergences_split_.Add(divergences_list_);
+	divergences_split_.Add(divergence_detail_);
+	divergences_area_.Add(divergences_split_.SizePos());
 
 	tabs_.Add(objects_area_.SizePos(), "Objects");
 	tabs_.Add(transitions_area_.SizePos(), "Transitions");
@@ -123,7 +132,29 @@ void ModelStatePanel::Refresh()
 	for(const VsmModelTransition& t : rt_->GetHistory())
 		transitions_list_.Add(t.object_id, t.property_key, t.to_value, t.trigger_event_type);
 	for(const VsmDivergence& d : rt_->GetDivergences())
-		divergences_list_.Add(d.message, d.severity);
+		divergences_list_.Add(d.frame,
+		                      d.region_id.IsEmpty() ? String("—") : d.region_id,
+		                      d.severity, d.message);
+	divergence_detail_.Clear();
+}
+
+void ModelStatePanel::OnDivergenceSel()
+{
+	int row = divergences_list_.GetCursor();
+	if(!rt_ || row < 0) {
+		divergence_detail_.Clear();
+		return;
+	}
+	const Vector<VsmDivergence>& divs = rt_->GetDivergences();
+	if(row >= divs.GetCount()) return;
+	const VsmDivergence& d = divs[row];
+
+	String txt = "expected:\n" + (d.expected_json.IsEmpty() ? String("(none)") : d.expected_json)
+	           + "\n\nobserved:\n" + (d.observed_json.IsEmpty() ? String("(none)") : d.observed_json);
+	divergence_detail_.Set(txt);
+
+	if(d.frame >= 0)
+		WhenJumpToFrame(d.frame);
 }
 
 void ModelStatePanel::OnRunSample()

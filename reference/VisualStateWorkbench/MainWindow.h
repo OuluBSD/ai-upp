@@ -112,6 +112,7 @@ private:
 	// ---- Pipeline runner
 	void OnRunPipeline();
 	void OnLoadE2ESample();
+	void OnJumpToFrame(int frame);
 
 	// ---- Cache
 	VsmPipelineCache pipeline_cache_;

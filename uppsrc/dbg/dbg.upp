@@ -7,6 +7,8 @@ file
 	AGENTS.md,
 	dbg.h,
 	Session.h,
+	BackendFactory.h,
+	BackendFactory.cpp,
 	GdbAdapter.h,
 	GdbAdapter.cpp,
 	LldbAdapter.h,

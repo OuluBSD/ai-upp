@@ -6,6 +6,7 @@
 using namespace Upp;
 
 #include "Session.h"
+#include "BackendFactory.h"
 #include "GdbAdapter.h"
 #include "LldbAdapter.h"
 #include "VsAdapter.h"

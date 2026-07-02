@@ -1,0 +1,10 @@
+description "VisualStateModel capture sink — CLI recorder tool\377";
+
+uses
+	VisualStateModel;
+
+file
+	main.cpp;
+
+mainconfig
+	"" = "";

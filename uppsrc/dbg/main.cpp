@@ -2,53 +2,47 @@
 
 using namespace Upp;
 
+static void PrintHelp()
+{
+	Cout() << "Usage: dbg [--help] [--backends]\n"
+	       << "\n"
+	       << "  --backends  List planned debugger backends.\n"
+	       << "  --help      Show this help text.\n"
+	       << "\n"
+	       << "This is the first headless dbg CLI skeleton.\n";
+}
+
 CONSOLE_APP_MAIN
 {
 	const Vector<String>& args = CommandLine();
+	bool show_help = args.IsEmpty();
+	bool show_backends = false;
 
-	String host = "127.0.0.1";
-	int    port  = 7326;
-	String method;
-	String params;
-
-	for(int i = 0; i < args.GetCount(); i++) {
-		const String& a = args[i];
-		if(a == "--help" || a == "-h") {
-			Cout() << "Usage: dbg [--host HOST] [--port PORT] [method [params_json]]\n"
-			       << "\n"
-			       << "  No method: stdio JSON-RPC proxy to TheIDE MCP server.\n"
-			       << "  With method: one-shot call, print result, exit.\n"
-			       << "\n"
-			       << "Options:\n"
-			       << "  --host HOST   MCP server host (default: 127.0.0.1)\n"
-			       << "  --port PORT   MCP server port (default: 7326)\n"
-			       << "\n"
-			       << "Examples:\n"
-			       << "  dbg debug.state\n"
-			       << "  dbg debug.breakpoint.set '{\"file\":\"main.cpp\",\"line\":5}'\n"
-			       << "  echo '{\"jsonrpc\":\"2.0\",\"id\":\"1\",\"method\":\"debug.state\",\"params\":{}}' | dbg\n";
-			SetExitCode(0);
-			return;
-		}
-		if(a.StartsWith("--host="))      host = a.Mid(7);
-		else if(a.StartsWith("--port=")) port = StrInt(a.Mid(7));
-		else if(a == "--host" && i + 1 < args.GetCount())  host = args[++i];
-		else if(a == "--port" && i + 1 < args.GetCount())  port = StrInt(args[++i]);
-		else if(!a.StartsWith("-") && method.IsEmpty()) {
-			method = a;
-			if(i + 1 < args.GetCount() && !args[i + 1].StartsWith("-"))
-				params = args[++i];
-		}
+	for(const String& a : args) {
+		if(a == "--help" || a == "-h")
+			show_help = true;
+		else if(a == "--backends")
+			show_backends = true;
+		else
+			show_help = true;
 	}
 
-	DbgMcpCli cli;
-	if(!cli.Connect(host, port)) {
-		SetExitCode(1);
-		return;
+	if(show_backends) {
+		const VectorMap<String, String> backends = GetPlannedDbgBackends();
+		Cout() << "Planned backends: ";
+		for(int i = 0; i < backends.GetCount(); i++) {
+			if(i)
+				Cout() << ", ";
+			Cout() << backends.GetKey(i);
+		}
+		Cout() << "\n";
+		Cout().Flush();
 	}
 
-	if(!method.IsEmpty())
-		SetExitCode(cli.OneShot(method, params.IsEmpty() ? "{}" : params));
-	else
-		SetExitCode(cli.Loop());
+	if(show_help) {
+		PrintHelp();
+		Cout().Flush();
+	}
+
+	SetExitCode(0);
 }

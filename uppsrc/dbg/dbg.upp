@@ -1,4 +1,4 @@
-description "DbgMcpCli";
+description "dbg CLI";
 
 uses
 	Core;
@@ -6,10 +6,9 @@ uses
 file
 	AGENTS.md,
 	dbg.h,
-	TcpProxy.h,
-	TcpProxy.cpp,
+	Backend.h,
+	Backend.cpp,
 	main.cpp;
 
 mainconfig
 	"" = "";
-

@@ -60,6 +60,7 @@ void MainWindow::DockInit()
 
 	replay_.SetLog(&log_);
 	LoadSampleSession();
+	RunJpegSmokeTest();
 
 	// Open pipeline cache in temp cache directory
 	String cache_dir = AppendFileName(GetTempPath(), "vsm_wb_cache");
@@ -613,20 +614,34 @@ void MainWindow::OnOpenSession()
 	OpenSessionPath(path);
 }
 
-void MainWindow::OnImportImageSequence()
+// ---------------------------------------------------------------------------
+// Import dispatch helpers
+
+static bool HasVsmFiles(const String& dir)
 {
-	String start_import = registry_.Get("session.last_import_dir", GetTempPath());
-	String src_dir = SelectDirectory();
-	if(src_dir.IsEmpty()) return;
+	FindFile ff;
+	if(!ff.Search(AppendFileName(dir, "*.vsm"))) return false;
+	do { if(!ff.IsDirectory()) return true; } while(ff.Next());
+	return false;
+}
 
-	// Persist import dir
-	registry_.Set("session.last_import_dir", src_dir);
+static bool HasJpegFiles(const String& dir)
+{
+	static const char* exts[] = { "*.jpg", "*.jpeg", "*.png", nullptr };
+	for(int i = 0; exts[i]; i++) {
+		FindFile ff;
+		if(ff.Search(AppendFileName(dir, exts[i]))) {
+			do { if(!ff.IsDirectory()) return true; } while(ff.Next());
+		}
+	}
+	return false;
+}
 
-	// Choose output location
+void MainWindow::RunVsmImport(const String& src_dir)
+{
 	String out_dir = AppendFileName(GetTempPath(),
 	                                "vsm_import_" + IntStr((int)GetTickCount()));
-
-	Log("import: scanning " + src_dir);
+	Log("import: scanning .vsm in " + src_dir);
 
 	VsmImageSequenceImportOptions opts;
 	opts.source_dir = src_dir;
@@ -646,8 +661,94 @@ void MainWindow::OnImportImageSequence()
 	for(const VsmImportWarning& w : res.warnings)
 		Log("import warning: " + w.filename + " — " + w.message);
 
-	// Open the imported session
 	OpenSessionPath(out_dir);
+}
+
+void MainWindow::RunJpegImport(const String& src_dir)
+{
+	String out_dir = AppendFileName(GetTempPath(),
+	                                "vsm_jpeg_" + IntStr((int)GetTickCount()));
+	Log("import: scanning .jpg/.jpeg/.png in " + src_dir);
+
+	VsmJpegImportOptions opts;
+	opts.source_dir = src_dir;
+	opts.output_dir = out_dir;
+	opts.fps        = 30;
+	opts.grayscale  = true;
+
+	JpegSequenceImporter importer;
+	importer.SetLog(&log_);
+	VsmJpegImportResult res = importer.Import(opts);
+
+	if(!res.success) {
+		Log("import: JPEG/PNG import failed — check debug log");
+		return;
+	}
+
+	Log(Format("import: %d/%d frames imported into %s",
+	           res.frames_imported, res.frames_scanned, out_dir));
+	for(const String& w : res.warnings)
+		Log("import warning: " + w);
+
+	OpenSessionPath(out_dir);
+}
+
+void MainWindow::OnImportImageSequence()
+{
+	String src_dir = SelectDirectory();
+	if(src_dir.IsEmpty()) return;
+
+	registry_.Set("session.last_import_dir", src_dir);
+
+	bool has_vsm  = HasVsmFiles(src_dir);
+	bool has_jpeg = HasJpegFiles(src_dir);
+
+	if(has_jpeg && !has_vsm)   RunJpegImport(src_dir);
+	else if(has_vsm)           RunVsmImport(src_dir);
+	else                       PromptOK("No .vsm or .jpg/.png files found.");
+}
+
+void MainWindow::RunJpegSmokeTest()
+{
+	String src_dir = AppendFileName(GetTempPath(), "vsm_jpeg_smoke_src");
+	String out_dir = AppendFileName(GetTempPath(), "vsm_jpeg_smoke_out");
+
+	// Write 3 synthetic JPEGs (64×64 gray ramps)
+	RealizeDirectory(src_dir);
+	for(int i = 0; i < 3; i++) {
+		ImageBuffer ib(64, 64);
+		byte gray = (byte)(64 + i * 64);
+		RGBA px;
+		px.r = gray; px.g = gray; px.b = gray; px.a = 255;
+		for(int y = 0; y < 64; y++)
+			for(int x = 0; x < 64; x++)
+				ib[y][x] = px;
+		Image img = ib;
+		String fname = Format("%04d_frame.jpg", i);
+		JPGEncoder(80).SaveFile(AppendFileName(src_dir, fname), img);
+	}
+
+	if(DirectoryExists(out_dir))
+		DeleteFolderDeep(out_dir);
+
+	VsmJpegImportOptions opts;
+	opts.source_dir   = src_dir;
+	opts.output_dir   = out_dir;
+	opts.fps          = 25;
+	opts.sort_numeric = true;
+	opts.grayscale    = true;
+
+	JpegSequenceImporter importer;
+	importer.SetLog(&log_);
+	VsmJpegImportResult res = importer.Import(opts);
+
+	if(res.success && res.frames_imported == 3)
+		Log(Format("JPEG smoke test OK: %d/%d frames imported",
+		           res.frames_imported, res.frames_scanned));
+	else
+		Log(Format("JPEG smoke test FAIL: success=%s imported=%d scanned=%d",
+		           res.success ? "true" : "false",
+		           res.frames_imported, res.frames_scanned));
 }
 
 // ---------------------------------------------------------------------------

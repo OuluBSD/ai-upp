@@ -11,6 +11,7 @@ using namespace Upp;
 #include "DebugTab.h"
 #include "FrameCanvas.h"
 #include "DockPanels.h"
+#include "JpegSequenceImporter.h"
 
 class MainWindow : public DockWindow {
 public:
@@ -89,6 +90,9 @@ private:
 	void RebuildRegionsList();
 	void OnOpenSession();
 	void OnImportImageSequence();
+	void RunVsmImport(const String& src_dir);
+	void RunJpegImport(const String& src_dir);
+	void RunJpegSmokeTest();
 	void OpenSessionPath(const String& path);
 
 	// ---- Tab/toolbar

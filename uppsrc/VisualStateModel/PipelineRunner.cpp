@@ -303,7 +303,7 @@ VsmPipelineRunSummary VsmObservationPipeline::RunFromSource(VsmFrameSource& src)
 	while(src.ReadFrame(img, ts_ms)) {
 		// Persist frame to session store if wired up
 		if(store_)
-			store_->SaveFrameImage(frame_idx, img);
+			store_->SaveFrameImage(frame_idx, img, ts_ms);
 
 		// Generate a full-frame changed rect for the annotation/rules pass
 		VsmChangedRect rect;

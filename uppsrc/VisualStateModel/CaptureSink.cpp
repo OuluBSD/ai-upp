@@ -43,7 +43,7 @@ VsmCaptureSummary VsmCaptureSink::Record(VsmFrameSource& src,
 	int64 ts_ms = 0;
 
 	while(src.ReadFrame(img, ts_ms)) {
-		VsmAssetRef ref = store_.SaveFrameImage(frame_idx, img);
+		VsmAssetRef ref = store_.SaveFrameImage(frame_idx, img, ts_ms);
 		if(ref.IsEmpty()) {
 			summary.frames_dropped++;
 			summary.error_count++;

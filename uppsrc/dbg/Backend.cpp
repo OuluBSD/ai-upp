@@ -127,6 +127,10 @@ static int RunBackendCommand(const DbgBackendInfo& backend, const Vector<String>
 		LldbBackendSession session;
 		result = session.Run(request);
 	}
+	else if(backend.name == "vs") {
+		VsBackendSession session;
+		result = session.Run(request);
+	}
 	else {
 		PlannedDbgBackendSession session(backend.name);
 		result = session.Run(request);

@@ -11,6 +11,8 @@ file
 	GdbAdapter.cpp,
 	LldbAdapter.h,
 	LldbAdapter.cpp,
+	VsAdapter.h,
+	VsAdapter.cpp,
 	Backend.h,
 	Backend.cpp,
 	main.cpp;

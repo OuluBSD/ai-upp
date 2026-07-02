@@ -489,20 +489,90 @@ void MainWindow::OnAnnotationChanged()
 
 void MainWindow::OnLoadE2ESample()
 {
-	// The E2E sample writes to GetTempPath()/vsm_e2e_sample
 	String root = AppendFileName(GetTempPath(), "vsm_e2e_sample");
 	if(!DirectoryExists(root)) {
 		Log("e2e: run VisualStateEndToEndSample.exe first to generate the session");
 		return;
 	}
-	Log("e2e: opening session from " + root);
-	session_store_.SetLog(&log_);
-	if(!session_store_.Open(root)) {
-		Log("e2e: failed to open session store");
+	OpenSessionPath(root);
+	Log("e2e: session opened");
+}
+
+// ---------------------------------------------------------------------------
+// Session open / import flow
+
+void MainWindow::OpenSessionPath(const String& path)
+{
+	if(path.IsEmpty()) return;
+	Log("session: opening " + path);
+
+	src_source_.SetLog(&log_);
+	if(!src_source_.Open(path)) {
+		Log("session: open failed — " + src_source_.GetLastError());
 		return;
 	}
+
+	session_store_.SetLog(&log_);
+	if(!session_store_.Open(path)) {
+		Log("session: store open failed");
+		src_source_.Close();
+		return;
+	}
+
+	has_src_session_ = true;
 	session_dock_.SetManifest(session_store_.GetManifest());
-	Log("e2e: session opened — " + session_store_.GetManifest().session_id);
+
+	// Persist last opened path
+	registry_.Set("session.last_path", path);
+
+	Log("session: opened — " + session_store_.GetManifest().session_id +
+	    " frames=" + IntStr(src_source_.GetFrameCount()) +
+	    " " + IntStr(src_source_.GetWidth()) + "x" + IntStr(src_source_.GetHeight()));
+}
+
+void MainWindow::OnOpenSession()
+{
+	String start = registry_.Get("session.last_path", GetTempPath());
+	String path  = SelectDirectory();
+	if(path.IsEmpty()) return;
+	OpenSessionPath(path);
+}
+
+void MainWindow::OnImportImageSequence()
+{
+	String start_import = registry_.Get("session.last_import_dir", GetTempPath());
+	String src_dir = SelectDirectory();
+	if(src_dir.IsEmpty()) return;
+
+	// Persist import dir
+	registry_.Set("session.last_import_dir", src_dir);
+
+	// Choose output location
+	String out_dir = AppendFileName(GetTempPath(),
+	                                "vsm_import_" + IntStr((int)GetTickCount()));
+
+	Log("import: scanning " + src_dir);
+
+	VsmImageSequenceImportOptions opts;
+	opts.source_dir = src_dir;
+	opts.output_dir = out_dir;
+	opts.fps        = 30;
+
+	VsmImageSequenceImporter importer;
+	importer.SetLog(&log_);
+	VsmImageSequenceImportResult res = importer.Import(opts);
+
+	if(!res.success) {
+		Log("import: failed — check debug log");
+		return;
+	}
+
+	Log(Format("import: %d frames imported into %s", res.frames_imported, out_dir));
+	for(const VsmImportWarning& w : res.warnings)
+		Log("import warning: " + w.filename + " — " + w.message);
+
+	// Open the imported session
+	OpenSessionPath(out_dir);
 }
 
 // ---------------------------------------------------------------------------
@@ -519,17 +589,10 @@ void MainWindow::OnClearCache()
 
 void MainWindow::OnRunPipeline()
 {
-	const VsmSession& session = replay_.GetSession();
-	if(session.session_id.IsEmpty()) {
-		Log("pipeline: no session loaded");
-		return;
-	}
-
 	Log("pipeline: starting run…");
 
 	VsmObservationPipeline pipe;
 	pipe.SetLog(&log_);
-	pipe.SetSession(&session);
 	if(session_store_.IsOpen())
 		pipe.SetSessionStore(&session_store_);
 	pipe.SetAnnotationLayer(&annotation_layer_);
@@ -542,12 +605,27 @@ void MainWindow::OnRunPipeline()
 	matcher.SetLog(&log_);
 	pipe.SetTemplateMatcher(&matcher);
 
-	VsmPipelineRunSummary summary = pipe.Run();
+	VsmPipelineRunSummary summary;
+	if(has_src_session_) {
+		// Re-open source so we read from the beginning
+		String path = session_store_.GetPaths().root;
+		src_source_.Close();
+		src_source_.Open(path);
+		summary = pipe.RunFromSource(src_source_);
+	} else {
+		const VsmSession& session = replay_.GetSession();
+		if(session.session_id.IsEmpty()) {
+			Log("pipeline: no session loaded");
+			return;
+		}
+		pipe.SetSession(&session);
+		summary = pipe.Run();
+	}
 
 	// Show summary + cache stats in log
-	Log(Format("pipeline: done — obs=%d transitions=%d divergences=%d  cache hits=%d misses=%d",
-	           summary.observations_made, summary.transitions, summary.divergences,
-	           pipeline_cache_.GetHits(), pipeline_cache_.GetMisses()));
+	Log(Format("pipeline: done — frames=%d obs=%d transitions=%d divergences=%d  cache hits=%d misses=%d",
+	           summary.frames_processed, summary.observations_made, summary.transitions,
+	           summary.divergences, pipeline_cache_.GetHits(), pipeline_cache_.GetMisses()));
 	pipeline_cache_.ResetStats();
 
 	if(!summary.success) {

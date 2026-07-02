@@ -37,6 +37,13 @@ void VsmFrameAsset::Jsonize(JsonIO& json)
 	json("frame_index",    frame_index)
 	    ("relative_path",  relative_path)
 	    ("format",         format);
+	// Omit ts_ms when -1 (unknown) to keep manifests backward-compatible.
+	if(json.IsStoring()) {
+		if(ts_ms >= 0)
+			json("ts_ms", ts_ms);
+	} else {
+		json("ts_ms", ts_ms);
+	}
 }
 
 void VsmCropAsset::Jsonize(JsonIO& json)
@@ -156,7 +163,8 @@ VsmAssetRef VsmSessionStore::AllocateCrop(const String& region_id)
 	return ref;
 }
 
-VsmAssetRef VsmSessionStore::SaveFrameImage(int frame_index, const VsmImageBuffer& img)
+VsmAssetRef VsmSessionStore::SaveFrameImage(int frame_index, const VsmImageBuffer& img,
+                                             int64 ts_ms)
 {
 	String filename = Format("frames/%08d.vsm", frame_index);
 	String abs_path = AppendFileName(paths_.root, filename);
@@ -170,6 +178,7 @@ VsmAssetRef VsmSessionStore::SaveFrameImage(int frame_index, const VsmImageBuffe
 		if(fa.frame_index == frame_index) {
 			fa.relative_path = filename;
 			fa.format        = "vsm";
+			fa.ts_ms         = ts_ms;
 			found            = true;
 			break;
 		}
@@ -179,6 +188,7 @@ VsmAssetRef VsmSessionStore::SaveFrameImage(int frame_index, const VsmImageBuffe
 		fa.frame_index    = frame_index;
 		fa.relative_path  = filename;
 		fa.format         = "vsm";
+		fa.ts_ms          = ts_ms;
 	}
 	manifest_.image_format = "vsm";
 	VsmAssetRef ref;

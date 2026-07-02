@@ -47,7 +47,7 @@ bool VsmSessionStoreSource::ReadFrame(VsmImageBuffer& out_frame, int64& out_ts_m
 				LogWarn(log_, "VsmSessionStoreSource", last_error_);
 				continue; // skip corrupt frame, try next
 			}
-			out_ts_ms = (int64)fi * 33; // approximate 30 fps
+			out_ts_ms = fa.ts_ms >= 0 ? fa.ts_ms : (int64)fi * 33;
 			return true;
 		}
 		// placeholder — not a real image; skip silently

@@ -16,6 +16,7 @@ void MainWindow::MenuFile(Bar& bar)
 	bar.Add("Load E2E Sample Session",           [=] { OnLoadE2ESample(); });
 	bar.Separator();
 	bar.Add("Run Pipeline",                      [=] { OnRunPipeline(); });
+	bar.Add("Compare with Ground Truth\xE2\x80\xA6", [=] { OnCompareGroundTruth(); });
 	bar.Add("Clear Pipeline Cache",              [=] { OnClearCache(); });
 	bar.Separator();
 	bar.Add("Exit", [=] { Close(); });

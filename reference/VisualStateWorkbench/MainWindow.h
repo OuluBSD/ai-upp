@@ -111,6 +111,7 @@ private:
 
 	// ---- Pipeline runner
 	void OnRunPipeline();
+	void OnCompareGroundTruth();
 	void OnLoadE2ESample();
 	void OnJumpToFrame(int frame);
 

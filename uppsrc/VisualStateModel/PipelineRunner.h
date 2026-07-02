@@ -54,6 +54,11 @@ struct VsmPipelineDiagnostics : Moveable<VsmPipelineDiagnostics> {
 	void Jsonize(JsonIO& json) { json("entries", entries); }
 };
 
+// Run summary extended with ground-truth comparison result
+struct VsmPipelineRunWithGTSummary : VsmPipelineRunSummary {
+	VsmComparisonResult comparison;
+};
+
 // ---------------------------------------------------------------------------
 // VsmObservationPipeline
 
@@ -77,6 +82,11 @@ public:
 	// Each frame generates a full-frame VsmChangedRect for the annotation/rules pass.
 	// Saves frames to store_ if set.
 	VsmPipelineRunSummary RunFromSource(VsmFrameSource& src);
+
+	// Run from source then compare observed divergences against ground truth.
+	// Saves comparison_result.json to session store if configured.
+	VsmPipelineRunWithGTSummary RunWithGroundTruth(VsmFrameSource& src,
+	                                               VsmGroundTruthSession& gt);
 
 	const Vector<VsmObservation>&  GetObservations()  const { return observations_;  }
 	const VsmPipelineDiagnostics&  GetDiagnostics()   const { return diagnostics_;   }

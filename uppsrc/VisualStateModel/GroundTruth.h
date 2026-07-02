@@ -57,6 +57,46 @@ private:
 
 String VsmMakeSampleJson();
 
+// ---------------------------------------------------------------------------
+// Ground-truth session alias (a VsmSession loaded from a .vsm.json file)
+
+using VsmGroundTruthSession = VsmSession;
+
+// ---------------------------------------------------------------------------
+// Ground-truth vs observed comparison
+
+struct VsmComparisonEntry : Moveable<VsmComparisonEntry> {
+	String event_name;
+	int    expected_frame = -1;
+	int    observed_frame = -1; // -1 if missing or unexpected
+	String status;              // "matched", "missing", "unexpected"
+	String notes;
+	void Jsonize(JsonIO& json) {
+		json("event_name",event_name)("expected_frame",expected_frame)
+		    ("observed_frame",observed_frame)("status",status)("notes",notes);
+	}
+};
+
+struct VsmComparisonResult : Moveable<VsmComparisonResult> {
+	int matched    = 0;
+	int missing    = 0;
+	int unexpected = 0;
+	Vector<VsmComparisonEntry> entries;
+	void Jsonize(JsonIO& json) {
+		json("matched",matched)("missing",missing)("unexpected",unexpected)
+		    ("entries",entries);
+	}
+};
+
+class VsmGroundTruthComparison {
+public:
+	// Compare expected ground-truth divergences against those observed by the
+	// pipeline.  Expected events are from gt.divergences; matching key is
+	// expected_json (string equality) within ±5 frames.
+	VsmComparisonResult Compare(const VsmGroundTruthSession& expected,
+	                            const Vector<VsmDivergence>& observed);
+};
+
 } // namespace Upp
 
 #endif

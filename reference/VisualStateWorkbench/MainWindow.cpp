@@ -488,6 +488,61 @@ void MainWindow::OnAnnotationChanged()
 // ---------------------------------------------------------------------------
 
 // ---------------------------------------------------------------------------
+// Ground-truth comparison
+
+void MainWindow::OnCompareGroundTruth()
+{
+	if(!has_src_session_) {
+		Log("ground truth: open a session first");
+		return;
+	}
+
+	FileSel fs;
+	fs.Type("VSM ground truth JSON", "*.json");
+	if(!fs.ExecuteOpen("Select Ground Truth JSON"))
+		return;
+	String gt_path = ~fs;
+
+	VsmGroundTruthSession gt;
+	VsmGroundTruthLoader loader;
+	loader.SetLog(&log_);
+	if(!loader.Load(gt_path, gt)) {
+		Log("ground truth: failed to load " + gt_path);
+		return;
+	}
+
+	// Re-open source from the beginning
+	src_source_.Close();
+	if(!src_source_.Open(session_store_.GetPaths().root)) {
+		Log("ground truth: cannot reopen session source");
+		return;
+	}
+
+	VsmObservationPipeline pipe;
+	pipe.SetLog(&log_);
+	pipe.SetSessionStore(&session_store_);
+	pipe.SetAnnotationLayer(&annotation_layer_);
+	pipe.SetPreprocessPipeline(&current_pipeline_);
+	pipe.SetTemplateRules(&template_rules_);
+	pipe.SetOcrRules(&ocr_rules_);
+	pipe.SetModelRuntime(&model_runtime_);
+	VsmTemplateMatcher matcher;
+	matcher.SetLog(&log_);
+	pipe.SetTemplateMatcher(&matcher);
+
+	VsmPipelineRunWithGTSummary summary = pipe.RunWithGroundTruth(src_source_, gt);
+	const VsmComparisonResult& cmp = summary.comparison;
+
+	model_dock_.SetRuntime(&model_runtime_);
+	model_dock_.Refresh();
+
+	String msg = Format("Comparison complete: %d matched, %d missing, %d unexpected",
+	                    cmp.matched, cmp.missing, cmp.unexpected);
+	Log(msg);
+	PromptOK(msg);
+}
+
+// ---------------------------------------------------------------------------
 // E2E sample session loader
 
 void MainWindow::OnLoadE2ESample()

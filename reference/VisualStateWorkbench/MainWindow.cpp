@@ -414,6 +414,8 @@ void MainWindow::LoadSampleAnnotation()
 
 	annotation_dock_.SetLayer(&annotation_layer_);
 	frame_canvas_.SetAnnotationLayer(&annotation_layer_);
+	frame_canvas_.WhenAnnotationCreated = [=] { OnAnnotationChanged(); };
+	frame_canvas_.WhenAnnotationMoved   = [=] { OnAnnotationChanged(); };
 	Log(Format("annotations: loaded %d annotation(s)", annotation_layer_.annotations.GetCount()));
 
 	// Seed a default pipeline for the workbench
@@ -524,6 +526,23 @@ void MainWindow::OpenSessionPath(const String& path)
 
 	// Persist last opened path
 	registry_.Set("session.last_path", path);
+
+	// Load annotation layer from session
+	String ann_file = AppendFileName(session_store_.GetPaths().annotations_dir,
+	                                 "annotations.json");
+	annotation_layer_ = VsmAnnotationLayer();
+	annotation_layer_.session_id = session_store_.GetManifest().session_id;
+	if(FileExists(ann_file)) {
+		annotation_layer_.Load(ann_file);
+		Log("annotations: loaded " + IntStr(annotation_layer_.annotations.GetCount()) + " from session");
+	} else {
+		annotation_path_ = ann_file;
+	}
+	annotation_path_ = ann_file;
+	annotation_dock_.SetLayer(&annotation_layer_);
+	frame_canvas_.SetAnnotationLayer(&annotation_layer_);
+	frame_canvas_.WhenAnnotationCreated = [=] { OnAnnotationChanged(); };
+	frame_canvas_.WhenAnnotationMoved   = [=] { OnAnnotationChanged(); };
 
 	Log("session: opened — " + session_store_.GetManifest().session_id +
 	    " frames=" + IntStr(src_source_.GetFrameCount()) +

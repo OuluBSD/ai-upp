@@ -6,6 +6,7 @@
 using namespace Upp;
 
 #include "Session.h"
+#include "GdbAdapter.h"
 #include "Backend.h"
 
 #endif

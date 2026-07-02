@@ -118,8 +118,15 @@ static int RunBackendCommand(const DbgBackendInfo& backend, const Vector<String>
 	for(int i = pos + 2; i < args.GetCount(); i++)
 		request.arguments.Add(args[i]);
 
-	PlannedDbgBackendSession session(backend.name);
-	DbgRunResult result = session.Run(request);
+	DbgRunResult result;
+	if(backend.name == "gdb") {
+		GdbBackendSession session;
+		result = session.Run(request);
+	}
+	else {
+		PlannedDbgBackendSession session(backend.name);
+		result = session.Run(request);
+	}
 	if(!result.error.IsEmpty())
 		Cerr() << "dbg: " << result.error << "\n";
 	return IsNull(result.exit_code) ? 1 : result.exit_code;

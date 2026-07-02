@@ -411,12 +411,15 @@ struct PkgConfigPaths {
 	String cache_dir;
 	String metadata_cache;
 	String sets_dir;
+	String make_conf;
 	String system_set;
 	String toolchain_set;
 	String world;
 	String package_use;
 	String package_provider;
 	String package_target;
+	String package_mask;
+	String package_force;
 	String state;
 	String eselect;
 	String transaction;

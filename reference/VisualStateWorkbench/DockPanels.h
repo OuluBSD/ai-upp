@@ -48,15 +48,20 @@ public:
 	void SetRuntime(VsmModelRuntime* rt);
 	void Refresh();
 
+	Event<int> WhenJumpToFrame;
+
 private:
 	VsmModelRuntime* rt_ = nullptr;
 
 	TabCtrl     tabs_;
 	ParentCtrl  objects_area_, transitions_area_, divergences_area_;
 	ArrayCtrl   objects_list_, props_list_, transitions_list_, divergences_list_;
+	Splitter    divergences_split_;
+	DocEdit     divergence_detail_;
 	Button      run_sample_btn_;
 
 	void OnRunSample();
+	void OnDivergenceSel();
 };
 
 // ---------------------------------------------------------------------------

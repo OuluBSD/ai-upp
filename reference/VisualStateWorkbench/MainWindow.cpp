@@ -113,6 +113,7 @@ void MainWindow::InitDockers()
 
 	model_dock_.Title("Model State").SizeHint(Size(380, 300));
 	Register(model_dock_);
+	model_dock_.WhenJumpToFrame = [=](int f) { OnJumpToFrame(f); };
 
 	timeline_dock_.WhenStep   = [=] { OnStep(); };
 	timeline_dock_.WhenRunAll = [=] { OnRunAll(); };
@@ -670,4 +671,19 @@ void MainWindow::RebuildRegionsList()
 		                  rn.action.IsEmpty() ? "—" : rn.action,
 		                  rect);
 	}
+}
+
+// ---------------------------------------------------------------------------
+// Jump to frame
+
+void MainWindow::OnJumpToFrame(int frame)
+{
+	frame_canvas_.SetFrame(frame);
+	// Update session info panel to reflect the active frame
+	if(session_store_.IsOpen()) {
+		const VsmSessionManifest& m = session_store_.GetManifest();
+		if(frame >= 0 && frame < m.frames.GetCount())
+			session_dock_.SetManifest(m);
+	}
+	Log(Format("divergence: jump to frame %d", frame));
 }

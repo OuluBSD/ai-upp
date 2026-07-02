@@ -184,6 +184,565 @@ static void sStoreEselectState(const PkgInvocation& inv, const PkgEselectState& 
 	StoreAsJsonFile(st, path, true);
 }
 
+static void sCopyInvocation(PkgInvocation& dst, const PkgInvocation& src)
+{
+	dst.command = src.command;
+	dst.color = src.color;
+	dst.atom = src.atom;
+	dst.query = src.query;
+	dst.provider_query = src.provider_query;
+	dst.target = src.target;
+	dst.provider = src.provider;
+	dst.compiler = src.compiler;
+	dst.linker = src.linker;
+	dst.profile = src.profile;
+	dst.repository = src.repository;
+	dst.vcpkg_root = src.vcpkg_root;
+	dst.vcpkg_triplet = src.vcpkg_triplet;
+	dst.emscripten_profile = src.emscripten_profile;
+	dst.value = src.value;
+	dst.module = src.module;
+	dst.subcommand = src.subcommand;
+	dst.root = src.root;
+	dst.sysroot = src.sysroot;
+	dst.command_line = src.command_line;
+	dst.jobs = src.jobs;
+	dst.ask = src.ask;
+	dst.verbose = src.verbose;
+	dst.update = src.update;
+	dst.deep = src.deep;
+	dst.newuse = src.newuse;
+	dst.changed_use = src.changed_use;
+	dst.strict = src.strict;
+	dst.nodeps = src.nodeps;
+	dst.summary = src.summary;
+	dst.quiet = src.quiet;
+	dst.ci = src.ci;
+	dst.keep_going = src.keep_going;
+	dst.skip_first = src.skip_first;
+	dst.probe = src.probe;
+	dst.debug_timing = src.debug_timing;
+	dst.pretend = src.pretend;
+	dst.resume = src.resume;
+	dst.oneshot = src.oneshot;
+	dst.plan = src.plan;
+	dst.metadata = src.metadata;
+	dst.metadata_cache = src.metadata_cache;
+	dst.brief = src.brief;
+	dst.list_sets = src.list_sets;
+	dst.targets = src.targets;
+	dst.providers = src.providers;
+	dst.info = src.info;
+	dst.doctor = src.doctor;
+	dst.search = src.search;
+	dst.install = src.install;
+	dst.audit_patch = src.audit_patch;
+	dst.bins = src.bins;
+	dst.clean = src.clean;
+	dst.depclean = src.depclean;
+	dst.all = src.all;
+	dst.staged = src.staged;
+	dst.report = src.report;
+	dst.limit = src.limit;
+	dst.use_cache = src.use_cache;
+	dst.rebuild_cache = src.rebuild_cache;
+	dst.baseline = src.baseline;
+	dst.update_baseline = src.update_baseline;
+	dst.show_baseline = src.show_baseline;
+	dst.fail_on_baseline = src.fail_on_baseline;
+	dst.argv.Clear();
+	for(const String& s : src.argv)
+		dst.argv.Add(s);
+	dst.use_args.Clear();
+	for(const String& s : src.use_args)
+		dst.use_args.Add(s);
+	dst.extra.Clear();
+	for(const String& s : src.extra)
+		dst.extra.Add(s);
+}
+
+struct PkgPolicyLine : Moveable<PkgPolicyLine> {
+	String file;
+	int line = 0;
+	String atom;
+	Vector<String> values;
+	bool package_mask = false;
+};
+
+struct PkgLocalPolicy : Moveable<PkgLocalPolicy> {
+	String make_conf_path;
+	String package_use_path;
+	String package_provider_path;
+	String package_target_path;
+	String package_mask_path;
+	String package_force_path;
+	String make_use;
+	String make_target;
+	String make_provider;
+	String make_compiler;
+	String make_linker;
+	String make_profile;
+	String make_repository;
+	String make_vcpkg_root;
+	String make_vcpkg_triplet;
+	String make_emscripten_profile;
+	int make_jobs = 0;
+	Vector<PkgPolicyLine> package_use;
+	Vector<PkgPolicyLine> package_provider;
+	Vector<PkgPolicyLine> package_target;
+	Vector<PkgPolicyLine> package_mask;
+	Vector<PkgPolicyLine> package_force;
+	Vector<String> warnings;
+	Vector<String> errors;
+};
+
+struct PkgPolicyAtomRules {
+	bool masked = false;
+	bool has_target = false;
+	bool has_provider = false;
+	bool has_compiler = false;
+	bool has_linker = false;
+	bool has_profile = false;
+	bool has_repository = false;
+	bool has_vcpkg_root = false;
+	bool has_vcpkg_triplet = false;
+	bool has_emscripten_profile = false;
+	String target;
+	String provider;
+	String compiler;
+	String linker;
+	String profile;
+	String repository;
+	String vcpkg_root;
+	String vcpkg_triplet;
+	String emscripten_profile;
+	Vector<String> use_args;
+	Vector<String> warnings;
+};
+
+static void sCopyInvocation(PkgInvocation& dst, const PkgInvocation& src);
+static String sResolveEselectTarget(const PkgInvocation& inv, const PkgEselectState& st);
+
+static String sPolicyTrimComment(String line)
+{
+	int hash = -1;
+	bool quoted = false;
+	for(int i = 0; i < line.GetCount(); i++) {
+		char c = line[i];
+		if(c == '"') {
+			quoted = !quoted;
+			continue;
+		}
+		if(c == '#' && !quoted) {
+			hash = i;
+			break;
+		}
+	}
+	if(hash >= 0)
+		line = line.Left(hash);
+	return TrimBoth(line);
+}
+
+static String sPolicyUnquote(const String& value)
+{
+	String out = TrimBoth(value);
+	if(out.GetCount() >= 2) {
+		char q = out[0];
+		if((q == '"' || q == '\'') && out[out.GetCount() - 1] == q) {
+			out = out.Mid(1, out.GetCount() - 2);
+			out.Replace("\\\"", "\"");
+			out.Replace("\\'", "'");
+		}
+	}
+	return TrimBoth(out);
+}
+
+static Vector<String> sPolicyWords(const String& line)
+{
+	Vector<String> out = Split(line, CharFilterWhitespace);
+	return pick(out);
+}
+
+static void sPolicyWarn(PkgLocalPolicy& policy, const String& file, int line, const String& message)
+{
+	String s = file;
+	if(line > 0)
+		s << ':' << line;
+	s << ": " << message;
+	policy.warnings.Add(s);
+}
+
+static void sPolicyError(PkgLocalPolicy& policy, const String& file, int line, const String& message)
+{
+	String s = file;
+	if(line > 0)
+		s << ':' << line;
+	s << ": " << message;
+	policy.errors.Add(s);
+}
+
+static bool sPolicyIsCapabilityName(const String& s)
+{
+	String t = TrimBoth(s);
+	return t.StartsWith("virtual/") ||
+	       t == "virtual/sqlite" || t == "virtual/ssl" || t == "virtual/sdl2" ||
+	       t == "virtual/opengl" || t == "virtual/gui-runtime";
+}
+
+static void sParseMakeConfFile(PkgLocalPolicy& policy, const String& path)
+{
+	if(path.IsEmpty() || !FileExists(path))
+		return;
+	policy.make_conf_path = path;
+	Vector<String> lines = Split(LoadFile(path), '\n');
+	for(int i = 0; i < lines.GetCount(); i++) {
+		String line = sPolicyTrimComment(lines[i]);
+		if(line.IsEmpty())
+			continue;
+		int eq = line.Find('=');
+		if(eq < 0) {
+			sPolicyWarn(policy, path, i + 1, "malformed make.conf line");
+			continue;
+		}
+		String key = ToUpper(TrimBoth(line.Left(eq)));
+		String value = sPolicyUnquote(line.Mid(eq + 1));
+		if(key == "USE")
+			policy.make_use = value;
+		else if(key == "TARGET")
+			policy.make_target = value;
+		else if(key == "PROVIDER")
+			policy.make_provider = value;
+		else if(key == "COMPILER")
+			policy.make_compiler = value;
+		else if(key == "LINKER")
+			policy.make_linker = value;
+		else if(key == "PROFILE")
+			policy.make_profile = value;
+		else if(key == "REPOSITORY")
+			policy.make_repository = value;
+		else if(key == "VCPKG_ROOT")
+			policy.make_vcpkg_root = value;
+		else if(key == "VCPKG_TRIPLET")
+			policy.make_vcpkg_triplet = value;
+		else if(key == "EMSCRIPTEN_PROFILE")
+			policy.make_emscripten_profile = value;
+		else if(key == "JOBS")
+			policy.make_jobs = ScanInt(value);
+		else if(key == "ROOT")
+			policy.make_repository = value;
+		else if(key == "SYSROOT")
+			; // accepted for compatibility; currently reported via info only
+		else
+			sPolicyWarn(policy, path, i + 1, "unknown make.conf directive: " + key);
+	}
+}
+
+static void sParsePolicyFile(PkgLocalPolicy& policy, const String& path, Vector<PkgPolicyLine>& dst, bool allow_empty_values = false, bool package_mask = false)
+{
+	if(path.IsEmpty() || !FileExists(path))
+		return;
+	Vector<String> lines = Split(LoadFile(path), '\n');
+	for(int i = 0; i < lines.GetCount(); i++) {
+		String line = sPolicyTrimComment(lines[i]);
+		if(line.IsEmpty())
+			continue;
+		Vector<String> words = sPolicyWords(line);
+		if(words.IsEmpty())
+			continue;
+		if(words.GetCount() < 2 && !allow_empty_values) {
+			sPolicyWarn(policy, path, i + 1, "malformed policy line");
+			continue;
+		}
+		PkgPolicyLine& item = dst.Add();
+		item.file = path;
+		item.line = i + 1;
+		item.atom = words[0];
+		item.package_mask = package_mask && words.GetCount() < 2;
+		for(int j = 1; j < words.GetCount(); j++)
+			item.values.Add(words[j]);
+	}
+}
+
+static bool sPolicyRuleMatches(const PkgRepository& repo, const PkgPackage *pkg, const String& rule_atom)
+{
+	String rule = TrimBoth(rule_atom);
+	if(rule.IsEmpty() || !pkg)
+		return false;
+	if(ToLower(UnixPath(NormalizePath(rule))) == ToLower(UnixPath(NormalizePath(pkg->path))))
+		return true;
+	String low = ToLower(rule);
+	if(low == ToLower(pkg->atom) || low == ToLower(pkg->name) || low == ToLower(pkg->nest + "/" + pkg->atom))
+		return true;
+	PkgLookupResult lookup = repo.Resolve(rule);
+	return lookup.pkg == pkg && !lookup.ambiguous;
+}
+
+static bool sPolicyRuleMatchesAny(const PkgRepository& repo, const String& rule_atom, String& status)
+{
+	PkgLookupResult lookup = repo.Resolve(rule_atom);
+	if(lookup.ambiguous) {
+		status = "ambiguous";
+		return false;
+	}
+	if(!lookup.pkg) {
+		status = "missing";
+		return false;
+	}
+	status = "ok";
+	return true;
+}
+
+static PkgLocalPolicy sLoadLocalPolicy(const PkgConfigPaths& paths, const PkgRepository& repo)
+{
+	PkgLocalPolicy policy;
+	policy.make_conf_path = paths.make_conf;
+	policy.package_use_path = paths.package_use;
+	policy.package_provider_path = paths.package_provider;
+	policy.package_target_path = paths.package_target;
+	policy.package_mask_path = paths.package_mask;
+	policy.package_force_path = paths.package_force;
+	sParseMakeConfFile(policy, paths.make_conf);
+	sParsePolicyFile(policy, paths.package_use, policy.package_use);
+	sParsePolicyFile(policy, paths.package_provider, policy.package_provider);
+	sParsePolicyFile(policy, paths.package_target, policy.package_target);
+	sParsePolicyFile(policy, paths.package_mask, policy.package_mask, true, true);
+	sParsePolicyFile(policy, paths.package_force, policy.package_force);
+
+	Index<String> seen;
+	auto validate = [&](const Vector<PkgPolicyLine>& lines, const char *kind) {
+		for(const PkgPolicyLine& line : lines) {
+			String status;
+			if(!sPolicyRuleMatchesAny(repo, line.atom, status)) {
+				String msg = String(kind) + " rule for unknown package atom: " + line.atom;
+				if(status == "ambiguous")
+					msg = String(kind) + " rule has ambiguous package atom: " + line.atom;
+				String key = line.file + ":" + AsString(line.line) + ":" + msg;
+				if(seen.Find(key) < 0) {
+					seen.Add(key);
+					if(status == "ambiguous")
+						sPolicyWarn(policy, line.file, line.line, msg);
+					else
+						sPolicyWarn(policy, line.file, line.line, msg);
+				}
+			}
+		}
+	};
+	validate(policy.package_use, "package.use");
+	validate(policy.package_target, "package.target");
+	validate(policy.package_mask, "package.mask");
+	validate(policy.package_force, "package.force");
+	for(const PkgPolicyLine& line : policy.package_provider) {
+		if(sPolicyIsCapabilityName(line.atom))
+			continue;
+		String status;
+		if(!sPolicyRuleMatchesAny(repo, line.atom, status)) {
+			String msg = String("package.provider rule for unknown package atom: ") + line.atom;
+			if(status == "ambiguous")
+				msg = String("package.provider rule has ambiguous package atom: ") + line.atom;
+			sPolicyWarn(policy, line.file, line.line, msg);
+		}
+	}
+	return policy;
+}
+
+static String sPolicyCapabilityProvider(const PkgLocalPolicy& policy, const String& capability);
+
+static void sAppendPolicyValues(Vector<String>& dst, const Vector<String>& src)
+{
+	for(const String& s : src)
+		if(FindIndex(dst, s) < 0)
+			dst.Add(s);
+}
+
+static Vector<String> sMergeUseArgs(const Vector<String>& base, const Vector<String>& override)
+{
+	Index<String> seen;
+	Vector<String> order;
+	VectorMap<String, bool> state;
+	auto add = [&](const String& token) {
+		String t = TrimBoth(token);
+		if(t.IsEmpty())
+			return;
+		bool selected = true;
+		if(t.StartsWith("+"))
+			t = t.Mid(1);
+		else if(t.StartsWith("-")) {
+			t = t.Mid(1);
+			selected = false;
+		}
+		if(t.IsEmpty())
+			return;
+		int i = state.Find(t);
+		if(i < 0) {
+			state.Add(t, selected);
+			order.Add(t);
+		}
+		else
+			state[i] = selected;
+	};
+	for(const String& s : base)
+		add(s);
+	for(const String& s : override)
+		add(s);
+	Vector<String> out;
+	for(const String& s : order) {
+		int i = state.Find(s);
+		bool selected = i >= 0 ? state[i] : true;
+		out.Add(selected ? s : String("-") + s);
+	}
+	return out;
+}
+
+static bool sPolicyPackageMasked(const PkgLocalPolicy& policy, const PkgRepository& repo, const PkgPackage *pkg)
+{
+	if(!pkg)
+		return false;
+	for(const PkgPolicyLine& line : policy.package_mask)
+		if(line.package_mask && sPolicyRuleMatches(repo, pkg, line.atom))
+			return true;
+	return false;
+}
+
+static void sApplyPolicyLayer(PkgInvocation& out, const PkgInvocation& base, const PkgEselectState& eselect, const PkgLocalPolicy& policy, const PkgRepository& repo, const PkgPackage *pkg)
+{
+	String pkg_target;
+	String pkg_provider;
+	String pkg_compiler;
+	String pkg_linker;
+	String pkg_profile;
+	String pkg_repository;
+	String pkg_vcpkg_root;
+	String pkg_vcpkg_triplet;
+	String pkg_emscripten_profile;
+	Vector<String> pkg_use = Split(policy.make_use, CharFilterWhitespace);
+
+	if(pkg) {
+		for(const PkgPolicyLine& line : policy.package_use)
+			if(sPolicyRuleMatches(repo, pkg, line.atom))
+				sAppendPolicyValues(pkg_use, line.values);
+		for(const PkgPolicyLine& line : policy.package_force)
+			if(sPolicyRuleMatches(repo, pkg, line.atom))
+				for(const String& s : line.values)
+					pkg_use.Add(String("+") + s);
+		for(const PkgPolicyLine& line : policy.package_mask)
+			if(sPolicyRuleMatches(repo, pkg, line.atom))
+				for(const String& s : line.values)
+					pkg_use.Add(String("-") + s);
+		for(const PkgPolicyLine& line : policy.package_target)
+			if(sPolicyRuleMatches(repo, pkg, line.atom) && !line.values.IsEmpty())
+				pkg_target = line.values.Top();
+		for(const PkgPolicyLine& line : policy.package_provider)
+			if(sPolicyRuleMatches(repo, pkg, line.atom) && !line.values.IsEmpty())
+				pkg_provider = line.values.Top();
+	}
+
+	out.use_args = sMergeUseArgs(pkg_use, base.use_args);
+
+	if(base.target.IsEmpty()) {
+		if(!policy.make_target.IsEmpty())
+			out.target = policy.make_target;
+		PkgInvocation target_base;
+		sCopyInvocation(target_base, base);
+		if(target_base.compiler.IsEmpty())
+			target_base.compiler = !policy.make_compiler.IsEmpty() ? policy.make_compiler : eselect.compiler;
+		String esa_target = sResolveEselectTarget(target_base, eselect);
+		if(out.target.IsEmpty() && !esa_target.IsEmpty())
+			out.target = esa_target;
+		if(!pkg_target.IsEmpty())
+			out.target = pkg_target;
+	}
+
+	if(base.provider.IsEmpty()) {
+		if(!policy.make_provider.IsEmpty())
+			out.provider = policy.make_provider;
+		if(out.provider.IsEmpty() && !eselect.provider.IsEmpty())
+			out.provider = eselect.provider;
+		if(!pkg_provider.IsEmpty())
+			out.provider = pkg_provider;
+	}
+
+	if(base.compiler.IsEmpty()) {
+		if(!policy.make_compiler.IsEmpty())
+			out.compiler = policy.make_compiler;
+		if(out.compiler.IsEmpty() && !eselect.compiler.IsEmpty())
+			out.compiler = eselect.compiler;
+		if(!pkg_compiler.IsEmpty())
+			out.compiler = pkg_compiler;
+	}
+
+	if(base.linker.IsEmpty()) {
+		if(!policy.make_linker.IsEmpty())
+			out.linker = policy.make_linker;
+		if(out.linker.IsEmpty() && !eselect.linker.IsEmpty())
+			out.linker = eselect.linker;
+		if(!pkg_linker.IsEmpty())
+			out.linker = pkg_linker;
+	}
+
+	if(base.profile.IsEmpty()) {
+		if(!policy.make_profile.IsEmpty())
+			out.profile = policy.make_profile;
+		if(out.profile.IsEmpty() && !eselect.profile.IsEmpty())
+			out.profile = eselect.profile;
+		if(!pkg_profile.IsEmpty())
+			out.profile = pkg_profile;
+	}
+
+	if(base.repository.IsEmpty()) {
+		if(!policy.make_repository.IsEmpty())
+			out.repository = policy.make_repository;
+		if(out.repository.IsEmpty() && !eselect.repository.IsEmpty())
+			out.repository = eselect.repository;
+		if(!pkg_repository.IsEmpty())
+			out.repository = pkg_repository;
+	}
+
+	if(base.vcpkg_root.IsEmpty()) {
+		if(!policy.make_vcpkg_root.IsEmpty())
+			out.vcpkg_root = policy.make_vcpkg_root;
+		if(out.vcpkg_root.IsEmpty() && !eselect.vcpkg_root.IsEmpty())
+			out.vcpkg_root = eselect.vcpkg_root;
+		if(!pkg_vcpkg_root.IsEmpty())
+			out.vcpkg_root = pkg_vcpkg_root;
+	}
+
+	if(base.vcpkg_triplet.IsEmpty()) {
+		if(!policy.make_vcpkg_triplet.IsEmpty())
+			out.vcpkg_triplet = policy.make_vcpkg_triplet;
+		if(out.vcpkg_triplet.IsEmpty() && !eselect.vcpkg_triplet.IsEmpty())
+			out.vcpkg_triplet = eselect.vcpkg_triplet;
+		if(!pkg_vcpkg_triplet.IsEmpty())
+			out.vcpkg_triplet = pkg_vcpkg_triplet;
+	}
+
+	if(base.emscripten_profile.IsEmpty()) {
+		if(!policy.make_emscripten_profile.IsEmpty())
+			out.emscripten_profile = policy.make_emscripten_profile;
+		if(out.emscripten_profile.IsEmpty() && !eselect.emscripten_profile.IsEmpty())
+			out.emscripten_profile = eselect.emscripten_profile;
+		if(!pkg_emscripten_profile.IsEmpty())
+			out.emscripten_profile = pkg_emscripten_profile;
+	}
+
+	if(base.jobs <= 0 && policy.make_jobs > 0)
+		out.jobs = policy.make_jobs;
+}
+
+static PkgInvocation sEffectiveInvocation(const PkgInvocation& inv, const PkgRepository& repo, const PkgLocalPolicy& policy, const PkgPackage *pkg)
+{
+	PkgInvocation out;
+	sCopyInvocation(out, inv);
+	PkgEselectState eselect = sLoadEselectState(inv);
+	sApplyPolicyLayer(out, inv, eselect, policy, repo, pkg);
+	if(out.use_args.IsEmpty() && !policy.make_use.IsEmpty())
+		out.use_args = Split(policy.make_use, CharFilterWhitespace);
+	if(out.target.IsEmpty())
+		out.target = sResolveEselectTarget(out, eselect);
+	if(out.target.IsEmpty())
+		out.target = "native";
+	return out;
+}
+
 static const char * const sEselectBuiltins[] = {
 	"help",
 	"usage",
@@ -287,12 +846,15 @@ PkgConfigPaths FindPkgConfigPaths(const String& root)
 	p.cache_dir = AppendFileName(p.ai_dir, "cache");
 	p.metadata_cache = AppendFileName(p.cache_dir, "package-metadata.json");
 	p.sets_dir = AppendFileName(p.ai_dir, "sets");
+	p.make_conf = AppendFileName(p.ai_dir, "make.conf");
 	p.system_set = AppendFileName(p.sets_dir, "system");
 	p.toolchain_set = AppendFileName(p.sets_dir, "toolchain");
 	p.world = AppendFileName(p.ai_dir, "world");
 	p.package_use = AppendFileName(p.ai_dir, "package.use");
 	p.package_provider = AppendFileName(p.ai_dir, "package.provider");
 	p.package_target = AppendFileName(p.ai_dir, "package.target");
+	p.package_mask = AppendFileName(p.ai_dir, "package.mask");
+	p.package_force = AppendFileName(p.ai_dir, "package.force");
 	p.state = AppendFileName(p.ai_dir, "state.json");
 	p.eselect = AppendFileName(p.ai_dir, "eselect.json");
 	p.transaction = AppendFileName(p.ai_dir, "last-transaction.json");
@@ -713,7 +1275,7 @@ static String sFormatUppProjection(const PkgUppProjection& proj);
 static const PkgTargetProfile& sDefaultTargetProfile(const String& target);
 static String sTargetNameText(const String& target);
 static Vector<String> sLoadSet(const PkgConfigPaths& paths, const String& name, const String& path);
-static PkgPlan sBuildPlan(const PkgInvocation& inv, const PkgRepository& repo, const PkgState& state, bool color);
+static PkgPlan sBuildPlan(const PkgInvocation& inv, const PkgRepository& repo, const PkgState& state, const PkgLocalPolicy& policy, bool color);
 
 static bool sSameStringList(const Vector<String>& a, const Vector<String>& b)
 {
@@ -1985,7 +2547,7 @@ static Vector<PkgVirtualCapability> sProviderCapabilities()
 	return pick(v);
 }
 
-static void sBuildProviderPlan(PkgProviderPlan& plan, const PkgRepository& repo, const PkgTargetProfile *tp, const String& target, const Vector<String>& virtuals, const String& provider_pref, const PkgInvocation& inv)
+static void sBuildProviderPlan(PkgProviderPlan& plan, const PkgRepository& repo, const PkgLocalPolicy& policy, const PkgTargetProfile *tp, const String& target, const Vector<String>& virtuals, const String& provider_pref, const PkgInvocation& inv)
 {
 	plan.capabilities.Clear();
 	plan.resolutions.Clear();
@@ -2015,7 +2577,9 @@ static void sBuildProviderPlan(PkgProviderPlan& plan, const PkgRepository& repo,
 		Vector<PkgProvider> candidates = sProvidersFor(capability, repo, inv, inv.probe, target);
 		for(const PkgProvider& p : candidates)
 			cap->provider_ids.Add(p.id);
-		const PkgProvider* selected = sSelectProviderCandidate(candidates, repo, tp, provider_pref, capability);
+		String capability_pref = sPolicyCapabilityProvider(policy, capability);
+		String effective_pref = !capability_pref.IsEmpty() ? capability_pref : provider_pref;
+		const PkgProvider* selected = sSelectProviderCandidate(candidates, repo, tp, effective_pref, capability);
 		if(selected) {
 			PkgProviderResolution r = sMakeResolution(*selected, repo, capability, true);
 			PkgProviderResolution& q = plan.resolutions.Add();
@@ -2093,6 +2657,15 @@ static void sAddUnique(Vector<String>& dst, const String& s)
 {
 	if(!s.IsEmpty() && FindIndex(dst, s) < 0)
 		dst.Add(s);
+}
+
+static String sPolicyCapabilityProvider(const PkgLocalPolicy& policy, const String& capability)
+{
+	String out;
+	for(const PkgPolicyLine& line : policy.package_provider)
+		if(sPolicyIsCapabilityName(line.atom) && ToLower(line.atom) == ToLower(capability) && !line.values.IsEmpty())
+			out = line.values.Top();
+	return out;
 }
 
 static void sAppendUseExpr(Vector<String>& out, const Vector<String>& selected, const Vector<String>& disabled)
@@ -3366,7 +3939,7 @@ static Vector<String> sLintRootQueries(const PkgInvocation& inv, const PkgReposi
 	return pick(roots);
 }
 
-static int sLintCommand(const PkgInvocation& inv, const PkgRepository& repo, bool color, double command_seconds)
+static int sLintCommand(const PkgInvocation& inv, const PkgRepository& repo, const PkgLocalPolicy& policy, bool color, double command_seconds)
 {
 	TimeStop phase;
 	PkgLintSummary sum;
@@ -3410,6 +3983,11 @@ static int sLintCommand(const PkgInvocation& inv, const PkgRepository& repo, boo
 			return 1;
 		}
 	}
+
+	for(const String& warn : policy.warnings)
+		sLintLine(sum, "warn", "PKG-LINT-CONFIG-WARNING", warn, color, Null, Null, Null);
+	for(const String& err : policy.errors)
+		sLintLine(sum, "error", "PKG-LINT-CONFIG-ERROR", err, color, Null, Null, Null);
 
 	if(!sum.quiet) {
 		Cout() << "Linting package metadata";
@@ -3509,7 +4087,7 @@ static int sLintCommand(const PkgInvocation& inv, const PkgRepository& repo, boo
 		for(const String& s : inv.extra)
 			rootinv.extra.Add(s);
 		rootinv.staged = inv.staged;
-		PkgPlan plan = sBuildPlan(rootinv, repo, state, color);
+		PkgPlan plan = sBuildPlan(rootinv, repo, state, policy, color);
 
 		String title = root;
 		if(!plan.atom.IsEmpty())
@@ -4297,7 +4875,7 @@ static void sPrintHelp(bool color)
 		<< "  --help, help\n"
 		<< "  --version, version\n"
 		<< "  --info, info\n"
-		<< "  --doctor, doctor [env|state|shell|providers [--probe]]\n"
+		<< "  --doctor, doctor [env|state|shell|cache|config|providers [--probe]]\n"
 		<< "  --metadata-cache, metadata-cache [--rebuild]\n"
 		<< "  --metadata, metadata\n"
 		<< "  --list-sets\n"
@@ -4518,7 +5096,7 @@ static void sPolicyFlags(const Vector<String>& use_args, const String& target, V
 	}
 }
 
-static void sExplainUse(const PkgInvocation& inv, const PkgRepository& repo)
+static void sExplainUse(const PkgInvocation& inv, const PkgRepository& repo, const PkgLocalPolicy& policy)
 {
 	PkgLookupResult lookup = inv.atom.IsEmpty() ? PkgLookupResult() : repo.Resolve(inv.atom);
 	const PkgPackage *pkg = lookup.pkg;
@@ -4529,14 +5107,21 @@ static void sExplainUse(const PkgInvocation& inv, const PkgRepository& repo)
 				Cout() << "  " << sPackageLookupLabel(*c) << "\n";
 		return;
 	}
+	PkgInvocation eff = sEffectiveInvocation(inv, repo, policy, pkg);
+	if(pkg && sPolicyPackageMasked(policy, repo, pkg)) {
+		Cout() << "Use policy for " << (inv.atom.IsEmpty() ? String("[unknown atom]") : inv.atom) << "\n";
+		Cout() << "Target: " << sTargetNameText(eff.target) << "\n";
+		Cout() << "Local policy: package is masked\n";
+		return;
+	}
 	PkgUseModel use;
-	sBuildUseModel(use, pkg, inv.use_args, inv.target);
+	sBuildUseModel(use, pkg, eff.use_args, eff.target);
 	PkgUppProjection upp;
 	sProjectUpp(upp, use);
-	const PkgTargetProfile& tp = sDefaultTargetProfile(inv.target);
+	const PkgTargetProfile& tp = sDefaultTargetProfile(eff.target);
 
 	Cout() << "Use policy for " << (inv.atom.IsEmpty() ? String("[unknown atom]") : inv.atom) << "\n";
-	Cout() << "Target: " << sTargetNameText(inv.target) << "\n";
+	Cout() << "Target: " << sTargetNameText(eff.target) << "\n";
 	Cout() << "Thread model: " << tp.thread_model << "\n";
 	Cout() << "Thread model reason: " << sTargetThreadReason(tp) << "\n";
 	Cout() << "Target platform: " << (tp.target_platform.IsEmpty() ? String("[none]") : tp.target_platform) << "\n";
@@ -4718,7 +5303,7 @@ static const PkgProviderResolution* sFindProviderResolution(const PkgProviderPla
 	return nullptr;
 }
 
-static void sPrintDeps(const PkgInvocation& inv, const PkgRepository& repo)
+static void sPrintDeps(const PkgInvocation& inv, const PkgRepository& repo, const PkgLocalPolicy& policy)
 {
 	PkgLookupResult lookup = inv.atom.IsEmpty() ? PkgLookupResult() : repo.Resolve(inv.atom);
 	const PkgPackage *pkg = lookup.pkg;
@@ -4729,11 +5314,18 @@ static void sPrintDeps(const PkgInvocation& inv, const PkgRepository& repo)
 				Cout() << "  " << sPackageLookupLabel(*c) << "\n";
 		return;
 	}
+	PkgInvocation eff = sEffectiveInvocation(inv, repo, policy, pkg);
+	if(pkg && sPolicyPackageMasked(policy, repo, pkg)) {
+		Cout() << "Use policy for " << inv.atom << "\n";
+		Cout() << "Target: " << sTargetNameText(eff.target) << "\n";
+		Cout() << "Local policy: package is masked\n";
+		return;
+	}
 	PkgUseModel use;
 	PkgUppProjection upp;
-	sBuildUseModel(use, pkg, inv.use_args, inv.target);
+	sBuildUseModel(use, pkg, eff.use_args, eff.target);
 	sProjectUpp(upp, use);
-	const PkgTargetProfile& tp = sDefaultTargetProfile(inv.target);
+	const PkgTargetProfile& tp = sDefaultTargetProfile(eff.target);
 	Vector<String> virtuals;
 	if(sIsSelected(use.effective, "sqlite"))
 		virtuals.Add("virtual/sqlite");
@@ -4746,9 +5338,9 @@ static void sPrintDeps(const PkgInvocation& inv, const PkgRepository& repo)
 		virtuals.Add("virtual/opengl");
 	}
 	PkgProviderPlan provider_plan;
-	sBuildProviderPlan(provider_plan, repo, &tp, inv.target, virtuals, inv.provider, inv);
+	sBuildProviderPlan(provider_plan, repo, policy, &tp, eff.target, virtuals, eff.provider, eff);
 	Cout() << "Dependencies for " << inv.atom << "\n";
-	Cout() << "Target: " << sTargetNameText(inv.target) << " (" << tp.thread_model << ")\n";
+	Cout() << "Target: " << sTargetNameText(eff.target) << " (" << tp.thread_model << ")\n";
 	Cout() << "Virtual requirements:\n";
 	if(virtuals.IsEmpty())
 		Cout() << "  [none]\n";
@@ -4809,7 +5401,7 @@ static String sProviderStatusColor(const String& status)
 	return "36";
 }
 
-static void sPrintProvidersCommand(const PkgInvocation& inv, const PkgRepository& repo, bool color)
+static void sPrintProvidersCommand(const PkgInvocation& inv, const PkgRepository& repo, const PkgLocalPolicy& policy, bool color)
 {
 	String target = inv.target.IsEmpty() ? String("native") : inv.target;
 	String query = inv.provider_query;
@@ -4850,7 +5442,7 @@ static void sPrintProvidersCommand(const PkgInvocation& inv, const PkgRepository
 	Vector<String> virtuals;
 	virtuals.Add(query);
 	PkgProviderPlan plan;
-	sBuildProviderPlan(plan, repo, &sDefaultTargetProfile(target), target, virtuals, inv.provider, inv);
+	sBuildProviderPlan(plan, repo, policy, &sDefaultTargetProfile(target), target, virtuals, inv.provider, inv);
 	const PkgProviderResolution* res = sFindProviderResolution(plan, query);
 	if(!res) {
 		Cout() << "Capability: " << query << "\n";
@@ -5003,38 +5595,43 @@ static void sPrintMetadataCache(const PkgRepository& repo, const PkgInvocation& 
 		Cout() << "  status: rebuilt or refreshed during discovery\n";
 }
 
-static void sPrintInfo(const PkgRepository& repo, const PkgInvocation& inv)
+static void sPrintInfo(const PkgRepository& repo, const PkgInvocation& inv, const PkgLocalPolicy& policy)
 {
 	Vector<String> world = sLoadSet(repo.paths, "world", repo.paths.world);
 	PkgState state;
 	LoadFromJsonFile(state, repo.paths.state);
-	PkgEselectState eselect;
-	LoadFromJsonFile(eselect, repo.paths.eselect);
 	Cout() << "Repository root: " << repo.paths.root << "\n";
 	Cout() << "State file: " << repo.paths.state << "\n";
 	Cout() << "World file: " << repo.paths.world << "\n";
+	Cout() << "Local config root: " << repo.paths.ai_dir << "\n";
 	Cout() << "Package.use: " << repo.paths.package_use << "\n";
 	Cout() << "Package.provider: " << repo.paths.package_provider << "\n";
 	Cout() << "Package.target: " << repo.paths.package_target << "\n";
+	Cout() << "Package.mask: " << repo.paths.package_mask << "\n";
+	Cout() << "Package.force: " << repo.paths.package_force << "\n";
+	Cout() << "Make.conf: " << repo.paths.make_conf << "\n";
 	Cout() << "Eselect file: " << repo.paths.eselect << "\n";
 	Cout() << "World entries: " << world.GetCount() << "\n";
-	String active_target = !inv.target.IsEmpty() ? inv.target : (state.target.IsEmpty() ? String("native") : state.target);
+	PkgLookupResult lookup = inv.atom.IsEmpty() ? PkgLookupResult() : repo.Resolve(inv.atom);
+	PkgInvocation eff = sEffectiveInvocation(inv, repo, policy, lookup.pkg);
+	String active_target = !eff.target.IsEmpty() ? eff.target : (state.target.IsEmpty() ? String("native") : state.target);
 	const PkgTargetProfile& active_profile = sDefaultTargetProfile(active_target);
 	Cout() << "Active target: " << active_target << "\n";
 	Cout() << "Active target thread model: " << active_profile.thread_model << "\n";
 	Cout() << "Active target reason: " << sTargetThreadReason(active_profile) << "\n";
 	Cout() << "Active target compiler: " << active_profile.compiler << "\n";
 	Cout() << "Active target toolchain: " << active_profile.toolchain << "\n";
-	Cout() << "Selected target: " << (eselect.target.IsEmpty() ? String("[none]") : eselect.target) << "\n";
-	Cout() << "Selected profile: " << (eselect.profile.IsEmpty() ? String("[none]") : eselect.profile) << "\n";
-	Cout() << "Selected repository: " << (eselect.repository.IsEmpty() ? String("[none]") : eselect.repository) << "\n";
+	Cout() << "Selected target: " << (eff.target.IsEmpty() ? String("[none]") : eff.target) << "\n";
+	Cout() << "Selected profile: " << (eff.profile.IsEmpty() ? String("[none]") : eff.profile) << "\n";
+	Cout() << "Selected repository: " << (eff.repository.IsEmpty() ? String("[none]") : eff.repository) << "\n";
 	Cout() << "Active toolchain: " << (state.toolchain.IsEmpty() ? String("[none]") : state.toolchain) << "\n";
-	Cout() << "Selected compiler: " << (eselect.compiler.IsEmpty() ? String("[none]") : eselect.compiler) << "\n";
-	Cout() << "Selected linker: " << (eselect.linker.IsEmpty() ? String("[none]") : eselect.linker) << "\n";
-	Cout() << "Selected provider: " << (eselect.provider.IsEmpty() ? String("[none]") : eselect.provider) << "\n";
-	Cout() << "Selected vcpkg root: " << (eselect.vcpkg_root.IsEmpty() ? String("[none]") : eselect.vcpkg_root) << "\n";
-	Cout() << "Selected vcpkg triplet: " << (eselect.vcpkg_triplet.IsEmpty() ? String("[none]") : eselect.vcpkg_triplet) << "\n";
-	Cout() << "Selected emscripten profile: " << (eselect.emscripten_profile.IsEmpty() ? String("[none]") : eselect.emscripten_profile) << "\n";
+	Cout() << "Selected compiler: " << (eff.compiler.IsEmpty() ? String("[none]") : eff.compiler) << "\n";
+	Cout() << "Selected linker: " << (eff.linker.IsEmpty() ? String("[none]") : eff.linker) << "\n";
+	Cout() << "Selected provider: " << (eff.provider.IsEmpty() ? String("[none]") : eff.provider) << "\n";
+	Cout() << "Selected vcpkg root: " << (eff.vcpkg_root.IsEmpty() ? String("[none]") : eff.vcpkg_root) << "\n";
+	Cout() << "Selected vcpkg triplet: " << (eff.vcpkg_triplet.IsEmpty() ? String("[none]") : eff.vcpkg_triplet) << "\n";
+	Cout() << "Selected emscripten profile: " << (eff.emscripten_profile.IsEmpty() ? String("[none]") : eff.emscripten_profile) << "\n";
+	Cout() << "Selected USE: " << sFormatUseList(sMergeUseArgs(Split(policy.make_use, CharFilterWhitespace), eff.use_args)) << "\n";
 	Cout() << "Doctor: run `pkg doctor` for environment diagnostics.\n";
 	Cout() << "Artifacts: run `pkg bins` to inspect recorded build outputs.\n";
 	Cout() << "Cleanup: run `pkg clean` or `pkg --depclean` for conservative removal.\n";
@@ -5212,6 +5809,59 @@ static void sPrintDoctorCache(PkgDoctorSummary& sum, const PkgRepository& repo, 
 		sDoctorSubline("warning: ", "previous cache load failed and was rebuilt");
 }
 
+static void sPrintDoctorConfig(PkgDoctorSummary& sum, const PkgRepository& repo, const PkgLocalPolicy& policy, bool color)
+{
+	Cout() << "Config:\n";
+	auto show = [&](const String& path) {
+		if(path.IsEmpty())
+			return;
+		if(FileExists(path))
+			sDoctorLine(sum, "ok", path + " parsed", color);
+		else
+			sDoctorLine(sum, "info", path + " missing", color);
+	};
+	show(policy.make_conf_path);
+	show(policy.package_use_path);
+	show(policy.package_provider_path);
+	show(policy.package_target_path);
+	show(policy.package_mask_path);
+	show(policy.package_force_path);
+	Cout() << "  local root: " << repo.paths.ai_dir << "\n";
+	Cout() << "  effective defaults:\n";
+	if(!policy.make_use.IsEmpty())
+		Cout() << "    USE=" << policy.make_use << "\n";
+	if(!policy.make_target.IsEmpty())
+		Cout() << "    TARGET=" << policy.make_target << "\n";
+	if(!policy.make_provider.IsEmpty())
+		Cout() << "    PROVIDER=" << policy.make_provider << "\n";
+	if(!policy.make_compiler.IsEmpty())
+		Cout() << "    COMPILER=" << policy.make_compiler << "\n";
+	if(!policy.make_linker.IsEmpty())
+		Cout() << "    LINKER=" << policy.make_linker << "\n";
+	if(!policy.make_profile.IsEmpty())
+		Cout() << "    PROFILE=" << policy.make_profile << "\n";
+	if(!policy.make_repository.IsEmpty())
+		Cout() << "    REPOSITORY=" << policy.make_repository << "\n";
+	if(!policy.make_vcpkg_root.IsEmpty())
+		Cout() << "    VCPKG_ROOT=" << policy.make_vcpkg_root << "\n";
+	if(!policy.make_vcpkg_triplet.IsEmpty())
+		Cout() << "    VCPKG_TRIPLET=" << policy.make_vcpkg_triplet << "\n";
+	if(!policy.make_emscripten_profile.IsEmpty())
+		Cout() << "    EMSCRIPTEN_PROFILE=" << policy.make_emscripten_profile << "\n";
+	if(policy.make_jobs > 0)
+		Cout() << "    JOBS=" << policy.make_jobs << "\n";
+	if(!policy.warnings.IsEmpty()) {
+		sDoctorLine(sum, "warn", "config warnings present", color);
+		for(const String& warn : policy.warnings)
+			sDoctorSubline("warning: ", warn);
+	}
+	if(!policy.errors.IsEmpty()) {
+		sDoctorLine(sum, "error", "config errors present", color);
+		for(const String& err : policy.errors)
+			sDoctorSubline("error: ", err);
+	}
+}
+
 static int sProviderDoctorLevel(const String& status)
 {
 	if(status == "available")
@@ -5253,7 +5903,7 @@ static void sPrintDoctorProviders(PkgDoctorSummary& sum, const PkgInvocation& in
 	sDoctorLine(sum, "info", "no install commands were run", color);
 }
 
-static void sPrintDoctorCommand(const PkgInvocation& inv, const PkgRepository& repo, bool color)
+static void sPrintDoctorCommand(const PkgInvocation& inv, const PkgRepository& repo, const PkgLocalPolicy& policy, bool color)
 {
 	PkgDoctorSummary sum;
 	String section = ToLower(TrimBoth(inv.subcommand));
@@ -5268,12 +5918,14 @@ static void sPrintDoctorCommand(const PkgInvocation& inv, const PkgRepository& r
 		sPrintDoctorState(sum, paths, color);
 	if(section.IsEmpty() || section == "all" || section == "cache")
 		sPrintDoctorCache(sum, repo, color);
+	if(section.IsEmpty() || section == "all" || section == "config")
+		sPrintDoctorConfig(sum, repo, policy, color);
 	if(section.IsEmpty() || section == "all" || section == "providers")
 		sPrintDoctorProviders(sum, inv, repo, color);
 
-	if(!section.IsEmpty() && section != "all" && section != "env" && section != "shell" && section != "state" && section != "cache" && section != "providers") {
+	if(!section.IsEmpty() && section != "all" && section != "env" && section != "shell" && section != "state" && section != "cache" && section != "config" && section != "providers") {
 		sDoctorLine(sum, "warn", "unknown doctor subcommand: " + inv.subcommand, color);
-		Cout() << "  available sections: env shell state cache providers all\n";
+		Cout() << "  available sections: env shell state cache config providers all\n";
 	}
 
 	Cout() << "\nSummary:\n";
@@ -6186,7 +6838,7 @@ static bool sApplyCleanupEntries(const PkgRepository& repo, Vector<PkgCleanupEnt
 	return any_removed;
 }
 
-static PkgPlan sBuildPlan(const PkgInvocation& inv, const PkgRepository& repo, const PkgState& state, bool color);
+static PkgPlan sBuildPlan(const PkgInvocation& inv, const PkgRepository& repo, const PkgState& state, const PkgLocalPolicy& policy, bool color);
 
 static void sPrintBins(const PkgInvocation& inv, const PkgRepository& repo, bool color)
 {
@@ -6279,7 +6931,7 @@ static Vector<String> sDepcleanLivePaths(const PkgInvocation& inv, const PkgRepo
 	return pick(live);
 }
 
-static void sCleanupArtifacts(const PkgInvocation& inv, const PkgRepository& repo, bool color, bool depclean)
+static void sCleanupArtifacts(const PkgInvocation& inv, const PkgRepository& repo, const PkgLocalPolicy& policy, bool color, bool depclean)
 {
 	PkgState state;
 	LoadFromJsonFile(state, repo.paths.state);
@@ -6307,7 +6959,7 @@ static void sCleanupArtifacts(const PkgInvocation& inv, const PkgRepository& rep
 		depinv.deep = inv.deep;
 		depinv.newuse = inv.newuse;
 		depinv.changed_use = inv.changed_use;
-		plan = sBuildPlan(depinv, repo, state, color);
+		plan = sBuildPlan(depinv, repo, state, policy, color);
 		live_paths = sDepcleanLivePaths(inv, repo, state, plan);
 	}
 
@@ -6520,11 +7172,11 @@ static void sGraphMarkPackageNode(PkgGraph& graph, const String& key, char statu
 	node.set_member = set_member;
 }
 
-static String sResolveGraphAtom(PkgGraph& graph, const PkgInvocation& inv, const PkgRepository& repo, const PkgState& state, const PkgPlan& plan, const PkgProviderPlan& provider_plan,
+static String sResolveGraphAtom(PkgGraph& graph, const PkgInvocation& inv, const PkgRepository& repo, const PkgState& state, const PkgPlan& plan, const PkgProviderPlan& provider_plan, const PkgLocalPolicy& policy,
                                 const String& atom, const String& reason, const String& inclusion, int depth, bool requested, bool provider_added, bool set_member, Vector<String>& stack);
 static bool sShouldSkipPlannedAtom(const PkgInvocation& inv, const PkgPlan& plan, const PkgRepository& repo, const PkgState& state, const String& atom);
 
-static String sResolveGraphSet(PkgGraph& graph, const PkgInvocation& inv, const PkgRepository& repo, const PkgState& state, const PkgPlan& plan, const PkgProviderPlan& provider_plan,
+static String sResolveGraphSet(PkgGraph& graph, const PkgInvocation& inv, const PkgRepository& repo, const PkgState& state, const PkgPlan& plan, const PkgProviderPlan& provider_plan, const PkgLocalPolicy& policy,
                               const String& set_name, const String& path, const String& reason, const String& inclusion, int depth, bool requested, Vector<String>& stack)
 {
 	(void)inv;
@@ -6543,11 +7195,11 @@ static String sResolveGraphSet(PkgGraph& graph, const PkgInvocation& inv, const 
 		return key;
 	}
 	for(const String& s : set)
-		sResolveGraphAtom(graph, inv, repo, state, plan, provider_plan, s, reason.IsEmpty() ? String("member of @") + set_name : reason, "set member", depth, requested, false, true, stack);
+		sResolveGraphAtom(graph, inv, repo, state, plan, provider_plan, policy, s, reason.IsEmpty() ? String("member of @") + set_name : reason, "set member", depth, requested, false, true, stack);
 	return Null;
 }
 
-static String sResolveGraphAtom(PkgGraph& graph, const PkgInvocation& inv, const PkgRepository& repo, const PkgState& state, const PkgPlan& plan, const PkgProviderPlan& provider_plan,
+static String sResolveGraphAtom(PkgGraph& graph, const PkgInvocation& inv, const PkgRepository& repo, const PkgState& state, const PkgPlan& plan, const PkgProviderPlan& provider_plan, const PkgLocalPolicy& policy,
                                 const String& atom, const String& reason, const String& inclusion, int depth, bool requested, bool provider_added, bool set_member, Vector<String>& stack)
 {
 	(void)inv;
@@ -6557,13 +7209,13 @@ static String sResolveGraphAtom(PkgGraph& graph, const PkgInvocation& inv, const
 		return Null;
 
 	if(trimmed == "@world" || trimmed == "world")
-		return sResolveGraphSet(graph, inv, repo, state, plan, provider_plan, "world", repo.paths.world,
+		return sResolveGraphSet(graph, inv, repo, state, plan, provider_plan, policy, "world", repo.paths.world,
 		                        String(), inclusion, depth, requested, stack);
 	if(trimmed == "@system" || trimmed == "system")
-		return sResolveGraphSet(graph, inv, repo, state, plan, provider_plan, "system", repo.paths.system_set,
+		return sResolveGraphSet(graph, inv, repo, state, plan, provider_plan, policy, "system", repo.paths.system_set,
 		                        String(), inclusion, depth, requested, stack);
 	if(trimmed == "@toolchain" || trimmed == "toolchain")
-		return sResolveGraphSet(graph, inv, repo, state, plan, provider_plan, "toolchain", repo.paths.toolchain_set,
+		return sResolveGraphSet(graph, inv, repo, state, plan, provider_plan, policy, "toolchain", repo.paths.toolchain_set,
 		                        String(), inclusion, depth, requested, stack);
 
 	if(trimmed.StartsWith("virtual/")) {
@@ -6587,7 +7239,7 @@ static String sResolveGraphAtom(PkgGraph& graph, const PkgInvocation& inv, const
 			sGraphAppendOrder(graph, key);
 			return key;
 		}
-		return sResolveGraphAtom(graph, inv, repo, state, plan, provider_plan, res->external_package,
+		return sResolveGraphAtom(graph, inv, repo, state, plan, provider_plan, policy, res->external_package,
 		                         reason.IsEmpty() ? String("provider for ") + trimmed : reason,
 		                         "provider", depth, requested, true, set_member, stack);
 	}
@@ -6617,6 +7269,17 @@ static String sResolveGraphAtom(PkgGraph& graph, const PkgInvocation& inv, const
 		sGraphAppendOrder(graph, key);
 		return key;
 	}
+	if(sPolicyPackageMasked(policy, repo, pkg)) {
+		String masked_key = sGraphMissingKey(trimmed);
+		sGraphMarkPackageNode(graph, masked_key, 'F', pkg->name, reason.IsEmpty() ? String("masked by local policy") : reason, depth, requested, provider_added, set_member);
+		PkgGraphNode& masked = sGraphEnsureNode(graph, masked_key);
+		masked.missing = true;
+		masked.blocker = true;
+		masked.reason = "masked by local policy";
+		sGraphAddIssue(graph, "masked", Null, trimmed, masked.reason);
+		sGraphAppendOrder(graph, masked_key);
+		return masked_key;
+	}
 
 	String key = lookup.path.IsEmpty() ? pkg->path : lookup.path;
 	int done = FindIndex(graph.order, key);
@@ -6641,7 +7304,7 @@ static String sResolveGraphAtom(PkgGraph& graph, const PkgInvocation& inv, const
 	stack.Add(key);
 	for(const String& dep : pkg->uses) {
 		String dep_reason = String("dependency of ") + pkg->name;
-		String dep_key = sResolveGraphAtom(graph, inv, repo, state, plan, provider_plan, dep, dep_reason, "dependency", depth + 1, false, false, false, stack);
+		String dep_key = sResolveGraphAtom(graph, inv, repo, state, plan, provider_plan, policy, dep, dep_reason, "dependency", depth + 1, false, false, false, stack);
 		if(!dep_key.IsEmpty()) {
 			String kind = dep.StartsWith("virtual/") ? "provider" : "dependency";
 			sGraphAddEdge(graph, key, dep_key, kind, dep_reason, dep_key.StartsWith("missing:") || dep_key.StartsWith("ambiguous:") || dep_key.StartsWith("cycle:"));
@@ -6654,7 +7317,7 @@ static String sResolveGraphAtom(PkgGraph& graph, const PkgInvocation& inv, const
 	return key;
 }
 
-static void sGraphBuild(PkgGraph& graph, const PkgInvocation& inv, const PkgRepository& repo, const PkgState& state, const PkgPlan& plan, const PkgProviderPlan& provider_plan, const Vector<String>& roots)
+static void sGraphBuild(PkgGraph& graph, const PkgInvocation& inv, const PkgRepository& repo, const PkgState& state, const PkgPlan& plan, const PkgProviderPlan& provider_plan, const PkgLocalPolicy& policy, const Vector<String>& roots)
 {
 	graph.nodes.Clear();
 	graph.edges.Clear();
@@ -6676,14 +7339,14 @@ static void sGraphBuild(PkgGraph& graph, const PkgInvocation& inv, const PkgRepo
 		if(!r.selected || r.external_package.IsEmpty())
 			continue;
 		String reason = String("provider for ") + r.capability;
-		sResolveGraphAtom(graph, inv, repo, state, plan, provider_plan, r.external_package, reason, "provider", 0, false, true, false, stack);
+		sResolveGraphAtom(graph, inv, repo, state, plan, provider_plan, policy, r.external_package, reason, "provider", 0, false, true, false, stack);
 	}
 
 	for(const String& root : roots) {
 		String reason = root_reason;
 		if(!inv.atom.IsEmpty() && root == inv.atom)
 			reason = "requested";
-		sResolveGraphAtom(graph, inv, repo, state, plan, provider_plan, root, reason, "requested", 0, true, false, false, stack);
+		sResolveGraphAtom(graph, inv, repo, state, plan, provider_plan, policy, root, reason, "requested", 0, true, false, false, stack);
 	}
 }
 
@@ -6898,7 +7561,7 @@ static void sPlanWalkAtom(PkgPlan& plan, const PkgInvocation& inv, const PkgRepo
 	}
 }
 
-static PkgPlan sBuildPlan(const PkgInvocation& inv, const PkgRepository& repo, const PkgState& state, bool color)
+static PkgPlan sBuildPlan(const PkgInvocation& inv, const PkgRepository& repo, const PkgState& state, const PkgLocalPolicy& policy, bool color)
 {
 	PkgPlan plan;
 	plan.atom = inv.atom;
@@ -6913,8 +7576,10 @@ static PkgPlan sBuildPlan(const PkgInvocation& inv, const PkgRepository& repo, c
 	plan.changed_use = inv.changed_use;
 	PkgLookupResult root_lookup = inv.atom.IsEmpty() ? PkgLookupResult() : repo.Resolve(inv.atom);
 	const PkgPackage *root_pkg = root_lookup.pkg;
-	const PkgTargetProfile& tp = sDefaultTargetProfile(inv.target);
-	sBuildUseModel(plan.use, root_pkg, inv.use_args, inv.target);
+	PkgInvocation eff = sEffectiveInvocation(inv, repo, policy, root_pkg);
+	plan.target = eff.target;
+	const PkgTargetProfile& tp = sDefaultTargetProfile(eff.target);
+	sBuildUseModel(plan.use, root_pkg, eff.use_args, eff.target);
 	sProjectUpp(plan.upp, plan.use);
 	sApplyUppAdditions(plan.upp, tp.upp_add);
 	plan.selected_use.Clear();
@@ -6960,7 +7625,7 @@ static PkgPlan sBuildPlan(const PkgInvocation& inv, const PkgRepository& repo, c
 		if(FindIndex(plan.virtuals, "virtual/opengl") < 0)
 			plan.virtuals.Add("virtual/opengl");
 	}
-	sBuildProviderPlan(plan.provider_plan, repo, &tp, plan.target, plan.virtuals, inv.provider, inv);
+	sBuildProviderPlan(plan.provider_plan, repo, policy, &tp, plan.target, plan.virtuals, eff.provider, eff);
 	for(const PkgProviderResolution& r : plan.provider_plan.resolutions)
 		if(!r.external_package.IsEmpty() && FindIndex(plan.providers, r.external_package) < 0)
 			plan.providers.Add(r.external_package);
@@ -7003,7 +7668,7 @@ static PkgPlan sBuildPlan(const PkgInvocation& inv, const PkgRepository& repo, c
 			roots.Add(s);
 	}
 
-	sGraphBuild(plan.graph, inv, repo, state, plan, plan.provider_plan, roots);
+	sGraphBuild(plan.graph, inv, repo, state, plan, plan.provider_plan, policy, roots);
 	sGraphToPlan(plan, plan.graph, repo, state, inv);
 
 	plan.backtrack = 0;
@@ -7078,11 +7743,11 @@ static void sPrintPlanItem(const PkgPlan& plan, const PkgPlanItem& item)
 	Cout() << "\n";
 }
 
-static PkgPlan sPrintPlan(const PkgInvocation& inv, const PkgRepository& repo, bool color)
+static PkgPlan sPrintPlan(const PkgInvocation& inv, const PkgRepository& repo, const PkgLocalPolicy& policy, bool color)
 {
 	PkgState state;
 	LoadFromJsonFile(state, repo.paths.state);
-	PkgPlan plan = sBuildPlan(inv, repo, state, color);
+	PkgPlan plan = sBuildPlan(inv, repo, state, policy, color);
 	const PkgTargetProfile& tp = sDefaultTargetProfile(plan.target);
 
 	Cout() << "These are the packages that would be built, in order:\n\n";
@@ -7312,11 +7977,6 @@ int RunPkg(const Vector<String>& args)
 		return 0;
 	}
 
-	if(inv.command != PKG_CMD_ESELECT) {
-		PkgEselectState eselect = sLoadEselectState(inv);
-		sApplyEselectDefaults(inv, eselect);
-	}
-
 	bool need_repo = inv.command == PKG_CMD_INFO || inv.command == PKG_CMD_METADATA || inv.command == PKG_CMD_LIST_SETS ||
 	                 inv.command == PKG_CMD_PROVIDERS || inv.command == PKG_CMD_SEARCH || inv.command == PKG_CMD_EXPLAIN_USE ||
 	                 inv.command == PKG_CMD_EXPLAIN_TARGET || inv.command == PKG_CMD_DEPS || inv.command == PKG_CMD_PLAN ||
@@ -7330,6 +7990,9 @@ int RunPkg(const Vector<String>& args)
 	repo.rebuild_cache = inv.rebuild_cache;
 	if(need_repo)
 		repo.Discover();
+	PkgLocalPolicy policy;
+	if(need_repo)
+		policy = sLoadLocalPolicy(repo.paths, repo);
 
 	if(inv.command == PKG_CMD_LIST_SETS) {
 		sPrintSets(repo);
@@ -7347,32 +8010,32 @@ int RunPkg(const Vector<String>& args)
 		return 0;
 	}
 	if(inv.command == PKG_CMD_CLEAN) {
-		sCleanupArtifacts(inv, repo, color, false);
+		sCleanupArtifacts(inv, repo, policy, color, false);
 		sFlushConsole();
 		return 0;
 	}
 	if(inv.command == PKG_CMD_DEPCLEAN) {
-		sCleanupArtifacts(inv, repo, color, true);
+		sCleanupArtifacts(inv, repo, policy, color, true);
 		sFlushConsole();
 		return 0;
 	}
 	if(inv.command == PKG_CMD_INFO) {
-		sPrintInfo(repo, inv);
+		sPrintInfo(repo, inv, policy);
 		sFlushConsole();
 		return 0;
 	}
 	if(inv.command == PKG_CMD_DOCTOR) {
-		sPrintDoctorCommand(inv, repo, color);
+		sPrintDoctorCommand(inv, repo, policy, color);
 		sFlushConsole();
 		return 0;
 	}
 	if(inv.command == PKG_CMD_LINT) {
-		int rc = sLintCommand(inv, repo, color, command_total.Seconds());
+		int rc = sLintCommand(inv, repo, policy, color, command_total.Seconds());
 		sFlushConsole();
 		return rc;
 	}
 	if(inv.command == PKG_CMD_PROVIDERS) {
-		sPrintProvidersCommand(inv, repo, color);
+		sPrintProvidersCommand(inv, repo, policy, color);
 		sFlushConsole();
 		return 0;
 	}
@@ -7402,7 +8065,7 @@ int RunPkg(const Vector<String>& args)
 		return 0;
 	}
 	if(inv.command == PKG_CMD_EXPLAIN_USE) {
-		sExplainUse(inv, repo);
+		sExplainUse(inv, repo, policy);
 		sFlushConsole();
 		return 0;
 	}
@@ -7412,12 +8075,12 @@ int RunPkg(const Vector<String>& args)
 		return 0;
 	}
 	if(inv.command == PKG_CMD_DEPS) {
-		sPrintDeps(inv, repo);
+		sPrintDeps(inv, repo, policy);
 		sFlushConsole();
 		return 0;
 	}
 	if(inv.command == PKG_CMD_PLAN) {
-		PkgPlan plan = sPrintPlan(inv, repo, color);
+		PkgPlan plan = sPrintPlan(inv, repo, policy, color);
 		if(inv.pretend) {
 			sFlushConsole();
 			return 0;

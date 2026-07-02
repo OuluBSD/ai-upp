@@ -248,6 +248,20 @@ CONSOLE_APP_MAIN
 	Check(model_rt.GetDivergences().GetCount() >= 1, "At least 1 divergence");
 	Check(model_rt.GetState().objects.GetCount() >= 1, "At least 1 model object");
 
+	// Verify divergences.json was auto-saved by the pipeline
+	{
+		String divs_path = AppendFileName(session_root, "divergences.json");
+		bool divs_exist = FileExists(divs_path);
+		Check(divs_exist, "divergences.json written");
+		if(divs_exist) {
+			Vector<VsmDivergence> pdivs;
+			bool ok = LoadFromJson(pdivs, LoadFile(divs_path));
+			Check(ok && pdivs.GetCount() > 0, "divergences.json valid JSON (>0 records)");
+			if(ok)
+				Cout() << "   => divergences.json: " << pdivs.GetCount() << " record(s)\n";
+		}
+	}
+
 	// 11. Write pipeline run outputs
 	pipe.SaveOutputs(session_root, summary.run_id);
 	Cout() << "\nRun outputs: " << AppendFileName(AppendFileName(session_root, "runs"), summary.run_id) << "\n";

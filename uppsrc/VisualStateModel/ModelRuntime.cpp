@@ -207,4 +207,19 @@ void VsmModelRuntime::ApplyValidateProp(const VsmModelRule& r, const VsmModelEve
 	}
 }
 
+// ---------------------------------------------------------------------------
+// VsmModelRuntime::SaveDivergenceReport
+
+bool VsmModelRuntime::SaveDivergenceReport(const String& path)
+{
+	String json = StoreAsJson(divergences_, true);
+	if(!SaveFile(path, json)) {
+		LogError(log_, "ModelRuntime", "Cannot write divergences: " + path);
+		return false;
+	}
+	LogInfo(log_, "ModelRuntime", Format("Divergences saved: %d record(s) → %s",
+	                                      divergences_.GetCount(), path));
+	return true;
+}
+
 } // namespace Upp

@@ -29,6 +29,8 @@ file
 	OcrLayer.cpp,
 	ModelRuntime.h,
 	ModelRuntime.cpp,
+	FrameSource.h,
+	FrameSource.cpp,
 	PipelineRunner.h,
 	PipelineRunner.cpp,
 	PipelineCache.h,

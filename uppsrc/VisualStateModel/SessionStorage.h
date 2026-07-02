@@ -30,6 +30,7 @@ struct VsmFrameAsset : Moveable<VsmFrameAsset> {
 	int    frame_index = -1;
 	String relative_path; // e.g. "frames/00000001.placeholder"
 	String format;        // "placeholder", "jpg", "png"
+	int64  ts_ms       = -1; // millisecond timestamp; -1 = unknown
 	void Jsonize(JsonIO& json);
 };
 
@@ -77,7 +78,8 @@ public:
 	String      Resolve(const VsmAssetRef& ref) const;
 
 	// Image asset I/O (stores .vsm binary; updates manifest format to "vsm")
-	VsmAssetRef     SaveFrameImage(int frame_index, const VsmImageBuffer& img);
+	VsmAssetRef     SaveFrameImage(int frame_index, const VsmImageBuffer& img,
+	                               int64 ts_ms = -1);
 	bool            LoadFrameImage(int frame_index, VsmImageBuffer& out) const;
 	VsmAssetRef     SaveCropImage(const String& region_id, const VsmImageBuffer& img);
 	bool            LoadCropImage(const String& region_id, VsmImageBuffer& out) const;

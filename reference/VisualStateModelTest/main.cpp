@@ -958,6 +958,74 @@ static void TestFrameSource()
 	       << " obs=" << sum.observations_made << " OK\n";
 
 	DeleteFolderDeep(root);
+
+	// Sub-test: timestamp round-trip via VsmCaptureSink → VsmSessionStoreSource
+	Cout() << "Timestamp round-trip:\n";
+	{
+		struct SyntheticTsSource : VsmFrameSource {
+			int step_ = 0;
+			bool Open(const String&) override { step_ = 0; return true; }
+			void Close() override { step_ = 0; }
+			bool IsReady()  const override { return true; }
+			int  GetWidth() const override { return 16; }
+			int  GetHeight()const override { return 16; }
+			int  GetFPS()   const override { return 0; }
+			bool ReadFrame(VsmImageBuffer& out, int64& ts) override {
+				if(step_ >= 3) return false;
+				static const int64 kTs[] = { 0, 33, 100 };
+				out = VsmImageBuffer::MakeSolid(16, 16, (byte)(step_ * 50 + 100), 1);
+				ts  = kTs[step_++];
+				return true;
+			}
+			String GetSourceInfo() const override { return "synthetic-ts"; }
+		};
+
+		String caproot = AppendFileName(GetTempPath(), "vsm_ts_round_trip_test");
+		if(DirectoryExists(caproot)) DeleteFolderDeep(caproot);
+
+		AppLog log2;
+		log2.SetForwardToUppLog(false);
+
+		SyntheticTsSource ssrc;
+		VsmCaptureSink sink;
+		sink.SetLog(&log2);
+		VsmCaptureSinkOptions opts;
+		opts.output_dir = caproot;
+		opts.session_id = "ts-trip-001";
+
+		VsmCaptureSummary cap = sink.Record(ssrc, opts);
+		if(!cap.success || cap.frames_recorded != 3) {
+			Fail("FrameSource ts: capture failed");
+		} else {
+			VsmSessionStoreSource replay;
+			replay.SetLog(&log2);
+			if(!replay.Open(caproot)) {
+				Fail("FrameSource ts: replay open");
+			} else {
+				static const int64 kExpected[] = { 0, 33, 100 };
+				int fi = 0;
+				VsmImageBuffer rout; int64 rts = -1;
+				bool ts_ok = true;
+				while(replay.ReadFrame(rout, rts)) {
+					if(fi >= 3) { Fail("FrameSource ts: too many frames"); ts_ok = false; break; }
+					if(rts != kExpected[fi]) {
+						Fail(Format("FrameSource ts: frame %d ts_ms=%lld expected %lld",
+						            fi, (long long)rts, (long long)kExpected[fi]));
+						ts_ok = false;
+						break;
+					}
+					fi++;
+				}
+				if(ts_ok) {
+					if(fi != 3)
+						Fail("FrameSource ts: expected 3 replay frames");
+					else
+						Cout() << "  ts_ms round-trip: 0, 33, 100 ms OK\n";
+				}
+			}
+		}
+		DeleteFolderDeep(caproot);
+	}
 }
 
 // ---------------------------------------------------------------------------

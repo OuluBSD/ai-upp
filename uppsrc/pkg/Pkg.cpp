@@ -4292,6 +4292,7 @@ bool ParsePkgArgs(const Vector<String>& args, PkgInvocation& inv, String& error)
 			else if(a == "--list-sets") inv.list_sets = true, inv.command = PKG_CMD_LIST_SETS;
 			else if(a == "--audit-acceptflags") inv.command = PKG_CMD_AUDIT_ACCEPTFLAGS;
 			else if(a == "--lint") inv.command = PKG_CMD_LINT;
+			else if(a == "--selftest") inv.command = PKG_CMD_SELFTEST;
 			else if(a == "--targets") inv.targets = true, inv.command = PKG_CMD_TARGETS;
 			else if(a == "--providers") inv.providers = true, inv.command = PKG_CMD_PROVIDERS;
 			else if(a == "--bins") inv.bins = true, inv.command = PKG_CMD_BINS;
@@ -4443,6 +4444,7 @@ bool ParsePkgArgs(const Vector<String>& args, PkgInvocation& inv, String& error)
 			else if(cmd == "explain-target") inv.command = PKG_CMD_EXPLAIN_TARGET;
 			else if(cmd == "deps") inv.command = PKG_CMD_DEPS;
 			else if(cmd == "lint") inv.command = PKG_CMD_LINT;
+			else if(cmd == "selftest") inv.command = PKG_CMD_SELFTEST;
 			else if(cmd == "target") inv.command = PKG_CMD_TARGET;
 			else if(cmd == "eselect") inv.command = PKG_CMD_ESELECT;
 			else if(cmd == "audit-acceptflags") inv.command = PKG_CMD_AUDIT_ACCEPTFLAGS;
@@ -4477,7 +4479,7 @@ bool ParsePkgArgs(const Vector<String>& args, PkgInvocation& inv, String& error)
 	if(positional.GetCount()) {
 		int start = 0;
 		if(positional[0] == "help" || positional[0] == "version" || positional[0] == "info" || positional[0] == "doctor" ||
-		   positional[0] == "metadata" || positional[0] == "list-sets" || positional[0] == "targets" || positional[0] == "providers" || positional[0] == "bins" || positional[0] == "clean" || positional[0] == "depclean" || positional[0] == "explain-use" || positional[0] == "explain-target" || positional[0] == "deps" || positional[0] == "lint" ||
+		   positional[0] == "metadata" || positional[0] == "list-sets" || positional[0] == "targets" || positional[0] == "providers" || positional[0] == "bins" || positional[0] == "clean" || positional[0] == "depclean" || positional[0] == "explain-use" || positional[0] == "explain-target" || positional[0] == "deps" || positional[0] == "lint" || positional[0] == "selftest" ||
 		   positional[0] == "target" || positional[0] == "eselect" || positional[0] == "audit-acceptflags" ||
 		   positional[0] == "resume" || positional[0] == "search" || positional[0] == "metadata-cache")
 			start = 1;
@@ -4517,6 +4519,11 @@ bool ParsePkgArgs(const Vector<String>& args, PkgInvocation& inv, String& error)
 		}
 		else if(inv.command == PKG_CMD_DOCTOR) {
 			inv.subcommand = rest.GetCount() ? rest[0] : "all";
+			for(int i = 1; i < rest.GetCount(); i++)
+				inv.extra.Add(rest[i]);
+		}
+		else if(inv.command == PKG_CMD_SELFTEST) {
+			inv.subcommand = rest.GetCount() ? rest[0] : "quick";
 			for(int i = 1; i < rest.GetCount(); i++)
 				inv.extra.Add(rest[i]);
 		}
@@ -4882,6 +4889,7 @@ static void sPrintHelp(bool color)
 		<< "  --version, version\n"
 		<< "  --info, info\n"
 		<< "  --doctor, doctor [env|state|shell|cache|config|providers [--probe]]\n"
+		<< "  --selftest, selftest [quick|doctor|cache|plan|lint|all]\n"
 		<< "  --metadata-cache, metadata-cache [--rebuild]\n"
 		<< "  --metadata, metadata\n"
 		<< "  --list-sets\n"
@@ -4902,6 +4910,7 @@ static void sPrintHelp(bool color)
 		<< "  eselect ...\n"
 		<< "  resume [--pretend] [--skipfirst] [--keep-going]\n"
 		<< "  audit-acceptflags [atom] [--patch]  global/platform flags are skipped\n"
+		<< "  selftest [quick|doctor|cache|plan|lint|all]\n"
 		<< "  -avuDN @world\n\n"
 		<< "Recognized sets: @world, @system, @toolchain\n"
 		<< "Cleanup: use pkg clean or pkg --depclean for safe artifact removal.\n";
@@ -5640,6 +5649,7 @@ static void sPrintInfo(const PkgRepository& repo, const PkgInvocation& inv, cons
 	Cout() << "Selected USE: " << sFormatUseList(sMergeUseArgs(Split(policy.make_use, CharFilterWhitespace), eff.use_args)) << "\n";
 	Cout() << "Doctor: run `pkg doctor` for environment diagnostics.\n";
 	Cout() << "Lint check: use `pkg lint --check` for local batch policy; `--ci` is a compatibility alias.\n";
+	Cout() << "Selftest: run `pkg selftest` for local smoke checks.\n";
 	Cout() << "Artifacts: run `pkg bins` to inspect recorded build outputs.\n";
 	Cout() << "Cleanup: run `pkg clean` or `pkg --depclean` for conservative removal.\n";
 }
@@ -5937,6 +5947,225 @@ static void sPrintDoctorCommand(const PkgInvocation& inv, const PkgRepository& r
 
 	Cout() << "\nSummary:\n";
 	Cout() << "  " << sum.ok << " ok, " << sum.warn << " warn, " << sum.info << " info, " << sum.error << " error\n";
+}
+
+static bool sPlanHasBlockingRows(const PkgPlan& plan, String& reason);
+
+static void sSelftestVersionHelp(PkgDoctorSummary& sum, bool color)
+{
+	sDoctorLine(sum, "ok", "version command path", color);
+	sDoctorLine(sum, "ok", "help command path", color);
+}
+
+static void sSelftestDoctor(PkgDoctorSummary& sum, bool color)
+{
+#ifdef flagWIN32
+	Vector<String> missing;
+	String path = GetEnv("PATH");
+	if(!sDoctorPathSuffixPresent(path, "bin\\clang\\bin"))
+		missing.Add("...\\bin\\clang\\bin");
+	if(!sDoctorPathSuffixPresent(path, "bin\\clang\\x86_64-w64-mingw32\\bin"))
+		missing.Add("...\\bin\\clang\\x86_64-w64-mingw32\\bin");
+	if(missing.IsEmpty())
+		sDoctorLine(sum, "ok", "doctor environment", color);
+	else {
+		sDoctorLine(sum, "warn", "doctor environment: clang runtime DLL path may be missing", color);
+		for(const String& m : missing)
+			sDoctorSubline("expected: ", m);
+	}
+	if(!GetEnv("PSModulePath").IsEmpty()) {
+		sDoctorLine(sum, "warn", "doctor shell: PowerShell treats @world specially", color);
+		sDoctorSubline("use: ", "cmd /c \"bin\\pkg.exe -pv @world\"");
+		sDoctorSubline("or: ", "quote or escape @world before passing it to pkg");
+	}
+	else
+		sDoctorLine(sum, "info", "doctor shell: Windows shells may need @world quoted or escaped", color);
+#else
+	sDoctorLine(sum, "info", "doctor environment is Windows-specific", color);
+#endif
+}
+
+static void sSelftestCache(PkgDoctorSummary& sum, const PkgRepository& repo, bool color)
+{
+	if(repo.cache_corrupt)
+		sDoctorLine(sum, "warn", "doctor cache: cache is corrupt but recoverable", color);
+	else if(repo.cache_ok)
+		sDoctorLine(sum, "ok", "doctor cache: cache is readable", color);
+	else
+		sDoctorLine(sum, "warn", "doctor cache: cache is missing or not reusable", color);
+
+	if(repo.cache_ok)
+		sDoctorLine(sum, "ok", "metadata cache", color);
+	else
+		sDoctorLine(sum, "warn", "metadata cache", color);
+}
+
+static void sSelftestSearch(PkgDoctorSummary& sum, const PkgRepository& repo, bool color, bool verbose)
+{
+	Vector<const PkgPackage*> matches = repo.Search("pkg");
+	if(matches.GetCount()) {
+		sDoctorLine(sum, "ok", "search pkg", color);
+		if(verbose)
+			sDoctorSubline("matches: ", AsString(matches.GetCount()));
+	}
+	else
+		sDoctorLine(sum, "error", "search pkg returned no results", color);
+}
+
+static void sSelftestPlan(PkgDoctorSummary& sum, const PkgInvocation& inv, const PkgRepository& repo, const PkgLocalPolicy& policy, bool color, bool verbose)
+{
+	PkgState state;
+	LoadFromJsonFile(state, repo.paths.state);
+
+	PkgInvocation planinv;
+	sCopyInvocation(planinv, inv);
+	planinv.command = PKG_CMD_PLAN;
+	planinv.atom = "pkg";
+	planinv.pretend = true;
+	planinv.plan = true;
+	planinv.ask = false;
+	planinv.verbose = verbose;
+	PkgPlan plan = sBuildPlan(planinv, repo, state, policy, color);
+	String reason;
+	if(plan.graph.nodes.IsEmpty())
+		sDoctorLine(sum, "error", "plan pkg: no packages selected", color);
+	else if(sPlanHasBlockingRows(plan, reason)) {
+		sDoctorLine(sum, "warn", "plan pkg: blockers present", color);
+		if(verbose)
+			sDoctorSubline("reason: ", reason);
+	}
+	else {
+		sDoctorLine(sum, "ok", "plan pkg", color);
+		if(verbose)
+			sDoctorSubline("graph: ", AsString(plan.graph.nodes.GetCount()) + " nodes");
+	}
+
+	PkgInvocation miss;
+	sCopyInvocation(miss, planinv);
+	miss.atom = "app/MyApp";
+	PkgLookupResult miss_lookup = repo.Resolve(miss.atom);
+	PkgPlan miss_plan = sBuildPlan(miss, repo, state, policy, color);
+	if(!miss_lookup.pkg || sPlanHasBlockingRows(miss_plan, reason)) {
+		sDoctorLine(sum, "ok", "missing package guard", color);
+		if(verbose)
+			sDoctorSubline("atom: ", miss.atom);
+	}
+	else
+		sDoctorLine(sum, "warn", "missing package guard: package unexpectedly buildable", color);
+}
+
+static void sSelftestProviders(PkgDoctorSummary& sum, const PkgInvocation& inv, const PkgRepository& repo, const PkgLocalPolicy& policy, bool color, bool verbose)
+{
+	PkgInvocation provinv;
+	sCopyInvocation(provinv, inv);
+	provinv.command = PKG_CMD_PROVIDERS;
+	provinv.probe = true;
+	const PkgTargetProfile& tp = sDefaultTargetProfile(Nvl(inv.target, String("native")));
+	Vector<String> virtuals;
+	virtuals.Add("virtual/sqlite");
+	virtuals.Add("virtual/gui-runtime");
+	PkgProviderPlan pp;
+	sBuildProviderPlan(pp, repo, policy, &tp, Nvl(inv.target, String("native")), virtuals, inv.provider, provinv);
+
+	int available = 0;
+	int missing = 0;
+	int manual = 0;
+	int unknown = 0;
+	for(const PkgProviderResolution& r : pp.resolutions) {
+		String s = ToLower(r.probe_status);
+		if(s == "available")
+			available++;
+		else if(s == "missing")
+			missing++;
+		else if(s == "manual")
+			manual++;
+		else
+			unknown++;
+	}
+	if(pp.resolutions.IsEmpty())
+		sDoctorLine(sum, "warn", "provider probes are read-only but no catalog entries were resolved", color);
+	else
+		sDoctorLine(sum, "info", "provider probes are read-only", color);
+	if(verbose) {
+		sDoctorSubline("available: ", AsString(available));
+		sDoctorSubline("missing: ", AsString(missing));
+		sDoctorSubline("manual: ", AsString(manual));
+		sDoctorSubline("unknown: ", AsString(unknown));
+	}
+}
+
+static void sSelftestLint(PkgDoctorSummary& sum, const PkgInvocation& inv, const PkgRepository& repo, const PkgLocalPolicy& policy, bool color, bool verbose)
+{
+	String report_path = ForceExt(GetTempFileName("pkg-selftest-lint"), ".json");
+	PkgInvocation lint;
+	sCopyInvocation(lint, inv);
+	lint.command = PKG_CMD_LINT;
+	lint.atom = String();
+	lint.all = true;
+	lint.summary = true;
+	lint.quiet = true;
+	lint.check = false;
+	lint.ci = false;
+	lint.limit = lint.limit > 0 ? min(lint.limit, 25) : 25;
+	lint.use_cache = true;
+	lint.baseline.Clear();
+	lint.update_baseline = false;
+	lint.report = report_path;
+	int rc = sLintCommand(lint, repo, policy, color, 0.0);
+	PkgLintReport report;
+	bool ok = FileExists(report_path) && LoadFromJsonFile(report, report_path);
+	DeleteFile(report_path);
+	if(!ok) {
+		sDoctorLine(sum, "error", "lint quick: unable to read temporary report", color);
+		return;
+	}
+	String msg;
+	msg << "lint quick: " << report.errors << " errors, " << report.warnings << " warnings";
+	if(report.errors > 0 || report.warnings > 0)
+		sDoctorLine(sum, "warn", msg, color);
+	else
+		sDoctorLine(sum, "ok", msg, color);
+	if(report.errors == 0 && report.warnings == 0 && rc != 0)
+		sDoctorLine(sum, "error", "lint quick returned a nonzero exit code despite zero findings", color);
+	if(verbose) {
+		sDoctorSubline("baseline: ", report.baseline_path.IsEmpty() ? String("[none]") : report.baseline_path);
+		sDoctorSubline("cache used: ", report.cache_used ? "yes" : "no");
+	}
+}
+
+static int sSelftestCommand(const PkgInvocation& inv, const PkgRepository& repo, const PkgLocalPolicy& policy, bool color)
+{
+	PkgDoctorSummary sum;
+	String group = ToLower(TrimBoth(inv.subcommand));
+	if(group.IsEmpty())
+		group = "quick";
+
+	Cout() << "pkg selftest\n\n";
+	if(group == "quick" || group == "all") {
+		sSelftestVersionHelp(sum, color);
+		sSelftestDoctor(sum, color);
+		sSelftestCache(sum, repo, color);
+		sSelftestSearch(sum, repo, color, inv.verbose);
+		sSelftestPlan(sum, inv, repo, policy, color, inv.verbose);
+		sSelftestProviders(sum, inv, repo, policy, color, inv.verbose);
+		sSelftestLint(sum, inv, repo, policy, color, inv.verbose);
+	}
+	else if(group == "doctor")
+		sSelftestDoctor(sum, color);
+	else if(group == "cache")
+		sSelftestCache(sum, repo, color);
+	else if(group == "plan")
+		sSelftestPlan(sum, inv, repo, policy, color, inv.verbose);
+	else if(group == "lint")
+		sSelftestLint(sum, inv, repo, policy, color, inv.verbose);
+	else {
+		sDoctorLine(sum, "error", "unknown selftest group: " + inv.subcommand, color);
+		Cout() << "  available groups: quick doctor cache plan lint all\n";
+	}
+
+	Cout() << "\nSummary:\n";
+	Cout() << "  " << sum.ok << " ok, " << sum.warn << " warn, " << sum.error << " error\n";
+	return sum.error > 0 || (inv.strict && sum.warn > 0) ? 1 : 0;
 }
 
 static void sPrintResumeState(const PkgTransaction& tx)
@@ -7988,7 +8217,7 @@ int RunPkg(const Vector<String>& args)
 	                 inv.command == PKG_CMD_PROVIDERS || inv.command == PKG_CMD_SEARCH || inv.command == PKG_CMD_EXPLAIN_USE ||
 	                 inv.command == PKG_CMD_EXPLAIN_TARGET || inv.command == PKG_CMD_DEPS || inv.command == PKG_CMD_PLAN ||
 	                 inv.command == PKG_CMD_AUDIT_ACCEPTFLAGS || inv.command == PKG_CMD_ESELECT ||
-	                 inv.command == PKG_CMD_RESUME ||
+	                 inv.command == PKG_CMD_RESUME || inv.command == PKG_CMD_SELFTEST ||
 	                 inv.command == PKG_CMD_TARGET || inv.command == PKG_CMD_DOCTOR || inv.command == PKG_CMD_LINT ||
 	                 inv.command == PKG_CMD_METADATA_CACHE ||
 	                 inv.command == PKG_CMD_BINS || inv.command == PKG_CMD_CLEAN || inv.command == PKG_CMD_DEPCLEAN;
@@ -8035,6 +8264,11 @@ int RunPkg(const Vector<String>& args)
 		sPrintDoctorCommand(inv, repo, policy, color);
 		sFlushConsole();
 		return 0;
+	}
+	if(inv.command == PKG_CMD_SELFTEST) {
+		int rc = sSelftestCommand(inv, repo, policy, color);
+		sFlushConsole();
+		return rc;
 	}
 	if(inv.command == PKG_CMD_LINT) {
 		int rc = sLintCommand(inv, repo, policy, color, command_total.Seconds());

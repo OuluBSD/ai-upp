@@ -35,6 +35,7 @@ enum PkgCommandKind {
 	PKG_CMD_ESELECT,
 	PKG_CMD_AUDIT_ACCEPTFLAGS,
 	PKG_CMD_RESUME,
+	PKG_CMD_SELFTEST,
 };
 
 struct PkgUseMap : Moveable<PkgUseMap> {

@@ -67,6 +67,24 @@ bool VsmReportWriter::WriteIndex(const VsmSession& session, const String& out_di
 	md << "| State snapshots | " << session.state_snapshots.GetCount() << " |\n";
 	md << "| Divergences | " << session.divergences.GetCount() << " |\n\n";
 
+	// Pipeline divergences from divergences.json (auto-saved by pipeline runs)
+	{
+		String div_json_path = AppendFileName(out_dir, "divergences.json");
+		if(FileExists(div_json_path)) {
+			String raw = LoadFile(div_json_path);
+			Vector<VsmDivergence> pdivs;
+			if(LoadFromJson(pdivs, raw) && !pdivs.IsEmpty()) {
+				md << "## Divergences (" << pdivs.GetCount() << ")\n\n";
+				md << "| Frame | Severity | Region | Message |\n|---|---|---|---|\n";
+				for(const VsmDivergence& d : pdivs)
+					md << "| " << d.frame << " | " << d.severity << " | "
+					   << (d.region_id.IsEmpty() ? String("—") : d.region_id)
+					   << " | " << d.message << " |\n";
+				md << "\n";
+			}
+		}
+	}
+
 	// Event index
 	if(!session.changes.IsEmpty()) {
 		md << "## Change Events\n\n";

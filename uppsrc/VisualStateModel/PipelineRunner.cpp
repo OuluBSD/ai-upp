@@ -268,6 +268,10 @@ VsmPipelineRunSummary VsmObservationPipeline::Run()
 	}
 	summary.success = true;
 
+	if(store_ && model_rt_)
+		model_rt_->SaveDivergenceReport(
+		    AppendFileName(store_->GetPaths().root, "divergences.json"));
+
 	LogInfo(log_, "Pipeline", Format("Run complete: %d obs, %d transitions, %d divergences",
 	                                  summary.observations_made,
 	                                  summary.transitions, summary.divergences));
@@ -329,6 +333,10 @@ VsmPipelineRunSummary VsmObservationPipeline::RunFromSource(VsmFrameSource& src)
 		summary.divergences = model_rt_->GetDivergences().GetCount();
 	}
 	summary.success = true;
+
+	if(store_ && model_rt_)
+		model_rt_->SaveDivergenceReport(
+		    AppendFileName(store_->GetPaths().root, "divergences.json"));
 
 	LogInfo(log_, "Pipeline",
 	        Format("RunFromSource complete: %d frames, %d obs, %d transitions",

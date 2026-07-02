@@ -19,6 +19,8 @@ using namespace Upp;
 #include "ModelRuntime.h"
 #include "FrameSource.h"
 #include "ImageSequenceImporter.h"
+#include "CaptureSink.h"
+#include "MjpegParser.h"
 #include "PipelineRunner.h"
 #include "PipelineCache.h"
 

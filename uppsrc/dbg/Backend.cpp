@@ -123,6 +123,10 @@ static int RunBackendCommand(const DbgBackendInfo& backend, const Vector<String>
 		GdbBackendSession session;
 		result = session.Run(request);
 	}
+	else if(backend.name == "lldb") {
+		LldbBackendSession session;
+		result = session.Run(request);
+	}
 	else {
 		PlannedDbgBackendSession session(backend.name);
 		result = session.Run(request);

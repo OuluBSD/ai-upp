@@ -5,6 +5,7 @@
 
 using namespace Upp;
 
+#include "Session.h"
 #include "Backend.h"
 
 #endif

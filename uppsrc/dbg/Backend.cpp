@@ -2,6 +2,29 @@
 
 using namespace Upp;
 
+class PlannedDbgBackendSession : public DbgBackendSession {
+	String backend_name;
+
+public:
+	explicit PlannedDbgBackendSession(const String& name) : backend_name(name) {}
+
+	String GetBackendName() const override { return backend_name; }
+
+	DbgRunResult Run(const DbgLaunchRequest& request) override
+	{
+		DbgRunResult result;
+		result.backend_name = backend_name;
+		result.exit_code = 1;
+		result.error = backend_name + " backend is not implemented yet";
+		result.transcript << "executable: " << request.executable_path << '\n';
+		if(!request.working_directory.IsEmpty())
+			result.transcript << "cwd: " << request.working_directory << '\n';
+		for(int i = 0; i < request.arguments.GetCount(); i++)
+			result.transcript << "arg[" << i << "]: " << request.arguments[i] << '\n';
+		return result;
+	}
+};
+
 Vector<DbgBackendInfo> GetPlannedDbgBackends()
 {
 	Vector<DbgBackendInfo> backends;
@@ -85,8 +108,21 @@ static int RunBackendCommand(const DbgBackendInfo& backend, const Vector<String>
 		PrintBackendHelp(backend);
 		return 1;
 	}
-	Cerr() << "dbg: " << backend.name << " backend is not implemented yet\n";
-	return 1;
+	if(pos + 1 >= args.GetCount()) {
+		Cerr() << "dbg: missing executable path for '" << backend.name << "'\n";
+		return 1;
+	}
+
+	DbgLaunchRequest request;
+	request.executable_path = args[pos + 1];
+	for(int i = pos + 2; i < args.GetCount(); i++)
+		request.arguments.Add(args[i]);
+
+	PlannedDbgBackendSession session(backend.name);
+	DbgRunResult result = session.Run(request);
+	if(!result.error.IsEmpty())
+		Cerr() << "dbg: " << result.error << "\n";
+	return IsNull(result.exit_code) ? 1 : result.exit_code;
 }
 
 int RunDbgCli(const Vector<String>& args)

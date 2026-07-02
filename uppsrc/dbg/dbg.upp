@@ -6,6 +6,7 @@ uses
 file
 	AGENTS.md,
 	dbg.h,
+	Session.h,
 	Backend.h,
 	Backend.cpp,
 	main.cpp;

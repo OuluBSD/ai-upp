@@ -42,6 +42,7 @@ static void PrintHelp()
 {
 	Cout() << "Usage: dbg [--help] [--backends]\n"
 	       << "       dbg --backend <name> --help\n"
+	       << "       dbg --backend <name> check\n"
 	       << "       dbg --backend <name> run <program> [args...]\n"
 	       << "\n"
 	       << "  --backends  List planned debugger backends.\n"
@@ -59,7 +60,9 @@ static void PrintBackendHelp(const DbgBackendInfo& backend)
 {
 	Cout() << "Backend: " << backend.name << "\n"
 	       << "Description: " << backend.description << "\n"
-	       << "Status: not implemented yet\n";
+	       << "Commands:\n"
+	       << "  check  Probe backend toolchain availability\n"
+	       << "  run    Launch a program (not implemented yet)\n";
 }
 
 static int FindArg(const Vector<String>& args, const char *needle)
@@ -134,6 +137,20 @@ static bool ParseRunCommand(const Vector<String>& args, int pos, const String& b
 	return true;
 }
 
+static int RunBackendCheck(const DbgBackendInfo& backend)
+{
+	DbgToolchainStatus status = CheckDbgBackendToolchain(backend.name);
+	if(status.available) {
+		for(const String& line : status.messages)
+			Cout() << line << '\n';
+		return 0;
+	}
+
+	for(const String& line : status.messages)
+		Cerr() << line << '\n';
+	return 1;
+}
+
 static int RunBackendCommand(const DbgBackendInfo& backend, const Vector<String>& args, int pos)
 {
 	if(pos >= args.GetCount()) {
@@ -143,6 +160,13 @@ static int RunBackendCommand(const DbgBackendInfo& backend, const Vector<String>
 	if(args[pos] == "--help") {
 		PrintBackendHelp(backend);
 		return 0;
+	}
+	if(args[pos] == "check") {
+		if(pos + 1 != args.GetCount()) {
+			Cerr() << "dbg: unexpected arguments after 'check' for '" << backend.name << "'\n";
+			return 1;
+		}
+		return RunBackendCheck(backend);
 	}
 	if(args[pos] != "run") {
 		Cerr() << "dbg: unknown backend command '" << args[pos] << "' for '" << backend.name << "'\n";

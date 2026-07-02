@@ -8,6 +8,8 @@ file
 	dbg.h,
 	Session.h,
 	Session.cpp,
+	Toolchain.h,
+	Toolchain.cpp,
 	BackendFactory.h,
 	BackendFactory.cpp,
 	GdbAdapter.h,

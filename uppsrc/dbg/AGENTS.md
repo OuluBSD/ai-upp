@@ -9,6 +9,7 @@ Current Commands
 - `--help`
 - `--backends`
 - `--backend <name> --help`
+- `--backend <name> check`
 - `--backend <name> run <program> [args...]`
 
 Planned Backends
@@ -39,4 +40,5 @@ Package Notes
 File Map
 - `dbg.h` : umbrella header
 - `Backend.h/cpp` : backend registry, planned backend metadata, CLI dispatch
+- `Toolchain.h/cpp` : backend toolchain diagnostics
 - `main.cpp` : console entrypoint, delegates to `RunDbgCli`

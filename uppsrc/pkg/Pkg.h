@@ -559,6 +559,7 @@ struct PkgInvocation {
 	bool nodeps = false;
 	bool summary = false;
 	bool quiet = false;
+	bool check = false;
 	bool ci = false;
 	bool keep_going = false;
 	bool skip_first = false;

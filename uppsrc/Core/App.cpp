@@ -799,7 +799,7 @@ void LaunchWebBrowser(const String& url)
 #endif
 
 #ifdef PLATFORM_POSIX
-extern char **environ;
+extern "C" char **environ;
 
 static bool sLaunchWebBrowserCommand(const char *cmd, const String& url)
 {

@@ -575,10 +575,8 @@ void MainWindow::OnAnnotationChanged()
 
 	// Persist
 	bool save_success = false;
-	if(!annotation_path_.IsEmpty()) {
-		annotation_layer_.Save(annotation_path_);
-		save_success = true;
-	}
+	if(!annotation_path_.IsEmpty())
+		save_success = annotation_layer_.Save(annotation_path_);
 	annotation_dock_.NotifySaveResult(save_success, annotation_path_.IsEmpty());
 }
 

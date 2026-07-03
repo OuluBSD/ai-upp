@@ -79,6 +79,7 @@ public:
 
 private:
 	Vector<VsmOcrRule>* rules_ = nullptr;
+	int next_ocr_id_ = 0;  // monotonic counter for rule IDs
 
 	ArrayCtrl rules_list_;
 	ArrayCtrl results_list_;
@@ -106,6 +107,7 @@ public:
 
 private:
 	Vector<VsmTemplateRule>* rules_ = nullptr;
+	int next_rule_id_ = 0;  // monotonic counter for rule IDs
 
 	ArrayCtrl rules_list_;
 	ArrayCtrl results_list_;

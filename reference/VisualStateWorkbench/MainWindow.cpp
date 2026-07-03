@@ -387,15 +387,16 @@ void MainWindow::SaveOverlayState()
 
 void MainWindow::OnToggleOverlay(int which)
 {
+	bool state = false;
 	switch(which) {
-	case 0: frame_canvas_.SetShowRegions    (!frame_canvas_.ShowRegions());     break;
-	case 1: frame_canvas_.SetShowAnnotations(!frame_canvas_.ShowAnnotations());  break;
-	case 2: frame_canvas_.SetShowTemplate   (!frame_canvas_.ShowTemplate());    break;
-	case 3: frame_canvas_.SetShowOcr        (!frame_canvas_.ShowOcr());         break;
+	case 0: frame_canvas_.SetShowRegions    (!frame_canvas_.ShowRegions());     state = frame_canvas_.ShowRegions();     break;
+	case 1: frame_canvas_.SetShowAnnotations(!frame_canvas_.ShowAnnotations());  state = frame_canvas_.ShowAnnotations(); break;
+	case 2: frame_canvas_.SetShowTemplate   (!frame_canvas_.ShowTemplate());    state = frame_canvas_.ShowTemplate();   break;
+	case 3: frame_canvas_.SetShowOcr        (!frame_canvas_.ShowOcr());         state = frame_canvas_.ShowOcr();        break;
 	}
 	SaveOverlayState();
 	toolbar_.Set(THISBACK(UpdateToolBar));
-	Log(Format("overlay[%d] = %s", which, frame_canvas_.ShowRegions() ? "on" : "off"));
+	Log(Format("overlay[%d] = %s", which, state ? "on" : "off"));
 }
 
 // ---------------------------------------------------------------------------
@@ -841,8 +842,9 @@ void MainWindow::RunJpegSmokeTest()
 
 void MainWindow::OnClearCache()
 {
+	int prior_count = pipeline_cache_.GetCount();
 	pipeline_cache_.Clear();
-	Log(Format("cache: cleared (was %d entries)", 0));
+	Log(Format("cache: cleared (was %d entries)", prior_count));
 }
 
 // ---------------------------------------------------------------------------

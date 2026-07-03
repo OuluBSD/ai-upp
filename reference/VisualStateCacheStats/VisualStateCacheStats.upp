@@ -1,0 +1,10 @@
+description "VisualStateModel pipeline cache statistics CLI\377";
+
+uses
+	VisualStateModel;
+
+file
+	main.cpp;
+
+mainconfig
+	"" = "";

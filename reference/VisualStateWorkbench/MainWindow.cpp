@@ -245,6 +245,7 @@ void MainWindow::LoadSampleSession()
 	} else {
 		FileDelete(tmp);
 		Log("session: failed to load sample");
+		PromptOK("Could not load sample session.\nSee Debug tab for details.");
 	}
 
 	// (Re-)anchor the session store at the sample root. This is not guarded
@@ -577,6 +578,7 @@ void MainWindow::OnCompareGroundTruth()
 	loader.SetLog(&log_);
 	if(!loader.Load(gt_path, gt)) {
 		Log("ground truth: failed to load " + gt_path);
+		PromptOK("Could not load ground truth JSON: " + gt_path + "\nSee Debug tab for details.");
 		return;
 	}
 
@@ -584,6 +586,7 @@ void MainWindow::OnCompareGroundTruth()
 	src_source_.Close();
 	if(!src_source_.Open(session_store_.GetPaths().root)) {
 		Log("ground truth: cannot reopen session source");
+		PromptOK("Could not reopen session for comparison.\nSee Debug tab for details.");
 		return;
 	}
 
@@ -619,6 +622,8 @@ void MainWindow::OnLoadE2ESample()
 	String root = AppendFileName(GetTempPath(), "vsm_e2e_sample");
 	if(!DirectoryExists(root)) {
 		Log("e2e: run VisualStateEndToEndSample.exe first to generate the session");
+		PromptOK("End-to-end sample session not found.\n\n"
+		         "Please run VisualStateEndToEndSample.exe first to generate the session.");
 		return;
 	}
 	OpenSessionPath(root);
@@ -636,6 +641,7 @@ void MainWindow::OpenSessionPath(const String& path)
 	src_source_.SetLog(&log_);
 	if(!src_source_.Open(path)) {
 		Log("session: open failed — " + src_source_.GetLastError());
+		PromptOK("Could not open session: " + path + "\nSee Debug tab for details.");
 		return;
 	}
 
@@ -643,6 +649,7 @@ void MainWindow::OpenSessionPath(const String& path)
 	if(!session_store_.Open(path)) {
 		Log("session: store open failed");
 		src_source_.Close();
+		PromptOK("Could not read session metadata from: " + path + "\nSee Debug tab for details.");
 		return;
 	}
 
@@ -889,6 +896,7 @@ void MainWindow::OnRunPipeline()
 
 	if(!summary.success) {
 		Log("pipeline: run failed");
+		PromptOK("Pipeline run failed.\nSee Debug tab for details.");
 		return;
 	}
 

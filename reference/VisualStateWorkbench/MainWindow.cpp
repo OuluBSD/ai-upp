@@ -251,13 +251,37 @@ void MainWindow::OnResetDockLayout()
 
 	DockRight(props_dock_);
 	DockRight(session_dock_);
+
+	// Primary LEFT tier: visible by default, one pane each. Defining what to
+	// annotate (AnnotationEditorPanel) and seeing the payoff (ModelStatePanel,
+	// divergences) are what a new session needs first.
 	DockLeft(annotation_dock_);
-	DockLeft(pipeline_dock_);
-	DockLeft(template_dock_);
-	DockLeft(ocr_dock_);
 	DockLeft(model_dock_);
+
+	// Secondary LEFT tier: PipelineEditorPanel/TemplateRulePanel/OcrRulePanel
+	// are only reached once a session + annotations already exist, so they
+	// share ONE tabbed dock slot ("Rules & Preprocessing") instead of three
+	// separate always-visible panes. DockWindow's grouping primitive for this
+	// is Tabify(target, dc) -- "attach dc as a tab to target's container,
+	// wherever it is" (see uppsrc/Docking/Docking.h) -- the same mechanism
+	// reference/DockingTemplate2/INVESTIGATION.md documents adopting from
+	// nide's RecognizerEditorWindow::OnResetDockLayout() for exactly this
+	// "group several dockables into one tabbed slot" case.
+	//
+	// DockCont::ChildAdded() (uppsrc/Docking/DockCont.cpp) inserts every newly
+	// tabbed control at tab index 0 AND makes it the active/foreground tab, so
+	// whichever control is Tabify()'d *last* ends up in front. Calls below are
+	// ordered so PipelineEditorPanel -- preprocessing, which logically comes
+	// before template/OCR rule matching -- is Tabify()'d last and is the
+	// default front tab; TemplateRulePanel and OcrRulePanel are present in the
+	// same group (reachable via their tabs) but not in front by default.
+	DockLeft(template_dock_);
+	Tabify(template_dock_, ocr_dock_);
+	Tabify(template_dock_, pipeline_dock_);
+
 	DockBottom(timeline_dock_);
-	Log("layout: reset to default");
+	Log("layout: reset to default (primary: Annotation Editor/Model State; "
+	    "secondary: Rules & Preprocessing tab group)");
 }
 
 void MainWindow::CacheDefaultLayout()

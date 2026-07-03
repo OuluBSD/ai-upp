@@ -5710,6 +5710,232 @@ static String sProviderStatusColor(const String& status)
 	return "36";
 }
 
+// ---------------------------------------------------------------------------
+// Provider install planning (Plan/29). Pure string generation only: this
+// never executes a package manager, never touches the network, and never
+// embeds sudo. It only checks PATH for a handful of well-known package
+// manager executables (existence check, no invocation) and otherwise works
+// from static data already declared in sProviders().
+
+static String sVcpkgDefaultTriplet(const String& target)
+{
+	String fam = sTargetFamily(target);
+	if(fam == "native") {
+#ifdef flagWIN32
+		fam = "windows";
+#elif defined(flagOSX)
+		fam = "macos";
+#else
+		fam = "linux";
+#endif
+	}
+	if(fam == "windows")
+		return "x64-windows";
+	if(fam == "linux")
+		return "x64-linux";
+	if(fam == "macos")
+		return "x64-osx";
+	// wasm/freebsd/other families: no confident default triplet.
+	return String();
+}
+
+static String sEffectiveVcpkgTriplet(const PkgInvocation& inv, const PkgLocalPolicy& policy, const String& target)
+{
+	String t = TrimBoth(inv.vcpkg_triplet);
+	if(t.IsEmpty())
+		t = TrimBoth(policy.make_vcpkg_triplet);
+	if(t.IsEmpty()) {
+		PkgEselectState st = sLoadEselectState(inv);
+		t = TrimBoth(st.vcpkg_triplet);
+	}
+	if(t.IsEmpty() || ToLower(t) == "auto")
+		return sVcpkgDefaultTriplet(target);
+	return t;
+}
+
+// Read-only PATH-existence probe for the host's package manager. Never
+// executes the package manager itself, mirrors sProbeResolvePath's style.
+static String sHostPackageManagerId()
+{
+#ifdef flagWIN32
+	// Windows targets go through the vcpkg/msys2 provider kinds instead;
+	// the "host package manager" concept does not apply the same way.
+	return String();
+#else
+	struct Candidate { const char *id; const char *exe; };
+	static const Candidate candidates[] = {
+		{ "apt", "apt-get" },
+		{ "dnf", "dnf" },
+		{ "pacman", "pacman" },
+		{ "zypper", "zypper" },
+		{ "apk", "apk" },
+		{ "brew", "brew" },
+#ifdef flagFREEBSD
+		{ "freebsd-pkg", "pkg" },
+#endif
+	};
+	for(const Candidate& c : candidates)
+		if(!sProbeResolvePath(c.exe).IsEmpty())
+			return c.id;
+	return String();
+#endif
+}
+
+static String sHostPackageManagerChecklist()
+{
+	String s = "apt-get, dnf, pacman, zypper, apk, brew";
+#ifdef flagFREEBSD
+	s << ", pkg";
+#endif
+	return s;
+}
+
+static String sHostInstallCommand(const String& host_id, const String& pkg_name)
+{
+	if(host_id == "apt")
+		return "apt-get install " + pkg_name;
+	if(host_id == "dnf")
+		return "dnf install " + pkg_name;
+	if(host_id == "pacman")
+		return "pacman -S " + pkg_name;
+	if(host_id == "zypper")
+		return "zypper install " + pkg_name;
+	if(host_id == "apk")
+		return "apk add " + pkg_name;
+	if(host_id == "brew")
+		return "brew install " + pkg_name;
+	if(host_id == "freebsd-pkg")
+		return "pkg install " + pkg_name;
+	return String();
+}
+
+// Confident, well-known dev-package mappings for the three real installable
+// "system" capabilities (sqlite3/openssl/SDL2). Deliberately does not cover
+// anything else: an honest "no known mapping" note beats a guessed name.
+static bool sSystemPackageName(const String& provider_id, const String& host_id, String& pkg_name)
+{
+	if(provider_id == "system-sqlite") {
+		if(host_id == "apt")         { pkg_name = "libsqlite3-dev"; return true; }
+		if(host_id == "dnf")         { pkg_name = "sqlite-devel"; return true; }
+		if(host_id == "pacman")      { pkg_name = "sqlite"; return true; }
+		if(host_id == "zypper")      { pkg_name = "sqlite3-devel"; return true; }
+		if(host_id == "apk")         { pkg_name = "sqlite-dev"; return true; }
+		if(host_id == "brew")        { pkg_name = "sqlite"; return true; }
+		if(host_id == "freebsd-pkg") { pkg_name = "sqlite3"; return true; }
+		return false;
+	}
+	if(provider_id == "system-ssl") {
+		if(host_id == "apt")         { pkg_name = "libssl-dev"; return true; }
+		if(host_id == "dnf")         { pkg_name = "openssl-devel"; return true; }
+		if(host_id == "pacman")      { pkg_name = "openssl"; return true; }
+		if(host_id == "zypper")      { pkg_name = "libopenssl-devel"; return true; }
+		if(host_id == "apk")         { pkg_name = "openssl-dev"; return true; }
+		if(host_id == "brew")        { pkg_name = "openssl"; return true; }
+		if(host_id == "freebsd-pkg") { pkg_name = "openssl"; return true; }
+		return false;
+	}
+	if(provider_id == "system-sdl2") {
+		if(host_id == "apt")         { pkg_name = "libsdl2-dev"; return true; }
+		if(host_id == "dnf")         { pkg_name = "SDL2-devel"; return true; }
+		if(host_id == "pacman")      { pkg_name = "sdl2"; return true; }
+		if(host_id == "zypper")      { pkg_name = "libSDL2-devel"; return true; }
+		if(host_id == "apk")         { pkg_name = "sdl2-dev"; return true; }
+		if(host_id == "brew")        { pkg_name = "sdl2"; return true; }
+		if(host_id == "freebsd-pkg") { pkg_name = "sdl2"; return true; }
+		return false;
+	}
+	return false;
+}
+
+// "system"-kind providers that are not really installable via a package
+// manager at all (they come from GPU drivers / the desktop session).
+static bool sSystemProviderNotInstallable(const String& provider_id, String& reason)
+{
+	if(provider_id == "system-opengl") {
+		reason = "OpenGL comes from the GPU driver, not a package manager";
+		return true;
+	}
+	if(provider_id == "native-gui") {
+		reason = "the desktop GUI runtime comes from the desktop session/GPU driver, not a package manager";
+		return true;
+	}
+	return false;
+}
+
+struct PkgProviderInstallPlan {
+	String command; // exact command that would install the provider; empty if none
+	String note;    // explanation shown when command is empty
+};
+
+// Pure string generation from static data plus a PATH-existence check.
+// Never runs anything, never touches the network, never embeds sudo.
+static PkgProviderInstallPlan sPlanProviderInstall(const PkgProvider& p, const PkgInvocation& inv, const PkgLocalPolicy& policy, const String& target)
+{
+	PkgProviderInstallPlan plan;
+
+	if(p.manual || p.kind == "manual") {
+		plan.note = p.details.IsEmpty()
+			? String("manual setup required; no automated install command")
+			: String("manual setup required: ") + p.details;
+		return plan;
+	}
+	if(p.kind == "upp-plugin") {
+		plan.note = "bundled in this repository; use `uses " + p.provider + "`";
+		return plan;
+	}
+	if(p.kind == "web" || p.kind == "emscripten") {
+		plan.note = p.details.IsEmpty()
+			? String("provided by the browser/emscripten runtime; not installed via a package manager")
+			: String("provided by the browser/emscripten runtime; not installed via a package manager (") + p.details + ")";
+		return plan;
+	}
+	if(p.kind == "vcpkg") {
+		if(p.provider.IsEmpty()) {
+			plan.note = "no known vcpkg package name for this provider - install manually";
+			return plan;
+		}
+		String triplet = sEffectiveVcpkgTriplet(inv, policy, target);
+		plan.command = "vcpkg install " + p.provider;
+		if(!triplet.IsEmpty())
+			plan.command << ":" << triplet;
+		return plan;
+	}
+	if(p.kind == "msys2") {
+		if(p.provider.IsEmpty()) {
+			plan.note = "no known msys2 package name for this provider - install manually";
+			return plan;
+		}
+		plan.command = "pacman -S " + p.provider;
+		return plan;
+	}
+	if(p.kind == "system") {
+		String reason;
+		if(sSystemProviderNotInstallable(p.id, reason)) {
+			plan.note = "not installable via a package manager - " + reason;
+			return plan;
+		}
+		String host_id = sHostPackageManagerId();
+		if(host_id.IsEmpty()) {
+			plan.note = "no host package manager detected on this machine (checked "
+				+ sHostPackageManagerChecklist() + "); install manually";
+			return plan;
+		}
+		String pkg_name;
+		if(!sSystemPackageName(p.id, host_id, pkg_name)) {
+			plan.note = "no known package-name mapping for '" + p.id + "' on host package manager '"
+				+ host_id + "' - install manually";
+			return plan;
+		}
+		plan.command = sHostInstallCommand(host_id, pkg_name);
+		if(plan.command.IsEmpty())
+			plan.note = "no known install command template for host package manager '" + host_id + "' - install manually";
+		return plan;
+	}
+
+	plan.note = "no known install command for this provider/host combination - install manually";
+	return plan;
+}
+
 static void sPrintProvidersCommand(const PkgInvocation& inv, const PkgRepository& repo, const PkgLocalPolicy& policy, bool color)
 {
 	String target = inv.target.IsEmpty() ? String("native") : inv.target;
@@ -5809,6 +6035,11 @@ static void sPrintProvidersCommand(const PkgInvocation& inv, const PkgRepository
 					flags.Add(sFormatUppFlag(f));
 				Cout() << "    UPP flags: " << sFmtList(flags) << "\n";
 			}
+			PkgProviderInstallPlan install = sPlanProviderInstall(p, inv, policy, target);
+			if(!install.command.IsEmpty())
+				Cout() << "    Install command: " << install.command << "\n";
+			else
+				Cout() << "    Install: " << install.note << "\n";
 		}
 }
 
@@ -6325,7 +6556,7 @@ static int sProviderDoctorLevel(const String& status)
 	return 2;
 }
 
-static void sPrintDoctorProviders(PkgDoctorSummary& sum, const PkgInvocation& inv, const PkgRepository& repo, bool color)
+static void sPrintDoctorProviders(PkgDoctorSummary& sum, const PkgInvocation& inv, const PkgRepository& repo, const PkgLocalPolicy& policy, bool color)
 {
 	Cout() << "Providers:\n";
 	if(!inv.probe) {
@@ -6352,6 +6583,13 @@ static void sPrintDoctorProviders(PkgDoctorSummary& sum, const PkgInvocation& in
 				sDoctorSubline("path: ", p.probe_path);
 			if(!p.probe_version.IsEmpty())
 				sDoctorSubline("version: ", p.probe_version);
+			if(p.probe_status == "missing") {
+				PkgProviderInstallPlan install = sPlanProviderInstall(p, inv, policy, target);
+				if(!install.command.IsEmpty())
+					sDoctorSubline("install: ", install.command);
+				else
+					sDoctorSubline("install: ", install.note);
+			}
 		}
 	}
 	sDoctorLine(sum, "info", "no install commands were run", color);
@@ -6375,7 +6613,7 @@ static void sPrintDoctorCommand(const PkgInvocation& inv, const PkgRepository& r
 	if(section.IsEmpty() || section == "all" || section == "config")
 		sPrintDoctorConfig(sum, repo, policy, color);
 	if(section.IsEmpty() || section == "all" || section == "providers")
-		sPrintDoctorProviders(sum, inv, repo, color);
+		sPrintDoctorProviders(sum, inv, repo, policy, color);
 
 	if(!section.IsEmpty() && section != "all" && section != "env" && section != "shell" && section != "state" && section != "cache" && section != "config" && section != "providers") {
 		sDoctorLine(sum, "warn", "unknown doctor subcommand: " + inv.subcommand, color);

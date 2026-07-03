@@ -13,14 +13,36 @@ CONSOLE_APP_MAIN
 {
 	StdLogSetup(LOG_COUT | LOG_FILE);
 
+	const Vector<String>& args = CommandLine();
+	String output_dir;
+
+	// Parse command-line arguments
+	for(const String& arg : args) {
+		if(arg == "--help") {
+			Cout() << "Usage: VisualStateRecordSession.exe [--help] [<output_dir>]\n";
+			SetExitCode(0);
+			return;
+		} else {
+			output_dir = arg;
+		}
+	}
+
 	Cout() << "=== VisualStateModel Capture Sink Demo ===\n\n";
 
 	AppLog log;
 	log.SetForwardToUppLog(false);
 
+	// If output_dir was provided, validate it
+	bool is_real_output = !output_dir.IsEmpty();
+	if(is_real_output && DirectoryExists(output_dir)) {
+		Cout() << "ERROR: Output directory already exists: " << output_dir << "\n";
+		SetExitCode(1);
+		return;
+	}
+
 	// --- Step 1: Create a source session with 3 real frames ---
 	String src_session_dir = AppendFileName(GetTempPath(), "vsm_record_src");
-	String rec_session_dir = AppendFileName(GetTempPath(), "vsm_record_out");
+	String rec_session_dir = is_real_output ? output_dir : AppendFileName(GetTempPath(), "vsm_record_out");
 
 	if(DirectoryExists(src_session_dir)) DeleteFolderDeep(src_session_dir);
 	if(DirectoryExists(rec_session_dir)) DeleteFolderDeep(rec_session_dir);
@@ -133,7 +155,10 @@ CONSOLE_APP_MAIN
 
 	Cout() << "\nAll record/replay checks passed.\n";
 
-	// Cleanup
+	// Cleanup (only for synthetic temp directories)
 	DeleteFolderDeep(src_session_dir);
-	DeleteFolderDeep(rec_session_dir);
+	if(!is_real_output)
+		DeleteFolderDeep(rec_session_dir);
+	else
+		Cout() << "\nRecorded session saved to: " << rec_session_dir << "\n";
 }

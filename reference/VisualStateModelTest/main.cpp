@@ -1225,6 +1225,80 @@ static void TestMjpegParser()
 }
 
 // ---------------------------------------------------------------------------
+// Test: Canonical JSON comparison
+
+static void TestCanonicalJsonCompare()
+{
+	Cout() << "\n=== Canonical JSON compare ===\n";
+
+	// Identical strings: trivially equal
+	if(!VsmCanonicalJsonEqual("{\"a\":1}", "{\"a\":1}"))
+		{ Fail("Identical strings should be equal"); return; }
+	Cout() << "Identical strings: OK\n";
+
+	// Reordered keys: equal
+	if(!VsmCanonicalJsonEqual("{\"a\":1,\"b\":2}", "{\"b\":2,\"a\":1}"))
+		{ Fail("Reordered keys should be equal"); return; }
+	Cout() << "Reordered keys: OK\n";
+
+	// Whitespace differences: equal
+	if(!VsmCanonicalJsonEqual("{\"a\":1,\"b\":2}", "{ \"a\" : 1 , \"b\" : 2 }"))
+		{ Fail("Whitespace differences should be equal"); return; }
+	Cout() << "Whitespace differences: OK\n";
+
+	// Nested objects with reordered keys: equal
+	if(!VsmCanonicalJsonEqual(
+		"{\"outer\":{\"x\":1,\"y\":2},\"z\":3}",
+		"{\"z\":3,\"outer\":{\"y\":2,\"x\":1}}"))
+		{ Fail("Nested reordered keys should be equal"); return; }
+	Cout() << "Nested reordered keys: OK\n";
+
+	// Arrays: order matters
+	if(VsmCanonicalJsonEqual("{\"a\":[1,2,3]}", "{\"a\":[3,2,1]}"))
+		{ Fail("Reordered array elements should not be equal"); return; }
+	Cout() << "Array order matters: OK\n";
+
+	// Arrays: same order equal
+	if(!VsmCanonicalJsonEqual("{\"a\":[1,2,3]}", "{\"a\":[1,2,3]}"))
+		{ Fail("Same-order arrays should be equal"); return; }
+	Cout() << "Array same order: OK\n";
+
+	// Differing values: not equal
+	if(VsmCanonicalJsonEqual("{\"a\":1}", "{\"a\":2}"))
+		{ Fail("Differing values should not be equal"); return; }
+	Cout() << "Differing values: OK\n";
+
+	// Differing key sets: not equal
+	if(VsmCanonicalJsonEqual("{\"a\":1}", "{\"a\":1,\"b\":2}"))
+		{ Fail("Differing key sets should not be equal"); return; }
+	Cout() << "Differing key sets: OK\n";
+
+	// Unparsable input: false, not a crash
+	if(VsmCanonicalJsonEqual("not json", "{\"a\":1}"))
+		{ Fail("Unparsable input should not be equal"); return; }
+	Cout() << "Unparsable input: OK\n";
+
+	// GroundTruthComparison uses canonical compare: a reordered expected_json
+	// must still match, which would fail under raw string equality.
+	VsmSession expected;
+	expected.schema = 1;
+	VsmDivergence& exp_div = expected.divergences.Add();
+	exp_div.frame = 10;
+	exp_div.expected_json = "{\"screen\":\"Dashboard\",\"error_visible\":false}";
+
+	Vector<VsmDivergence> observed;
+	VsmDivergence& obs_div = observed.Add();
+	obs_div.frame = 11; // within +/-5 frames
+	obs_div.expected_json = "{\"error_visible\":false,\"screen\":\"Dashboard\"}";
+
+	VsmGroundTruthComparison cmp_engine;
+	VsmComparisonResult result = cmp_engine.Compare(expected, observed);
+	if(result.matched != 1 || result.missing != 0)
+		{ Fail("GroundTruthComparison should match reordered expected_json"); return; }
+	Cout() << "GroundTruthComparison canonical match: OK\n";
+}
+
+// ---------------------------------------------------------------------------
 // Test: Deterministic replay
 
 static void TestDeterministicReplay()
@@ -1397,6 +1471,7 @@ CONSOLE_APP_MAIN
 	TestFrameSource();
 	TestManifestBackwardCompat();
 	TestMjpegParser();
+	TestCanonicalJsonCompare();
 	TestDeterministicReplay();
 
 	if(GetExitCode() == 0)

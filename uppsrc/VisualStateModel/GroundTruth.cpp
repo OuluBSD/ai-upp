@@ -179,6 +179,53 @@ String VsmMakeSampleJson()
 }
 
 // ---------------------------------------------------------------------------
+// Canonical JSON comparison
+
+static bool VsmJsonValueEqual(const Value& a, const Value& b)
+{
+	bool a_map = a.Is<ValueMap>(), b_map = b.Is<ValueMap>();
+	if(a_map || b_map) {
+		if(!a_map || !b_map)
+			return false;
+		ValueMap ma = a, mb = b;
+		if(ma.GetCount() != mb.GetCount())
+			return false;
+		for(int i = 0; i < ma.GetCount(); i++) {
+			int j = mb.Find(ma.GetKey(i));
+			if(j < 0 || !VsmJsonValueEqual(ma.GetValue(i), mb.GetValue(j)))
+				return false;
+		}
+		return true;
+	}
+
+	bool a_arr = a.Is<ValueArray>(), b_arr = b.Is<ValueArray>();
+	if(a_arr || b_arr) {
+		if(!a_arr || !b_arr)
+			return false;
+		ValueArray va = a, vb = b;
+		if(va.GetCount() != vb.GetCount())
+			return false;
+		for(int i = 0; i < va.GetCount(); i++)
+			if(!VsmJsonValueEqual(va[i], vb[i]))
+				return false;
+		return true;
+	}
+
+	return a == b;
+}
+
+bool VsmCanonicalJsonEqual(const String& a, const String& b)
+{
+	if(a == b)
+		return true;
+	Value va = ParseJSON(a);
+	Value vb = ParseJSON(b);
+	if(va.IsError() || vb.IsError())
+		return false;
+	return VsmJsonValueEqual(va, vb);
+}
+
+// ---------------------------------------------------------------------------
 // VsmGroundTruthComparison
 
 VsmComparisonResult VsmGroundTruthComparison::Compare(
@@ -195,7 +242,7 @@ VsmComparisonResult VsmGroundTruthComparison::Compare(
 		bool found = false;
 		for(int j = 0; j < observed.GetCount(); j++) {
 			if(used[j]) continue;
-			if(exp.expected_json != observed[j].expected_json) continue;
+			if(!VsmCanonicalJsonEqual(exp.expected_json, observed[j].expected_json)) continue;
 			int diff = exp.frame - observed[j].frame;
 			if(diff < 0) diff = -diff;
 			if(diff > 5) continue;

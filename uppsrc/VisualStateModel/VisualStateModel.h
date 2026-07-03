@@ -18,6 +18,7 @@ using namespace Upp;
 #include "TemplateMatch.h"
 #include "OcrLayer.h"
 #include "ModelRuntime.h"
+#include "BatchReport.h"
 #include "FrameSource.h"
 #include "ImageSequenceImporter.h"
 #include "CaptureSink.h"

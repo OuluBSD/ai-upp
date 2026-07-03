@@ -1088,6 +1088,156 @@ static void TestMjpegParser()
 }
 
 // ---------------------------------------------------------------------------
+// Test: Deterministic replay
+
+static void TestDeterministicReplay()
+{
+	Cout() << "\n=== Deterministic replay ===\n";
+
+	AppLog log;
+	log.SetForwardToUppLog(false);
+
+	// Build a small session with 2 frames
+	String root = AppendFileName(GetTempPath(), "vsm_det_replay_test");
+	if(DirectoryExists(root)) DeleteFolderDeep(root);
+
+	VsmSessionStore store;
+	store.SetLog(&log);
+	if(!store.Create(root, "det-001", 32, 32)) {
+		Fail("DeterministicReplay: store Create");
+		return;
+	}
+
+	// Add frames
+	VsmImageBuffer f0 = VsmImageBuffer::MakeSolid(32, 32, 100, 1);
+	VsmImageBuffer f1 = VsmImageBuffer::MakeSolid(32, 32, 150, 1);
+	store.SaveFrameImage(0, f0);
+	store.SaveFrameImage(1, f1);
+	store.SaveManifest();
+
+	// Shared annotation layer
+	VsmAnnotationLayer ann;
+	ann.schema = 1;
+	ann.session_id = "det-001";
+	VsmRegionAnnotation& a = ann.annotations.Add();
+	a.id = "ann-det";
+	a.name = "TestRegion";
+	a.x = 0; a.y = 0; a.w = 32; a.h = 32;
+
+	// OCR engine that returns "ActualText"
+	VsmFakeOcrEngine fake_ocr("ActualText", 0.95);
+
+	// OCR rule expecting "ExpectedText" (mismatch produces divergence)
+	Vector<VsmOcrRule> ocr_rules;
+	VsmOcrRule& ocr_rule = ocr_rules.Add();
+	ocr_rule.rule_id = "ocr-det";
+	ocr_rule.annotation_id = "ann-det";
+	ocr_rule.expectation.mode = VSM_EXPECT_EXACT;
+	ocr_rule.expectation.expected_text = "ExpectedText";
+	ocr_rule.confidence_threshold = 0.5;
+
+	// First run: open fresh source, run pipeline, collect divergences
+	String json1;
+	int frames1 = 0, obs1 = 0;
+	{
+		VsmModelRuntime rt1;
+		rt1.SetLog(&log);
+		VsmModelRule mr;
+		mr.rule_id = "mr-val-det";
+		mr.type = VSM_MR_VALIDATE_PROP;
+		mr.object_id = "app";
+		mr.property_key = "screen";
+		mr.expected_value = "\"ExpectedText\"";  // Validate against expected value
+		mr.source_rule_id = "ocr-det";
+		rt1.AddRule(mr);
+
+		VsmSessionStoreSource src1;
+		src1.SetLog(&log);
+		if(!src1.Open(root)) {
+			Fail("DeterministicReplay: Open run1");
+			return;
+		}
+
+		VsmObservationPipeline pipe1;
+		pipe1.SetLog(&log);
+		pipe1.SetAnnotationLayer(&ann);
+		pipe1.SetOcrRules(&ocr_rules);
+		pipe1.SetOcrEngine(&fake_ocr);
+		pipe1.SetModelRuntime(&rt1);
+
+		VsmPipelineRunSummary sum1 = pipe1.RunFromSource(src1);
+		if(!sum1.success) {
+			Fail("DeterministicReplay: Run run1");
+			return;
+		}
+
+		frames1 = sum1.frames_processed;
+		obs1 = sum1.observations_made;
+		json1 = StoreAsJson(rt1.GetDivergences(), true);
+	}
+
+	// Second run: fresh instances on same session directory
+	String json2;
+	int frames2 = 0, obs2 = 0;
+	{
+		VsmModelRuntime rt2;
+		rt2.SetLog(&log);
+		VsmModelRule mr;
+		mr.rule_id = "mr-val-det";
+		mr.type = VSM_MR_VALIDATE_PROP;
+		mr.object_id = "app";
+		mr.property_key = "screen";
+		mr.expected_value = "\"ExpectedText\"";
+		mr.source_rule_id = "ocr-det";
+		rt2.AddRule(mr);
+
+		VsmSessionStoreSource src2;
+		src2.SetLog(&log);
+		if(!src2.Open(root)) {
+			Fail("DeterministicReplay: Open run2");
+			return;
+		}
+
+		VsmObservationPipeline pipe2;
+		pipe2.SetLog(&log);
+		pipe2.SetAnnotationLayer(&ann);
+		pipe2.SetOcrRules(&ocr_rules);
+		pipe2.SetOcrEngine(&fake_ocr);
+		pipe2.SetModelRuntime(&rt2);
+
+		VsmPipelineRunSummary sum2 = pipe2.RunFromSource(src2);
+		if(!sum2.success) {
+			Fail("DeterministicReplay: Run run2");
+			return;
+		}
+
+		frames2 = sum2.frames_processed;
+		obs2 = sum2.observations_made;
+		json2 = StoreAsJson(rt2.GetDivergences(), true);
+	}
+
+	// Verify determinism: frames and observations must match
+	if(frames1 != frames2) {
+		Fail(Format("DeterministicReplay: frames mismatch %d vs %d", frames1, frames2));
+		return;
+	}
+	if(obs1 != obs2) {
+		Fail(Format("DeterministicReplay: observations mismatch %d vs %d", obs1, obs2));
+		return;
+	}
+
+	// Verify byte-identical JSON
+	if(json1 != json2) {
+		Fail("DeterministicReplay: divergence JSON mismatch");
+		return;
+	}
+
+	Cout() << "Deterministic replay: OK\n";
+
+	DeleteFolderDeep(root);
+}
+
+// ---------------------------------------------------------------------------
 
 CONSOLE_APP_MAIN
 {
@@ -1109,6 +1259,7 @@ CONSOLE_APP_MAIN
 	TestSessionStorage();
 	TestFrameSource();
 	TestMjpegParser();
+	TestDeterministicReplay();
 
 	if(GetExitCode() == 0)
 		Cout() << "\nAll VisualStateModel checks passed.\n";

@@ -1,0 +1,10 @@
+description "VisualStateModel batch divergence report — CLI aggregator tool\377";
+
+uses
+	VisualStateModel;
+
+file
+	main.cpp;
+
+mainconfig
+	"" = "";

@@ -215,6 +215,18 @@ OcrRulePanel::OcrRulePanel()
 void OcrRulePanel::SetRules(Vector<VsmOcrRule>* rules)
 {
 	rules_ = rules;
+	// Seed the next_ocr_id_ counter from the max existing numeric suffix,
+	// so newly added rules won't collide with already-loaded rules.
+	next_ocr_id_ = 0;
+	if(rules_) {
+		for(const VsmOcrRule& r : *rules_) {
+			if(r.rule_id.StartsWith("ocr-")) {
+				int id = ScanInt(r.rule_id.Mid(4));
+				if(id >= next_ocr_id_)
+					next_ocr_id_ = id + 1;
+			}
+		}
+	}
 	RebuildRules();
 }
 
@@ -245,7 +257,8 @@ void OcrRulePanel::OnAdd()
 {
 	if(!rules_) return;
 	VsmOcrRule& r         = rules_->Add();
-	r.rule_id             = Format("ocr-%06d", (int)rules_->GetCount());
+	r.rule_id             = Format("ocr-%06d", next_ocr_id_);
+	next_ocr_id_++;
 	r.expectation.mode    = VSM_EXPECT_EXACT;
 	r.expectation.expected_text = expected_edit_.GetData().ToString();
 	r.confidence_threshold = 0.5;
@@ -327,6 +340,18 @@ TemplateRulePanel::TemplateRulePanel()
 void TemplateRulePanel::SetRules(Vector<VsmTemplateRule>* rules)
 {
 	rules_ = rules;
+	// Seed the next_rule_id_ counter from the max existing numeric suffix,
+	// so newly added rules won't collide with already-loaded rules.
+	next_rule_id_ = 0;
+	if(rules_) {
+		for(const VsmTemplateRule& r : *rules_) {
+			if(r.rule_id.StartsWith("rule-")) {
+				int id = ScanInt(r.rule_id.Mid(5));
+				if(id >= next_rule_id_)
+					next_rule_id_ = id + 1;
+			}
+		}
+	}
 	RebuildRules();
 }
 
@@ -352,7 +377,8 @@ void TemplateRulePanel::OnAdd()
 {
 	if(!rules_) return;
 	VsmTemplateRule& r = rules_->Add();
-	r.rule_id     = Format("rule-%06d", (int)rules_->GetCount());
+	r.rule_id     = Format("rule-%06d", next_rule_id_);
+	next_rule_id_++;
 	r.mode        = (int)mode_drop_.GetData();
 	r.requirement = (int)req_drop_.GetData();
 	r.threshold   = 0.8;

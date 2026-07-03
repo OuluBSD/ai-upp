@@ -1,0 +1,10 @@
+description "VisualStateModel session validator — CLI tool\377";
+
+uses
+	VisualStateModel;
+
+file
+	main.cpp;
+
+mainconfig
+	"" = "";

@@ -19,6 +19,8 @@ file
 	ImageBuffer.cpp,
 	SessionStorage.h,
 	SessionStorage.cpp,
+	SessionValidator.h,
+	SessionValidator.cpp,
 	Annotation.h,
 	Annotation.cpp,
 	Preprocess.h,

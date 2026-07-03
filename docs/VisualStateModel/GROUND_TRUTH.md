@@ -239,6 +239,12 @@ Full modeled application state at a checkpoint.
 
 State values are strings, booleans, or numbers. No nested objects.
 
+For `source_type: "game_export"` card-game producers, see
+`docs/VisualStateModel/CARD_GAME_STATE_SCHEMA.md` for the canonical
+card-play/trick/round `state` field sets. `VsmModelStateRef::state_json`
+comparisons should use `VsmCanonicalJsonEqual()` (order-independent), not
+raw string equality.
+
 ---
 
 ### `transition`

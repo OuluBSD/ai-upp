@@ -63,6 +63,13 @@ String VsmMakeSampleJson();
 using VsmGroundTruthSession = VsmSession;
 
 // ---------------------------------------------------------------------------
+// Canonical JSON comparison — structural equality independent of object key
+// order and whitespace. Arrays remain order-sensitive. Returns false (does
+// not throw) if either string fails to parse as JSON.
+
+bool VsmCanonicalJsonEqual(const String& a, const String& b);
+
+// ---------------------------------------------------------------------------
 // Ground-truth vs observed comparison
 
 struct VsmComparisonEntry : Moveable<VsmComparisonEntry> {

@@ -12,7 +12,7 @@ public:
 	
 	RecordBuffer() {Clear();}
 	
-	void Clear() {rate = 0; length = 0; channels = 0;}
+	void Clear() {rate = 0; length = 0; channels = 0; data.Clear();}
 	
 	int GetSampleRate() const {return rate;}
 	float Get(int ch, int i) const {return data[ch][i];}
@@ -33,7 +33,7 @@ private:
 		
 		RecordBuffer buffer;
 
-		Data() {}
+		Data() : refcount(1) {}
 	};
 	Data* data = 0;
 	
@@ -41,6 +41,7 @@ public:
 	
 	Record();
 	Record(const Record& r);
+	~Record();
 	
 	
 	void operator=(const Record& r);

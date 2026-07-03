@@ -58,6 +58,17 @@ private:
 	// OpenSessionPath(), and OnResetReplay().
 	bool                      has_src_session_ = false;
 	int                       src_step_pos_    = 0; // frames read from src_source_ so far (Step/Run All bookkeeping)
+	// The real current frame image of the active session, in the same
+	// headless pixel-buffer shape VsmSessionStoreSource/VsmSessionStore
+	// already read/store it in. Only opened/imported sessions (B) have real
+	// per-frame image bytes (see RunJpegImport()/RunVsmImport() ->
+	// SaveFrameImage()); the built-in sample session (A, replay_) has none,
+	// so this stays empty whenever has_src_session_ is false. Mirrors
+	// whatever FrameCanvas's own current_frame_ index refers to -- updated
+	// at the same call sites frame_canvas_.SetFrame() is (see
+	// RefreshAfterSourceStep(), OnJumpToFrame()) plus session
+	// load/open/reset points where the active session identity changes.
+	VsmImageBuffer            current_frame_img_;
 	VsmAnnotationLayer        annotation_layer_;
 	String                    annotation_path_;
 	VsmPreprocessPipeline     current_pipeline_;
@@ -97,6 +108,10 @@ private:
 	void RebuildRegionsList();
 	void OnOpenSession();
 	void OnImportImageSequence();
+	// Shared "current frame" accessor for the LEFT dock panels (PipelineEditorPanel,
+	// TemplateRulePanel, OcrRulePanel): pushes current_frame_img_ to each via
+	// their SetCurrentFrame(). Call whenever current_frame_img_ changes.
+	void PushCurrentFrameToPanels();
 	void RunVsmImport(const String& src_dir);
 	void RunJpegImport(const String& src_dir);
 	void RunJpegSmokeTest();

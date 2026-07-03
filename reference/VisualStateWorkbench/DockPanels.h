@@ -77,9 +77,16 @@ public:
 	void AddResult(const VsmOcrResult& result, const VsmOcrComparison& cmp);
 	void ClearResults();
 
+	// Pushed by MainWindow whenever the active session's current frame
+	// changes (Step/Run All/jump/session open) — see FrameCanvas's own
+	// notion of "current frame" in MainWindow.cpp. Empty when no real frame
+	// is available yet.
+	void SetCurrentFrame(const VsmImageBuffer& img);
+
 private:
 	Vector<VsmOcrRule>* rules_ = nullptr;
 	int next_ocr_id_ = 0;  // monotonic counter for rule IDs
+	VsmImageBuffer current_frame_;
 
 	ArrayCtrl rules_list_;
 	ArrayCtrl results_list_;
@@ -105,18 +112,23 @@ public:
 	void SetRules(Vector<VsmTemplateRule>* rules);
 	void AddMatchResult(const VsmTemplateMatchResult& res);
 
+	// See OcrRulePanel::SetCurrentFrame() — same contract.
+	void SetCurrentFrame(const VsmImageBuffer& img);
+
 private:
 	Vector<VsmTemplateRule>* rules_ = nullptr;
 	int next_rule_id_ = 0;  // monotonic counter for rule IDs
+	VsmImageBuffer current_frame_;
 
 	ArrayCtrl rules_list_;
 	ArrayCtrl results_list_;
-	Button    add_btn_, remove_btn_;
-	Label     mode_lbl_, req_lbl_;
+	Button    add_btn_, remove_btn_, run_btn_;
+	Label     mode_lbl_, req_lbl_, status_lbl_;
 	DropList  mode_drop_, req_drop_;
 
 	void OnAdd();
 	void OnRemove();
+	void OnRun();
 	void RebuildRules();
 };
 
@@ -131,10 +143,14 @@ public:
 
 	void SetPipeline(VsmPreprocessPipeline* pipeline);
 
+	// See OcrRulePanel::SetCurrentFrame() — same contract.
+	void SetCurrentFrame(const VsmImageBuffer& img);
+
 	Event<> WhenPipelineChanged;
 
 private:
 	VsmPreprocessPipeline* pipeline_ = nullptr;
+	VsmImageBuffer current_frame_;
 
 	ArrayCtrl steps_list_;
 	Button    add_gray_btn_, add_inv_btn_, add_thresh_btn_, add_norm_btn_, remove_btn_, run_btn_;

@@ -1,6 +1,58 @@
 #include "MainWindow.h"
 
 // ---------------------------------------------------------------------------
+// Shared helpers for the Run actions on OcrRulePanel/TemplateRulePanel/
+// PipelineEditorPanel — all three test the real current frame of the active
+// session (pushed in via SetCurrentFrame()) instead of self-seeded or
+// synthetic data.
+
+namespace {
+
+// Shown by all three panels' Run actions when no real current frame is
+// available yet (no session active, or nothing stepped to a frame yet).
+const char* const kNoActiveFrameMsg = "No active frame";
+
+// VsmImageBuffer (uppsrc/VisualStateModel/ImageBuffer.h) holds its pixels in
+// a Upp::Vector<byte>, which only supports move (no copy-assign/copy-ctor) --
+// so each panel needs its own deep copy of the frame MainWindow pushes in,
+// rather than an (impossible) plain '=' from a const& source.
+VsmImageBuffer CloneImageBuffer(const VsmImageBuffer& src)
+{
+	VsmImageBuffer out;
+	out.width    = src.width;
+	out.height   = src.height;
+	out.channels = src.channels;
+	out.pixels.SetCount(src.pixels.GetCount());
+	if(!src.pixels.IsEmpty())
+		memcpy(out.pixels.begin(), src.pixels.begin(), src.pixels.GetCount());
+	return out;
+}
+
+// Convert the headless VsmImageBuffer (grayscale/RGB/RGBA, as read from
+// VsmSessionStoreSource/VsmSessionStore) into the RGBA VsmFrameImage shape
+// the preprocessing/template/OCR executors expect. Mirrors the same
+// grayscale-to-RGBA conversion already done in
+// VsmObservationPipeline::GetRegionCrop() (uppsrc/VisualStateModel/PipelineRunner.cpp).
+VsmFrameImage ToFrameImage(const VsmImageBuffer& img)
+{
+	VsmFrameImage out;
+	if(img.IsEmpty())
+		return out;
+	out.Set(img.width, img.height, nullptr);
+	for(int y = 0; y < img.height; y++) {
+		for(int x = 0; x < img.width; x++) {
+			byte* dst = out.data + (y * img.width + x) * 4;
+			byte  gv  = img.Get(x, y, 0);
+			dst[0] = dst[1] = dst[2] = gv;
+			dst[3] = 255;
+		}
+	}
+	return out;
+}
+
+} // anonymous namespace
+
+// ---------------------------------------------------------------------------
 // RegionPropsPanel
 
 RegionPropsPanel::RegionPropsPanel()
@@ -245,6 +297,11 @@ void OcrRulePanel::ClearResults()
 	status_lbl_.SetLabel("—");
 }
 
+void OcrRulePanel::SetCurrentFrame(const VsmImageBuffer& img)
+{
+	current_frame_ = CloneImageBuffer(img);
+}
+
 void OcrRulePanel::RebuildRules()
 {
 	rules_list_.Clear();
@@ -277,11 +334,26 @@ void OcrRulePanel::OnRemove()
 void OcrRulePanel::OnRun()
 {
 	if(!rules_ || rules_->IsEmpty()) { status_lbl_.SetLabel("No rules"); return; }
+	if(current_frame_.IsEmpty()) { status_lbl_.SetLabel(kNoActiveFrameMsg); return; }
 	int row = rules_list_.GetCursor();
 	if(row < 0) row = 0;
 	const VsmOcrRule& rule = (*rules_)[row];
 
-	VsmFakeOcrEngine fake(rule.expectation.expected_text);
+	VsmFrameImage img = ToFrameImage(current_frame_);
+
+	// There is no real OCR engine implementation in this codebase — only
+	// VsmFakeOcrEngine (uppsrc/VisualStateModel/OcrLayer.h), whose Execute()
+	// ignores the image entirely and always returns a fixed configured
+	// string. Seeding it with the rule's own expected text (as before) can
+	// never fail. Instead, seed it with a deterministic fingerprint hash of
+	// the REAL current frame's content (VsmRegionMemory::ExtractFingerprint +
+	// VsmFingerprint32::ComputeHash(), the same fingerprinting already used
+	// elsewhere in the headless model) — an "md5:..." hash string that will
+	// not coincidentally equal a rule's human-readable expected text, so the
+	// comparison can genuinely report a mismatch.
+	VsmFingerprint32 fp;
+	VsmRegionMemory::ExtractFingerprint(img, 0, 0, img.width, img.height, fp);
+	VsmFakeOcrEngine fake(fp.ComputeHash());
 	VsmOcrExecutor exec;
 	exec.SetEngine(&fake);
 
@@ -289,9 +361,6 @@ void OcrRulePanel::OnRun()
 	req.rule_id   = rule.rule_id;
 	req.region_id = rule.annotation_id;
 	req.status    = VSM_OCR_PENDING;
-
-	VsmFrameImage img;
-	img.Set(32, 32, nullptr);
 
 	VsmOcrResult res   = exec.RunRequest(img, req);
 	VsmOcrComparison c = exec.Compare(res, rule);
@@ -313,6 +382,8 @@ TemplateRulePanel::TemplateRulePanel()
 
 	add_btn_.SetLabel("+ Rule");
 	remove_btn_.SetLabel("Remove");
+	run_btn_.SetLabel("Run");
+	status_lbl_.SetLabel("—");
 	mode_lbl_.SetLabel("Mode:");
 	req_lbl_.SetLabel("Req:");
 
@@ -326,6 +397,7 @@ TemplateRulePanel::TemplateRulePanel()
 
 	add_btn_.WhenAction    = [=] { OnAdd(); };
 	remove_btn_.WhenAction = [=] { OnRemove(); };
+	run_btn_.WhenAction    = [=] { OnRun(); };
 
 	Add(rules_list_.HSizePos(4,4).TopPos(4, 80));
 	Add(mode_lbl_.LeftPos(4,34).TopPos(88,20));
@@ -334,7 +406,9 @@ TemplateRulePanel::TemplateRulePanel()
 	Add(req_drop_.LeftPos(158,80).TopPos(88,20));
 	Add(add_btn_.LeftPos(4,60).TopPos(114,22));
 	Add(remove_btn_.LeftPos(68,60).TopPos(114,22));
+	Add(run_btn_.RightPos(4,80).TopPos(114,22));
 	Add(results_list_.HSizePos(4,4).TopPos(142,100));
+	Add(status_lbl_.HSizePos(4,4).BottomPos(4,20));
 }
 
 void TemplateRulePanel::SetRules(Vector<VsmTemplateRule>* rules)
@@ -394,6 +468,28 @@ void TemplateRulePanel::OnRemove()
 	RebuildRules();
 }
 
+void TemplateRulePanel::SetCurrentFrame(const VsmImageBuffer& img)
+{
+	current_frame_ = CloneImageBuffer(img);
+}
+
+void TemplateRulePanel::OnRun()
+{
+	if(!rules_ || rules_->IsEmpty()) { status_lbl_.SetLabel("No rules"); return; }
+	if(current_frame_.IsEmpty()) { status_lbl_.SetLabel(kNoActiveFrameMsg); return; }
+	int row = rules_list_.GetCursor();
+	if(row < 0) row = 0;
+	const VsmTemplateRule& rule = (*rules_)[row];
+
+	VsmFrameImage img = ToFrameImage(current_frame_);
+	VsmTemplateMatcher matcher;
+	VsmTemplateMatchResult res = matcher.Match(img, rule);
+	AddMatchResult(res);
+	status_lbl_.SetLabel(res.matched
+	                      ? ("Last: matched (" + (res.matched_label.IsEmpty() ? String("—") : res.matched_label) + ")")
+	                      : String("Last: no match"));
+}
+
 // ---------------------------------------------------------------------------
 // PipelineEditorPanel
 
@@ -446,6 +542,11 @@ void PipelineEditorPanel::SetPipeline(VsmPreprocessPipeline* pipeline)
 	RebuildList();
 }
 
+void PipelineEditorPanel::SetCurrentFrame(const VsmImageBuffer& img)
+{
+	current_frame_ = CloneImageBuffer(img);
+}
+
 void PipelineEditorPanel::RebuildList()
 {
 	steps_list_.Clear();
@@ -478,14 +579,11 @@ void PipelineEditorPanel::OnRemove()
 void PipelineEditorPanel::OnRun()
 {
 	if(!pipeline_) { result_lbl_.SetLabel("No pipeline"); return; }
+	if(current_frame_.IsEmpty()) { result_lbl_.SetLabel(kNoActiveFrameMsg); return; }
 
-	// Run on a synthetic 32x32 gray image
-	VsmFrameImage img;
-	img.Set(32, 32, nullptr);
-	for(int i = 0; i < 32*32*4; i += 4) {
-		img.data[i]=img.data[i+1]=img.data[i+2]=(byte)(i/4 % 256);
-		img.data[i+3]=255;
-	}
+	// Run against the real current frame of the active session (pushed via
+	// SetCurrentFrame()) instead of a synthetic gradient.
+	VsmFrameImage img = ToFrameImage(current_frame_);
 	VsmPreprocessExecutor exec;
 	VsmFrameImage out;
 	VsmPreprocessResultRef res = exec.Execute(img, *pipeline_, out);

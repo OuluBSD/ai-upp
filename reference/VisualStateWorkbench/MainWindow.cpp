@@ -221,6 +221,13 @@ void MainWindow::SaveAppState()
 // ---------------------------------------------------------------------------
 // Session handling
 
+void MainWindow::PushCurrentFrameToPanels()
+{
+	pipeline_dock_.SetCurrentFrame(current_frame_img_);
+	template_dock_.SetCurrentFrame(current_frame_img_);
+	ocr_dock_.SetCurrentFrame(current_frame_img_);
+}
+
 void MainWindow::LoadSampleSession()
 {
 	Log("session: loading sample…");
@@ -229,6 +236,11 @@ void MainWindow::LoadSampleSession()
 	// active session, discarding any opened/imported session (B) identity.
 	has_src_session_ = false;
 	src_step_pos_    = 0;
+	// The sample session has no real per-frame image bytes at all (only
+	// VsmSession regions/changes) -- so there is no real "current frame" to
+	// offer the rule/pipeline preview panels while it's active.
+	current_frame_img_ = VsmImageBuffer();
+	PushCurrentFrameToPanels();
 
 	String json = VsmMakeSampleJson();
 	String tmp  = AppendFileName(GetTempPath(), "vsm_wb_sample.json");
@@ -277,6 +289,7 @@ void MainWindow::OnStep()
 			return;
 		}
 		src_step_pos_++;
+		current_frame_img_ = pick(img);
 		RefreshAfterSourceStep();
 		return;
 	}
@@ -293,8 +306,16 @@ void MainWindow::OnRunAll()
 	if(has_src_session_) {
 		VsmImageBuffer img;
 		int64 ts_ms = 0;
-		while(src_source_.ReadFrame(img, ts_ms))
+		bool got_any = false;
+		while(src_source_.ReadFrame(img, ts_ms)) {
 			src_step_pos_++;
+			got_any = true;
+		}
+		// img now holds the last successfully read frame (ReadFrame leaves
+		// its out-param untouched on the final "false" call) -- that's the
+		// real current frame after Run All.
+		if(got_any)
+			current_frame_img_ = pick(img);
 		RefreshAfterSourceStep();
 		Log("session: run all complete (opened session)");
 		return;
@@ -342,6 +363,7 @@ void MainWindow::RefreshAfterSourceStep()
 	timeline_dock_.SetProgress(src_step_pos_, src_source_.GetFrameCount());
 	frame_canvas_.SetFrame(src_step_pos_);
 	frame_canvas_.SetChangedRegions(Vector<VsmChangedRect>());
+	PushCurrentFrameToPanels();
 }
 
 // ---------------------------------------------------------------------------
@@ -659,6 +681,11 @@ void MainWindow::OpenSessionPath(const String& path)
 	// -- see OnStep()/OnRunAll()/OnRegionSelected()/OnRegionListSel().
 	has_src_session_ = true;
 	src_step_pos_    = 0;
+	// No frame has been read from the newly opened session yet (Step/Run
+	// All haven't run) -- clear any stale frame left over from whatever was
+	// active before, and let the rule/pipeline preview panels know.
+	current_frame_img_ = VsmImageBuffer();
+	PushCurrentFrameToPanels();
 	session_dock_.SetManifest(session_store_.GetManifest());
 
 	// Clear any leftover session-A overlay/list state so the Frame/Regions
@@ -934,5 +961,18 @@ void MainWindow::OnJumpToFrame(int frame)
 		if(frame >= 0 && frame < m.frames.GetCount())
 			session_dock_.SetManifest(m);
 	}
+
+	// Load the real frame image for the jumped-to frame, if available.
+	// Only opened/imported sessions (B) have real per-frame image bytes in
+	// session_store_ -- the sample session (A) never does (see
+	// LoadSampleSession()) -- so jumping while the sample is active leaves
+	// no real frame for the rule/pipeline preview panels.
+	VsmImageBuffer img;
+	if(has_src_session_ && session_store_.IsOpen() && session_store_.LoadFrameImage(frame, img))
+		current_frame_img_ = pick(img);
+	else
+		current_frame_img_ = VsmImageBuffer();
+	PushCurrentFrameToPanels();
+
 	Log(Format("divergence: jump to frame %d", frame));
 }

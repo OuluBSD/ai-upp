@@ -169,8 +169,12 @@ void MainWindow::DockInit()
 	CacheDefaultLayout();
 	InitRegistry();
 	LoadAppState();
-	if(!LoadUserLayout())
+	if(!LoadUserLayout()) {
 		Log("layout: using default");
+		had_prior_session_state_ = false;
+	} else {
+		had_prior_session_state_ = true;
+	}
 	loaded_ = true;
 	LoadOverlayState();
 
@@ -185,6 +189,9 @@ void MainWindow::DockInit()
 
 	Log("registry config: " + registry_.GetConfigDir());
 	LoadSampleAnnotation();
+
+	// Show empty-state placeholder if no prior session state was restored
+	frame_canvas_.SetShowEmptyStatePlaceholder(!had_prior_session_state_);
 }
 
 // ---------------------------------------------------------------------------
@@ -841,6 +848,9 @@ void MainWindow::OnOpenImportSession()
 {
 	OpenImportDialog dlg;
 	if(dlg.Execute() != IDOK) return;
+
+	// User has explicitly loaded a session, so hide the empty-state placeholder
+	frame_canvas_.SetShowEmptyStatePlaceholder(false);
 
 	String path = dlg.GetPath();
 	switch(dlg.GetSourceType()) {

@@ -1,7 +1,8 @@
 description "dbg CLI";
 
 uses
-	Core;
+	Core,
+	ide/DebuggersCore;
 
 file
 	AGENTS.md,

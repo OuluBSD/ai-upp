@@ -61,7 +61,7 @@ struct PlatformThread {
 		v.Ver(1)
 		(1)	("user", user)
 			("title", title)
-			("comments", comments, VISIT_VECTOR)
+			.VisitVector("comments", comments)
 			;
 	}
 };
@@ -72,9 +72,9 @@ struct PlatformEntry {
 	
 	void Visit(Vis& v) {
 		v.Ver(1)
-		(1)	("threads", threads, VISIT_VECTOR)
-			("title", title)
+		(1)	("title", title)
 			("subforum", subforum)
+			.VisitVector("threads", threads)
 			;
 	}
 };

@@ -14,7 +14,7 @@
 #else
 	#define HAVE_OPENAI 0
 #endif
-#include <ide/AiProvider.h>
+#include <ide/MainCtrl/AiProvider.h>
 #include <Esc/Esc.h>
 
 #ifdef flagV1

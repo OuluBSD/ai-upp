@@ -99,31 +99,43 @@ CONSOLE_APP_MAIN
 	Cout() << "Creating session 1: " << session_1_dir << "\n";
 	{
 		VsmSessionStore store;
-		store.SetLog(&log);
-		if(!store.Create(session_1_dir, "batch-session-001", 48, 48))
+		VsmSyntheticSessionOptions opts;
+		opts.output_dir = session_1_dir;
+		opts.session_id = "batch-session-001";
+		opts.frame_count = 1;
+		opts.width = 48;
+		opts.height = 48;
+		opts.solid_value = 100;
+		if(!VsmBuildSyntheticSession(opts, store))
 			{ Fail("Cannot create session 1"); return; }
-		store.SaveFrameImage(0, VsmImageBuffer::MakeSolid(48, 48, 100, 1));
-		store.SaveManifest();
 	}
 
 	Cout() << "Creating session 2: " << session_2_dir << "\n";
 	{
 		VsmSessionStore store;
-		store.SetLog(&log);
-		if(!store.Create(session_2_dir, "batch-session-002", 48, 48))
+		VsmSyntheticSessionOptions opts;
+		opts.output_dir = session_2_dir;
+		opts.session_id = "batch-session-002";
+		opts.frame_count = 1;
+		opts.width = 48;
+		opts.height = 48;
+		opts.solid_value = 150;
+		if(!VsmBuildSyntheticSession(opts, store))
 			{ Fail("Cannot create session 2"); return; }
-		store.SaveFrameImage(0, VsmImageBuffer::MakeSolid(48, 48, 150, 1));
-		store.SaveManifest();
 	}
 
 	Cout() << "Creating session 3: " << session_3_dir << "\n";
 	{
 		VsmSessionStore store;
-		store.SetLog(&log);
-		if(!store.Create(session_3_dir, "batch-session-003", 48, 48))
+		VsmSyntheticSessionOptions opts;
+		opts.output_dir = session_3_dir;
+		opts.session_id = "batch-session-003";
+		opts.frame_count = 1;
+		opts.width = 48;
+		opts.height = 48;
+		opts.solid_value = 200;
+		if(!VsmBuildSyntheticSession(opts, store))
 			{ Fail("Cannot create session 3"); return; }
-		store.SaveFrameImage(0, VsmImageBuffer::MakeSolid(48, 48, 200, 1));
-		store.SaveManifest();
 	}
 
 	// --- Step 2: Seed session 1 and 2 with divergences.json ---

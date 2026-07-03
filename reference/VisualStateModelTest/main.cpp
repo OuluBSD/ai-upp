@@ -889,16 +889,13 @@ static void TestFrameSource()
 	if(DirectoryExists(root)) DeleteFolderDeep(root);
 
 	VsmSessionStore store;
-	store.SetLog(&log);
-	if(!store.Create(root, "framesrc-001", 32, 32)) { Fail("FrameSource: store Create"); return; }
-
-	VsmImageBuffer f0 = VsmImageBuffer::MakeSolid(32, 32, 100, 1);
-	VsmImageBuffer f1 = VsmImageBuffer::MakeSolid(32, 32, 150, 1);
-	VsmImageBuffer f2 = VsmImageBuffer::MakeCheckerboard(32, 32, 4);
-	store.SaveFrameImage(0, f0);
-	store.SaveFrameImage(1, f1);
-	store.SaveFrameImage(2, f2);
-	store.SaveManifest();
+	VsmSyntheticSessionOptions opts;
+	opts.output_dir = root;
+	opts.session_id = "framesrc-001";
+	opts.frame_count = 3;
+	opts.width = 32;
+	opts.height = 32;
+	if(!VsmBuildSyntheticSession(opts, store)) { Fail("FrameSource: store Create"); return; }
 
 	// Open with VsmSessionStoreSource
 	VsmSessionStoreSource src;

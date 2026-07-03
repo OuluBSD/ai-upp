@@ -50,14 +50,14 @@ CONSOLE_APP_MAIN
 	Cout() << "Creating source session: " << src_session_dir << "\n";
 	{
 		VsmSessionStore src_store;
-		src_store.SetLog(&log);
-		if(!src_store.Create(src_session_dir, "record-src-001", 48, 48))
+		VsmSyntheticSessionOptions opts;
+		opts.output_dir = src_session_dir;
+		opts.session_id = "record-src-001";
+		opts.frame_count = 3;
+		opts.width = 48;
+		opts.height = 48;
+		if(!VsmBuildSyntheticSession(opts, src_store))
 			{ Fail("Cannot create source session"); return; }
-
-		src_store.SaveFrameImage(0, VsmImageBuffer::MakeSolid(48, 48, 80, 1));
-		src_store.SaveFrameImage(1, VsmImageBuffer::MakeGradient(48, 48));
-		src_store.SaveFrameImage(2, VsmImageBuffer::MakeCheckerboard(48, 48, 6));
-		src_store.SaveManifest();
 	}
 
 	// --- Step 2: Open source via VsmSessionStoreSource ---

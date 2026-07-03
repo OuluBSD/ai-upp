@@ -35,6 +35,8 @@ file
 	BatchReport.cpp,
 	SessionDiff.h,
 	SessionDiff.cpp,
+	GroundTruthTemplate.h,
+	GroundTruthTemplate.cpp,
 	FrameSource.h,
 	FrameSource.cpp,
 	ImageSequenceImporter.h,

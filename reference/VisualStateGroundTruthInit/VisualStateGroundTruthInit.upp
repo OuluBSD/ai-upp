@@ -1,0 +1,10 @@
+description "VisualStateModel ground truth template generator demo\377";
+
+uses
+	VisualStateModel;
+
+file
+	main.cpp;
+
+mainconfig
+	"" = "";

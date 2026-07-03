@@ -1,0 +1,10 @@
+description "VisualStateModel annotation validator CLI\377";
+
+uses
+	VisualStateModel;
+
+file
+	main.cpp;
+
+mainconfig
+	"" = "";

@@ -70,6 +70,23 @@ Vector<VsmAnnotationLayer::ValidationError> VsmAnnotationLayer::Validate() const
 	return errs;
 }
 
+Vector<VsmAnnotationLayer::ValidationError> VsmAnnotationLayer::ValidateBounds(int frame_w, int frame_h) const
+{
+	Vector<ValidationError> errs;
+
+	for(const VsmRegionAnnotation& a : annotations) {
+		// Check if annotation rectangle is fully within [0, 0, frame_w, frame_h]
+		if(a.x < 0 || a.y < 0 || a.x + a.w > frame_w || a.y + a.h > frame_h) {
+			ValidationError& e = errs.Add();
+			e.annotation_id = a.id;
+			e.message = Format("Annotation rect [%d,%d,%d,%d] outside bounds [0,0,%d,%d]",
+			                  a.x, a.y, a.x + a.w, a.y + a.h, frame_w, frame_h);
+		}
+	}
+
+	return errs;
+}
+
 const VsmRegionAnnotation* VsmAnnotationLayer::FindById(const VsmAnnotationId& id) const
 {
 	for(const VsmRegionAnnotation& a : annotations)

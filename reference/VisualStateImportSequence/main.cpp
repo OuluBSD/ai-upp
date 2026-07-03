@@ -13,37 +13,77 @@ CONSOLE_APP_MAIN
 {
 	StdLogSetup(LOG_COUT | LOG_FILE);
 
+	const Vector<String>& args = CommandLine();
+	String input_dir, output_dir;
+
+	// Parse command-line arguments
+	for(int i = 0; i < args.GetCount(); i++) {
+		const String& arg = args[i];
+		if(arg == "--help") {
+			Cout() << "Usage: VisualStateImportSequence.exe [--help] [<input_dir> [<output_dir>]]\n";
+			SetExitCode(0);
+			return;
+		} else if(input_dir.IsEmpty()) {
+			input_dir = arg;
+		} else {
+			output_dir = arg;
+		}
+	}
+
 	Cout() << "=== VisualStateModel Image Sequence Importer ===\n\n";
 
 	AppLog log;
 	log.SetForwardToUppLog(false);
 
-	// --- Step 1: Generate a tiny synthetic sequence in a temp source dir ---
-	String src_dir = AppendFileName(GetTempPath(), "vsm_import_src");
-	String out_dir = AppendFileName(GetTempPath(), "vsm_import_out");
+	bool is_real_input = !input_dir.IsEmpty();
+	bool is_real_output = !output_dir.IsEmpty();
 
-	if(DirectoryExists(src_dir)) DeleteFolderDeep(src_dir);
-	if(DirectoryExists(out_dir)) DeleteFolderDeep(out_dir);
-	RealizeDirectory(src_dir);
-
-	int frame_w = 64, frame_h = 64;
-	int num_frames = 4;
-	Cout() << "Generating " << num_frames << " synthetic frames in: " << src_dir << "\n";
-
-	for(int i = 0; i < num_frames; i++) {
-		VsmImageBuffer img;
-		if(i % 2 == 0)
-			img = VsmImageBuffer::MakeSolid(frame_w, frame_h, (byte)(80 + i * 20), 1);
-		else
-			img = VsmImageBuffer::MakeCheckerboard(frame_w, frame_h, 8);
-
-		String path = AppendFileName(src_dir, Format("%08d.vsm", i));
-		if(!img.Save(path)) {
-			Fail("Cannot write synthetic frame");
-			return;
-		}
+	// If input_dir was provided, validate it
+	if(is_real_input && !DirectoryExists(input_dir)) {
+		Cout() << "ERROR: Input directory not found: " << input_dir << "\n";
+		SetExitCode(1);
+		return;
 	}
-	Cout() << "Source frames written OK\n\n";
+
+	// If output_dir was provided, validate it doesn't exist yet
+	if(is_real_output && DirectoryExists(output_dir)) {
+		Cout() << "ERROR: Output directory already exists: " << output_dir << "\n";
+		SetExitCode(1);
+		return;
+	}
+
+	// --- Step 1: Generate a tiny synthetic sequence (or use real input) ---
+	String src_dir = is_real_input ? input_dir : AppendFileName(GetTempPath(), "vsm_import_src");
+	String out_dir = is_real_output ? output_dir : AppendFileName(GetTempPath(), "vsm_import_out");
+
+	int frame_w = 64, frame_h = 64;  // Default synthetic dimensions
+	int num_frames = 4;              // Default synthetic count
+
+	if(!is_real_input && DirectoryExists(src_dir)) DeleteFolderDeep(src_dir);
+	if(DirectoryExists(out_dir)) DeleteFolderDeep(out_dir);
+
+	if(!is_real_input) {
+		RealizeDirectory(src_dir);
+
+		Cout() << "Generating " << num_frames << " synthetic frames in: " << src_dir << "\n";
+
+		for(int i = 0; i < num_frames; i++) {
+			VsmImageBuffer img;
+			if(i % 2 == 0)
+				img = VsmImageBuffer::MakeSolid(frame_w, frame_h, (byte)(80 + i * 20), 1);
+			else
+				img = VsmImageBuffer::MakeCheckerboard(frame_w, frame_h, 8);
+
+			String path = AppendFileName(src_dir, Format("%08d.vsm", i));
+			if(!img.Save(path)) {
+				Fail("Cannot write synthetic frame");
+				return;
+			}
+		}
+		Cout() << "Source frames written OK\n\n";
+	} else {
+		Cout() << "Using input frames from: " << src_dir << "\n\n";
+	}
 
 	// --- Step 2: Import the sequence ---
 	VsmImageSequenceImportOptions opts;
@@ -79,35 +119,63 @@ CONSOLE_APP_MAIN
 		{ Fail("Import did not succeed"); return; }
 	Cout() << "OK:   Import success\n";
 
-	if(res.frames_imported != num_frames)
-		{ Fail("Expected " + IntStr(num_frames) + " frames imported"); return; }
-	Cout() << "OK:   All " << num_frames << " frames imported\n";
+	if(!is_real_input) {
+		// For synthetic input, verify the expected frame count
+		if(res.frames_imported != num_frames)
+			{ Fail("Expected " + IntStr(num_frames) + " frames imported"); return; }
+		Cout() << "OK:   All " << num_frames << " frames imported\n";
 
-	if(res.frames_skipped != 0)
-		{ Fail("Unexpected skipped frames"); return; }
-	Cout() << "OK:   No frames skipped\n";
+		if(res.frames_skipped != 0)
+			{ Fail("Unexpected skipped frames"); return; }
+		Cout() << "OK:   No frames skipped\n";
+	} else {
+		// For real input, just verify something was imported
+		if(res.frames_imported <= 0)
+			{ Fail("No frames were imported from real input"); return; }
+		Cout() << "OK:   " << res.frames_imported << " frames imported from real input\n";
+	}
 
 	// --- Step 3: Verify output session can be opened by VsmSessionStoreSource ---
 	VsmSessionStoreSource src_reader;
 	src_reader.SetLog(&log);
 	if(!src_reader.Open(out_dir))
 		{ Fail("VsmSessionStoreSource cannot open imported session"); return; }
-	if(src_reader.GetWidth() != frame_w || src_reader.GetHeight() != frame_h)
-		{ Fail("Imported session dimensions mismatch"); return; }
 	Cout() << "OK:   Imported session opens via VsmSessionStoreSource\n";
 	Cout() << "      " << src_reader.GetSourceInfo() << "\n";
+
+	// For synthetic input, verify exact dimensions; for real input, just check they're valid
+	if(!is_real_input) {
+		if(src_reader.GetWidth() != frame_w || src_reader.GetHeight() != frame_h)
+			{ Fail("Imported session dimensions mismatch"); return; }
+	} else {
+		if(src_reader.GetWidth() <= 0 || src_reader.GetHeight() <= 0)
+			{ Fail("Imported session has invalid dimensions"); return; }
+	}
 
 	int frames_read = 0;
 	VsmImageBuffer out_frame; int64 ts_ms = 0;
 	while(src_reader.ReadFrame(out_frame, ts_ms)) frames_read++;
-	if(frames_read != num_frames)
-		{ Fail("ReadFrame count mismatch: expected " + IntStr(num_frames) +
-		       " got " + IntStr(frames_read)); return; }
-	Cout() << "OK:   All " << frames_read << " frames readable from imported session\n";
+
+	if(!is_real_input) {
+		// For synthetic input, verify exact frame count
+		if(frames_read != num_frames)
+			{ Fail("ReadFrame count mismatch: expected " + IntStr(num_frames) +
+			       " got " + IntStr(frames_read)); return; }
+		Cout() << "OK:   All " << frames_read << " frames readable from imported session\n";
+	} else {
+		// For real input, verify at least some frames were read
+		if(frames_read <= 0)
+			{ Fail("No frames readable from imported session"); return; }
+		Cout() << "OK:   " << frames_read << " frames readable from imported session\n";
+	}
 
 	Cout() << "\nAll import checks passed.\n";
 
-	// Cleanup
-	DeleteFolderDeep(src_dir);
-	DeleteFolderDeep(out_dir);
+	// Cleanup (only for synthetic temp directories)
+	if(!is_real_input)
+		DeleteFolderDeep(src_dir);
+	if(!is_real_output)
+		DeleteFolderDeep(out_dir);
+	else
+		Cout() << "\nImported session saved to: " << out_dir << "\n";
 }

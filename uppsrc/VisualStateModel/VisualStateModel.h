@@ -27,5 +27,6 @@ using namespace Upp;
 #include "MjpegParser.h"
 #include "PipelineRunner.h"
 #include "PipelineCache.h"
+#include "TestFixtures.h"
 
 #endif

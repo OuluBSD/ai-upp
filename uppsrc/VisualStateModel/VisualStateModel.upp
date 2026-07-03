@@ -31,6 +31,8 @@ file
 	OcrLayer.cpp,
 	ModelRuntime.h,
 	ModelRuntime.cpp,
+	BatchReport.h,
+	BatchReport.cpp,
 	FrameSource.h,
 	FrameSource.cpp,
 	ImageSequenceImporter.h,

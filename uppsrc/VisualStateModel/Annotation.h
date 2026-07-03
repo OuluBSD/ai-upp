@@ -60,6 +60,7 @@ struct VsmAnnotationLayer : Moveable<VsmAnnotationLayer> {
 	};
 
 	Vector<ValidationError> Validate() const;
+	Vector<ValidationError> ValidateBounds(int frame_w, int frame_h) const;
 
 	// Helpers
 	const VsmRegionAnnotation* FindById(const VsmAnnotationId& id) const;

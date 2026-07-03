@@ -96,3 +96,10 @@ frame_canvas_.WhenAnnotationMoved   = [=] { OnAnnotationChanged(); };
   restarts if the same session is edited quickly in multiple runs.
 - Canvas coordinates are 1:1 pixel (no zoom/pan); large sessions may need
   scrolling (not yet implemented).
+
+---
+
+## Validation
+
+See [ANNOTATION_VALIDATOR.md](ANNOTATION_VALIDATOR.md) for annotation validation
+(hierarchy checks, bounds checks) and the headless validator CLI.

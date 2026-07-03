@@ -13,37 +13,47 @@ Record::Record() {
 }
 
 Record::Record(const Record& r) {
-	
+	data = r.data;
+	if(data)
+		data->Retain();
+}
+
+Record::~Record() {
+	Clear();
 }
 
 
 void Record::operator=(const Record& r) {
-	
+	if(data == r.data)
+		return;
+	if(r.data)
+		r.data->Retain();
+	if(data)
+		data->Release();
+	data = r.data;
 }
 
 void Record::Clear() {
 	if (data) {
-		data->Retain();
+		data->Release();
 		data = 0;
 	}
 }
 
-#define PROXY_TO_DATA(x, def) if (data) data->buffer.x; return def;
-
 int Record::GetSampleRate() const {
-	PROXY_TO_DATA(GetSampleRate(), 0)
+	return data ? data->buffer.GetSampleRate() : 0;
 }
 
 float Record::Get(int ch, int i) const {
-	PROXY_TO_DATA(Get(ch, i), 0)
+	return data ? data->buffer.Get(ch, i) : 0.0f;
 }
 
 int Record::GetCount() const {
-	PROXY_TO_DATA(GetCount(), 0)
+	return data ? data->buffer.GetCount() : 0;
 }
 
 int Record::GetChannels() const {
-	PROXY_TO_DATA(GetChannels(), 0)
+	return data ? data->buffer.GetChannels() : 0;
 }
 
 bool Record::IsEmpty() const {

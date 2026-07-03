@@ -5,6 +5,122 @@ static const char* kTabNameRegions = "Regions";
 static const char* kTabNameDebug   = "Debug";
 
 // ---------------------------------------------------------------------------
+// OpenImportDialog — single File-menu entry point for loading a session.
+//
+// Replaces the four separate "Open Session…"/"Import Image Sequence…"/
+// "Load Sample Session"/"Load E2E Sample Session" menu items with one small
+// modal dialog: an explicit source-type chooser plus a directory picker that
+// only applies to the two directory-based source types. MainWindow's
+// OnOpenImportSession() reads the chosen type/path back out and dispatches
+// to the exact same existing calls those four old menu items used
+// (OpenSessionPath()/DispatchImageSequenceImport()/LoadSampleSession()/
+// OnLoadE2ESample()) -- this dialog changes nothing about what happens once
+// a source is chosen, only how the user picks one.
+//
+// Kept as a plain, file-local (anonymous namespace) TopWindow rather than a
+// new pair of .h/.cpp files: it's small, single-purpose, only ever
+// constructed from MainWindow::OnOpenImportSession(), and this mirrors the
+// existing style of file-local helpers in this same file (HasVsmFiles(),
+// HasJpegFiles() below) and in DockPanels.cpp's anonymous-namespace helpers.
+// No changes to VisualStateWorkbench.upp are needed as a result.
+
+namespace {
+
+class OpenImportDialog : public TopWindow {
+public:
+	typedef OpenImportDialog CLASSNAME;
+
+	enum SourceType {
+		SESSION_DIR    = 0,
+		IMAGE_SEQUENCE = 1,
+		SAMPLE         = 2,
+		E2E_SAMPLE     = 3,
+	};
+
+	OpenImportDialog();
+
+	SourceType GetSourceType() const { return (SourceType)(int)type_drop_.GetData(); }
+	String     GetPath() const       { return ~path_edit_; }
+
+private:
+	Label      type_lbl_, path_lbl_;
+	DropList   type_drop_;
+	EditString path_edit_;
+	Button     browse_btn_;
+	Button     open_btn_, cancel_btn_;
+
+	void OnTypeChanged();
+	void OnBrowse();
+	void OnOpen();
+	bool NeedsPath() const;
+};
+
+OpenImportDialog::OpenImportDialog()
+{
+	Title("Open/Import Session").Sizeable(false);
+	SetRect(0, 0, 440, 130);
+
+	type_lbl_.SetLabel("Source:");
+	type_drop_.Add(SESSION_DIR,    "Existing session directory");
+	type_drop_.Add(IMAGE_SEQUENCE, "Image sequence (.vsm/.jpg/.png)");
+	type_drop_.Add(SAMPLE,         "Built-in sample data");
+	type_drop_.Add(E2E_SAMPLE,     "Built-in E2E sample data");
+	type_drop_.SetIndex(0);
+	type_drop_.WhenAction = THISBACK(OnTypeChanged);
+
+	path_lbl_.SetLabel("Directory:");
+	browse_btn_.SetLabel("Browse\xE2\x80\xA6");
+	browse_btn_ <<= THISBACK(OnBrowse);
+
+	open_btn_.SetLabel("Open");
+	open_btn_ <<= THISBACK(OnOpen);
+	cancel_btn_.SetLabel("Cancel");
+	Rejector(cancel_btn_, IDCANCEL);
+
+	Add(type_lbl_.LeftPos(8, 100).TopPos(12, 20));
+	Add(type_drop_.HSizePos(112, 8).TopPos(12, 20));
+	Add(path_lbl_.LeftPos(8, 100).TopPos(40, 20));
+	Add(path_edit_.HSizePos(112, 96).TopPos(40, 20));
+	Add(browse_btn_.RightPos(8, 80).TopPos(40, 20));
+	Add(open_btn_.RightPos(96, 80).BottomPos(10, 24));
+	Add(cancel_btn_.RightPos(8, 80).BottomPos(10, 24));
+
+	OnTypeChanged();
+}
+
+bool OpenImportDialog::NeedsPath() const
+{
+	SourceType t = (SourceType)(int)type_drop_.GetData();
+	return t == SESSION_DIR || t == IMAGE_SEQUENCE;
+}
+
+void OpenImportDialog::OnTypeChanged()
+{
+	bool need_path = NeedsPath();
+	path_lbl_.Show(need_path);
+	path_edit_.Show(need_path);
+	browse_btn_.Show(need_path);
+}
+
+void OpenImportDialog::OnBrowse()
+{
+	String dir = SelectDirectory();
+	if(!dir.IsEmpty())
+		path_edit_.SetData(dir);
+}
+
+void OpenImportDialog::OnOpen()
+{
+	if(NeedsPath() && String(~path_edit_).IsEmpty()) {
+		PromptOK("Please choose a directory first.");
+		return;
+	}
+	Break(IDOK);
+}
+
+} // anonymous namespace
+
+// ---------------------------------------------------------------------------
 // Constructor
 
 MainWindow::MainWindow()
@@ -721,12 +837,26 @@ void MainWindow::OpenSessionPath(const String& path)
 	    " " + IntStr(src_source_.GetWidth()) + "x" + IntStr(src_source_.GetHeight()));
 }
 
-void MainWindow::OnOpenSession()
+void MainWindow::OnOpenImportSession()
 {
-	String start = registry_.Get("session.last_path", GetTempPath());
-	String path  = SelectDirectory();
-	if(path.IsEmpty()) return;
-	OpenSessionPath(path);
+	OpenImportDialog dlg;
+	if(dlg.Execute() != IDOK) return;
+
+	String path = dlg.GetPath();
+	switch(dlg.GetSourceType()) {
+	case OpenImportDialog::SESSION_DIR:
+		OpenSessionPath(path);
+		break;
+	case OpenImportDialog::IMAGE_SEQUENCE:
+		DispatchImageSequenceImport(path);
+		break;
+	case OpenImportDialog::SAMPLE:
+		LoadSampleSession();
+		break;
+	case OpenImportDialog::E2E_SAMPLE:
+		OnLoadE2ESample();
+		break;
+	}
 }
 
 // ---------------------------------------------------------------------------
@@ -808,11 +938,8 @@ void MainWindow::RunJpegImport(const String& src_dir)
 	OpenSessionPath(out_dir);
 }
 
-void MainWindow::OnImportImageSequence()
+void MainWindow::DispatchImageSequenceImport(const String& src_dir)
 {
-	String src_dir = SelectDirectory();
-	if(src_dir.IsEmpty()) return;
-
 	registry_.Set("session.last_import_dir", src_dir);
 
 	bool has_vsm  = HasVsmFiles(src_dir);

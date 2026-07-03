@@ -13,10 +13,53 @@ CONSOLE_APP_MAIN
 {
 	StdLogSetup(LOG_COUT | LOG_FILE);
 
+	const Vector<String>& args = CommandLine();
+	String session_dir;
+
+	// Parse command-line arguments
+	for(const String& arg : args) {
+		if(arg == "--help") {
+			Cout() << "Usage: VisualStateSessionValidate.exe [--help] [<session_dir>]\n";
+			SetExitCode(0);
+			return;
+		} else {
+			session_dir = arg;
+		}
+	}
+
 	Cout() << "=== VisualStateModel Session Validator Demo ===\n\n";
 
 	AppLog log;
 	log.SetForwardToUppLog(false);
+
+	VsmSessionValidator validator;
+	validator.SetLog(&log);
+
+	// If a session directory was provided, validate it directly
+	if(!session_dir.IsEmpty()) {
+		if(!DirectoryExists(session_dir)) {
+			Cout() << "ERROR: Session directory not found: " << session_dir << "\n";
+			SetExitCode(1);
+			return;
+		}
+
+		Cout() << "Validating session: " << session_dir << "\n\n";
+		VsmValidationResult result = validator.Validate(session_dir);
+
+		Cout() << "Result: " << (result.ok ? "PASS" : "FAIL") << "\n";
+		Cout() << "Frames checked: " << result.frames_checked << "\n";
+		Cout() << "Crops checked: " << result.crops_checked << "\n";
+		Cout() << "Issues: " << result.issues.GetCount() << "\n";
+
+		for(const VsmValidationIssue& issue : result.issues) {
+			Cout() << "  [" << issue.severity << "] " << issue.message << "\n";
+		}
+
+		SetExitCode(result.ok ? 0 : 1);
+		return;
+	}
+
+	// --- Synthetic self-check mode (no positional argument) ---
 
 	// --- Step 1: Create a valid session with 3 frames ---
 	String valid_session_dir = AppendFileName(GetTempPath(), "vsm_validate_valid");
@@ -70,8 +113,6 @@ CONSOLE_APP_MAIN
 
 	Cout() << "\n--- Validation Check 1: Valid Session ---\n";
 
-	VsmSessionValidator validator;
-	validator.SetLog(&log);
 	VsmValidationResult valid_result = validator.Validate(valid_session_dir);
 
 	Cout() << "Result: " << (valid_result.ok ? "PASS" : "FAIL") << "\n";

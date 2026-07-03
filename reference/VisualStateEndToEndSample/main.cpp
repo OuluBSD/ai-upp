@@ -100,49 +100,97 @@ static void BuildSampleSession(VsmSessionStore& store, const String& session_roo
 CONSOLE_APP_MAIN
 {
 	StdLogSetup(LOG_COUT | LOG_FILE);
+
+	const Vector<String>& args = CommandLine();
+	String session_dir;
+
+	// Parse command-line arguments
+	for(const String& arg : args) {
+		if(arg == "--help") {
+			Cout() << "Usage: VisualStateEndToEndSample.exe [--help] [<session_dir>]\n";
+			SetExitCode(0);
+			return;
+		} else {
+			session_dir = arg;
+		}
+	}
+
 	AppLog log;
 	log.SetForwardToUppLog(false);
 
 	Cout() << "=== VisualStateModel End-to-End Sample ===\n\n";
 
-	// 1. Create session in temp directory
-	String session_root = AppendFileName(GetTempPath(), "vsm_e2e_sample");
-	if(DirectoryExists(session_root))
-		DeleteFolderDeep(session_root);
+	// If a session directory was provided, validate it
+	bool is_real_session = !session_dir.IsEmpty();
+	if(is_real_session && !DirectoryExists(session_dir)) {
+		Cout() << "ERROR: Session directory not found: " << session_dir << "\n";
+		SetExitCode(1);
+		return;
+	}
+
+	// 1. Create or load session
+	String session_root = is_real_session ? session_dir : AppendFileName(GetTempPath(), "vsm_e2e_sample");
+	if(!is_real_session) {
+		if(DirectoryExists(session_root))
+			DeleteFolderDeep(session_root);
+	}
 
 	VsmSessionStore store;
 	store.SetLog(&log);
-	BuildSampleSession(store, session_root);
-	Cout() << "Session created: " << session_root << "\n";
 
-	// 2. Build ground truth session with 1 change event and 1 region
+	if(!is_real_session) {
+		BuildSampleSession(store, session_root);
+		Cout() << "Session created: " << session_root << "\n";
+	} else {
+		// Load real session using the store
+		if(!store.Open(session_root)) {
+			Cout() << "ERROR: Failed to open session: " << session_root << "\n";
+			SetExitCode(1);
+			return;
+		}
+		Cout() << "Session loaded: " << session_root << "\n";
+	}
+
+	// 2. Build or load ground truth session
 	VsmSession session;
-	session.schema     = 1;
-	session.session_id = "e2e-sample-001";
-	session.frame_width  = 320;
-	session.frame_height = 240;
-	session.source_type  = "synthetic";
 
-	VsmFrameRef fr0; fr0.frame = 0; fr0.ts = "2026-01-15T14:23:00.000Z";
-	VsmFrameRef fr1; fr1.frame = 1; fr1.ts = "2026-01-15T14:23:00.033Z";
-	session.frames.Add(fr0);
-	session.frames.Add(fr1);
+	if(is_real_session) {
+		// For real sessions, we'll just create minimal session metadata
+		// and use RunFromSource instead of Run()
+		session.schema     = 1;
+		session.session_id = "real-session";
+		session.frame_width  = store.GetManifest().frame_width;
+		session.frame_height = store.GetManifest().frame_height;
+		session.source_type  = "real";
+	} else {
+		// Synthetic session with 1 change event and 1 region
+		session.schema     = 1;
+		session.session_id = "e2e-sample-001";
+		session.frame_width  = 320;
+		session.frame_height = 240;
+		session.source_type  = "synthetic";
 
-	VsmChangeEvent& ce = session.changes.Add();
-	ce.frame = 1; ce.ts = fr1.ts;
-	VsmChangedRect& cr = ce.regions.Add();
-	cr.x = 0; cr.y = 0; cr.w = 320; cr.h = 240; cr.score = 0.85;
+		VsmFrameRef fr0; fr0.frame = 0; fr0.ts = "2026-01-15T14:23:00.000Z";
+		VsmFrameRef fr1; fr1.frame = 1; fr1.ts = "2026-01-15T14:23:00.033Z";
+		session.frames.Add(fr0);
+		session.frames.Add(fr1);
 
-	VsmRegionNode rn;
-	rn.id = "rgn-0001"; rn.frame = 1; rn.x = 0; rn.y = 0; rn.w = 320; rn.h = 240;
-	session.regions.Add(rn);
+		VsmChangeEvent& ce = session.changes.Add();
+		ce.frame = 1; ce.ts = fr1.ts;
+		VsmChangedRect& cr = ce.regions.Add();
+		cr.x = 0; cr.y = 0; cr.w = 320; cr.h = 240; cr.score = 0.85;
 
-	// 3. Annotation layer
+		VsmRegionNode rn;
+		rn.id = "rgn-0001"; rn.frame = 1; rn.x = 0; rn.y = 0; rn.w = 320; rn.h = 240;
+		session.regions.Add(rn);
+	}
+
+	// 3. Annotation layer (adaptive to session dimensions)
 	VsmAnnotationLayer ann;
 	ann.schema = 1; ann.session_id = session.session_id;
 	VsmRegionAnnotation& a = ann.annotations.Add();
 	a.id = "ann-login"; a.name = "Login Screen";
-	a.x = 0; a.y = 0; a.w = 320; a.h = 240;
+	a.x = 0; a.y = 0; a.w = session.frame_width; a.h = session.frame_height;
 
 	// 4. Preprocessing pipeline
 	VsmPreprocessPipeline pipeline;
@@ -206,8 +254,6 @@ CONSOLE_APP_MAIN
 	// 8. Wire up observation pipeline
 	VsmObservationPipeline pipe;
 	pipe.SetLog(&log);
-	pipe.SetSession(&session);
-	pipe.SetSessionStore(&store);
 	pipe.SetAnnotationLayer(&ann);
 	pipe.SetPreprocessPipeline(&pipeline);
 	pipe.SetTemplateRules(&tmpl_rules);
@@ -216,7 +262,23 @@ CONSOLE_APP_MAIN
 	pipe.SetOcrEngine(&fake_ocr);
 	pipe.SetModelRuntime(&model_rt);
 
-	VsmPipelineRunSummary summary = pipe.Run();
+	VsmPipelineRunSummary summary;
+
+	if(!is_real_session) {
+		pipe.SetSession(&session);
+		pipe.SetSessionStore(&store);
+		summary = pipe.Run();
+	} else {
+		// For real sessions, run from the frame source
+		VsmSessionStoreSource src;
+		src.SetLog(&log);
+		if(!src.Open(session_root)) {
+			Cout() << "ERROR: Failed to open session as frame source: " << session_root << "\n";
+			SetExitCode(1);
+			return;
+		}
+		summary = pipe.RunFromSource(src);
+	}
 
 	// 9. Print concise CLI summary
 	Cout() << "\n--- Pipeline Run Summary ---\n";
@@ -262,10 +324,10 @@ CONSOLE_APP_MAIN
 		}
 	}
 
-	// 10b. Ground-truth comparison
+	// 10b. Ground-truth comparison (synthetic mode only)
 	// Set up a fresh model with a VALIDATE rule that produces divergences
 	// when OCR returns "Login" (expected_value intentionally different).
-	{
+	if(!is_real_session) {
 		VsmModelRuntime gt_model;
 		gt_model.SetLog(&log);
 		VsmModelRule gtmr1;
@@ -318,16 +380,18 @@ CONSOLE_APP_MAIN
 		}
 	}
 
-	// 11. Write pipeline run outputs
-	pipe.SaveOutputs(session_root, summary.run_id);
-	Cout() << "\nRun outputs: " << AppendFileName(AppendFileName(session_root, "runs"), summary.run_id) << "\n";
+	// 11. Write pipeline run outputs (synthetic mode only)
+	if(!is_real_session) {
+		pipe.SaveOutputs(session_root, summary.run_id);
+		Cout() << "\nRun outputs: " << AppendFileName(AppendFileName(session_root, "runs"), summary.run_id) << "\n";
 
-	// 12. Write replay report
-	String report_dir = store.GetPaths().reports_dir;
-	RealizeDirectory(report_dir);
-	String report_path = AppendFileName(report_dir, "e2e_report.md");
-	WriteMarkdownReport(report_path, summary, pipe, model_rt);
-	Cout() << "Report: " << report_path << "\n";
+		// 12. Write replay report
+		String report_dir = store.GetPaths().reports_dir;
+		RealizeDirectory(report_dir);
+		String report_path = AppendFileName(report_dir, "e2e_report.md");
+		WriteMarkdownReport(report_path, summary, pipe, model_rt);
+		Cout() << "Report: " << report_path << "\n";
+	}
 
 	// 13. Final exit
 	Cout() << "\n";

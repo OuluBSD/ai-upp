@@ -5769,6 +5769,7 @@ static String sHostPackageManagerId()
 		{ "pacman", "pacman" },
 		{ "zypper", "zypper" },
 		{ "apk", "apk" },
+		{ "emerge", "emerge" },
 		{ "brew", "brew" },
 #ifdef flagFREEBSD
 		{ "freebsd-pkg", "pkg" },
@@ -5783,7 +5784,7 @@ static String sHostPackageManagerId()
 
 static String sHostPackageManagerChecklist()
 {
-	String s = "apt-get, dnf, pacman, zypper, apk, brew";
+	String s = "apt-get, dnf, pacman, zypper, apk, emerge, brew";
 #ifdef flagFREEBSD
 	s << ", pkg";
 #endif
@@ -5802,6 +5803,8 @@ static String sHostInstallCommand(const String& host_id, const String& pkg_name)
 		return "zypper install " + pkg_name;
 	if(host_id == "apk")
 		return "apk add " + pkg_name;
+	if(host_id == "emerge")
+		return "emerge " + pkg_name;
 	if(host_id == "brew")
 		return "brew install " + pkg_name;
 	if(host_id == "freebsd-pkg")
@@ -5820,6 +5823,7 @@ static bool sSystemPackageName(const String& provider_id, const String& host_id,
 		if(host_id == "pacman")      { pkg_name = "sqlite"; return true; }
 		if(host_id == "zypper")      { pkg_name = "sqlite3-devel"; return true; }
 		if(host_id == "apk")         { pkg_name = "sqlite-dev"; return true; }
+		if(host_id == "emerge")      { pkg_name = "dev-db/sqlite"; return true; }
 		if(host_id == "brew")        { pkg_name = "sqlite"; return true; }
 		if(host_id == "freebsd-pkg") { pkg_name = "sqlite3"; return true; }
 		return false;
@@ -5830,6 +5834,7 @@ static bool sSystemPackageName(const String& provider_id, const String& host_id,
 		if(host_id == "pacman")      { pkg_name = "openssl"; return true; }
 		if(host_id == "zypper")      { pkg_name = "libopenssl-devel"; return true; }
 		if(host_id == "apk")         { pkg_name = "openssl-dev"; return true; }
+		if(host_id == "emerge")      { pkg_name = "dev-libs/openssl"; return true; }
 		if(host_id == "brew")        { pkg_name = "openssl"; return true; }
 		if(host_id == "freebsd-pkg") { pkg_name = "openssl"; return true; }
 		return false;
@@ -5840,6 +5845,7 @@ static bool sSystemPackageName(const String& provider_id, const String& host_id,
 		if(host_id == "pacman")      { pkg_name = "sdl2"; return true; }
 		if(host_id == "zypper")      { pkg_name = "libSDL2-devel"; return true; }
 		if(host_id == "apk")         { pkg_name = "sdl2-dev"; return true; }
+		if(host_id == "emerge")      { pkg_name = "media-libs/libsdl2"; return true; }
 		if(host_id == "brew")        { pkg_name = "sdl2"; return true; }
 		if(host_id == "freebsd-pkg") { pkg_name = "sdl2"; return true; }
 		return false;

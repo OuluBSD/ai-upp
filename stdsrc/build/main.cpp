@@ -9,6 +9,7 @@
 #include <cstring>
 #include <cstdlib>
 #include <chrono>
+#include <functional>
 
 #ifdef _WIN32
 #include <windows.h>
@@ -69,6 +70,27 @@ string Replace(string s, const string& from, const string& to) {
         start_pos += to.length();
     }
     return s;
+}
+
+string GetEnvValue(const char *name) {
+    const char *value = getenv(name);
+    return value ? string(value) : string();
+}
+
+string TrimRight(string s) {
+    while(!s.empty() && (s.back() == '\r' || s.back() == '\n' || s.back() == ' ' || s.back() == '\t'))
+        s.pop_back();
+    return s;
+}
+
+string JoinStrings(const vector<string>& items, const string& sep) {
+    stringstream ss;
+    for(size_t i = 0; i < items.size(); ++i) {
+        if(i)
+            ss << sep;
+        ss << items[i];
+    }
+    return ss.str();
 }
 
 // --- Filesystem Helpers ---
@@ -388,15 +410,271 @@ string ReadBmBuilder(const string& path) {
     return "";
 }
 
-vector<BuildMethod> CollectMethods() {
+bool WriteTextFileIfMissing(const string& path, const string& content) {
+    if (FileExists(path))
+        return false;
+    ofstream os(path.c_str(), ios::binary);
+    if (!os)
+        return false;
+    os << content;
+    return true;
+}
+
+string ReadTextFile(const string& path) {
+    ifstream is(path.c_str(), ios::binary);
+    if (!is)
+        return "";
+    stringstream ss;
+    ss << is.rdbuf();
+    return ss.str();
+}
+
+#ifdef _WIN32
+bool FindVsWherePath(string& path) {
+    vector<string> candidates;
+    string pf86 = GetEnvValue("ProgramFiles(x86)");
+    string pf = GetEnvValue("ProgramFiles");
+    if (!pf86.empty())
+        candidates.push_back(JoinPath(JoinPath(JoinPath(pf86, "Microsoft Visual Studio"), "Installer"), "vswhere.exe"));
+    if (!pf.empty())
+        candidates.push_back(JoinPath(JoinPath(JoinPath(pf, "Microsoft Visual Studio"), "Installer"), "vswhere.exe"));
+    for (const string& candidate : candidates) {
+        if (FileExists(candidate)) {
+            path = candidate;
+            return true;
+        }
+    }
+    return false;
+}
+
+bool VsWhereLatestProperty(const string& property, string& value) {
+    string vswhere;
+    if (!FindVsWherePath(vswhere))
+        return false;
+    string cmd = "\"" + vswhere + "\" -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property " + property;
+    value = TrimRight(CaptureCommand(cmd));
+    return !value.empty();
+}
+
+bool FindVisualStudioCommunity2026(string& install_path) {
+    string display_name;
+    if (!VsWhereLatestProperty("displayName", display_name))
+        return false;
+    string lower = ToLower(display_name);
+    if (lower.find("visual studio community 2026") == string::npos)
+        return false;
+    if (!VsWhereLatestProperty("installationPath", install_path))
+        return false;
+    return true;
+}
+
+string FindLatestVersionedDir(const string& base, const vector<string>& required_subdirs) {
+    if (!DirectoryExists(base))
+        return "";
+    vector<string> entries = ListDir(base);
+    sort(entries.begin(), entries.end(), greater<string>());
+    for (const string& entry : entries) {
+        string full = JoinPath(base, entry);
+        if (!DirectoryExists(full))
+            continue;
+        bool ok = true;
+        for (const string& sub : required_subdirs) {
+            if (!DirectoryExists(JoinPath(full, sub))) {
+                ok = false;
+                break;
+            }
+        }
+        if (ok)
+            return full;
+    }
+    return "";
+}
+
+string BuildWindowsSdkIncludePath(const string& kit_root, const string& kit_version, const string& kind) {
+    return JoinPath(JoinPath(JoinPath(kit_root, "Include"), kit_version), kind);
+}
+
+string BuildWindowsSdkLibPath(const string& kit_root, const string& kit_version, const string& kind, const string& arch) {
+    return JoinPath(JoinPath(JoinPath(kit_root, "Lib"), kit_version), JoinPath(kind, arch));
+}
+
+string BuildWindowsSdkBinPath(const string& kit_root, const string& kit_version, const string& arch) {
+    return JoinPath(JoinPath(JoinPath(kit_root, "bin"), kit_version), arch);
+}
+
+string BuildWindowsSdkRoot() {
+    string root = GetEnvValue("KitsRoot10");
+    if (!root.empty() && DirectoryExists(root))
+        return root;
+    vector<string> candidates;
+    string pf86 = GetEnvValue("ProgramFiles(x86)");
+    string pf = GetEnvValue("ProgramFiles");
+    if (!pf86.empty())
+        candidates.push_back(JoinPath(JoinPath(pf86, "Windows Kits"), "10"));
+    if (!pf.empty())
+        candidates.push_back(JoinPath(JoinPath(pf, "Windows Kits"), "10"));
+    for (const string& candidate : candidates) {
+        if (DirectoryExists(candidate))
+            return candidate;
+    }
+    return "";
+}
+
+string MakeWindowsMsvcMethod(const string& repo_root, const string& builder, const string& install_path, const string& msvc_version, bool x64) {
+    const string arch = x64 ? "x64" : "x86";
+    const string host = x64 ? "hostx64" : "hostx86";
+    const string stack = x64 ? "/STACK:20000000" : "/STACK:10000000";
+    const string common_options = x64 ? "/bigobj -D_CRT_SECURE_NO_WARNINGS" : "/bigobj /D_ATL_XP_TARGETING -D_CRT_SECURE_NO_WARNINGS";
+    const string common_flags = x64 ? "" : "CPU32";
+    const string debugger = JoinPath(JoinPath(JoinPath(install_path, "Common7"), "IDE"), "devenv.exe");
+    const string msvc_bin = JoinPath(JoinPath(JoinPath(install_path, "VC"), "Tools"), "MSVC");
+    const string msvc_root = JoinPath(msvc_bin, msvc_version);
+    const string kit_root = BuildWindowsSdkRoot();
+    const string kit_version = FindLatestVersionedDir(JoinPath(kit_root, "Include"), {"um", "ucrt", "shared"});
+    const string kit_lib_version = FindLatestVersionedDir(JoinPath(kit_root, "Lib"), {"um", "ucrt"});
+    const string kit_bin_version = FindLatestVersionedDir(JoinPath(kit_root, "bin"), {"x64"});
+    const string kit_ver = GetFileName(kit_version);
+    const string kit_lib_ver = GetFileName(kit_lib_version);
+    const string kit_bin_ver = GetFileName(kit_bin_version);
+
+    if (kit_root.empty() || kit_ver.empty() || kit_lib_ver.empty() || kit_bin_ver.empty())
+        return "";
+
+    vector<string> path_items;
+    vector<string> include_items;
+    vector<string> lib_items;
+
+    path_items.push_back(JoinPath(JoinPath(JoinPath(msvc_root, "bin"), host), arch));
+    path_items.push_back(BuildWindowsSdkBinPath(kit_root, kit_bin_ver, arch));
+    path_items.push_back(JoinPath(JoinPath(repo_root, "bin"), "SDL2/lib/" + arch));
+    path_items.push_back(JoinPath(JoinPath(JoinPath(repo_root, "bin"), "pgsql"), arch + "/bin"));
+    path_items.push_back(JoinPath(JoinPath(JoinPath(repo_root, "bin"), "mysql"), x64 ? "lib64" : "lib32"));
+
+    include_items.push_back(JoinPath(msvc_root, "include"));
+    include_items.push_back(BuildWindowsSdkIncludePath(kit_root, kit_ver, "um"));
+    include_items.push_back(BuildWindowsSdkIncludePath(kit_root, kit_ver, "ucrt"));
+    include_items.push_back(BuildWindowsSdkIncludePath(kit_root, kit_ver, "shared"));
+    include_items.push_back(JoinPath(JoinPath(JoinPath(repo_root, "bin"), "openssl"), "include"));
+    include_items.push_back(JoinPath(JoinPath(JoinPath(repo_root, "bin"), "SDL2"), "include"));
+    include_items.push_back(JoinPath(JoinPath(JoinPath(repo_root, "bin"), "pgsql"), x64 ? "x64/include" : "x86/include"));
+    include_items.push_back(JoinPath(JoinPath(JoinPath(repo_root, "bin"), "mysql"), "include"));
+    include_items.push_back(JoinPath(JoinPath(repo_root, "bin"), "llvm"));
+
+    lib_items.push_back(JoinPath(msvc_root, JoinPath("lib", arch)));
+    lib_items.push_back(BuildWindowsSdkLibPath(kit_root, kit_lib_ver, "ucrt", arch));
+    lib_items.push_back(BuildWindowsSdkLibPath(kit_root, kit_lib_ver, "um", arch));
+    lib_items.push_back(JoinPath(JoinPath(JoinPath(repo_root, "bin"), "openssl"), x64 ? "lib64" : "lib32"));
+    lib_items.push_back(JoinPath(JoinPath(JoinPath(repo_root, "bin"), "SDL2"), "lib/" + arch));
+    lib_items.push_back(JoinPath(JoinPath(JoinPath(repo_root, "bin"), "pgsql"), x64 ? "x64/lib" : "x86/lib"));
+    lib_items.push_back(JoinPath(JoinPath(JoinPath(repo_root, "bin"), "mysql"), x64 ? "lib64" : "lib32"));
+    lib_items.push_back(JoinPath(JoinPath(repo_root, "bin"), "llvm"));
+
+    stringstream ss;
+    ss << "BUILDER = \"" << builder << "\";\n";
+    ss << "COMPILER = \"\";\n";
+    ss << "COMMON_OPTIONS = \"" << common_options << "\";\n";
+    ss << "COMMON_CPP_OPTIONS = \"/std:c++17\";\n";
+    ss << "COMMON_C_OPTIONS = \"\";\n";
+    ss << "COMMON_LINK = \"\";\n";
+    ss << "COMMON_FLAGS = \"" << common_flags << "\";\n";
+    ss << "DEBUG_INFO = \"2\";\n";
+    ss << "DEBUG_BLITZ = \"1\";\n";
+    ss << "DEBUG_LINKMODE = \"0\";\n";
+    ss << "DEBUG_OPTIONS = \"-Od\";\n";
+    ss << "DEBUG_FLAGS = \"\";\n";
+    ss << "DEBUG_LINK = \"" << stack << "\";\n";
+    ss << "DEBUG_CUDA = \"\";\n";
+    ss << "RELEASE_BLITZ = \"0\";\n";
+    ss << "RELEASE_LINKMODE = \"0\";\n";
+    ss << "RELEASE_OPTIONS = \"-O2\";\n";
+    ss << "RELEASE_FLAGS = \"\";\n";
+    ss << "RELEASE_LINK = \"" << stack << "\";\n";
+    ss << "RELEASE_CUDA = \"\";\n";
+    ss << "DEBUGGER = \"" << debugger << "\";\n";
+    ss << "ALLOW_PRECOMPILED_HEADERS = \"1\";\n";
+    ss << "DISABLE_BLITZ = \"0\";\n";
+    ss << "PATH = \"" << JoinStrings(path_items, ";") << "\";\n";
+    ss << "INCLUDE = \"" << JoinStrings(include_items, ";") << "\";\n";
+    ss << "LIB = \"" << JoinStrings(lib_items, ";") << "\";\n";
+    ss << "LINKMODE_LOCK = \"0\";\n";
+    ss << "\n";
+    return ss.str();
+}
+
+void EnsureWindowsAutoMethods(const string& repo_root) {
+    string install_path;
+    if (!FindVisualStudioCommunity2026(install_path))
+        return;
+
+    string version;
+    if (!VsWhereLatestProperty("installationVersion", version))
+        return;
+
+    const string methods_dir = JoinPath(GetEnvValue("USERPROFILE"), "upp");
+    if (methods_dir.empty())
+        return;
+    RealizeDirectory(methods_dir);
+
+    struct Spec {
+        const char *stem;
+        const char *builder;
+        bool x64;
+    };
+    const Spec specs[] = {
+        {"MSVS26", "MSC26", false},
+        {"MSVS26x64", "MSC26X64", true},
+    };
+
+    for (const Spec& spec : specs) {
+        const string path_bm = JoinPath(methods_dir, string(spec.stem) + ".bm");
+        const string path_upp = JoinPath(methods_dir, string(spec.stem) + ".upp");
+        const bool has_bm = FileExists(path_bm);
+        const bool has_upp = FileExists(path_upp);
+        if (has_bm && has_upp)
+            continue;
+
+        string content;
+        if (has_bm)
+            content = ReadTextFile(path_bm);
+        else if (has_upp)
+            content = ReadTextFile(path_upp);
+        else
+            content = MakeWindowsMsvcMethod(repo_root, spec.builder, install_path, version, spec.x64);
+
+        if (content.empty())
+            continue;
+        WriteTextFileIfMissing(path_bm, content);
+        WriteTextFileIfMissing(path_upp, content);
+    }
+}
+#endif
+
+vector<BuildMethod> CollectMethods(const string& repo_root) {
     vector<BuildMethod> methods;
 #ifdef _WIN32
+    EnsureWindowsAutoMethods(repo_root);
     string home = string(getenv("USERPROFILE") ? getenv("USERPROFILE") : "");
     string upp_dir = JoinPath(home, "upp");
     vector<string> files = ListDir(upp_dir);
+    sort(files.begin(), files.end());
+    map<string, bool> seen;
     for (const string& f : files) {
         if (EndsWith(f, ".bm")) {
             string full = JoinPath(upp_dir, f);
+            string key = ToLower(GetFileTitle(f));
+            if (seen[key])
+                continue;
+            seen[key] = true;
+            methods.push_back({GetFileTitle(f), GetFileTitle(f), full, false, false, ReadBmBuilder(full)});
+        }
+    }
+    for (const string& f : files) {
+        if (EndsWith(f, ".upp")) {
+            string full = JoinPath(upp_dir, f);
+            string key = ToLower(GetFileTitle(f));
+            if (seen[key])
+                continue;
+            seen[key] = true;
             methods.push_back({GetFileTitle(f), GetFileTitle(f), full, false, false, ReadBmBuilder(full)});
         }
     }
@@ -713,7 +991,7 @@ int main(int argc, char* argv[]) {
         repo_root = GetCurrentDir();
     
     if (opts.list_methods) {
-        vector<BuildMethod> methods = CollectMethods();
+        vector<BuildMethod> methods = CollectMethods(repo_root);
         ListMethods(methods);
         return 0;
     }
@@ -798,7 +1076,7 @@ int main(int argc, char* argv[]) {
         if (selected.name.empty() && !configs.empty()) selected = configs[0];
     }
 
-    vector<BuildMethod> methods = CollectMethods();
+    vector<BuildMethod> methods = CollectMethods(repo_root);
     BuildMethod method = {"", "", "", false, false, ""};
     if (!opts.method.empty()) {
         if (isdigit(opts.method[0])) {

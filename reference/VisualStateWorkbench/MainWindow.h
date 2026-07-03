@@ -78,8 +78,9 @@ private:
 
 	// ---- AppRegistry + state
 	AppRegistry registry_;
-	bool        loaded_      = false;
-	int         current_tab_ = 0;
+	bool        loaded_                    = false;
+	bool        had_prior_session_state_   = false;
+	int         current_tab_               = 0;
 	String      default_layout_data_;
 
 	// ---- VsmReplaySession

@@ -2420,7 +2420,11 @@ static void sProbeVcpkg(PkgProvider& q, const PkgInvocation& inv, const String& 
 		q.probe_reason = "VCPKG_ROOT not configured";
 		return;
 	}
-	String exe = sProbeResolvePath(flagWIN32 ? "vcpkg.exe" : "vcpkg", root);
+#ifdef flagWIN32
+	String exe = sProbeResolvePath("vcpkg.exe", root);
+#else
+	String exe = sProbeResolvePath("vcpkg", root);
+#endif
 	if(exe.IsEmpty())
 		exe = sProbeResolvePath("vcpkg");
 	if(exe.IsEmpty()) {

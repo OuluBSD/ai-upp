@@ -41,6 +41,41 @@ void FrameCanvas::Paint(Draw& w)
 	Size sz = GetSize();
 	w.DrawRect(sz, Color(20, 20, 20));
 
+	// Draw empty-state placeholder if no session loaded on first run
+	if(show_empty_state_placeholder_) {
+		Font fnt = StdFont(12);
+		Color txt_color = SColorText();
+
+		String line1 = "No session loaded.";
+		String line2 = "Use File \xE2\x86\x92 Open/Import Session\xE2\x80\xA6 to open a recorded session,";
+		String line3 = "import an image sequence, or load the built-in sample data to explore";
+		String line4 = "the workbench.";
+
+		Size s1 = GetTextSize(line1, fnt);
+		Size s2 = GetTextSize(line2, fnt);
+		Size s3 = GetTextSize(line3, fnt);
+		Size s4 = GetTextSize(line4, fnt);
+
+		int max_width = max(max(max(s1.cx, s2.cx), s3.cx), s4.cx);
+		int total_height = s1.cy + s2.cy + s3.cy + s4.cy + 12; // 12 = spacing
+
+		int y = (sz.cy - total_height) / 2;
+		int x1 = (sz.cx - s1.cx) / 2;
+		int x2 = (sz.cx - s2.cx) / 2;
+		int x3 = (sz.cx - s3.cx) / 2;
+		int x4 = (sz.cx - s4.cx) / 2;
+
+		w.DrawText(x1, y, line1, fnt, txt_color);
+		y += s1.cy + 4;
+		w.DrawText(x2, y, line2, fnt, txt_color);
+		y += s2.cy + 2;
+		w.DrawText(x3, y, line3, fnt, txt_color);
+		y += s3.cy + 2;
+		w.DrawText(x4, y, line4, fnt, txt_color);
+
+		return;
+	}
+
 	// Session info line
 	if(session_) {
 		String frame_str = current_frame_ >= 0 ? Format("  frame: %d", current_frame_) : "";

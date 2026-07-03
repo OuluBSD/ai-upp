@@ -34,6 +34,7 @@ public:
 	void SetShowAnnotations (bool b) { show_annotations_  = b; Refresh(); }
 	void SetShowTemplate    (bool b) { show_template_     = b; Refresh(); }
 	void SetShowOcr         (bool b) { show_ocr_          = b; Refresh(); }
+	void SetShowEmptyStatePlaceholder(bool b) { show_empty_state_placeholder_ = b; Refresh(); }
 
 	int  GetSelectedAnnotation() const { return selected_ann_; }
 
@@ -60,10 +61,11 @@ private:
 	int selected_region_ = -1;
 	int selected_ann_    = -1;
 
-	bool show_regions_     = true;
-	bool show_annotations_ = true;
-	bool show_template_    = true;
-	bool show_ocr_         = true;
+	bool show_regions_                 = true;
+	bool show_annotations_             = true;
+	bool show_template_                = true;
+	bool show_ocr_                     = true;
+	bool show_empty_state_placeholder_ = false;
 
 	// Drag state
 	DragMode drag_mode_    = DRAG_NONE;

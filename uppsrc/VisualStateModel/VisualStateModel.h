@@ -12,6 +12,7 @@ using namespace Upp;
 #include "Replay.h"
 #include "ImageBuffer.h"
 #include "SessionStorage.h"
+#include "SessionValidator.h"
 #include "Annotation.h"
 #include "Preprocess.h"
 #include "TemplateMatch.h"

@@ -1029,6 +1029,146 @@ static void TestFrameSource()
 }
 
 // ---------------------------------------------------------------------------
+// Test: Manifest backward compatibility
+
+static void TestManifestBackwardCompat()
+{
+	Cout() << "\n=== Manifest backward compatibility ===\n";
+
+	AppLog log;
+	log.SetForwardToUppLog(false);
+
+	// Create temp directory for old-shaped session
+	String root = AppendFileName(GetTempPath(), "vsm_manifest_compat_test");
+	if(DirectoryExists(root))
+		DeleteFolderDeep(root);
+	RealizeDirectory(root);
+	String frames_dir = AppendFileName(root, "frames");
+	RealizeDirectory(frames_dir);
+
+	// Create two .vsm frame images
+	VsmImageBuffer frame0 = VsmImageBuffer::MakeSolid(32, 32, 100, 1);
+	VsmImageBuffer frame1 = VsmImageBuffer::MakeSolid(32, 32, 150, 1);
+	String frame0_path = AppendFileName(frames_dir, "00000000.vsm");
+	String frame1_path = AppendFileName(frames_dir, "00000001.vsm");
+	if(!frame0.Save(frame0_path)) {
+		Fail("TestManifestBackwardCompat: cannot save frame 0");
+		DeleteFolderDeep(root);
+		return;
+	}
+	if(!frame1.Save(frame1_path)) {
+		Fail("TestManifestBackwardCompat: cannot save frame 1");
+		DeleteFolderDeep(root);
+		return;
+	}
+
+	// Hand-construct old-shaped manifest.json (no ts_ms field, no divergences array)
+	// This represents the format from before task 0029 added ts_ms
+	String oldManifest = R"({
+	"schema": 1,
+	"session_id": "compat-test-001",
+	"source_type": "synthetic",
+	"created_at": "2026-01-15T14:23:00.000Z",
+	"frame_width": 32,
+	"frame_height": 32,
+	"image_format": "vsm",
+	"frames": [
+		{
+			"frame_index": 0,
+			"relative_path": "frames/00000000.vsm",
+			"format": "vsm"
+		},
+		{
+			"frame_index": 1,
+			"relative_path": "frames/00000001.vsm",
+			"format": "vsm"
+		}
+	],
+	"crops": []
+})";
+
+	// Write manifest.json
+	String manifest_path = AppendFileName(root, "manifest.json");
+	if(!SaveFile(manifest_path, oldManifest)) {
+		Fail("TestManifestBackwardCompat: cannot write manifest");
+		DeleteFolderDeep(root);
+		return;
+	}
+
+	// Open with VsmSessionStoreSource
+	VsmSessionStoreSource src;
+	src.SetLog(&log);
+	if(!src.Open(root)) {
+		Fail("TestManifestBackwardCompat: Open failed");
+		DeleteFolderDeep(root);
+		return;
+	}
+
+	// Verify frame count
+	if(src.GetFrameCount() != 2) {
+		Fail(Format("TestManifestBackwardCompat: expected 2 frames, got %d", src.GetFrameCount()));
+		src.Close();
+		DeleteFolderDeep(root);
+		return;
+	}
+	Cout() << "Frame count: 2 OK\n";
+
+	// Read frames and verify ts_ms fallback (frame_index * 33)
+	VsmImageBuffer out;
+	int64 ts_ms = 0;
+	int frame_count = 0;
+	static const int64 expected_ts[] = { 0, 33 };
+	while(src.ReadFrame(out, ts_ms)) {
+		if(frame_count >= 2) {
+			Fail("TestManifestBackwardCompat: too many frames read");
+			src.Close();
+			DeleteFolderDeep(root);
+			return;
+		}
+		if(ts_ms != expected_ts[frame_count]) {
+			Fail(Format("TestManifestBackwardCompat: frame %d ts_ms=%lld expected %lld",
+			            frame_count, (long long)ts_ms, (long long)expected_ts[frame_count]));
+			src.Close();
+			DeleteFolderDeep(root);
+			return;
+		}
+		frame_count++;
+	}
+
+	if(frame_count != 2) {
+		Fail(Format("TestManifestBackwardCompat: read %d frames, expected 2", frame_count));
+		src.Close();
+		DeleteFolderDeep(root);
+		return;
+	}
+	Cout() << "ReadFrame ts_ms fallback (frame_index * 33): OK\n";
+
+	// Validate with VsmSessionValidator
+	VsmSessionValidator validator;
+	validator.SetLog(&log);
+	VsmValidationResult val_result = validator.Validate(root);
+	bool has_errors = false;
+	for(const auto& issue : val_result.issues) {
+		if(issue.severity == "error") {
+			has_errors = true;
+			Fail(Format("TestManifestBackwardCompat: validation error: %s", issue.message));
+			break;
+		}
+	}
+	if(has_errors) {
+		src.Close();
+		DeleteFolderDeep(root);
+		return;
+	}
+	Cout() << "SessionValidator: OK (ok=" << (val_result.ok ? "true" : "false") << ")\n";
+
+	src.Close();
+	DeleteFolderDeep(root);
+
+	Cout() << "Manifest backward compat: OK\n";
+}
+
+// ---------------------------------------------------------------------------
 // Test: MJPEG boundary parser
 
 static void TestMjpegParser()
@@ -1258,6 +1398,7 @@ CONSOLE_APP_MAIN
 	TestImageAssets();
 	TestSessionStorage();
 	TestFrameSource();
+	TestManifestBackwardCompat();
 	TestMjpegParser();
 	TestDeterministicReplay();
 

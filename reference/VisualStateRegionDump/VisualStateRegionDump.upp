@@ -1,0 +1,10 @@
+description "VisualStateModel region fingerprint dump CLI\377";
+
+uses
+	VisualStateModel;
+
+file
+	main.cpp;
+
+mainconfig
+	"" = "";

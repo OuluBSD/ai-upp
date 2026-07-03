@@ -106,8 +106,16 @@ private:
 	void RefreshAfterStep();
 	void RefreshAfterSourceStep();
 	void RebuildRegionsList();
-	void OnOpenSession();
-	void OnImportImageSequence();
+	// Single File-menu entry point (replaces the old separate "Open Session…"/
+	// "Import Image Sequence…"/"Load Sample Session"/"Load E2E Sample Session"
+	// items): shows a small modal dialog with a source-type chooser and
+	// dispatches to whichever existing load path matches the chosen type.
+	void OnOpenImportSession();
+	// Shared dispatch logic for the "Image sequence" source type: detect
+	// .vsm vs .jpg/.png in src_dir and route to the matching importer. Used
+	// by OnOpenImportSession() (formerly duplicated inline in the old
+	// OnImportImageSequence() menu handler, now folded into this one helper).
+	void DispatchImageSequenceImport(const String& src_dir);
 	// Shared "current frame" accessor for the LEFT dock panels (PipelineEditorPanel,
 	// TemplateRulePanel, OcrRulePanel): pushes current_frame_img_ to each via
 	// their SetCurrentFrame(). Call whenever current_frame_img_ changes.

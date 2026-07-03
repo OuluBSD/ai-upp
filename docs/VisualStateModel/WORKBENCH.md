@@ -16,8 +16,9 @@ session** to the toolbar and the Frame/Regions tabs at a time:
   `LoadSampleSession()`, which runs automatically at startup and whenever
   toolbar **Reset** confirms (or silently, if no opened session was active).
 - **Opened/imported session** (`src_source_`, a `VsmSessionStoreSource`) —
-  loaded by `File → Open Session…`, `File → Import Image Sequence…`, or
-  `File → Load E2E Sample Session`, all via `OpenSessionPath()`.
+  loaded via `File → Open/Import Session…` (source type "Existing session
+  directory", "Image sequence", or "Built-in E2E sample data"), all of which
+  ultimately go through `OpenSessionPath()`.
 
 `has_src_session_` is the single source of truth for which one is active:
 `true` once an opened/imported session has been loaded, `false` while only
@@ -148,27 +149,43 @@ After running:
 
 ## Source Open and Import Flow (Phase 4)
 
-### File → Open Session…
+### File → Open/Import Session…
 
-Opens a directory picker. The selected directory is opened as a
-`VsmSessionStoreSource`. Session Info panel updates to show the manifest.
-The last opened path is persisted under `session.last_path` in `AppRegistry`.
-This also makes the opened session the active session — see "Active Session
-Model" above.
+Single entry point for every way to load a session (replaces the old four
+separate flat File-menu items). Opens a small modal dialog
+(`OpenImportDialog`, file-local to `MainWindow.cpp`) with:
 
-### File → Import Image Sequence…
+- A source-type chooser (`DropList`): *Existing session directory*, *Image
+  sequence (.vsm/.jpg/.png)*, *Built-in sample data*, *Built-in E2E sample
+  data*.
+- A directory field + "Browse…" button (calling `SelectDirectory()`), shown
+  only for the two directory-based types.
+- "Open" and "Cancel" buttons. "Open" refuses to close (with a prompt) if a
+  directory-based type has no path chosen yet.
 
-Opens a directory picker for the source directory of `.vsm` files. Runs
-`VsmImageSequenceImporter` to create a new session in a temp directory, then
-opens it with `OpenSessionPath`. Last import dir persisted under
-`session.last_import_dir`.
+`MainWindow::OnOpenImportSession()` reads back the chosen type/path and
+dispatches to the exact same calls the old menu items used, unchanged:
+
+| Source type | Dispatches to |
+|---|---|
+| Existing session directory | `OpenSessionPath(path)` |
+| Image sequence | `DispatchImageSequenceImport(path)` — detects `.vsm` vs `.jpg`/`.png` (`HasVsmFiles()`/`HasJpegFiles()`) and calls `RunVsmImport(path)` or `RunJpegImport(path)`, same logic the old "Import Image Sequence…" handler used |
+| Built-in sample data | `LoadSampleSession()` |
+| Built-in E2E sample data | `OnLoadE2ESample()` |
+
+Opening a session this way (directory or image-sequence types, and the E2E
+sample) makes the opened session the active session — see "Active Session
+Model" above. The last opened path/import dir are still persisted under
+`session.last_path`/`session.last_import_dir` in `AppRegistry`, same as
+before.
 
 ### File → Run Pipeline (with source session)
 
-When a session is opened via `Open Session…` or `Import Image Sequence…`,
-`Run Pipeline` calls `VsmObservationPipeline::RunFromSource()` instead of the
-change-event-based `Run()`. Summary shows frame count, observations, transitions,
-divergences, and cache hits/misses.
+When a session is opened via `Open/Import Session…` (any of the
+directory-based or E2E-sample types), `Run Pipeline` calls
+`VsmObservationPipeline::RunFromSource()` instead of the change-event-based
+`Run()`. Summary shows frame count, observations, transitions, divergences,
+and cache hits/misses.
 
 ### Persisted Registry Keys (Phase 4)
 

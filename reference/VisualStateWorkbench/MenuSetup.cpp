@@ -9,11 +9,7 @@ void MainWindow::MainMenu(Bar& bar)
 
 void MainWindow::MenuFile(Bar& bar)
 {
-	bar.Add("Open Session\xE2\x80\xA6",          [=] { OnOpenSession(); });
-	bar.Add("Import Image Sequence\xE2\x80\xA6", [=] { OnImportImageSequence(); });
-	bar.Separator();
-	bar.Add("Load Sample Session",               [=] { LoadSampleSession(); });
-	bar.Add("Load E2E Sample Session",           [=] { OnLoadE2ESample(); });
+	bar.Add("Open/Import Session\xE2\x80\xA6",   [=] { OnOpenImportSession(); });
 	bar.Separator();
 	bar.Add("Run Pipeline",                      [=] { OnRunPipeline(); });
 	bar.Add("Compare with Ground Truth\xE2\x80\xA6", [=] { OnCompareGroundTruth(); });

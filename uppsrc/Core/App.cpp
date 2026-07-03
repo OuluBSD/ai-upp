@@ -4,6 +4,10 @@
 #include <mach-o/dyld.h>
 #endif
 
+#ifdef PLATFORM_POSIX
+#include <spawn.h>
+#endif
+
 #ifdef PLATFORM_WIN32
 #define Ptr Ptr_
 #define byte byte_
@@ -795,23 +799,33 @@ void LaunchWebBrowser(const String& url)
 #endif
 
 #ifdef PLATFORM_POSIX
+extern char **environ;
+
+static bool sLaunchWebBrowserCommand(const char *cmd, const String& url)
+{
+	// Keep the URL opaque by passing it as an argv element, never a shell string.
+	char *argv[] = { const_cast<char *>(cmd), const_cast<char *>(~url), NULL };
+	pid_t pid = 0;
+	return posix_spawnp(&pid, cmd, NULL, NULL, argv, environ) == 0;
+}
+
 void    LaunchWebBrowser(const String& url)
 {
 #ifdef PLATFORM_MACOS
-	IGNORE_RESULT(system("open " + url));
+	if(!sLaunchWebBrowserCommand("open", url))
+		LOG("LaunchWebBrowser: failed to launch browser using open for " << url);
 #else
 	const char * browser[] = {
 		"htmlview", "xdg-open", "x-www-browser", "firefox", "konqueror", "opera", "epiphany", "galeon", "netscape"
 	};
+	bool launched = false;
 	for(int i = 0; i < __countof(browser); i++)
-		if(system("which " + String(browser[i])) == 0) {
-			String u = url;
-			u.Replace("'", "'\\''");
-			IGNORE_RESULT(
-				system(String(browser[i]) + " '" + u + "' &")
-			);
+		if(sLaunchWebBrowserCommand(browser[i], url)) {
+			launched = true;
 			break;
 		}
+	if(!launched)
+		LOG("LaunchWebBrowser: failed to launch browser for " << url);
 #endif
 }
 #endif

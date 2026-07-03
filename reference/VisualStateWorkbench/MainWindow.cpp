@@ -224,6 +224,12 @@ void MainWindow::SaveAppState()
 void MainWindow::LoadSampleSession()
 {
 	Log("session: loading sample…");
+
+	// Loading the sample always makes the sample replay session (A) the
+	// active session, discarding any opened/imported session (B) identity.
+	has_src_session_ = false;
+	src_step_pos_    = 0;
+
 	String json = VsmMakeSampleJson();
 	String tmp  = AppendFileName(GetTempPath(), "vsm_wb_sample.json");
 	SaveFile(tmp, json);
@@ -231,6 +237,7 @@ void MainWindow::LoadSampleSession()
 		FileDelete(tmp);
 		const VsmSession& s = replay_.GetSession();
 		frame_canvas_.SetSession(&s);
+		frame_canvas_.SetChangedRegions(Vector<VsmChangedRect>());
 		RebuildRegionsList();
 		timeline_dock_.SetProgress(0, replay_.GetTotalEvents());
 		Log(Format("session: loaded '%s' — %d events", s.session_id,
@@ -240,21 +247,38 @@ void MainWindow::LoadSampleSession()
 		Log("session: failed to load sample");
 	}
 
-	// Create a sample session store to show manifest
+	// (Re-)anchor the session store at the sample root. This is not guarded
+	// by "IsOpen()" because session_store_ may currently be pointed at an
+	// opened/imported session's directory (B) -- e.g. after OnResetReplay()
+	// discards B -- and must be re-pointed at the sample so SessionInfoPanel
+	// doesn't keep showing the discarded session's manifest.
 	String store_root = AppendFileName(GetTempPath(), "vsm_wb_store");
 	session_store_.SetLog(&log_);
-	if(!session_store_.IsOpen()) {
-		if(DirectoryExists(store_root))
-			session_store_.Open(store_root);
-		else
-			session_store_.Create(store_root, "wb-sample-001", 320, 240, "synthetic");
-		if(session_store_.IsOpen())
-			session_dock_.SetManifest(session_store_.GetManifest());
-	}
+	if(DirectoryExists(store_root))
+		session_store_.Open(store_root);
+	else
+		session_store_.Create(store_root, "wb-sample-001", 320, 240, "synthetic");
+	if(session_store_.IsOpen())
+		session_dock_.SetManifest(session_store_.GetManifest());
 }
 
 void MainWindow::OnStep()
 {
+	// Operate on whichever session is active: the opened/imported session
+	// (B, src_source_) once one has been opened, else the sample replay
+	// session (A, replay_). This mirrors the has_src_session_ branch
+	// OnRunPipeline() already uses for "Run Pipeline".
+	if(has_src_session_) {
+		VsmImageBuffer img;
+		int64 ts_ms = 0;
+		if(!src_source_.ReadFrame(img, ts_ms)) {
+			Log("session: already at end (opened session)");
+			return;
+		}
+		src_step_pos_++;
+		RefreshAfterSourceStep();
+		return;
+	}
 	if(!replay_.CanStep()) {
 		Log("replay: already at end");
 		return;
@@ -265,6 +289,15 @@ void MainWindow::OnStep()
 
 void MainWindow::OnRunAll()
 {
+	if(has_src_session_) {
+		VsmImageBuffer img;
+		int64 ts_ms = 0;
+		while(src_source_.ReadFrame(img, ts_ms))
+			src_step_pos_++;
+		RefreshAfterSourceStep();
+		Log("session: run all complete (opened session)");
+		return;
+	}
 	replay_.RunAll();
 	RefreshAfterStep();
 	Log("replay: run all complete");
@@ -272,6 +305,14 @@ void MainWindow::OnRunAll()
 
 void MainWindow::OnResetReplay()
 {
+	// Resetting the sample is only destructive when an opened/imported
+	// session (B) is currently active -- confirm before discarding it.
+	if(has_src_session_) {
+		if(!PromptYesNo("This will discard the currently opened session and "
+		                "reload the built-in sample. Continue?"))
+			return;
+		src_source_.Close();
+	}
 	LoadSampleSession();
 }
 
@@ -288,6 +329,18 @@ void MainWindow::RefreshAfterStep()
 		for(const VsmChangedRect& r : ce.regions)
 			visible.Add(r);
 	frame_canvas_.SetChangedRegions(visible);
+}
+
+void MainWindow::RefreshAfterSourceStep()
+{
+	// Opened/imported sessions (B) have no VsmSession-shaped region/change
+	// data in the headless API (VsmSessionStore/VsmSessionStoreSource only
+	// track frames+crops) -- so there is no changed-regions overlay to
+	// populate here, unlike RefreshAfterStep()'s session-A path. Advance
+	// what IS available: frame position and progress.
+	timeline_dock_.SetProgress(src_step_pos_, src_source_.GetFrameCount());
+	frame_canvas_.SetFrame(src_step_pos_);
+	frame_canvas_.SetChangedRegions(Vector<VsmChangedRect>());
 }
 
 // ---------------------------------------------------------------------------
@@ -366,6 +419,17 @@ void MainWindow::OnRegionSelected(const String& id)
 		Log("region: selection cleared");
 		return;
 	}
+	// Look up regions from whichever session is actually being displayed.
+	// Opened/imported sessions (B) have no VsmRegionNode-shaped region list
+	// in the headless API today (see RefreshAfterSourceStep()), so there is
+	// nothing to search there -- report that plainly rather than
+	// (incorrectly) matching against the unrelated sample session's (A)
+	// regions, which is what happened before this fix.
+	if(has_src_session_) {
+		props_dock_.Clear();
+		Log("region: no region data available for the opened session (" + id + ")");
+		return;
+	}
 	// Find region by synthesized id "region-N"
 	const VsmSession& s = replay_.GetSession();
 	const VsmRegionNode* found = nullptr;
@@ -380,6 +444,10 @@ void MainWindow::OnRegionListSel()
 {
 	int row = regions_list_.GetCursor();
 	if(row < 0) return;
+	if(has_src_session_) {
+		Log("region list: no region data available for the opened session");
+		return;
+	}
 	const VsmSession& s = replay_.GetSession();
 	if(row >= s.regions.GetCount()) return;
 	const VsmRegionNode& rn = s.regions[row];
@@ -578,8 +646,18 @@ void MainWindow::OpenSessionPath(const String& path)
 		return;
 	}
 
+	// This session (B) becomes the active session: toolbar Step/Run All and
+	// region lookups now act on it instead of the sample replay session (A)
+	// -- see OnStep()/OnRunAll()/OnRegionSelected()/OnRegionListSel().
 	has_src_session_ = true;
+	src_step_pos_    = 0;
 	session_dock_.SetManifest(session_store_.GetManifest());
+
+	// Clear any leftover session-A overlay/list state so the Frame/Regions
+	// tabs don't show the unrelated sample's changed-regions or region rows
+	// while this session is active.
+	frame_canvas_.SetChangedRegions(Vector<VsmChangedRect>());
+	regions_list_.Clear();
 
 	// Persist last opened path
 	registry_.Set("session.last_path", path);
@@ -788,6 +866,11 @@ void MainWindow::OnRunPipeline()
 		src_source_.Close();
 		src_source_.Open(path);
 		summary = pipe.RunFromSource(src_source_);
+		// RunFromSource() reads src_source_ through to the end; keep the
+		// Step/Run All position bookkeeping in sync so a subsequent Step
+		// correctly reports "already at end" instead of appearing stale.
+		src_step_pos_ = summary.frames_processed;
+		RefreshAfterSourceStep();
 	} else {
 		const VsmSession& session = replay_.GetSession();
 		if(session.session_id.IsEmpty()) {

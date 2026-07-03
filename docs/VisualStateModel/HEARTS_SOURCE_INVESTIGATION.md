@@ -3,6 +3,63 @@
 Status: **investigation only**. No frame source code was written. This
 document is the output of task `plan/VisualStateModel/0055_hearts_controlled_source_investigation.md`.
 
+---
+
+## Addendum (2026-07-04): `game/CardGame` restored — decision confirmed, not overturned
+
+`game/CardGame` and `game/CardGameTest` were restored on `master`
+(commit `30028cbdf`, after this investigation was written). `Hearts.exe`
+and `CardGameTest.exe` both build and pass their tests today. This removes
+the investigation's stated reason for rejecting option (a) outright
+("It does not build" — see §2 below), so the choice was re-examined rather
+than assumed still valid. Two follow-up checks (task `0066`'s continuation)
+confirm the original chosen seam (option c) is still the right near-term
+target, on cost grounds, not on the build-failure grounds this doc
+originally used:
+
+1. **`CaptureRecordFrame()`'s offscreen path is real and already proven in
+   production**, not a future risk: it renders to `SImageDraw`
+   (`uppsrc/Draw/SImageDraw.cpp` — pure in-memory `ImageBuffer`, no X11/GL),
+   confirmed working with **no display server** in this environment
+   (`DISPLAY` was set but `xdpyinfo` fails; capture works anyway). ScriptIDE
+   already ships a `--headless` mode (`uppsrc/ScriptIDE/Main.cpp`) built on
+   exactly this path, and `SaveSnapshot()`
+   (`CardGamePlugin.cpp:2720-2739`) exercises it end-to-end today.
+   `game/Hearts::HeartsCtrl` has no equivalent capture path yet — the gap
+   noted in §1 below still stands; building one for option (a) would mean
+   replicating this pattern from scratch, not a blocked/unknown risk, but
+   real net-new work.
+2. **`ExecuteSync()` is genuinely synchronous** (`CardGamePlugin.cpp:2712-2718`
+   → `CardGamePlugin::Execute()` → one `vm->Call()` to completion, no thread,
+   no event loop) and **`paused_globals` is already a structured, directly
+   walkable `VectorMap<PyValue, PyValue>`** mirroring the VM's globals dict
+   (`CapturePausedDebugState()`, `CardGamePlugin.cpp:1691-1698`) — not a
+   string blob needing parsing. A `paused_globals`/`GetSprites()` →
+   `state_json` adapter (task `0068`) is estimated at roughly 200-300 lines
+   of field-projection glue, not state reconstruction, because
+   `hearts/logic.py::GameState`'s fields already match
+   `CARD_GAME_STATE_SCHEMA.md`'s tiers almost one-to-one.
+3. **Gap #1 (no step-driving mode, task `0067`) applies to both options
+   equally** — `ExecuteSync()` has no built-in step mode today (AI delays
+   are Python-level `set_timeout()` calls that only fire with a running
+   event loop, which `ExecuteSync()` doesn't have), and `game/Hearts`
+   has no step hook either. Choosing (a) over (c) would not avoid this work.
+
+**Decision: keep option (c) as originally chosen for `0066`-`0074`.** The
+underlying reason changes — no longer "(a) doesn't build" but "(c) has a
+proven, already-headless capture path and directly-walkable state today,
+while (a) requires building both a capture path and a state-export API from
+nothing, on top of the same step-driving gap either option needs." Do not
+re-defer option (a) to an unscheduled someday, though: once `0066`-`0074`
+ship and prove the `VsmHeartsSource`/schema/OCR-pipeline loop end-to-end
+against the Python engine, revisit driving `game/Hearts::HeartsCtrl`
+directly as an explicit next phase — its long-term value (validating the
+actual first-party C++ engine users run, not a parallel Python
+reimplementation) is real and unaffected by this cost comparison. That
+phase is engineering work now, not blocked-on-a-missing-package risk.
+
+---
+
 ## Sources actually read
 
 - `game/Hearts/Hearts.upp`, `Hearts.h`, `HeartsCtrl.h`, `HeartsCtrl.cpp`, `main.cpp`

@@ -83,6 +83,14 @@ void PkgProviderPreference::Jsonize(JsonIO& jio)
 	jio("capability", capability)("provider_id", provider_id)("reason", reason)("priority", priority);
 }
 
+void PkgUppkgManifest::Jsonize(JsonIO& jio)
+{
+	jio("path", path)("present", present)("ok", ok)("target", target)("provider", provider);
+	jio("use_default", use_default)("use_forced", use_forced)("use_masked", use_masked);
+	jio("provider_preferences", provider_preferences);
+	jio("notes", notes)("warnings", warnings)("errors", errors)("unknown_keys", unknown_keys);
+}
+
 void PkgStateRecord::Jsonize(JsonIO& jio)
 {
 	jio("atom", atom)("target", target)("toolchain", toolchain)("build_status", build_status)
@@ -139,12 +147,13 @@ void PkgPackage::Jsonize(JsonIO& jio)
 	jio("atom", atom)("name", name)("nest", nest)("path", path)("dir", dir);
 	jio("description", description);
 	jio("accepts", accepts)("uses", uses)("mainconfig", mainconfig);
-	jio("source_files", source_files)("mtime", mtime);
+	jio("source_files", source_files)("manifest", manifest)("mtime", mtime);
 }
 
 void PkgMetadataCacheEntry::Jsonize(JsonIO& jio)
 {
-	jio("path", path)("size", size)("mtime", mtime)("pkg", pkg);
+	jio("path", path)("manifest_path", manifest_path)("size", size)("mtime", mtime)
+	   ("manifest_size", manifest_size)("manifest_mtime", manifest_mtime)("pkg", pkg);
 }
 
 void PkgMetadataCache::Jsonize(JsonIO& jio)
@@ -207,6 +216,8 @@ static void sCopyInvocation(PkgInvocation& dst, const PkgInvocation& src)
 	dst.sysroot = src.sysroot;
 	dst.command_line = src.command_line;
 	dst.jobs = src.jobs;
+	dst.target_explicit = src.target_explicit;
+	dst.provider_explicit = src.provider_explicit;
 	dst.ask = src.ask;
 	dst.verbose = src.verbose;
 	dst.update = src.update;
@@ -260,6 +271,8 @@ static void sCopyInvocation(PkgInvocation& dst, const PkgInvocation& src)
 	for(const String& s : src.extra)
 		dst.extra.Add(s);
 }
+
+static const PkgTargetProfile* sFindTarget(const String& name);
 
 struct PkgPolicyLine : Moveable<PkgPolicyLine> {
 	String file;
@@ -387,6 +400,167 @@ static bool sPolicyIsCapabilityName(const String& s)
 	return t.StartsWith("virtual/") ||
 	       t == "virtual/sqlite" || t == "virtual/ssl" || t == "virtual/sdl2" ||
 	       t == "virtual/opengl" || t == "virtual/gui-runtime";
+}
+
+static String sPackageManifestPath(const String& upp_path)
+{
+	return ForceExt(upp_path, ".uppkg");
+}
+
+static void sManifestWarn(PkgUppkgManifest& manifest, const String& path, const String& message)
+{
+	String s = path;
+	s << ": " << message;
+	manifest.warnings.Add(s);
+}
+
+static void sManifestError(PkgUppkgManifest& manifest, const String& path, const String& message)
+{
+	String s = path;
+	s << ": " << message;
+	manifest.errors.Add(s);
+}
+
+static bool sManifestAllowedKey(const String& key)
+{
+	return key == "path" ||
+	       key == "present" ||
+	       key == "ok" ||
+	       key == "target" ||
+	       key == "provider" ||
+	       key == "use_default" ||
+	       key == "use_forced" ||
+	       key == "use_masked" ||
+	       key == "provider_preferences" ||
+	       key == "notes";
+}
+
+static bool sManifestReadStringList(PkgUppkgManifest& manifest, const Value& v, Vector<String>& out, const String& path, const String& key)
+{
+	out.Clear();
+	if(IsNull(v))
+		return true;
+	if(!v.Is<ValueArray>()) {
+		sManifestError(manifest, path, String("field `") + key + "` must be an array of strings");
+		return false;
+	}
+	ValueArray arr = v;
+	for(int i = 0; i < arr.GetCount(); i++) {
+		const Value& item = arr[i];
+		if(!IsString(item)) {
+			sManifestError(manifest, path, String("field `") + key + "` must contain only strings");
+			continue;
+		}
+		String s = TrimBoth((String)item);
+		if(s.IsEmpty()) {
+			sManifestWarn(manifest, path, String("field `") + key + "` contains an empty string");
+			continue;
+		}
+		out.Add(s);
+	}
+	return true;
+}
+
+static bool sManifestReadProviderPreferences(PkgUppkgManifest& manifest, const Value& v, const String& path)
+{
+	manifest.provider_preferences.Clear();
+	if(IsNull(v))
+		return true;
+	if(!v.Is<ValueArray>()) {
+		sManifestError(manifest, path, "field `provider_preferences` must be an array");
+		return false;
+	}
+	ValueArray arr = v;
+	for(int i = 0; i < arr.GetCount(); i++) {
+		const Value& item = arr[i];
+		if(!item.Is<ValueMap>()) {
+			sManifestError(manifest, path, "provider_preferences entry must be an object");
+			continue;
+		}
+		ValueMap obj = item;
+		Index<String> allowed;
+		allowed.Add("capability");
+		allowed.Add("provider_id");
+		allowed.Add("reason");
+		allowed.Add("priority");
+		for(int k = 0; k < obj.GetCount(); k++) {
+			String key = obj.GetKey(k);
+			if(allowed.Find(key) < 0)
+				sManifestWarn(manifest, path, String("unknown provider_preferences key: ") + key);
+		}
+		PkgProviderPreference pref;
+		LoadFromJsonValue(pref, item);
+		if(pref.capability.IsEmpty()) {
+			sManifestError(manifest, path, "provider_preferences entry missing capability");
+			continue;
+		}
+		if(pref.provider_id.IsEmpty()) {
+			sManifestWarn(manifest, path, "provider_preferences entry missing provider_id");
+		}
+		manifest.provider_preferences.Add(pref);
+	}
+	return true;
+}
+
+static bool sLoadUppkgManifest(PkgUppkgManifest& manifest, const String& path)
+{
+	manifest = PkgUppkgManifest();
+	manifest.path = path;
+	if(path.IsEmpty() || !FileExists(path)) {
+		manifest.present = false;
+		manifest.ok = true;
+		return true;
+	}
+	manifest.present = true;
+	Value root = ParseJSON(LoadFile(path));
+	if(IsNull(root) || !root.Is<ValueMap>()) {
+		sManifestError(manifest, path, "manifest root must be a JSON object");
+		manifest.ok = false;
+		return false;
+	}
+	ValueMap obj = root;
+	for(int i = 0; i < obj.GetCount(); i++) {
+		String key = obj.GetKey(i);
+		if(!sManifestAllowedKey(key))
+			manifest.unknown_keys.Add(key);
+	}
+	Value v;
+	v = obj["target"];
+	if(!IsNull(v)) {
+		if(!IsString(v)) {
+			sManifestError(manifest, path, "field `target` must be a string");
+		}
+		else
+			manifest.target = TrimBoth((String)v);
+	}
+	v = obj["provider"];
+	if(!IsNull(v)) {
+		if(!IsString(v)) {
+			sManifestError(manifest, path, "field `provider` must be a string");
+		}
+		else
+			manifest.provider = TrimBoth((String)v);
+	}
+	sManifestReadStringList(manifest, obj["use_default"], manifest.use_default, path, "use_default");
+	sManifestReadStringList(manifest, obj["use_forced"], manifest.use_forced, path, "use_forced");
+	sManifestReadStringList(manifest, obj["use_masked"], manifest.use_masked, path, "use_masked");
+	sManifestReadProviderPreferences(manifest, obj["provider_preferences"], path);
+	sManifestReadStringList(manifest, obj["notes"], manifest.notes, path, "notes");
+	for(const String& key : manifest.unknown_keys)
+		sManifestWarn(manifest, path, String("unknown manifest key: ") + key);
+	for(const String& flag : manifest.use_default)
+		if(flag.StartsWith("."))
+			sManifestWarn(manifest, path, String("use_default should use bare flag names: ") + flag);
+	for(const String& flag : manifest.use_forced)
+		if(flag.StartsWith("."))
+			sManifestWarn(manifest, path, String("use_forced should use bare flag names: ") + flag);
+	for(const String& flag : manifest.use_masked)
+		if(flag.StartsWith("."))
+			sManifestWarn(manifest, path, String("use_masked should use bare flag names: ") + flag);
+	if(!manifest.target.IsEmpty() && !sFindTarget(manifest.target))
+		sManifestWarn(manifest, path, String("unknown target override: ") + manifest.target);
+	manifest.ok = manifest.errors.IsEmpty();
+	return manifest.ok;
 }
 
 static void sParseMakeConfFile(PkgLocalPolicy& policy, const String& path)
@@ -617,6 +791,12 @@ static void sApplyPolicyLayer(PkgInvocation& out, const PkgInvocation& base, con
 	Vector<String> pkg_use = Split(policy.make_use, CharFilterWhitespace);
 
 	if(pkg) {
+		if(pkg->manifest.present && pkg->manifest.ok) {
+			if(!base.target_explicit && !pkg->manifest.target.IsEmpty())
+				pkg_target = pkg->manifest.target;
+			if(!base.provider_explicit && !pkg->manifest.provider.IsEmpty())
+				pkg_provider = pkg->manifest.provider;
+		}
 		for(const PkgPolicyLine& line : policy.package_use)
 			if(sPolicyRuleMatches(repo, pkg, line.atom))
 				sAppendPolicyValues(pkg_use, line.values);
@@ -638,7 +818,7 @@ static void sApplyPolicyLayer(PkgInvocation& out, const PkgInvocation& base, con
 
 	out.use_args = sMergeUseArgs(pkg_use, base.use_args);
 
-	if(base.target.IsEmpty()) {
+	if(!base.target_explicit) {
 		if(!policy.make_target.IsEmpty())
 			out.target = policy.make_target;
 		PkgInvocation target_base;
@@ -652,7 +832,7 @@ static void sApplyPolicyLayer(PkgInvocation& out, const PkgInvocation& base, con
 			out.target = pkg_target;
 	}
 
-	if(base.provider.IsEmpty()) {
+	if(!base.provider_explicit) {
 		if(!policy.make_provider.IsEmpty())
 			out.provider = policy.make_provider;
 		if(out.provider.IsEmpty() && !eselect.provider.IsEmpty())
@@ -1117,13 +1297,20 @@ void PkgRepository::Discover()
 			continue;
 		int64 size = sPkgFileSize(upp_path);
 		Time mtime = FileGetTime(upp_path);
+		String uppkg_path = sPackageManifestPath(upp_path);
+		bool uppkg_exists = FileExists(uppkg_path);
+		int64 uppkg_size = uppkg_exists ? sPkgFileSize(uppkg_path) : 0;
+		Time uppkg_mtime = uppkg_exists ? FileGetTime(uppkg_path) : Time();
 		PkgPackage p;
 		bool reused = false;
 		if(use_cache && !rebuild_cache && cache_ok) {
 			int ci = sFindMetadataCacheEntry(cache.entries, upp_path);
 			if(ci >= 0) {
 				const PkgMetadataCacheEntry& ce = cache.entries[ci];
-				if(ce.size == size && ce.mtime == mtime && sPackageResolvePath(ce.path) == sPackageResolvePath(upp_path)) {
+				if(ce.size == size && ce.mtime == mtime &&
+				   sPackageResolvePath(ce.path) == sPackageResolvePath(upp_path) &&
+				   sPackageResolvePath(ce.manifest_path) == sPackageResolvePath(uppkg_path) &&
+				   ce.manifest_size == uppkg_size && ce.manifest_mtime == uppkg_mtime) {
 					sCopyPkg(p, ce.pkg);
 					reused = true;
 					cache_reused_entries++;
@@ -1148,6 +1335,13 @@ void PkgRepository::Discover()
 			for(int i = 0; i < pkg.accepts.GetCount(); i++)
 				p.accepts.Add(pkg.accepts[i]);
 			p.mtime = pkg.time;
+			p.manifest.path = uppkg_path;
+			if(uppkg_exists)
+				sLoadUppkgManifest(p.manifest, uppkg_path);
+			else {
+				p.manifest.present = false;
+				p.manifest.ok = true;
+			}
 			for(int i = 0; i < pkg.uses.GetCount(); i++)
 				p.uses.Add(pkg.uses[i].text);
 			for(int i = 0; i < pkg.config.GetCount(); i++)
@@ -1170,6 +1364,11 @@ void PkgRepository::Discover()
 				p.dir = GetFileFolder(upp_path);
 			if(!p.mtime.IsValid())
 				p.mtime = mtime;
+			if(p.manifest.path.IsEmpty())
+				p.manifest.path = uppkg_path;
+			if(uppkg_exists && !p.manifest.present) {
+				sLoadUppkgManifest(p.manifest, uppkg_path);
+			}
 		}
 		packages.Add(pick(p));
 		if(FindIndex(nests, nest) < 0)
@@ -1186,15 +1385,18 @@ void PkgRepository::Discover()
 	discover_seconds = ts.Seconds();
 
 	if(use_cache && (cache_changed || rebuild_cache || !cache_ok)) {
-		cache.schema = 1;
+		cache.schema = 2;
 		cache.root = root;
 		cache.saved_at = GetSysTime();
 		cache.entries.Clear();
 		for(const PkgPackage& p : packages) {
 			PkgMetadataCacheEntry& e = cache.entries.Add();
 			e.path = p.path;
+			e.manifest_path = p.manifest.present ? p.manifest.path : String();
 			e.size = sPkgFileSize(p.path);
 			e.mtime = sPkgFileStamp(p.path);
+			e.manifest_size = p.manifest.present ? sPkgFileSize(p.manifest.path) : 0;
+			e.manifest_mtime = p.manifest.present ? sPkgFileStamp(p.manifest.path) : Time();
 			sCopyPkg(e.pkg, p);
 		}
 		sStoreMetadataCache(paths.metadata_cache, cache);
@@ -1398,6 +1600,35 @@ static void sCopyPkg(PkgPackage& dst, const PkgPackage& src)
 	dst.source_files.Clear();
 	for(const String& s : src.source_files)
 		dst.source_files.Add(s);
+	dst.manifest.path = src.manifest.path;
+	dst.manifest.present = src.manifest.present;
+	dst.manifest.ok = src.manifest.ok;
+	dst.manifest.target = src.manifest.target;
+	dst.manifest.provider = src.manifest.provider;
+	dst.manifest.use_default.Clear();
+	for(const String& s : src.manifest.use_default)
+		dst.manifest.use_default.Add(s);
+	dst.manifest.use_forced.Clear();
+	for(const String& s : src.manifest.use_forced)
+		dst.manifest.use_forced.Add(s);
+	dst.manifest.use_masked.Clear();
+	for(const String& s : src.manifest.use_masked)
+		dst.manifest.use_masked.Add(s);
+	dst.manifest.provider_preferences.Clear();
+	for(const PkgProviderPreference& p : src.manifest.provider_preferences)
+		dst.manifest.provider_preferences.Add(p);
+	dst.manifest.notes.Clear();
+	for(const String& s : src.manifest.notes)
+		dst.manifest.notes.Add(s);
+	dst.manifest.warnings.Clear();
+	for(const String& s : src.manifest.warnings)
+		dst.manifest.warnings.Add(s);
+	dst.manifest.errors.Clear();
+	for(const String& s : src.manifest.errors)
+		dst.manifest.errors.Add(s);
+	dst.manifest.unknown_keys.Clear();
+	for(const String& s : src.manifest.unknown_keys)
+		dst.manifest.unknown_keys.Add(s);
 	dst.mtime = src.mtime;
 }
 
@@ -2016,6 +2247,15 @@ static const PkgProviderPreference* sFindTargetProviderPreference(const PkgTarge
 	return nullptr;
 }
 
+static const PkgProviderPreference* sFindProviderPreference(const Vector<PkgProviderPreference>& prefs, const String& capability)
+{
+	for(const PkgProviderPreference& pref : prefs) {
+		if(pref.capability.IsEmpty() || pref.capability == "*" || pref.capability == capability)
+			return &pref;
+	}
+	return nullptr;
+}
+
 static bool sProviderMatchesTargetPreference(const PkgProvider& p, const PkgProviderPreference& pref)
 {
 	if(!pref.provider_id.IsEmpty()) {
@@ -2438,11 +2678,12 @@ static String sCapabilityTitle(const String& capability)
 	return GetFileName(capability);
 }
 
-static int sProviderSelectionScore(const PkgProvider& p, const PkgRepository& repo, const PkgTargetProfile *tp, const String& pref, const String& capability)
+static int sProviderSelectionScore(const PkgProvider& p, const PkgRepository& repo, const PkgTargetProfile *tp, const PkgProviderPreference *extra_pref, const String& pref, const String& capability)
 {
 	String want = ToLower(TrimBoth(pref));
 	String kind = ToLower(p.kind);
 	int score = 0;
+	bool explicit_pref = !want.IsEmpty();
 	if(want == "system") {
 		if(kind == "system")
 			score += 0;
@@ -2474,9 +2715,13 @@ static int sProviderSelectionScore(const PkgProvider& p, const PkgRepository& re
 		else
 			score += 50;
 	}
-	const PkgProviderPreference* pref_match = sFindTargetProviderPreference(tp, capability);
-	if(pref_match && sProviderMatchesTargetPreference(p, *pref_match))
-		score -= 80 + pref_match->priority / 10;
+	if(!explicit_pref) {
+		const PkgProviderPreference* pref_match = extra_pref ? extra_pref : sFindTargetProviderPreference(tp, capability);
+		if(!pref_match)
+			pref_match = sFindTargetProviderPreference(tp, capability);
+		if(pref_match && sProviderMatchesTargetPreference(p, *pref_match))
+			score -= 80 + pref_match->priority / 10;
+	}
 	if(p.kind == "upp-plugin" && !repo.HasPackage(p.provider))
 		score += 1000;
 	if(p.manual)
@@ -2517,12 +2762,12 @@ static PkgProviderResolution sMakeResolution(const PkgProvider& p, const PkgRepo
 	return r;
 }
 
-static const PkgProvider* sSelectProviderCandidate(const Vector<PkgProvider>& candidates, const PkgRepository& repo, const PkgTargetProfile *tp, const String& pref, const String& capability)
+static const PkgProvider* sSelectProviderCandidate(const Vector<PkgProvider>& candidates, const PkgRepository& repo, const PkgTargetProfile *tp, const PkgProviderPreference *extra_pref, const String& pref, const String& capability)
 {
 	const PkgProvider* best = nullptr;
 	int best_score = INT_MAX;
 	for(const PkgProvider& p : candidates) {
-		int score = sProviderSelectionScore(p, repo, tp, pref, capability);
+		int score = sProviderSelectionScore(p, repo, tp, extra_pref, pref, capability);
 		if(!best || score < best_score || (score == best_score && (p.priority > best->priority || (p.priority == best->priority && p.id < best->id)))) {
 			best = &p;
 			best_score = score;
@@ -2547,7 +2792,7 @@ static Vector<PkgVirtualCapability> sProviderCapabilities()
 	return pick(v);
 }
 
-static void sBuildProviderPlan(PkgProviderPlan& plan, const PkgRepository& repo, const PkgLocalPolicy& policy, const PkgTargetProfile *tp, const String& target, const Vector<String>& virtuals, const String& provider_pref, const PkgInvocation& inv)
+static void sBuildProviderPlan(PkgProviderPlan& plan, const PkgRepository& repo, const PkgLocalPolicy& policy, const PkgTargetProfile *tp, const String& target, const Vector<String>& virtuals, const String& provider_pref, const PkgInvocation& inv, const Vector<PkgProviderPreference> *extra_prefs)
 {
 	plan.capabilities.Clear();
 	plan.resolutions.Clear();
@@ -2579,7 +2824,8 @@ static void sBuildProviderPlan(PkgProviderPlan& plan, const PkgRepository& repo,
 			cap->provider_ids.Add(p.id);
 		String capability_pref = sPolicyCapabilityProvider(policy, capability);
 		String effective_pref = !capability_pref.IsEmpty() ? capability_pref : provider_pref;
-		const PkgProvider* selected = sSelectProviderCandidate(candidates, repo, tp, effective_pref, capability);
+		const PkgProviderPreference* pref_match = extra_prefs ? sFindProviderPreference(*extra_prefs, capability) : nullptr;
+		const PkgProvider* selected = sSelectProviderCandidate(candidates, repo, tp, pref_match, effective_pref, capability);
 		if(selected) {
 			PkgProviderResolution r = sMakeResolution(*selected, repo, capability, true);
 			PkgProviderResolution& q = plan.resolutions.Add();
@@ -3818,6 +4064,27 @@ static void sLintPackageMetadata(const PkgRepository& repo, const PkgPackage& p,
 			sLintSubline(sum, "mainconfig: ", sFmtList(p.mainconfig));
 	}
 
+	if(p.manifest.present) {
+		if(!p.manifest.errors.IsEmpty()) {
+			sLintLine(sum, "error", "PKG-LINT-UPPKG-INVALID", "package-local .uppkg manifest has errors", color, pkg_atom, p.name, p.path);
+			if(!summary) {
+				for(const String& err : p.manifest.errors)
+					sLintSubline(sum, "error: ", err);
+				for(const String& warn : p.manifest.warnings)
+					sLintSubline(sum, "warning: ", warn);
+			}
+		}
+		else if(!p.manifest.warnings.IsEmpty()) {
+			sLintLine(sum, "warn", "PKG-LINT-UPPKG-WARNINGS", "package-local .uppkg manifest has warnings", color, pkg_atom, p.name, p.path);
+			if(!summary)
+				for(const String& warn : p.manifest.warnings)
+					sLintSubline(sum, "warning: ", warn);
+		}
+		else {
+			sLintLine(sum, "ok", "PKG-LINT-UPPKG-OK", "package-local .uppkg manifest loaded", color, pkg_atom, p.name, p.path);
+		}
+	}
+
 	if(plan && !plan->target_masked.IsEmpty()) {
 		Vector<String> masked;
 		Index<String> masked_set;
@@ -4359,9 +4626,11 @@ bool ParsePkgArgs(const Vector<String>& args, PkgInvocation& inv, String& error)
 			}
 			else if(a == "--target" || a.StartsWith("--target=")) {
 				inv.target = a == "--target" ? (i + 1 < args.GetCount() ? args[++i] : String()) : sOptValue(a);
+				inv.target_explicit = true;
 			}
 			else if(a == "--profile" || a.StartsWith("--profile=")) {
 				inv.profile = a == "--profile" ? (i + 1 < args.GetCount() ? args[++i] : String()) : sOptValue(a);
+				inv.target_explicit = true;
 			}
 			else if(a == "--root" || a.StartsWith("--root=")) {
 				inv.root = a == "--root" ? (i + 1 < args.GetCount() ? args[++i] : String()) : sOptValue(a);
@@ -4371,6 +4640,7 @@ bool ParsePkgArgs(const Vector<String>& args, PkgInvocation& inv, String& error)
 			}
 			else if(a == "--provider" || a.StartsWith("--provider=")) {
 				inv.provider = a == "--provider" ? (i + 1 < args.GetCount() ? args[++i] : String()) : sOptValue(a);
+				inv.provider_explicit = true;
 			}
 			else if(a == "--jobs" || a.StartsWith("--jobs=")) {
 				String v = a == "--jobs" ? (i + 1 < args.GetCount() ? args[++i] : String()) : sOptValue(a);
@@ -5001,6 +5271,17 @@ static void sBuildUseModel(PkgUseModel& use, const PkgPackage *pkg, const Vector
 		for(const String& s : pkg->accepts)
 			if(declared.Find(s) < 0)
 				declared.Add(s);
+	if(pkg && pkg->manifest.present && pkg->manifest.ok) {
+		for(const String& s : pkg->manifest.use_default)
+			if(declared.Find(s) < 0)
+				declared.Add(s);
+		for(const String& s : pkg->manifest.use_forced)
+			if(declared.Find(s) < 0)
+				declared.Add(s);
+		for(const String& s : pkg->manifest.use_masked)
+			if(declared.Find(s) < 0)
+				declared.Add(s);
+	}
 	for(const PkgUsePolicy& p : sUsePolicies())
 		if(declared.Find(p.name) < 0)
 			declared.Add(p.name);
@@ -5020,6 +5301,14 @@ static void sBuildUseModel(PkgUseModel& use, const PkgPackage *pkg, const Vector
 		sAddUnique(use.masked, tp.masked_use[i]);
 	for(int i = 0; i < tp.default_use.GetCount(); i++)
 		sAddUnique(use.defaults, tp.default_use[i]);
+	if(pkg && pkg->manifest.present && pkg->manifest.ok) {
+		for(const String& s : pkg->manifest.use_forced)
+			sAddUnique(use.forced, s);
+		for(const String& s : pkg->manifest.use_masked)
+			sAddUnique(use.masked, s);
+		for(const String& s : pkg->manifest.use_default)
+			sAddUnique(use.defaults, s);
+	}
 
 	sTokenizeUseArgs(use.requested, use.selected, use.disabled);
 	for(const String& s : use.forced)
@@ -5353,7 +5642,8 @@ static void sPrintDeps(const PkgInvocation& inv, const PkgRepository& repo, cons
 		virtuals.Add("virtual/opengl");
 	}
 	PkgProviderPlan provider_plan;
-	sBuildProviderPlan(provider_plan, repo, policy, &tp, eff.target, virtuals, eff.provider, eff);
+	const Vector<PkgProviderPreference> *extra_prefs = pkg && pkg->manifest.present && pkg->manifest.ok ? &pkg->manifest.provider_preferences : nullptr;
+	sBuildProviderPlan(provider_plan, repo, policy, &tp, eff.target, virtuals, eff.provider, eff, extra_prefs);
 	Cout() << "Dependencies for " << inv.atom << "\n";
 	Cout() << "Target: " << sTargetNameText(eff.target) << " (" << tp.thread_model << ")\n";
 	Cout() << "Virtual requirements:\n";
@@ -5457,7 +5747,7 @@ static void sPrintProvidersCommand(const PkgInvocation& inv, const PkgRepository
 	Vector<String> virtuals;
 	virtuals.Add(query);
 	PkgProviderPlan plan;
-	sBuildProviderPlan(plan, repo, policy, &sDefaultTargetProfile(target), target, virtuals, inv.provider, inv);
+	sBuildProviderPlan(plan, repo, policy, &sDefaultTargetProfile(target), target, virtuals, inv.provider, inv, nullptr);
 	const PkgProviderResolution* res = sFindProviderResolution(plan, query);
 	if(!res) {
 		Cout() << "Capability: " << query << "\n";
@@ -5589,6 +5879,15 @@ static void sPrintMetadata(const PkgRepository& repo, const PkgInvocation& inv)
 		Cout() << "Acceptflags: " << sFmtList(p->accepts) << "\n";
 		Cout() << "Uses: " << sFmtList(p->uses) << "\n";
 		Cout() << "Mainconfig: " << sFmtList(p->mainconfig) << "\n";
+		Cout() << "Uppkg: " << (p->manifest.present ? p->manifest.path : String("[none]")) << "\n";
+		Cout() << "Uppkg status: " << (p->manifest.present ? (p->manifest.ok ? "parsed" : "invalid") : "missing") << "\n";
+		if(p->manifest.present) {
+			Cout() << "Uppkg target: " << (p->manifest.target.IsEmpty() ? String("[none]") : p->manifest.target) << "\n";
+			Cout() << "Uppkg provider: " << (p->manifest.provider.IsEmpty() ? String("[none]") : p->manifest.provider) << "\n";
+			Cout() << "Uppkg use default: " << sFmtList(p->manifest.use_default) << "\n";
+			Cout() << "Uppkg use forced: " << sFmtList(p->manifest.use_forced) << "\n";
+			Cout() << "Uppkg use masked: " << sFmtList(p->manifest.use_masked) << "\n";
+		}
 	}
 }
 
@@ -5980,6 +6279,37 @@ static void sPrintDoctorConfig(PkgDoctorSummary& sum, const PkgRepository& repo,
 		for(const String& err : policy.errors)
 			sDoctorSubline("error: ", err);
 	}
+
+	Vector<const PkgPackage*> manifests;
+	for(const PkgPackage& p : repo.packages)
+		if(p.manifest.present)
+			manifests.Add(&p);
+	if(manifests.IsEmpty()) {
+		sDoctorLine(sum, "info", "package-local .uppkg manifests: none found", color);
+	}
+	else {
+		sDoctorLine(sum, "ok", "package-local .uppkg manifests found", color);
+		for(const PkgPackage* p : manifests) {
+			String status = p->manifest.ok ? (p->manifest.warnings.IsEmpty() ? "ok" : "warn") : "error";
+			Cout() << "  [" << status << "] " << p->name << " <" << p->manifest.path << ">\n";
+			if(!p->manifest.target.IsEmpty())
+				sDoctorSubline("target: ", p->manifest.target);
+			if(!p->manifest.provider.IsEmpty())
+				sDoctorSubline("provider: ", p->manifest.provider);
+			if(!p->manifest.use_default.IsEmpty())
+				sDoctorSubline("use default: ", sFmtList(p->manifest.use_default));
+			if(!p->manifest.use_forced.IsEmpty())
+				sDoctorSubline("use forced: ", sFmtList(p->manifest.use_forced));
+			if(!p->manifest.use_masked.IsEmpty())
+				sDoctorSubline("use masked: ", sFmtList(p->manifest.use_masked));
+			if(!p->manifest.provider_preferences.IsEmpty())
+				sDoctorSubline("provider prefs: ", sFmtProviderPreferences(p->manifest.provider_preferences));
+			for(const String& warn : p->manifest.warnings)
+				sDoctorSubline("warning: ", warn);
+			for(const String& err : p->manifest.errors)
+				sDoctorSubline("error: ", err);
+		}
+	}
 }
 
 static int sProviderDoctorLevel(const String& status)
@@ -6294,7 +6624,7 @@ static void sSelftestProviders(PkgDoctorSummary& sum, PkgSelftestReport& report,
 	virtuals.Add("virtual/sqlite");
 	virtuals.Add("virtual/gui-runtime");
 	PkgProviderPlan pp;
-	sBuildProviderPlan(pp, repo, policy, &tp, Nvl(inv.target, String("native")), virtuals, inv.provider, provinv);
+	sBuildProviderPlan(pp, repo, policy, &tp, Nvl(inv.target, String("native")), virtuals, inv.provider, provinv, nullptr);
 
 	int available = 0;
 	int missing = 0;
@@ -7653,6 +7983,31 @@ static void sGraphAppendOrder(PkgGraph& graph, const String& key)
 		graph.order.Add(key);
 }
 
+static const PkgPackage *sResolveExactPackage(const PkgRepository& repo, const String& atom)
+{
+	PkgLookupResult lookup = repo.Resolve(atom);
+	if(lookup.pkg)
+		return lookup.pkg;
+	String trimmed = TrimBoth(atom);
+	if(trimmed.IsEmpty() || !lookup.ambiguous)
+		return nullptr;
+	String lower = ToLower(trimmed);
+	const PkgPackage *exact = nullptr;
+	for(const PkgPackage* c : lookup.candidates) {
+		if(!c)
+			continue;
+		String name = ToLower(c->name);
+		String path = ToLower(c->path);
+		String title = ToLower(GetFileTitle(c->path));
+		if(name == lower || title == lower || path == lower || sPackageResolvePath(c->path) == sPackageResolvePath(trimmed)) {
+			if(exact)
+				return nullptr;
+			exact = c;
+		}
+	}
+	return exact;
+}
+
 static void sGraphMarkPackageNode(PkgGraph& graph, const String& key, char status, const String& atom, const String& reason, int depth, bool requested, bool provider_added, bool set_member)
 {
 	PkgGraphNode& node = sGraphEnsureNode(graph, key);
@@ -8074,8 +8429,28 @@ static PkgPlan sBuildPlan(const PkgInvocation& inv, const PkgRepository& repo, c
 	plan.newuse = inv.newuse;
 	plan.changed_use = inv.changed_use;
 	PkgLookupResult root_lookup = inv.atom.IsEmpty() ? PkgLookupResult() : repo.Resolve(inv.atom);
-	const PkgPackage *root_pkg = root_lookup.pkg;
+	const PkgPackage *root_pkg = root_lookup.pkg ? root_lookup.pkg : sResolveExactPackage(repo, inv.atom);
 	PkgInvocation eff = sEffectiveInvocation(inv, repo, policy, root_pkg);
+	if(root_pkg && root_pkg->manifest.present && root_pkg->manifest.ok && !inv.target_explicit && !root_pkg->manifest.target.IsEmpty()) {
+		bool package_target_override = false;
+		for(const PkgPolicyLine& line : policy.package_target)
+			if(sPolicyRuleMatches(repo, root_pkg, line.atom) && !line.values.IsEmpty()) {
+				package_target_override = true;
+				break;
+			}
+		if(!package_target_override)
+			eff.target = root_pkg->manifest.target;
+	}
+	if(root_pkg && root_pkg->manifest.present && root_pkg->manifest.ok && !inv.provider_explicit && !root_pkg->manifest.provider.IsEmpty()) {
+		bool package_provider_override = false;
+		for(const PkgPolicyLine& line : policy.package_provider)
+			if(sPolicyRuleMatches(repo, root_pkg, line.atom) && !line.values.IsEmpty()) {
+				package_provider_override = true;
+				break;
+			}
+		if(!package_provider_override)
+			eff.provider = root_pkg->manifest.provider;
+	}
 	plan.target = eff.target;
 	const PkgTargetProfile& tp = sDefaultTargetProfile(eff.target);
 	sBuildUseModel(plan.use, root_pkg, eff.use_args, eff.target);
@@ -8124,7 +8499,8 @@ static PkgPlan sBuildPlan(const PkgInvocation& inv, const PkgRepository& repo, c
 		if(FindIndex(plan.virtuals, "virtual/opengl") < 0)
 			plan.virtuals.Add("virtual/opengl");
 	}
-	sBuildProviderPlan(plan.provider_plan, repo, policy, &tp, plan.target, plan.virtuals, eff.provider, eff);
+	const Vector<PkgProviderPreference> *extra_prefs = root_pkg && root_pkg->manifest.present && root_pkg->manifest.ok ? &root_pkg->manifest.provider_preferences : nullptr;
+	sBuildProviderPlan(plan.provider_plan, repo, policy, &tp, plan.target, plan.virtuals, eff.provider, eff, extra_prefs);
 	for(const PkgProviderResolution& r : plan.provider_plan.resolutions)
 		if(!r.external_package.IsEmpty() && FindIndex(plan.providers, r.external_package) < 0)
 			plan.providers.Add(r.external_package);

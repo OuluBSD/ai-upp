@@ -183,6 +183,24 @@ struct PkgProviderPlan : Moveable<PkgProviderPlan> {
 	Vector<String> warnings;
 };
 
+struct PkgUppkgManifest : Moveable<PkgUppkgManifest> {
+	String path;
+	bool present = false;
+	bool ok = false;
+	String target;
+	String provider;
+	Vector<String> use_default;
+	Vector<String> use_forced;
+	Vector<String> use_masked;
+	Vector<PkgProviderPreference> provider_preferences;
+	Vector<String> notes;
+	Vector<String> warnings;
+	Vector<String> errors;
+	Vector<String> unknown_keys;
+
+	void Jsonize(JsonIO& jio);
+};
+
 struct PkgPackage : Moveable<PkgPackage> {
 	String atom;
 	String name;
@@ -194,6 +212,7 @@ struct PkgPackage : Moveable<PkgPackage> {
 	Vector<String> uses;
 	Vector<String> mainconfig;
 	Vector<String> source_files;
+	PkgUppkgManifest manifest;
 	Time mtime;
 
 	void Jsonize(JsonIO& jio);
@@ -201,15 +220,18 @@ struct PkgPackage : Moveable<PkgPackage> {
 
 struct PkgMetadataCacheEntry : Moveable<PkgMetadataCacheEntry> {
 	String path;
+	String manifest_path;
 	int64 size = 0;
 	Time mtime;
+	int64 manifest_size = 0;
+	Time manifest_mtime;
 	PkgPackage pkg;
 
 	void Jsonize(JsonIO& jio);
 };
 
 struct PkgMetadataCache : Moveable<PkgMetadataCache> {
-	int schema = 1;
+	int schema = 2;
 	String root;
 	Vector<PkgMetadataCacheEntry> entries;
 	Time saved_at;
@@ -550,6 +572,8 @@ struct PkgInvocation {
 	Vector<String> use_args;
 	Vector<String> extra;
 	int jobs = 0;
+	bool target_explicit = false;
+	bool provider_explicit = false;
 	bool ask = false;
 	bool verbose = false;
 	bool update = false;

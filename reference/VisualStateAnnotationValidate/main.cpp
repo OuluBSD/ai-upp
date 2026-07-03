@@ -13,6 +13,61 @@ CONSOLE_APP_MAIN
 {
 	StdLogSetup(LOG_COUT | LOG_FILE);
 
+	const Vector<String>& args = CommandLine();
+	String annotation_file;
+
+	// Parse command-line arguments
+	for(const String& arg : args) {
+		if(arg == "--help") {
+			Cout() << "Usage: VisualStateAnnotationValidate [<annotation_file>]\n";
+			SetExitCode(0);
+			return;
+		} else {
+			annotation_file = arg;
+		}
+	}
+
+	// If an annotation file was provided, use real data
+	if(!annotation_file.IsEmpty()) {
+		if(!FileExists(annotation_file)) {
+			Cout() << "ERROR: annotation file not found: " << annotation_file << "\n";
+			SetExitCode(1);
+			return;
+		}
+
+		Cout() << "=== VisualStateModel Annotation Validator ===\n\n";
+		Cout() << "Validating annotation file: " << annotation_file << "\n\n";
+
+		VsmAnnotationLayer layer;
+		if(!layer.Load(annotation_file)) {
+			Cout() << "ERROR: failed to load annotation file\n";
+			SetExitCode(1);
+			return;
+		}
+
+		Cout() << "Loaded annotation layer from: " << annotation_file << "\n";
+		Cout() << "Session ID: " << layer.session_id << "\n";
+		Cout() << "Annotations: " << layer.annotations.GetCount() << "\n\n";
+
+		// Validate hierarchy
+		auto hier_errs = layer.Validate();
+		Cout() << "Hierarchy validation: " << hier_errs.GetCount() << " issue(s)\n";
+		for(const auto& err : hier_errs) {
+			Cout() << "  [" << err.annotation_id << "] " << err.message << "\n";
+		}
+
+		if(hier_errs.IsEmpty()) {
+			Cout() << "\nOK: No hierarchy issues found\n";
+		} else {
+			Cout() << "\nERROR: Hierarchy validation failed\n";
+			SetExitCode(1);
+			return;
+		}
+
+		return;
+	}
+
+	// --- Synthetic self-check (no arguments provided) ---
 	Cout() << "=== VisualStateModel Annotation Validator Demo ===\n\n";
 
 	// Test frame dimensions

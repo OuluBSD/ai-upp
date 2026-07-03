@@ -48,4 +48,6 @@ file
 	PipelineRunner.h,
 	PipelineRunner.cpp,
 	PipelineCache.h,
-	PipelineCache.cpp;
+	PipelineCache.cpp,
+	TestFixtures.h,
+	TestFixtures.cpp;

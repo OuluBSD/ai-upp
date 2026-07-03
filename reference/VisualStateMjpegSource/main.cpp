@@ -116,6 +116,28 @@ CONSOLE_APP_MAIN
 {
 	StdLogSetup(LOG_COUT | LOG_FILE);
 
+	const Vector<String>& args = CommandLine();
+	String mjpeg_source;
+
+	// Parse command-line arguments
+	for(const String& arg : args) {
+		if(arg == "--help") {
+			Cout() << "Usage: VisualStateMjpegSource [<mjpeg_source>]\n";
+			SetExitCode(0);
+			return;
+		} else {
+			mjpeg_source = arg;
+		}
+	}
+
+	// Check for unsupported real MJPEG source
+	if(!mjpeg_source.IsEmpty()) {
+		Cout() << "ERROR: Real MJPEG file/URL loading not supported by VsmMjpegSource\n";
+		Cout() << "The underlying headless API only supports pre-loaded test streams.\n";
+		SetExitCode(1);
+		return;
+	}
+
 	Cout() << "=== VisualStateModel MJPEG Source Prototype ===\n\n";
 
 	AppLog log;

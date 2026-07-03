@@ -44,30 +44,64 @@ CONSOLE_APP_MAIN
 {
 	StdLogSetup(LOG_COUT | LOG_FILE);
 
+	const Vector<String>& args = CommandLine();
+	String session_dir;
+
+	// Parse command-line arguments
+	for(const String& arg : args) {
+		if(arg == "--help") {
+			Cout() << "Usage: VisualStateCacheStats [<session_dir>]\n";
+			SetExitCode(0);
+			return;
+		} else {
+			session_dir = arg;
+		}
+	}
+
 	Cout() << "=== VisualStateModel Pipeline Cache Statistics CLI ===\n\n";
 
 	AppLog log;
 	log.SetForwardToUppLog(false);
 
-	// Create a temporary session store
-	String root = AppendFileName(GetTempPath(), "vsm_cache_stats_demo");
-	if(DirectoryExists(root)) DeleteFolderDeep(root);
+	// Create a temporary session store or load a real one
+	String root;
+	bool is_synthetic = session_dir.IsEmpty();
 
-	VsmSessionStore store;
-	store.SetLog(&log);
-	if(!store.Create(root, "cache-stats-demo", 32, 32)) {
-		Fail("SessionStore Create");
-		return;
+	if(is_synthetic) {
+		// Synthetic path: create temporary session
+		root = AppendFileName(GetTempPath(), "vsm_cache_stats_demo");
+		if(DirectoryExists(root)) DeleteFolderDeep(root);
+
+		VsmSessionStore store;
+		store.SetLog(&log);
+		if(!store.Create(root, "cache-stats-demo", 32, 32)) {
+			Fail("SessionStore Create");
+			return;
+		}
+		Cout() << "Created session store: " << root << "\n";
+
+		// Create synthetic frames
+		VsmImageBuffer f0 = VsmImageBuffer::MakeSolid(32, 32, 100, 1);
+		VsmImageBuffer f1 = VsmImageBuffer::MakeSolid(32, 32, 150, 1);
+		store.SaveFrameImage(0, f0);
+		store.SaveFrameImage(1, f1);
+		store.SaveManifest();
+		Cout() << "Created 2 frames\n\n";
+	} else {
+		// Real session path: load existing session
+		root = session_dir;
+		if(!DirectoryExists(root)) {
+			Fail(Format("Session directory not found: %s", root));
+			return;
+		}
+		VsmSessionStore store;
+		store.SetLog(&log);
+		if(!store.Open(root)) {
+			Fail(Format("Failed to open session: %s", root));
+			return;
+		}
+		Cout() << "Loaded session from: " << root << "\n\n";
 	}
-	Cout() << "Created session store: " << root << "\n";
-
-	// Create synthetic frames
-	VsmImageBuffer f0 = VsmImageBuffer::MakeSolid(32, 32, 100, 1);
-	VsmImageBuffer f1 = VsmImageBuffer::MakeSolid(32, 32, 150, 1);
-	store.SaveFrameImage(0, f0);
-	store.SaveFrameImage(1, f1);
-	store.SaveManifest();
-	Cout() << "Created 2 frames\n\n";
 
 	// Create cache
 	String cache_dir = AppendFileName(root, "cache");
@@ -281,31 +315,45 @@ CONSOLE_APP_MAIN
 	// === VALIDATION ===
 	Cout() << "--- Verification ---\n";
 
-	if(entries_run2 != 4) {
-		Fail(Format("Expected 4 cache entries, got %d", entries_run2));
-		return;
-	}
-	Cout() << "  Cache entry count: " << entries_run2 << " OK\n";
+	if(is_synthetic) {
+		// For synthetic sessions, verify specific expected values
+		if(entries_run2 != 4) {
+			Fail(Format("Expected 4 cache entries, got %d", entries_run2));
+			return;
+		}
+		Cout() << "  Cache entry count: " << entries_run2 << " OK\n";
 
-	// Verify that hits increased from run 1 to run 2
-	if(hits_run2 <= hits_run1) {
-		Fail(Format("Expected hits to increase (run1=%d, run2=%d)", hits_run1, hits_run2));
-		return;
-	}
-	Cout() << "  Cache hits increased: " << hits_run1 << " -> " << hits_run2 << " OK\n";
+		// Verify that hits increased from run 1 to run 2
+		if(hits_run2 <= hits_run1) {
+			Fail(Format("Expected hits to increase (run1=%d, run2=%d)", hits_run1, hits_run2));
+			return;
+		}
+		Cout() << "  Cache hits increased: " << hits_run1 << " -> " << hits_run2 << " OK\n";
 
-	// Verify that cache was actually used (hits in run 2 should match lookups)
-	if(hits_run2 - hits_run1 != 4) {
-		Fail(Format("Expected 4 new hits in run 2 (got %d)", hits_run2 - hits_run1));
-		return;
+		// Verify that cache was actually used (hits in run 2 should match lookups)
+		if(hits_run2 - hits_run1 != 4) {
+			Fail(Format("Expected 4 new hits in run 2 (got %d)", hits_run2 - hits_run1));
+			return;
+		}
+		Cout() << "  Cache hits on second run: " << (hits_run2 - hits_run1) << " OK\n";
+	} else {
+		// For real sessions, just verify basic cache behavior
+		Cout() << "  Cache entries created: " << entries_run2 << "\n";
+		Cout() << "  Cache hits increased: " << hits_run1 << " -> " << hits_run2 << "\n";
+		if(hits_run2 > hits_run1) {
+			Cout() << "  Cache hit improvement: OK\n";
+		} else {
+			Cout() << "  WARNING: No cache hit improvement between runs\n";
+		}
 	}
-	Cout() << "  Cache hits on second run: " << (hits_run2 - hits_run1) << " OK\n";
 
 	Cout() << "\n=== Cache statistics demo completed successfully ===\n";
 	Cout() << "Summary:\n";
 	Cout() << "  Run 1 - Hits: " << hits_run1 << ", Misses: " << misses_run1 << ", Entries: " << entries_run1 << "\n";
 	Cout() << "  Run 2 - Hits: " << hits_run2 << ", Misses: " << misses_run2 << ", Entries: " << entries_run2 << "\n";
 
-	// Cleanup
-	DeleteFolderDeep(root);
+	// Cleanup (only synthetic sessions)
+	if(is_synthetic) {
+		DeleteFolderDeep(root);
+	}
 }

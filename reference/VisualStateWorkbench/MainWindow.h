@@ -39,6 +39,10 @@ private:
 	DebugLog    debug_tab_;        // "Debug" tab
 
 	// ---- Dock panels (DockableCtrl subclasses)
+	// LEFT dock is split into two tiers (see OnResetDockLayout()):
+	//   Primary (own pane, visible by default): annotation_dock_, model_dock_.
+	//   Secondary (one shared tabbed dock slot, "Rules & Preprocessing", not
+	//   the default front tab): pipeline_dock_, template_dock_, ocr_dock_.
 	RegionPropsPanel      props_dock_;
 	ReplayTimelinePanel   timeline_dock_;
 	SessionInfoPanel      session_dock_;

@@ -1,0 +1,10 @@
+description "VisualStateModel session-to-session divergence diff tool\377";
+
+uses
+	VisualStateModel;
+
+file
+	main.cpp;
+
+mainconfig
+	"" = "";

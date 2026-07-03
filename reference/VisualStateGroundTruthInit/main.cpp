@@ -13,14 +13,76 @@ CONSOLE_APP_MAIN
 {
 	StdLogSetup(LOG_COUT | LOG_FILE);
 
+	const Vector<String>& args = CommandLine();
+	String session_dir, output_file;
+	Vector<String> positional_args;
+
+	// Parse command-line arguments
+	for(const String& arg : args) {
+		if(arg == "--help") {
+			Cout() << "Usage: VisualStateGroundTruthInit [<session_dir> <output_template_path>]\n";
+			SetExitCode(0);
+			return;
+		} else {
+			positional_args.Add(arg);
+		}
+	}
+
+	// If positional arguments were provided, use real data
+	if(positional_args.GetCount() > 0) {
+		if(positional_args.GetCount() != 2) {
+			Cout() << "ERROR: expected exactly 2 arguments (session_dir and output_template_path), got " << positional_args.GetCount() << "\n";
+			SetExitCode(1);
+			return;
+		}
+
+		session_dir = positional_args[0];
+		output_file = positional_args[1];
+
+		if(!DirectoryExists(session_dir)) {
+			Cout() << "ERROR: session directory not found: " << session_dir << "\n";
+			SetExitCode(1);
+			return;
+		}
+
+		AppLog log;
+		log.SetForwardToUppLog(false);
+
+		Cout() << "=== VisualStateModel Ground Truth Template Generator ===\n\n";
+		Cout() << "Generating template from session: " << session_dir << "\n";
+		Cout() << "Output file: " << output_file << "\n\n";
+
+		VsmGroundTruthTemplateGenerator generator;
+		generator.SetLog(&log);
+
+		VsmGroundTruthTemplateOptions opts;
+		opts.session_dir = session_dir;
+		opts.output_path = output_file;
+
+		VsmGroundTruthTemplateResult result = generator.Generate(opts);
+
+		if(!result.success) {
+			Cout() << "ERROR: generation failed\n";
+			SetExitCode(1);
+			return;
+		}
+
+		Cout() << "Success: " << result.session_id << "\n";
+		Cout() << "Frame count: " << result.frame_count << "\n";
+		Cout() << "Output path: " << result.output_path << "\n";
+
+		return;
+	}
+
+	// --- Synthetic self-check (no arguments provided) ---
 	Cout() << "=== VisualStateModel Ground Truth Template Generator Demo ===\n\n";
 
 	AppLog log;
 	log.SetForwardToUppLog(false);
 
 	// --- Step 1: Create a synthetic 3-frame session ---
-	String session_dir = AppendFileName(GetTempPath(), "vsm_ground_truth_init");
-	String output_file = AppendFileName(GetTempPath(), "ground_truth_template.json");
+	session_dir = AppendFileName(GetTempPath(), "vsm_ground_truth_init");
+	output_file = AppendFileName(GetTempPath(), "ground_truth_template.json");
 
 	if(DirectoryExists(session_dir)) DeleteFolderDeep(session_dir);
 	if(FileExists(output_file)) DeleteFile(output_file);

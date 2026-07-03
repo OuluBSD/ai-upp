@@ -13,14 +13,80 @@ CONSOLE_APP_MAIN
 {
 	StdLogSetup(LOG_COUT | LOG_FILE);
 
+	const Vector<String>& args = CommandLine();
+	String session_a_dir, session_b_dir;
+	Vector<String> positional_args;
+
+	// Parse command-line arguments
+	for(const String& arg : args) {
+		if(arg == "--help") {
+			Cout() << "Usage: VisualStateSessionDiff [<session_a> <session_b>]\n";
+			SetExitCode(0);
+			return;
+		} else {
+			positional_args.Add(arg);
+		}
+	}
+
+	// If positional arguments were provided, use real data
+	if(positional_args.GetCount() > 0) {
+		if(positional_args.GetCount() != 2) {
+			Cout() << "ERROR: expected exactly 2 session directories, got " << positional_args.GetCount() << "\n";
+			SetExitCode(1);
+			return;
+		}
+
+		session_a_dir = positional_args[0];
+		session_b_dir = positional_args[1];
+
+		if(!DirectoryExists(session_a_dir)) {
+			Cout() << "ERROR: session_a directory not found: " << session_a_dir << "\n";
+			SetExitCode(1);
+			return;
+		}
+
+		if(!DirectoryExists(session_b_dir)) {
+			Cout() << "ERROR: session_b directory not found: " << session_b_dir << "\n";
+			SetExitCode(1);
+			return;
+		}
+
+		AppLog log;
+		log.SetForwardToUppLog(false);
+
+		Cout() << "=== VisualStateModel Session Diff ===\n\n";
+		Cout() << "Comparing:\n";
+		Cout() << "  Session A: " << session_a_dir << "\n";
+		Cout() << "  Session B: " << session_b_dir << "\n\n";
+
+		VsmSessionDiff session_diff;
+		session_diff.SetLog(&log);
+		VsmSessionDiffResult result = session_diff.Compare(session_a_dir, session_b_dir);
+
+		Cout() << "--- Diff Result Summary ---\n";
+		Cout() << "Only in A:  " << result.only_in_a << "\n";
+		Cout() << "Only in B:  " << result.only_in_b << "\n";
+		Cout() << "In both:    " << result.in_both << "\n";
+		Cout() << "Total entries: " << result.entries.GetCount() << "\n";
+
+		Cout() << "\nDetailed Entries:\n";
+		for(const VsmSessionDiffEntry& entry : result.entries) {
+			Cout() << "  [" << entry.status << "] Frame " << entry.frame
+			       << " (" << entry.severity << "): " << entry.message << "\n";
+		}
+
+		return;
+	}
+
+	// --- Synthetic self-check (no arguments provided) ---
 	Cout() << "=== VisualStateModel Session Diff Demo ===\n\n";
 
 	AppLog log;
 	log.SetForwardToUppLog(false);
 
 	// --- Step 1: Create 2 synthetic sessions ---
-	String session_a_dir = AppendFileName(GetTempPath(), "vsm_session_diff_a");
-	String session_b_dir = AppendFileName(GetTempPath(), "vsm_session_diff_b");
+	session_a_dir = AppendFileName(GetTempPath(), "vsm_session_diff_a");
+	session_b_dir = AppendFileName(GetTempPath(), "vsm_session_diff_b");
 
 	if(DirectoryExists(session_a_dir)) DeleteFolderDeep(session_a_dir);
 	if(DirectoryExists(session_b_dir)) DeleteFolderDeep(session_b_dir);

@@ -13,6 +13,75 @@ CONSOLE_APP_MAIN
 {
 	StdLogSetup(LOG_COUT | LOG_FILE);
 
+	const Vector<String>& args = CommandLine();
+	String sessions_root_dir;
+
+	// Parse command-line arguments
+	for(const String& arg : args) {
+		if(arg == "--help") {
+			Cout() << "Usage: VisualStateBatchReport [<sessions_root_dir>]\n";
+			SetExitCode(0);
+			return;
+		} else {
+			sessions_root_dir = arg;
+		}
+	}
+
+	// If a sessions root dir was provided, use real data
+	if(!sessions_root_dir.IsEmpty()) {
+		if(!DirectoryExists(sessions_root_dir)) {
+			Cout() << "ERROR: sessions root directory not found: " << sessions_root_dir << "\n";
+			SetExitCode(1);
+			return;
+		}
+
+		AppLog log;
+		log.SetForwardToUppLog(false);
+
+		// Enumerate subdirectories of the root
+		Vector<String> session_dirs;
+		FindFile ff(AppendFileName(sessions_root_dir, "*"));
+		while(ff) {
+			if(ff.IsFolder()) {
+				session_dirs.Add(AppendFileName(sessions_root_dir, ff.GetName()));
+			}
+			ff.Next();
+		}
+
+		if(session_dirs.IsEmpty()) {
+			Cout() << "ERROR: no subdirectories found in: " << sessions_root_dir << "\n";
+			SetExitCode(1);
+			return;
+		}
+
+		Cout() << "=== VisualStateModel Batch Divergence Report ===\n\n";
+		Cout() << "Processing " << session_dirs.GetCount() << " session(s) from: " << sessions_root_dir << "\n\n";
+
+		VsmBatchDivergenceReport batch_report;
+		batch_report.SetLog(&log);
+		VsmBatchReportResult result = batch_report.Run(session_dirs);
+
+		Cout() << "\n--- Batch Report Summary ---\n";
+		Cout() << "Sessions scanned:     " << result.sessions_scanned << "\n";
+		Cout() << "Sessions with data:   " << result.sessions_with_data << "\n";
+		Cout() << "Total divergences:    " << result.total_divergences << "\n";
+		Cout() << "Total errors:         " << result.total_errors << "\n";
+		Cout() << "Total warnings:       " << result.total_warnings << "\n";
+
+		Cout() << "\nPer-Session Details:\n";
+		for(const VsmBatchSessionEntry& entry : result.sessions) {
+			Cout() << "  Session: " << entry.session_id << "\n";
+			Cout() << "    Dir: " << entry.session_dir << "\n";
+			Cout() << "    Had divergence file: " << (entry.had_divergence_file ? "yes" : "no") << "\n";
+			Cout() << "    Divergence count: " << entry.divergence_count << "\n";
+			Cout() << "    Errors: " << entry.error_count << "\n";
+			Cout() << "    Warnings: " << entry.warning_count << "\n";
+		}
+
+		return;
+	}
+
+	// --- Synthetic self-check (no arguments provided) ---
 	Cout() << "=== VisualStateModel Batch Divergence Report Demo ===\n\n";
 
 	AppLog log;

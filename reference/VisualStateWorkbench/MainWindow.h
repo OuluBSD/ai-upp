@@ -51,7 +51,13 @@ private:
 	// ---- Session storage + annotation layer + pipeline + rules + model runtime
 	VsmSessionStore           session_store_;
 	VsmSessionStoreSource     src_source_;     // for sessions opened via OnOpenSession
+	// has_src_session_ is the single source of truth for "which session is
+	// active": true => the opened/imported session (B, src_source_) is what
+	// the toolbar/region controls act on; false => the built-in sample
+	// replay session (A, replay_) is active. See LoadSampleSession(),
+	// OpenSessionPath(), and OnResetReplay().
 	bool                      has_src_session_ = false;
+	int                       src_step_pos_    = 0; // frames read from src_source_ so far (Step/Run All bookkeeping)
 	VsmAnnotationLayer        annotation_layer_;
 	String                    annotation_path_;
 	VsmPreprocessPipeline     current_pipeline_;
@@ -87,6 +93,7 @@ private:
 	void OnRunAll();
 	void OnResetReplay();
 	void RefreshAfterStep();
+	void RefreshAfterSourceStep();
 	void RebuildRegionsList();
 	void OnOpenSession();
 	void OnImportImageSequence();

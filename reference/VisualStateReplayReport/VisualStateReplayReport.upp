@@ -6,7 +6,9 @@ uses
 file
 	main.cpp,
 	ReportWriter.h,
-	ReportWriter.cpp;
+	ReportWriter.cpp,
+	HtmlReportWriter.h,
+	HtmlReportWriter.cpp;
 
 mainconfig
 	"" = "";

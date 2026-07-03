@@ -1,12 +1,22 @@
 #include "ReportWriter.h"
+#include "HtmlReportWriter.h"
 
 CONSOLE_APP_MAIN
 {
 	StdLogSetup(LOG_COUT | LOG_FILE);
 
 	const Vector<String>& args = CommandLine();
-	String out_dir = args.GetCount() > 0 ? args[0]
-	                                       : AppendFileName(GetTempPath(), "vsm_report");
+	bool write_html = false;
+	String out_dir = AppendFileName(GetTempPath(), "vsm_report");
+
+	// Parse command-line arguments
+	for(const String& arg : args) {
+		if(arg == "--html") {
+			write_html = true;
+		} else {
+			out_dir = arg;
+		}
+	}
 
 	// Set up structured logging
 	AppLog app_log;
@@ -69,6 +79,17 @@ CONSOLE_APP_MAIN
 		return;
 	}
 
+	// Write HTML report if requested
+	if(write_html) {
+		VsmHtmlReportWriter html_writer;
+		html_writer.SetLog(&app_log);
+		if(!html_writer.WriteHtml(session, out_dir)) {
+			Cout() << "ERROR: HTML report write failed\n";
+			SetExitCode(1);
+			return;
+		}
+	}
+
 	// Print log summary
 	Cout() << "\n=== AppLog records ===\n";
 	for(const AppLogRecord& r : app_log.GetRecords()) {
@@ -79,5 +100,7 @@ CONSOLE_APP_MAIN
 
 	Cout() << "\nReport written to: " << out_dir << "\n";
 	Cout() << "  index.md — main entry point\n";
+	if(write_html)
+		Cout() << "  index.html — HTML version\n";
 	Cout() << "  events/  — per-event pages\n";
 }

@@ -65,7 +65,16 @@ static bool ProbePython311(String& python_path, String& version)
 		python_path = fixed;
 #endif
 
-	if(python_path.IsEmpty() && !FindExecutableOnPath("python.exe", python_path))
+	if(python_path.IsEmpty()) {
+#ifdef PLATFORM_POSIX
+		if(!FindExecutableOnPath("python3", python_path))
+			FindExecutableOnPath("python", python_path);
+#else
+		FindExecutableOnPath("python.exe", python_path);
+#endif
+	}
+
+	if(python_path.IsEmpty())
 		return false;
 
 	String out;
@@ -74,7 +83,11 @@ static bool ProbePython311(String& python_path, String& version)
 
 	out = TrimBoth(out);
 	version = out;
+#ifdef PLATFORM_POSIX
+	return out.Find("Python 3") >= 0;
+#else
 	return out.Find("Python 3.11") >= 0;
+#endif
 }
 
 DbgToolchainStatus CheckDbgBackendToolchain(const String& backend_name)
@@ -84,13 +97,18 @@ DbgToolchainStatus CheckDbgBackendToolchain(const String& backend_name)
 
 	if(backend_name == "gdb") {
 		String gdb_path;
-		if(FindExecutableOnPath("gdb.exe", gdb_path)) {
+#ifdef PLATFORM_POSIX
+		const char *gdb_exe = "gdb";
+#else
+		const char *gdb_exe = "gdb.exe";
+#endif
+		if(FindExecutableOnPath(gdb_exe, gdb_path)) {
 			status.available = true;
-			status.messages.Add("gdb: gdb.exe found at " + gdb_path);
+			status.messages.Add(String("gdb: ") + gdb_exe + " found at " + gdb_path);
 			status.messages.Add("gdb: toolchain check passed");
 		}
 		else {
-			status.messages.Add("gdb: gdb.exe not found on PATH");
+			status.messages.Add(String("gdb: ") + gdb_exe + " not found on PATH");
 		}
 		return status;
 	}
@@ -100,18 +118,33 @@ DbgToolchainStatus CheckDbgBackendToolchain(const String& backend_name)
 		String python_path;
 		String python_version;
 
-		bool has_lldb = FindExecutableOnPath("lldb.exe", lldb_path);
+#ifdef PLATFORM_POSIX
+		const char *lldb_exe = "lldb";
+#else
+		const char *lldb_exe = "lldb.exe";
+#endif
+		bool has_lldb = FindExecutableOnPath(lldb_exe, lldb_path);
 		bool has_python = ProbePython311(python_path, python_version);
 
 		if(has_lldb)
-			status.messages.Add("lldb: lldb.exe found at " + lldb_path);
-		else
+			status.messages.Add(String("lldb: ") + lldb_exe + " found at " + lldb_path);
+		else {
+#ifdef PLATFORM_POSIX
+			status.messages.Add("lldb: lldb not found on PATH");
+#else
 			status.messages.Add("lldb: lldb.exe not found on PATH or in C:\\Program Files\\LLVM\\bin");
+#endif
+		}
 
 		if(has_python)
-			status.messages.Add("lldb: Python 3.11 found at " + python_path + " (" + python_version + ")");
-		else
+			status.messages.Add("lldb: Python found at " + python_path + " (" + python_version + ")");
+		else {
+#ifdef PLATFORM_POSIX
+			status.messages.Add("lldb: Python 3 not found on PATH");
+#else
 			status.messages.Add("lldb: Python 3.11 not found on PATH and C:\\Python311\\python.exe is missing");
+#endif
+		}
 
 		status.available = has_lldb && has_python;
 		if(status.available)
@@ -120,6 +153,11 @@ DbgToolchainStatus CheckDbgBackendToolchain(const String& backend_name)
 	}
 
 	if(backend_name == "vs") {
+#ifdef PLATFORM_POSIX
+		status.messages.Add("vs: Visual Studio backend is not supported on POSIX/Linux");
+		status.available = false;
+		return status;
+#else
 		String vswhere_path;
 		String installation_path;
 
@@ -154,8 +192,10 @@ DbgToolchainStatus CheckDbgBackendToolchain(const String& backend_name)
 		status.messages.Add("vs: installation found at " + installation_path);
 		status.messages.Add("vs: toolchain check passed");
 		return status;
+#endif
 	}
 
 	status.messages.Add(backend_name + ": unknown backend");
 	return status;
 }
+

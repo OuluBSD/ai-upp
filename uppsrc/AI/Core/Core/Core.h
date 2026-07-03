@@ -5,6 +5,7 @@
 
 NAMESPACE_UPP
 
+#include "Defs.h"
 #include "Enums.h"
 #include "Types.h"
 #include "Common.h"

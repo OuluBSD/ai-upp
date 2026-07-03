@@ -1,0 +1,9 @@
+description "Headless debugger execution and parsing core";
+
+uses
+	Core;
+
+file
+	DebuggersCore.h,
+	GdbEngine.cpp,
+	LldbEngine.cpp;

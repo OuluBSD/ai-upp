@@ -184,7 +184,7 @@ void Ide::BTabs()
 	btabs.Add(IdeImg::errors, "Errors");
 	btabs.Add(IdeImg::calc, "Calculator");
 	#ifndef flagV1
-	btabs.Add(IdeImg::agent, "Agent");
+	btabs.Add(IdeImg::logo, "Agent");
 	#endif
 	if(bottomctrl)
 		btabs.Add(IdeCommonImg::Debugger, "Debug");

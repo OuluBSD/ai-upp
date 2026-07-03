@@ -187,6 +187,25 @@ static int RunBackendCommand(const DbgBackendInfo& backend, const Vector<String>
 
 	One<DbgBackendSession> session = CreateDbgBackendSession(backend.name);
 	DbgRunResult result = session ? session->Run(request) : DbgRunResult();
+	if(!request.quiet) {
+		Cout() << result.transcript << "\n";
+	}
+	if(!result.call_stack.IsEmpty()) {
+		Cout() << "Call stack:\n";
+		for(int i = 0; i < result.call_stack.GetCount(); i++) {
+			const auto& f = result.call_stack[i];
+			Cout() << "  #" << i << " ";
+			if(!f.address.IsEmpty())
+				Cout() << f.address << " in ";
+			Cout() << f.function;
+			if(!f.source_file.IsEmpty()) {
+				Cout() << " at " << f.source_file;
+				if(!IsNull(f.line))
+					Cout() << ":" << f.line;
+			}
+			Cout() << "\n";
+		}
+	}
 	if(!result.error.IsEmpty())
 		Cerr() << "dbg: " << result.error << "\n";
 	return IsNull(result.exit_code) ? 1 : result.exit_code;

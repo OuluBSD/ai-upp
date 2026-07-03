@@ -2,6 +2,7 @@
 #define _dbg_dbg_h_
 
 #include <Core/Core.h>
+#include <ide/DebuggersCore/DebuggersCore.h>
 
 using namespace Upp;
 

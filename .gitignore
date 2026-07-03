@@ -72,6 +72,10 @@ plan
 plan/
 **/plan
 **/plan/
+critic
+critic/
+**/critic
+**/critic/
 cookie.txt
 **/cookie.txt
 

@@ -11,7 +11,11 @@ CONSOLE_APP_MAIN
 
 	// Parse command-line arguments
 	for(const String& arg : args) {
-		if(arg == "--html") {
+		if(arg == "--help") {
+			Cout() << "Usage: VisualStateReplayReport [--html] [<output_dir>]\n";
+			SetExitCode(0);
+			return;
+		} else if(arg == "--html") {
 			write_html = true;
 		} else {
 			out_dir = arg;

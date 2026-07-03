@@ -178,6 +178,11 @@ public:
 
 	Event<> WhenLayerChanged;
 
+	// Called by MainWindow after OnAnnotationChanged() persists or fails to persist.
+	// success=true if annotation_layer_.Save() completed successfully.
+	// path_empty=true if annotation_path_ was empty at time of attempted save.
+	void NotifySaveResult(bool success, bool path_empty);
+
 private:
 	VsmAnnotationLayer* layer_  = nullptr;
 
@@ -188,6 +193,7 @@ private:
 	EditString parent_edit_;
 	Label      rect_lbl_;
 	EditInt    x_edit_, y_edit_, w_edit_, h_edit_;
+	Label      saved_status_lbl_;
 
 	void OnCreate();
 	void OnDelete();

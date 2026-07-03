@@ -612,6 +612,8 @@ AnnotationEditorPanel::AnnotationEditorPanel()
 	delete_btn_.SetLabel("Delete");
 	save_btn_.SetLabel("Apply");
 
+	saved_status_lbl_.SetLabel("");  // Initially empty; updated by NotifySaveResult()
+
 	create_btn_.WhenAction = [=] { OnCreate(); };
 	delete_btn_.WhenAction = [=] { OnDelete(); };
 	save_btn_.WhenAction   = [=] { OnSave(); };
@@ -630,10 +632,11 @@ AnnotationEditorPanel::AnnotationEditorPanel()
 	Add(w_edit_.LeftPos(84,36).TopPos(206,20));
 	Add(h_edit_.LeftPos(124,36).TopPos(206,20));
 
-	// Buttons
+	// Buttons and saved status
 	Add(create_btn_.LeftPos(4,60).BottomPos(4,24));
 	Add(delete_btn_.LeftPos(68,60).BottomPos(4,24));
-	Add(save_btn_.RightPos(4,60).BottomPos(4,24));
+	Add(save_btn_.RightPos(66,60).BottomPos(4,24));
+	Add(saved_status_lbl_.RightPos(4,60).BottomPos(4,24));
 }
 
 void AnnotationEditorPanel::SetLayer(VsmAnnotationLayer* layer)
@@ -666,7 +669,10 @@ void AnnotationEditorPanel::FillFields(const VsmRegionAnnotation* a)
 	if(!a) {
 		name_edit_.Clear();
 		parent_edit_.Clear();
-		x_edit_ = 0; y_edit_ = 0; w_edit_ = 100; h_edit_ = 40;
+		x_edit_.Clear();
+		y_edit_.Clear();
+		w_edit_.Clear();
+		h_edit_.Clear();
 		return;
 	}
 	name_edit_.SetData(a->name);
@@ -714,9 +720,23 @@ void AnnotationEditorPanel::OnDelete()
 
 void AnnotationEditorPanel::OnSave()
 {
+	if(!layer_) return;
+	int row = list_.GetCursor();
+	if(row < 0 || row >= layer_->annotations.GetCount()) return;
 	ApplyFields();
 	RebuildList();
 	WhenLayerChanged();
+}
+
+void AnnotationEditorPanel::NotifySaveResult(bool success, bool path_empty)
+{
+	if(path_empty) {
+		saved_status_lbl_.SetLabel("not saved — no path");
+	} else if(success) {
+		saved_status_lbl_.SetLabel("Saved");
+	} else {
+		saved_status_lbl_.SetLabel("save failed");
+	}
 }
 
 // ---------------------------------------------------------------------------

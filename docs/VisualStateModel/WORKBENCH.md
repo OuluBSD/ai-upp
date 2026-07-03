@@ -134,16 +134,56 @@ After running:
 
 ## Dock Panels
 
-| Panel | Content |
-|---|---|
-| Region Properties | Selected region/annotation properties |
-| Replay Timeline | Replay step/run/reset controls |
-| Session Info | Session manifest fields |
-| Annotation Editor | Create/edit/delete region annotations |
-| Pipeline Editor | Preprocessing pipeline steps |
-| Template Rules | Template rules list and match results |
-| OCR Rules | OCR rules and result display |
-| Model State | Objects, transitions, divergences (three tabs) |
+| Panel | Content | Dock |
+|---|---|---|
+| Region Properties | Selected region/annotation properties | RIGHT |
+| Session Info | Session manifest fields | RIGHT |
+| Replay Timeline | Replay step/run/reset controls | BOTTOM |
+| Annotation Editor | Create/edit/delete region annotations | LEFT (primary) |
+| Model State | Objects, transitions, divergences (three tabs) | LEFT (primary) |
+| Pipeline Editor | Preprocessing pipeline steps | LEFT (secondary, tabbed) |
+| Template Rules | Template rules list and match results | LEFT (secondary, tabbed) |
+| OCR Rules | OCR rules and result display | LEFT (secondary, tabbed) |
+
+### LEFT dock: primary/secondary tiers
+
+The five LEFT-docked panels are not flat/equally-weighted. `MainWindow`
+splits them into two tiers (`OnResetDockLayout()` in `MainWindow.cpp`):
+
+- **Primary** (own pane, visible by default): `AnnotationEditorPanel` and
+  `ModelStatePanel`. Defining what to annotate is the first thing a new
+  session needs, and `ModelStatePanel` is where the payoff (divergences)
+  shows up — both stay in view without any extra clicks.
+- **Secondary** ("Rules & Preprocessing", one shared tabbed dock slot, not
+  the default front tab): `PipelineEditorPanel`, `TemplateRulePanel`,
+  `OcrRulePanel`. These matter once a session and annotations already exist
+  (all three share the Run-against-real-frame affordance from Phase 4/task
+  0060), so instead of three always-visible panes they share one dock slot
+  via `DockWindow::Tabify(target, dc)` — U++ Docking's primitive for
+  "attach `dc` as another tab of whatever container `target` is docked in"
+  (see `uppsrc/Docking/Docking.h`; the same pattern
+  `reference/DockingTemplate2/INVESTIGATION.md` documents adopting from
+  `nide`'s `RecognizerEditorWindow::OnResetDockLayout()`). `PipelineEditorPanel`
+  is the default front tab (preprocessing precedes rule matching);
+  `TemplateRulePanel`/`OcrRulePanel` are present in the same slot and fully
+  usable by clicking their tab, but are not in front by default.
+
+Nothing about the three secondary panels' behavior changed — this is
+docking layout only. A user can still select/expand the "Rules &
+Preprocessing" group and use `PipelineEditorPanel`/`TemplateRulePanel`/
+`OcrRulePanel` exactly as before.
+
+**Persisted layouts:** `AppRegistry`'s `dock.layout` blob (`SaveUserLayout()`
+/ `LoadUserLayout()`) identifies each docked panel by its index into the
+`Register()`-order docker list, not by screen position — and that
+registration order was not changed by this restructuring. A layout saved
+before this change (five separate LEFT panes) still deserializes cleanly:
+each panel is repositioned into whatever container/pane the blob recorded
+for it, which is the old flat five-pane arrangement, not the new tabbed
+grouping. In other words, existing users keep their previously-saved flat
+layout after upgrading (no crash, no data loss); they only see the new
+primary/secondary grouping once they use **View → Reset Dock Layout** (or on
+a fresh profile with no saved `dock.layout` blob yet).
 
 ---
 

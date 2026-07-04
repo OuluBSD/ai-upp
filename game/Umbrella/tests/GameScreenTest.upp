@@ -24,4 +24,4 @@ file
 	GameScreenTest.cpp;
 
 mainconfig
-	"" = "CONSOLE";
+	"" = "";

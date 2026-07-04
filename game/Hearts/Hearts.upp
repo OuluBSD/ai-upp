@@ -12,5 +12,5 @@ file
 	main.cpp;
 
 mainconfig
-	"" = "GUI CONSOLE";
+	"" = "GUI";
 

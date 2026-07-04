@@ -19,4 +19,4 @@ file
 
 mainconfig
 	"" = "GUI",
-	"" = "CONSOLE";
+	"" = "";

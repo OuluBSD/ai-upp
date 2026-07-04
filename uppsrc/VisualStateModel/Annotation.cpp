@@ -13,7 +13,8 @@ void VsmRegionAnnotation::Jsonize(JsonIO& json)
 	    ("anchors",          anchors)
 	    ("hotspots",         hotspots)
 	    ("linked_region_ids",linked_region_ids)
-	    ("linked_fingerprints", linked_fingerprints);
+	    ("linked_fingerprints", linked_fingerprints)
+	    ("expected_child_count", expected_child_count);
 }
 
 void VsmAnnotationLayer::Jsonize(JsonIO& json)

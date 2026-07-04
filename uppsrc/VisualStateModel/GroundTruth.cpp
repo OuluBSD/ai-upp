@@ -79,6 +79,7 @@ void VsmGroundTruthLoader::ProcessEvent(const Value& ev, VsmSession& out)
 		rn.label     = ev["label"].ToString();
 		rn.frame     = frame;
 		rn.ts        = ts;
+		rn.expected_child_count = ev["expected_child_count"].IsNull() ? -1 : (int)ev["expected_child_count"];
 		Value rect = ev["rect"];
 		if(!rect.IsNull()) {
 			rn.x = rect["x"]; rn.y = rect["y"];

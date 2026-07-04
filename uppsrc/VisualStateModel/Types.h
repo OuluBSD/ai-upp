@@ -52,6 +52,7 @@ struct VsmRegionNode : Moveable<VsmRegionNode> {
 	String              label;       // from annotation (may be empty)
 	int                 frame = -1;
 	String              ts;
+	int                 expected_child_count = -1;  // -1 = not applicable (fixed single region)
 
 	Rect GetRect() const { return Rect(x, y, x + w, y + h); }
 	void Jsonize(JsonIO& json);

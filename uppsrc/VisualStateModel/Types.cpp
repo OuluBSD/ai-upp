@@ -33,7 +33,8 @@ void VsmRegionNode::Jsonize(JsonIO& json)
 	    ("fingerprint", fingerprint)
 	    ("label",       label)
 	    ("frame",       frame)
-	    ("ts",          ts);
+	    ("ts",          ts)
+	    ("expected_child_count", expected_child_count);
 }
 
 void VsmFrameRef::Jsonize(JsonIO& json)

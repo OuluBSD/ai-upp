@@ -3,7 +3,7 @@ description "Sqlite3 database engine and U++ interface\3770,128,128";
 acceptflags
 	SQLITE_HAS_CODEC;
 
-flags(NOTMFC) "!GUI !CONSOLE";
+flags(NOTMFC) "!GUI";
 
 uses
 	Sql;

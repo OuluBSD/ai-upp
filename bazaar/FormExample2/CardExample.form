@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<!DOCTYPE form>
+<form>
+	<layouts>
+		<item>
+			<content>
+				<item x="20" y="20" cx="410" cy="140" align="1" valign="1">
+					<name>CardLabel</name>
+					<properties>
+						<property name="Variable" value="CardLabel"/>
+						<property name="Frame" value="Default frame"/>
+						<property name="Type" value="Label"/>
+						<property name="Font.Height" value="60"/>
+						<property name="OutlineDraw" value="false"/>
+						<property name="Label" value="Ei korttia"/>
+						<property name="Text.Align" value="Center"/>
+						<property name="Action" value=""/>
+						<property name="Tip" value=""/>
+					</properties>
+				</item>
+				<item x="125" y="180" cx="200" cy="50" align="1" valign="1">
+					<name>GiveButton</name>
+					<properties>
+						<property name="Variable" value="GiveButton"/>
+						<property name="Frame" value="Default frame"/>
+						<property name="Type" value="Button"/>
+						<property name="Font.Height" value="20"/>
+						<property name="Label" value="Anna kortti"/>
+						<property name="Action" value="GiveCard"/>
+						<property name="Tip" value=""/>
+					</properties>
+				</item>
+			</content>
+			<name></name>
+			<properties>
+				<property name="Form.Width" value="450"/>
+				<property name="Form.Height" value="270"/>
+				<property name="Form.MaximizeBox" value="true"/>
+				<property name="Form.MinimizeBox" value="true"/>
+				<property name="Form.Sizeable" value="true"/>
+				<property name="Form.ToolWindow" value="false"/>
+				<property name="Form.Name" value="Default"/>
+				<property name="Form.Title" value="FormExample2 - Card Demo"/>
+			</properties>
+		</item>
+	</layouts>
+</form>

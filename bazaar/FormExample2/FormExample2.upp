@@ -1,6 +1,8 @@
 uses
 	Core,
-	Form;
+	Form,
+	Ctrl/Easing,
+	Ctrl/Xform3D;
 
 file
 	FormExample2.cpp;

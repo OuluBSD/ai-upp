@@ -2,33 +2,27 @@
 using namespace Upp;
 
 #include <Form/Form.hpp>
+#include <Ctrl/Easing/Easing.h>
+#include <Ctrl/Xform3D/Xform3D.h>
 
-// Preview-only stand-in for the CtrlCore Easing/Compositing/Transforms tracks (none of
-// which exist yet, see plan/CompositeEasingNetwork): a hand-rolled ease-out tween driven
-// by a repeating TimeCallback, animating a real themed, alpha-channel card asset
-// (share/imgs/cards/default/, the same theme directory game/TexasHoldem's GameTable uses)
-// in via one of several distinct transition styles - fade+move, 2D rotation, three
-// different flip-style fake-3D turns (each showing the card back first, then revealing the
-// face partway through, like an actual card flip), and a wavy "magic carpet" unfurl -
-// picked at random, from a random direction, on every deal. All of it is done with today's
-// Draw/Painter primitives (Xform2D, DrawPainter, per-pixel alpha); nothing here depends on
-// the not-yet-built Compositing/Easing/Transforms tracks.
+// Preview app for the CtrlCore Easing/Transforms tracks (see plan/CompositeEasingNetwork):
+// drives an ease-out Tween (uppsrc/Ctrl/Easing) animating a real themed, alpha-channel card
+// asset (share/imgs/cards/default/, the same theme directory game/TexasHoldem's GameTable
+// uses) in via one of several distinct transition styles - fade+move, 2D rotation, three
+// different flip-style turns (each showing the card back first, then revealing the face
+// partway through, like an actual card flip, now using genuine perspective rotation via
+// uppsrc/Ctrl/Xform3D instead of a hand-rolled keystone approximation), and a wavy "magic
+// carpet" unfurl - picked at random, from a random direction, on every deal.
 class CardArt : public Ctrl {
 	typedef CardArt CLASSNAME;
 
 	enum Effect { FADE_MOVE, ROTATE_2D, FLIP_H, FLIP_V, FLIP_DIAG, MAGIC_CARPET, EFFECT_COUNT };
 
-	int          card_index = -1;  // -1 = card back, 0..51 = suit*13 + rank
-	double       anim       = 1.0; // 0 = just dealt, 1 = settled
-	int          effect     = FADE_MOVE;
-	int          dir        = 0;   // 0..3, meaning depends on the effect
-	TimeCallback tick;
-
-	static double EaseOutCubic(double t)
-	{
-		double u = 1 - t;
-		return 1 - u * u * u;
-	}
+	int    card_index = -1;  // -1 = card back, 0..51 = suit*13 + rank
+	double progress   = 1.0; // eased 0 = just dealt, 1 = settled (already curve-applied by tween)
+	int    effect     = FADE_MOVE;
+	int    dir        = 0;   // 0..3, meaning depends on the effect
+	Tween  tween;
 
 	static Image LoadCard(int index)
 	{
@@ -75,85 +69,24 @@ class CardArt : public Ctrl {
 		return LoadCard(card_index);
 	}
 
-	// A uniform width/height squeeze alone (squeeze applied equally at every row/column)
-	// just looks like scaling, not turning - there's no depth cue. Real perspective makes
-	// the edge farther from the hinge shrink in the *other* axis too (a keystone/trapezoid
-	// shape), which is what actually reads as "this is rotating in 3D, not just squashing."
-	// This draws `shown` in thin strips along the hinge axis, applying that keystone falloff.
-	static void PerspectiveFlip(Draw& w, Rect dest, const Image& shown, double squeeze, bool horizontal, bool hinge_far)
+	// Turns FlipFace()'s 0..1 squeeze into the [0, pi/2] angle Xform3D::Set expects
+	// (0 = fully face-on, pi/2 = fully edge-on) - the same acos() relationship the
+	// old hand-rolled PerspectiveFlip/PerspectiveCornerFlip used for their keystone
+	// falloff, now driving a genuine 3D perspective rotation instead.
+	static double SqueezeToAngle(double squeeze)
 	{
-		double theta = acos(clamp(squeeze, 0.0, 1.0));
-		double s     = sin(theta);
-		Size   isz   = shown.GetSize();
-		int    strips = 28;
-		for(int i = 0; i < strips; i++) {
-			double u0 = double(i) / strips, u1 = double(i + 1) / strips;
-			double um      = (u0 + u1) / 2;
-			double localu  = hinge_far ? (1 - um) : um;              // 0 at hinge, 1 at far edge
-			double persp   = 1 - localu * s * 0.55;                  // keystone falloff
-			double screenu = hinge_far ? (1 - (1 - um) * squeeze) : (um * squeeze);
-			if(horizontal) {
-				Rect src(int(u0 * isz.cx), 0, int(u1 * isz.cx) + 1, isz.cy);
-				int  stripw = max(1, dest.Width() / strips + 1);
-				int  sx = dest.left + int(screenu * dest.Width()) - stripw / 2;
-				int  sh = max(1, int(dest.Height() * persp));
-				int  sy = dest.top + (dest.Height() - sh) / 2;
-				w.DrawImage(RectC(sx, sy, stripw, sh), shown, src);
-			} else {
-				Rect src(0, int(u0 * isz.cy), isz.cx, int(u1 * isz.cy) + 1);
-				int  striph = max(1, dest.Height() / strips + 1);
-				int  sy = dest.top + int(screenu * dest.Height()) - striph / 2;
-				int  sw = max(1, int(dest.Width() * persp));
-				int  sx = dest.left + (dest.Width() - sw) / 2;
-				w.DrawImage(RectC(sx, sy, sw, striph), shown, src);
-			}
-		}
-	}
-
-	// Same idea as PerspectiveFlip but folding out of one corner in both axes at once - a
-	// third, visually distinct kind of 3D turn (grid of small tiles instead of strips).
-	static void PerspectiveCornerFlip(Draw& w, Rect dest, const Image& shown, double squeeze, int corner)
-	{
-		double theta = acos(clamp(squeeze, 0.0, 1.0));
-		double s     = sin(theta);
-		Size   isz   = shown.GetSize();
-		bool   farx  = corner & 1, fary = corner & 2;
-		int    n     = 10;
-		for(int j = 0; j < n; j++) {
-			double v0 = double(j) / n, v1 = double(j + 1) / n, vm = (v0 + v1) / 2;
-			double localv  = fary ? (1 - vm) : vm;
-			double screenv = fary ? (1 - (1 - vm) * squeeze) : (vm * squeeze);
-			for(int i = 0; i < n; i++) {
-				double u0 = double(i) / n, u1 = double(i + 1) / n, um = (u0 + u1) / 2;
-				double localu  = farx ? (1 - um) : um;
-				double screenu = farx ? (1 - (1 - um) * squeeze) : (um * squeeze);
-				double persp   = 1 - (localu + localv) / 2 * s * 0.55;
-				Rect src(int(u0 * isz.cx), int(v0 * isz.cy), int(u1 * isz.cx) + 1, int(v1 * isz.cy) + 1);
-				int  tw = max(1, int(dest.Width()  / n * persp) + 1);
-				int  th = max(1, int(dest.Height() / n * persp) + 1);
-				int  cx = dest.left + int(screenu * dest.Width());
-				int  cy = dest.top  + int(screenv * dest.Height());
-				w.DrawImage(RectC(cx - tw / 2, cy - th / 2, tw, th), shown, src);
-			}
-		}
-	}
-
-	void Tick()
-	{
-		anim = min(1.0, anim + 0.045);
-		Refresh();
-		if(anim < 1.0)
-			tick.Set(16, THISBACK(Tick));
+		return acos(clamp(squeeze, 0.0, 1.0));
 	}
 
 public:
 	void SetCard(int index)
 	{
 		card_index = index;
-		anim       = 0;
 		effect     = Random(EFFECT_COUNT);
 		dir        = Random(4);
-		tick.KillSet(16, THISBACK(Tick));
+		progress   = 0;
+		// ~350ms total, matching the old anim += 0.045 per 16ms tick's overall feel.
+		tween.Start(350, EaseOutCubic, [this](double e) { progress = e; Refresh(); });
 	}
 
 	virtual void Paint(Draw& w)
@@ -166,7 +99,7 @@ public:
 		if(card.IsEmpty())
 			return;
 
-		double e    = EaseOutCubic(anim);
+		double e    = progress; // already curve-applied by the Tween
 		Size   isz  = card.GetSize();
 		int    h    = min(sz.cy - 20, 190);
 		int    wd   = h * isz.cx / isz.cy;
@@ -197,25 +130,38 @@ public:
 			dp.Rectangle(0, 0, sz.cx, sz.cy).Fill(Faded(card, e), t);
 			break;
 		}
-		case FLIP_H: { // 3D-style turn around the vertical axis, hinged left or right
+		case FLIP_H: { // genuine 3D turn around the vertical axis, hinged left or right
 			double squeeze;
 			Image  shown = Faded(FlipFace(e, squeeze), max(0.5, e));
 			PaintShadow(w, sz, dest, e);
-			PerspectiveFlip(w, dest, shown, squeeze, true, dir & 1);
+			double angle = SqueezeToAngle(squeeze);
+			Xform3D xf;
+			// angle_y = vertical hinge (left/right turn); sign picks which side leads.
+			xf.Set(0.0, dir & 1 ? -angle : angle, dest.GetSize());
+			DrawWarped3D(w, shown, xf, 10, dest.CenterPoint());
 			break;
 		}
-		case FLIP_V: { // 3D-style turn around the horizontal axis, hinged top or bottom
+		case FLIP_V: { // genuine 3D turn around the horizontal axis, hinged top or bottom
 			double squeeze;
 			Image  shown = Faded(FlipFace(e, squeeze), max(0.5, e));
 			PaintShadow(w, sz, dest, e);
-			PerspectiveFlip(w, dest, shown, squeeze, false, dir & 1);
+			double angle = SqueezeToAngle(squeeze);
+			Xform3D xf;
+			// angle_x = horizontal hinge (top/bottom turn); sign picks which side leads.
+			xf.Set(dir & 1 ? -angle : angle, 0.0, dest.GetSize());
+			DrawWarped3D(w, shown, xf, 10, dest.CenterPoint());
 			break;
 		}
-		case FLIP_DIAG: { // 3D-style turn folding out of a random corner (both axes at once)
+		case FLIP_DIAG: { // genuine 3D turn folding out of a random corner (both axes at once)
 			double squeeze;
 			Image  shown = Faded(FlipFace(e, squeeze), max(0.5, e));
 			PaintShadow(w, sz, dest, e);
-			PerspectiveCornerFlip(w, dest, shown, squeeze, dir);
+			double angle = SqueezeToAngle(squeeze);
+			Xform3D xf;
+			// Both hinges at once, corner picked by dir's two bits (same "which corner"
+			// encoding the old PerspectiveCornerFlip used).
+			xf.Set(dir & 1 ? -angle : angle, dir & 2 ? -angle : angle, dest.GetSize());
+			DrawWarped3D(w, shown, xf, 10, dest.CenterPoint());
 			break;
 		}
 		case MAGIC_CARPET: { // wavy unfurl, ripple settling out as the card lands
@@ -226,7 +172,7 @@ public:
 				Rect   src(0, int(v0 * isz.cy), isz.cx, int(v1 * isz.cy) + 1);
 				int    sy = dest.top + int(v0 * dest.Height());
 				int    sh = max(1, dest.Height() / strips + 1);
-				double wobble = sin(v0 * M_PI * 4 + anim * 14 + dir) * (1 - e) * 22;
+				double wobble = sin(v0 * M_PI * 4 + e * 14 + dir) * (1 - e) * 22;
 				Rect   d(dest.left + int(wobble), sy, dest.left + int(wobble) + dest.Width(), sy + sh);
 				w.DrawImage(d, Faded(card, e), src);
 			}

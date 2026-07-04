@@ -7,9 +7,9 @@
 NAMESPACE_UPP
 
 struct Xform3D::Impl {
-	Xform3D::Axis axis = Xform3D::ROT_Y;
-	float          angle = 0;
-	Size           quad_size = Size(0, 0);
+	float angle_x = 0;
+	float angle_y = 0;
+	Size  quad_size = Size(0, 0);
 };
 
 Xform3D::Xform3D()
@@ -21,10 +21,10 @@ Xform3D::~Xform3D()
 {
 }
 
-void Xform3D::Set(Axis axis, double angle_rad, Size quad_size)
+void Xform3D::Set(double angle_x_rad, double angle_y_rad, Size quad_size)
 {
-	impl->axis = axis;
-	impl->angle = (float)angle_rad;
+	impl->angle_x = (float)angle_x_rad;
+	impl->angle_y = (float)angle_y_rad;
 	impl->quad_size = quad_size;
 }
 
@@ -34,14 +34,26 @@ Vector<Pointf> Xform3D::ProjectGrid(int n) const
 	if(n < 1)
 		return out;
 
-	Axis axis = impl->axis;
-	float angle = impl->angle;
+	float angle_x = impl->angle_x;
+	float angle_y = impl->angle_y;
 	Size quad_size = impl->quad_size;
 
-	// Rotation about the requested hinge. SetRotation's axis argument is
-	// 0=X, 1=Y, 2=Z (verified in uppsrc/Geometry/Matrix.h).
-	mat4 rot;
-	rot.SetRotation(axis == ROT_Y ? 1 : 0, angle);
+	// Rotation about both requested hinges, composed. SetRotation's axis
+	// argument is 0=X, 1=Y, 2=Z (verified in uppsrc/Geometry/Matrix.h).
+	// rx = horizontal hinge (top/bottom turn, rotation about X), ry = vertical
+	// hinge (left/right turn, rotation about Y).
+	mat4 rx;
+	rx.SetRotation(0, angle_x);
+	mat4 ry;
+	ry.SetRotation(1, angle_y);
+
+	// Composition order verified empirically against Xform3DTest's combined-angle
+	// check (both width and height must foreshorten when both angles are
+	// nonzero): with the row-vector convention used below (rotated = local *
+	// rot), `rot = rx * ry` applies rx first, then ry, and produces the
+	// expected combined foreshortening. The other order was tested and
+	// rejected -- see Xform3DTest.cpp / the package's report notes.
+	mat4 rot = rx * ry;
 
 	// Fixed 45 degree FOV perspective camera, square aspect (the aspect
 	// correction, if any, is applied by the caller/DrawWarped3D via the

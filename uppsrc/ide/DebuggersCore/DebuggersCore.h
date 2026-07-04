@@ -19,6 +19,7 @@ struct DbgBacktrace : Moveable<DbgBacktrace> {
 
 DbgBacktrace GetGdbBacktrace(const String& exe, const Vector<String>& args, const String& cwd, const VectorMap<String, String>& env, String& transcript);
 DbgBacktrace GetLldbBacktrace(const String& exe, const Vector<String>& args, const String& cwd, const VectorMap<String, String>& env, String& transcript);
+DbgBacktrace GetJavaBacktrace(const String& exe, const Vector<String>& args, const String& cwd, const VectorMap<String, String>& env, String& transcript);
 
 }
 

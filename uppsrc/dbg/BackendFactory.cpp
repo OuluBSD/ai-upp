@@ -29,5 +29,7 @@ One<DbgBackendSession> CreateDbgBackendSession(const String& backend_name)
 		return One<DbgBackendSession>(new LldbBackendSession);
 	if(backend_name == "vs")
 		return One<DbgBackendSession>(new VsBackendSession);
+	if(backend_name == "java")
+		return One<DbgBackendSession>(new JavaBackendSession);
 	return One<DbgBackendSession>(new PlannedDbgBackendSession(backend_name));
 }

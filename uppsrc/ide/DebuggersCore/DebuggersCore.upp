@@ -6,4 +6,5 @@ uses
 file
 	DebuggersCore.h,
 	GdbEngine.cpp,
-	LldbEngine.cpp;
+	LldbEngine.cpp,
+	JavaEngine.cpp;

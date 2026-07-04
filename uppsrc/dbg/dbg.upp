@@ -19,6 +19,8 @@ file
 	LldbAdapter.cpp,
 	VsAdapter.h,
 	VsAdapter.cpp,
+	JavaAdapter.h,
+	JavaAdapter.cpp,
 	Backend.h,
 	Backend.cpp,
 	main.cpp;

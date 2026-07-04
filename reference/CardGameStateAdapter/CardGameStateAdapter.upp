@@ -1,0 +1,16 @@
+description "CardGameDocumentHost -> VisualStateModel state_json adapter (task 0068)\377";
+
+uses
+	VisualStateModel,
+	ScriptCommon,
+	ScriptIDE;
+
+file
+	AGENTS.md,
+	CardGameStateAdapter.h,
+	VsmCardGameStateExport.h,
+	VsmCardGameStateExport.cpp,
+	main.cpp;
+
+mainconfig
+	"" = "GUI";

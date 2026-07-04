@@ -1,0 +1,8 @@
+description "Standalone layer-blend primitive: paint independent layers into offscreen alpha-capable buffers, then composite them back-to-front with per-layer alpha (built on Draw/SImageDraw, not Painter; not wired into Ctrl::Paint)";
+
+uses
+	CtrlCore;
+
+file
+	Compositing.h,
+	Compositing.cpp;

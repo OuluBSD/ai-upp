@@ -305,22 +305,7 @@ VsmPipelineRunSummary VsmObservationPipeline::RunFromSource(VsmFrameSource& src)
 	int64 ts_ms = 0;
 
 	while(src.ReadFrame(img, ts_ms)) {
-		// Persist frame to session store if wired up
-		if(store_)
-			store_->SaveFrameImage(frame_idx, img, ts_ms);
-
-		// Generate a full-frame changed rect for the annotation/rules pass
-		VsmChangedRect rect;
-		rect.x = 0; rect.y = 0;
-		rect.w = img.width; rect.h = img.height;
-		rect.score = 1.0;
-
-		String ts = IntStr64(ts_ms) + "ms";
-		ProcessRegion(rect, frame_idx, ts);
-
-		summary.frames_processed++;
-		summary.change_events++;
-		summary.regions_detected++;
+		ProcessSourceFrame(img, frame_idx, ts_ms, summary);
 		frame_idx++;
 	}
 
@@ -340,6 +325,85 @@ VsmPipelineRunSummary VsmObservationPipeline::RunFromSource(VsmFrameSource& src)
 
 	LogInfo(log_, "Pipeline",
 	        Format("RunFromSource complete: %d frames, %d obs, %d transitions",
+	               summary.frames_processed, summary.observations_made, summary.transitions));
+	return summary;
+}
+
+// ---------------------------------------------------------------------------
+// ProcessSourceFrame — shared per-frame body for RunFromSource/RunFromSteppedSource
+
+void VsmObservationPipeline::ProcessSourceFrame(const VsmImageBuffer& img, int frame_idx,
+                                                 int64 ts_ms, VsmPipelineRunSummary& summary)
+{
+	// Persist frame to session store if wired up
+	if(store_)
+		store_->SaveFrameImage(frame_idx, img, ts_ms);
+
+	// Generate a full-frame changed rect for the annotation/rules pass
+	VsmChangedRect rect;
+	rect.x = 0; rect.y = 0;
+	rect.w = img.width; rect.h = img.height;
+	rect.score = 1.0;
+
+	String ts = IntStr64(ts_ms) + "ms";
+	ProcessRegion(rect, frame_idx, ts);
+
+	summary.frames_processed++;
+	summary.change_events++;
+	summary.regions_detected++;
+}
+
+// ---------------------------------------------------------------------------
+// RunFromSteppedSource
+
+VsmPipelineRunSummary VsmObservationPipeline::RunFromSteppedSource(VsmSteppedFrameSource& src)
+{
+	observations_.Clear();
+	diagnostics_ = VsmPipelineDiagnostics();
+
+	VsmPipelineRunSummary summary;
+	if(!src.IsReady()) {
+		diagnostics_.AddError("Pipeline", "Frame source not ready: " + src.GetLastError());
+		return summary;
+	}
+
+	summary.session_id = src.GetSourceInfo();
+	Time t = GetUtcTime();
+	summary.started_at = Format("%04d-%02d-%02dT%02d:%02d:%02d.000Z",
+	                             t.year, t.month, t.day, t.hour, t.minute, t.second);
+	summary.run_id = "run-src-" + IntStr((int)GetTickCount());
+
+	LogInfo(log_, "Pipeline", "RunFromSteppedSource: " + src.GetSourceInfo());
+
+	int frame_idx = 0;
+	VsmImageBuffer img;
+	int64 ts_ms = 0;
+
+	while(src.HasMoreSteps()) {
+		if(!src.Step())
+			break;
+		if(!src.ReadFrame(img, ts_ms))
+			break;
+		ProcessSourceFrame(img, frame_idx, ts_ms, summary);
+		frame_idx++;
+	}
+
+	if(!src.GetLastError().IsEmpty())
+		diagnostics_.AddWarning("FrameSource", src.GetLastError());
+
+	summary.observations_made = observations_.GetCount();
+	if(model_rt_) {
+		summary.transitions = model_rt_->GetHistory().GetCount();
+		summary.divergences = model_rt_->GetDivergences().GetCount();
+	}
+	summary.success = true;
+
+	if(store_ && model_rt_)
+		model_rt_->SaveDivergenceReport(
+		    AppendFileName(store_->GetPaths().root, "divergences.json"));
+
+	LogInfo(log_, "Pipeline",
+	        Format("RunFromSteppedSource complete: %d frames, %d obs, %d transitions",
 	               summary.frames_processed, summary.observations_made, summary.transitions));
 	return summary;
 }

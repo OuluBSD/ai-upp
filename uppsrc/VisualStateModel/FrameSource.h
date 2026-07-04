@@ -26,6 +26,25 @@ public:
 };
 
 // ---------------------------------------------------------------------------
+// Stepped frame source — for semi-live, event-stepped sources whose state
+// only advances when explicitly told to (e.g. a game driven one card play
+// at a time). ReadFrame() on these sources captures the current state (as
+// of the most recent Step()); it does not itself advance anything.
+
+class VsmSteppedFrameSource : public VsmFrameSource {
+public:
+	// Advance the underlying source by one logical unit (source-defined:
+	// one card play, one AI turn, etc.). Returns false on error or when the
+	// source has no more steps to take (check GetLastError() to tell them
+	// apart, empty means "done", not "failed").
+	virtual bool Step() = 0;
+
+	// True while Step() can still be called meaningfully. Callers should
+	// check this before Step(), not rely on Step()'s return value alone.
+	virtual bool HasMoreSteps() const = 0;
+};
+
+// ---------------------------------------------------------------------------
 // Source info metadata
 
 struct VsmFrameSourceInfo : Moveable<VsmFrameSourceInfo> {

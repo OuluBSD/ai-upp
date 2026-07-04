@@ -1026,6 +1026,88 @@ static void TestFrameSource()
 }
 
 // ---------------------------------------------------------------------------
+// Test: Stepped frame source (VsmSteppedFrameSource + RunFromSteppedSource)
+
+static void TestSteppedFrameSource()
+{
+	Cout() << "\n=== Stepped frame source ===\n";
+
+	AppLog log;
+	log.SetForwardToUppLog(false);
+
+	struct SyntheticSteppedSource : VsmSteppedFrameSource {
+		int step_ = 0;
+		enum { kSteps = 3 };
+		bool Open(const String&) override { step_ = 0; return true; }
+		void Close() override { step_ = 0; }
+		bool IsReady()  const override { return true; }
+		int  GetWidth() const override { return 16; }
+		int  GetHeight()const override { return 16; }
+		int  GetFPS()   const override { return 0; }
+		bool HasMoreSteps() const override { return step_ < kSteps; }
+		bool Step() override {
+			if(step_ >= kSteps) return false;
+			step_++;
+			return true;
+		}
+		bool ReadFrame(VsmImageBuffer& out, int64& ts) override {
+			out = VsmImageBuffer::MakeSolid(16, 16, (byte)(step_ * 50 + 50), 1);
+			ts  = step_ * 33;
+			return true;
+		}
+		String GetSourceInfo() const override { return "synthetic-stepped"; }
+	};
+
+	SyntheticSteppedSource src;
+	if(!src.Open("")) { Fail("SteppedSource: Open"); return; }
+	if(!src.IsReady()) { Fail("SteppedSource: IsReady"); return; }
+	if(!src.HasMoreSteps()) { Fail("SteppedSource: expected HasMoreSteps at start"); return; }
+	Cout() << "Open/IsReady/HasMoreSteps: OK\n";
+
+	// Drive manually: Step() then ReadFrame(), 3 times, then HasMoreSteps() false
+	int steps_taken = 0;
+	VsmImageBuffer out; int64 ts = -1;
+	while(src.HasMoreSteps()) {
+		if(!src.Step()) { Fail("SteppedSource: Step failed while HasMoreSteps true"); return; }
+		if(!src.ReadFrame(out, ts)) { Fail("SteppedSource: ReadFrame failed after Step"); return; }
+		steps_taken++;
+	}
+	if(steps_taken != 3) { Fail("SteppedSource: expected 3 steps"); return; }
+	if(src.HasMoreSteps()) { Fail("SteppedSource: HasMoreSteps should be false after 3 steps"); return; }
+	Cout() << "Manual Step()+ReadFrame() loop: " << steps_taken << " steps OK\n";
+
+	// Drive via VsmObservationPipeline::RunFromSteppedSource
+	SyntheticSteppedSource src2;
+	src2.Open("");
+
+	VsmAnnotationLayer ann;
+	ann.schema = 1; ann.session_id = "stepped-001";
+	VsmRegionAnnotation& a = ann.annotations.Add();
+	a.id = "ann-stepped"; a.name = "FullFrame"; a.x = 0; a.y = 0; a.w = 16; a.h = 16;
+
+	VsmFakeOcrEngine fake_ocr("SteppedTest", 0.85);
+	Vector<VsmOcrRule> ocr_rules;
+	VsmOcrRule& r = ocr_rules.Add();
+	r.rule_id = "ocr-stepped"; r.annotation_id = "ann-stepped";
+	r.expectation.mode = VSM_EXPECT_EXACT;
+	r.expectation.expected_text = "SteppedTest";
+	r.confidence_threshold = 0.5;
+
+	VsmObservationPipeline pipe;
+	pipe.SetLog(&log);
+	pipe.SetAnnotationLayer(&ann);
+	pipe.SetOcrRules(&ocr_rules);
+	pipe.SetOcrEngine(&fake_ocr);
+
+	VsmPipelineRunSummary sum = pipe.RunFromSteppedSource(src2);
+	if(!sum.success) { Fail("RunFromSteppedSource: not success"); return; }
+	if(sum.frames_processed != 3) { Fail("RunFromSteppedSource: expected 3 frames processed"); return; }
+	if(sum.observations_made == 0) { Fail("RunFromSteppedSource: no observations"); return; }
+	Cout() << "RunFromSteppedSource: frames=" << sum.frames_processed
+	       << " obs=" << sum.observations_made << " OK\n";
+}
+
+// ---------------------------------------------------------------------------
 // Test: Manifest backward compatibility
 
 static void TestManifestBackwardCompat()
@@ -1469,6 +1551,7 @@ CONSOLE_APP_MAIN
 	TestImageAssets();
 	TestSessionStorage();
 	TestFrameSource();
+	TestSteppedFrameSource();
 	TestManifestBackwardCompat();
 	TestMjpegParser();
 	TestCanonicalJsonCompare();

@@ -1,0 +1,6 @@
+file
+	Easing.h,
+	Easing.cpp;
+
+uses
+	CtrlCore

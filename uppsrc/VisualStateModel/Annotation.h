@@ -42,6 +42,7 @@ struct VsmRegionAnnotation : Moveable<VsmRegionAnnotation> {
 	// Link to observed regions / fingerprints
 	Vector<String>  linked_region_ids;
 	Vector<String>  linked_fingerprints;
+	int             expected_child_count = -1;  // -1 = not applicable (fixed single region)
 
 	void Jsonize(JsonIO& json);
 };

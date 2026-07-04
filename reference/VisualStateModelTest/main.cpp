@@ -1307,6 +1307,203 @@ static void TestMjpegParser()
 }
 
 // ---------------------------------------------------------------------------
+// Test: Region cardinality field
+
+static void TestRegionCardinality()
+{
+	Cout() << "\n=== Region cardinality field ===\n";
+
+	AppLog log;
+	log.SetForwardToUppLog(false);
+
+	// Test 1: VsmRegionAnnotation round-trip with expected_child_count
+	{
+		VsmAnnotationLayer layer;
+		layer.schema = 1;
+		layer.session_id = "card-001";
+
+		VsmRegionAnnotation& a = layer.annotations.Add();
+		a.id = "ann-hand";
+		a.name = "Hand Zone";
+		a.x = 100; a.y = 300; a.w = 500; a.h = 100;
+		a.expected_child_count = 13;
+
+		// Serialize and deserialize
+		String json = StoreAsJson(layer);
+		VsmAnnotationLayer layer2;
+		if(!LoadFromJson(layer2, json)) {
+			Fail("RegionCardinality: annotation deserialization");
+			return;
+		}
+
+		if(layer2.annotations.GetCount() != 1) {
+			Fail("RegionCardinality: annotation count after round-trip");
+			return;
+		}
+		if(layer2.annotations[0].expected_child_count != 13) {
+			Fail(Format("RegionCardinality: expected_child_count=%d, expected 13",
+			            layer2.annotations[0].expected_child_count));
+			return;
+		}
+		Cout() << "Annotation round-trip with expected_child_count=13: OK\n";
+	}
+
+	// Test 2: Annotation without expected_child_count defaults to -1
+	{
+		String json = R"({
+			"schema": 1,
+			"session_id": "test-001",
+			"annotations": [
+				{
+					"id": "ann-fixed",
+					"parent_id": "",
+					"name": "Fixed Region",
+					"x": 0,
+					"y": 0,
+					"w": 100,
+					"h": 100,
+					"relative_to_parent": false,
+					"binding": {"type": 0, "reference_id": ""},
+					"anchors": [],
+					"hotspots": [],
+					"linked_region_ids": [],
+					"linked_fingerprints": []
+				}
+			]
+		})";
+
+		VsmAnnotationLayer layer;
+		if(!LoadFromJson(layer, json)) {
+			Fail("RegionCardinality: backward compat annotation load");
+			return;
+		}
+		if(layer.annotations[0].expected_child_count != -1) {
+			Fail(Format("RegionCardinality: backward compat expected_child_count=%d, expected -1",
+			            layer.annotations[0].expected_child_count));
+			return;
+		}
+		Cout() << "Annotation backward compatibility (no field defaults to -1): OK\n";
+	}
+
+	// Test 3: Ground-truth region event with expected_child_count
+	{
+		String sample = R"({
+			"schema": 1,
+			"producer": {"name": "VisualStateModel", "version": "0.1.0"},
+			"session": {
+				"id": "card-game-001",
+				"source_type": "game_export",
+				"frame_width": 1024,
+				"frame_height": 768,
+				"started_at": "2026-01-15T14:00:00.000Z"
+			},
+			"events": [
+				{
+					"type": "region",
+					"frame": 0,
+					"ts": "2026-01-15T14:00:00.000Z",
+					"region_id": "rgn-hand",
+					"action": "created",
+					"rect": {"x": 100, "y": 500, "w": 800, "h": 200},
+					"parent_id": "",
+					"fingerprint": "sha1:abc123",
+					"expected_child_count": 13
+				},
+				{
+					"type": "region",
+					"frame": 5,
+					"ts": "2026-01-15T14:00:00.166Z",
+					"region_id": "rgn-hand",
+					"action": "resized",
+					"rect": {"x": 100, "y": 500, "w": 800, "h": 200},
+					"parent_id": "",
+					"fingerprint": "sha1:abc124",
+					"expected_child_count": 12
+				},
+				{
+					"type": "region",
+					"frame": 10,
+					"ts": "2026-01-15T14:00:00.333Z",
+					"region_id": "rgn-fixed",
+					"action": "created",
+					"rect": {"x": 50, "y": 50, "w": 300, "h": 300},
+					"parent_id": "",
+					"fingerprint": "sha1:def456"
+				}
+			]
+		})";
+
+		String tmpPath = AppendFileName(GetTempPath(), "vsm_card_test.json");
+		SaveFile(tmpPath, sample);
+
+		VsmGroundTruthLoader loader;
+		loader.SetLog(&log);
+		VsmSession session;
+		if(!loader.Load(tmpPath, session)) {
+			Fail("RegionCardinality: ground truth load");
+			FileDelete(tmpPath);
+			return;
+		}
+		FileDelete(tmpPath);
+
+		if(session.regions.GetCount() != 3) {
+			Fail(Format("RegionCardinality: region count=%d, expected 3", session.regions.GetCount()));
+			return;
+		}
+
+		// Check first region (with expected_child_count=13)
+		if(session.regions[0].expected_child_count != 13) {
+			Fail(Format("RegionCardinality: rgn-hand[0] expected_child_count=%d, expected 13",
+			            session.regions[0].expected_child_count));
+			return;
+		}
+
+		// Check second region update (with expected_child_count=12)
+		if(session.regions[1].expected_child_count != 12) {
+			Fail(Format("RegionCardinality: rgn-hand[1] expected_child_count=%d, expected 12",
+			            session.regions[1].expected_child_count));
+			return;
+		}
+
+		// Check third region (without expected_child_count, should default to -1)
+		if(session.regions[2].expected_child_count != -1) {
+			Fail(Format("RegionCardinality: rgn-fixed expected_child_count=%d, expected -1",
+			            session.regions[2].expected_child_count));
+			return;
+		}
+
+		Cout() << "Ground-truth region events with cardinality: OK\n";
+	}
+
+	// Test 4: VsmRegionNode round-trip via Jsonize
+	{
+		VsmRegionNode rn;
+		rn.id = "rgn-test";
+		rn.parent_id = "";
+		rn.x = 10; rn.y = 20; rn.w = 100; rn.h = 80;
+		rn.action = "created";
+		rn.label = "TestZone";
+		rn.frame = 5;
+		rn.ts = "2026-01-15T14:00:00.166Z";
+		rn.expected_child_count = 7;
+
+		String json = StoreAsJson(rn);
+		VsmRegionNode rn2;
+		if(!LoadFromJson(rn2, json)) {
+			Fail("RegionCardinality: VsmRegionNode deserialization");
+			return;
+		}
+
+		if(rn2.expected_child_count != 7) {
+			Fail(Format("RegionCardinality: VsmRegionNode expected_child_count=%d, expected 7",
+			            rn2.expected_child_count));
+			return;
+		}
+		Cout() << "VsmRegionNode round-trip with expected_child_count=7: OK\n";
+	}
+}
+
+// ---------------------------------------------------------------------------
 // Test: Canonical JSON comparison
 
 static void TestCanonicalJsonCompare()
@@ -1554,6 +1751,7 @@ CONSOLE_APP_MAIN
 	TestSteppedFrameSource();
 	TestManifestBackwardCompat();
 	TestMjpegParser();
+	TestRegionCardinality();
 	TestCanonicalJsonCompare();
 	TestDeterministicReplay();
 

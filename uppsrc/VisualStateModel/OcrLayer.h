@@ -17,6 +17,10 @@ struct VsmOcrEngineInfo : Moveable<VsmOcrEngineInfo> {
 enum VsmTextExpectMode {
 	VSM_EXPECT_EXACT    = 0,
 	VSM_EXPECT_CONTAINS = 1,
+	// VSM_EXPECT_DYNAMIC is kept only for source/back-compat with code written
+	// against task 0070: setting `mode = VSM_EXPECT_DYNAMIC` still means
+	// "dynamic, compared EXACT", exactly as before (see VsmTextExpectation's
+	// `dynamic` field below, added by task 0073, for the general case).
 	VSM_EXPECT_DYNAMIC  = 2, // expected_text is resolved from template_text + a live state_json Value
 };
 
@@ -34,11 +38,26 @@ enum VsmOcrSeverity {
 };
 
 struct VsmTextExpectation : Moveable<VsmTextExpectation> {
+	// `mode` is purely the *comparison* mode (EXACT vs CONTAINS) — whether the
+	// resolved expected text must equal the OCR result or merely appear
+	// within it. `dynamic` is an orthogonal, independent flag: whether that
+	// resolved expected text comes from `expected_text` verbatim (dynamic ==
+	// false) or from resolving `template_text` against a live state_json
+	// Value at compare time (dynamic == true). These two axes were originally
+	// conflated into one three-value enum (task 0070), which meant
+	// VSM_EXPECT_DYNAMIC could only ever compare EXACT — there was no way to
+	// ask for "dynamic template, but CONTAINS comparison" (needed by task
+	// 0073's per-substring HUD label checks). `mode == VSM_EXPECT_DYNAMIC` is
+	// kept working exactly as before (dynamic resolution + EXACT compare) for
+	// back-compat with existing callers that never set `dynamic` explicitly;
+	// new callers should set `mode` to EXACT/CONTAINS and `dynamic` to true
+	// when they want templated CONTAINS matching.
 	int    mode = VSM_EXPECT_EXACT;
+	bool   dynamic = false;
 	String expected_text;
-	String template_text; // used instead of expected_text when mode == VSM_EXPECT_DYNAMIC
+	String template_text; // used instead of expected_text when dynamic resolution is in effect
 	void Jsonize(JsonIO& json) {
-		json("mode",mode)("expected_text",expected_text)("template_text",template_text);
+		json("mode",mode)("dynamic",dynamic)("expected_text",expected_text)("template_text",template_text);
 	}
 };
 

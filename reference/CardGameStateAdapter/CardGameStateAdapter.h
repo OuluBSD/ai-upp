@@ -8,6 +8,7 @@ NAMESPACE_UPP
 
 #include "VsmCardGameStateExport.h"
 #include "VsmHeartsSource.h"
+#include "VsmHeartsOcrPipeline.h"
 
 END_UPP_NAMESPACE
 

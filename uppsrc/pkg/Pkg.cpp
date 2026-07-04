@@ -300,6 +300,8 @@ struct PkgLocalPolicy : Moveable<PkgLocalPolicy> {
 	String make_vcpkg_triplet;
 	String make_emscripten_profile;
 	int make_jobs = 0;
+	bool nests_explicit = false;
+	Vector<String> nests;
 	Vector<PkgPolicyLine> package_use;
 	Vector<PkgPolicyLine> package_provider;
 	Vector<PkgPolicyLine> package_target;
@@ -602,6 +604,16 @@ static void sParseMakeConfFile(PkgLocalPolicy& policy, const String& path)
 			policy.make_emscripten_profile = value;
 		else if(key == "JOBS")
 			policy.make_jobs = ScanInt(value);
+		else if(key == "NESTS") {
+			policy.nests_explicit = true;
+			policy.nests.Clear();
+			Vector<String> parts = Split(value, ',');
+			for(String& part : parts) {
+				String t = TrimBoth(part);
+				if(!t.IsEmpty())
+					policy.nests.Add(t);
+			}
+		}
 		else if(key == "ROOT")
 			policy.make_repository = value;
 		else if(key == "SYSROOT")
@@ -676,6 +688,17 @@ static PkgLocalPolicy sLoadLocalPolicy(const PkgConfigPaths& paths, const PkgRep
 	policy.package_mask_path = paths.package_mask;
 	policy.package_force_path = paths.package_force;
 	sParseMakeConfFile(policy, paths.make_conf);
+	if(policy.nests_explicit) {
+		bool has_uppsrc = false, has_stdsrc = false;
+		for(const String& n : policy.nests) {
+			String low = ToLower(n);
+			has_uppsrc |= (low == "uppsrc");
+			has_stdsrc |= (low == "stdsrc");
+		}
+		if(has_uppsrc && has_stdsrc)
+			sPolicyWarn(policy, policy.make_conf_path, 0,
+				"NESTS includes both 'uppsrc' and 'stdsrc'; these are mutually exclusive package nests for now and may produce ambiguous/duplicate package names");
+	}
 	sParsePolicyFile(policy, paths.package_use, policy.package_use);
 	sParsePolicyFile(policy, paths.package_provider, policy.package_provider);
 	sParsePolicyFile(policy, paths.package_target, policy.package_target);
@@ -1048,9 +1071,10 @@ static String sPackageAtomFromUpp(const String& repo_root, const String& upp_pat
 	while(rel.GetCount() && (rel[0] == '/' || rel[0] == '\\'))
 		rel.Remove(0, 1);
 	Vector<String> parts = Split(rel, '/');
+	if(parts.GetCount() >= 1)
+		nest_out = parts[0];
 	if(parts.GetCount() < 3)
 		return Null;
-	nest_out = parts[0];
 	return sJoinPath(parts, 1, parts.GetCount() - 1);
 }
 
@@ -1242,6 +1266,53 @@ PkgLookupResult PkgRepository::Resolve(const String& atom) const
 	return r;
 }
 
+// Lightweight, standalone parse of just the NESTS= key from make.conf, used
+// during Discover() before a full PkgLocalPolicy can be built (sLoadLocalPolicy
+// needs a fully-discovered PkgRepository to validate atoms against, so it must
+// run after Discover() -- see the call site in RunPkg). NESTS= is re-parsed in
+// full later by sParseMakeConfFile/sLoadLocalPolicy for display and warnings;
+// that double-parse is deliberate and accepted (the file is tiny).
+struct PkgNestFilter {
+	bool explicit_set = false;
+	Index<String> include; // lowercased nest names; only meaningful if explicit_set
+};
+
+static void sLoadNestFilter(const String& make_conf_path, PkgNestFilter& filter)
+{
+	filter.explicit_set = false;
+	filter.include.Clear();
+	if(make_conf_path.IsEmpty() || !FileExists(make_conf_path))
+		return;
+	Vector<String> lines = Split(LoadFile(make_conf_path), '\n');
+	for(int i = 0; i < lines.GetCount(); i++) {
+		String line = sPolicyTrimComment(lines[i]);
+		if(line.IsEmpty())
+			continue;
+		int eq = line.Find('=');
+		if(eq < 0)
+			continue;
+		String key = ToUpper(TrimBoth(line.Left(eq)));
+		if(key != "NESTS")
+			continue;
+		String value = sPolicyUnquote(line.Mid(eq + 1));
+		filter.explicit_set = true;
+		Vector<String> parts = Split(value, ',');
+		for(String& part : parts) {
+			String t = ToLower(TrimBoth(part));
+			if(!t.IsEmpty())
+				filter.include.FindAdd(t);
+		}
+	}
+}
+
+static bool sNestIsAllowed(const PkgNestFilter& filter, const String& nest)
+{
+	String low = ToLower(nest);
+	if(filter.explicit_set)
+		return filter.include.Find(low) >= 0;
+	return low != "stdsrc"; // built-in default exclusion
+}
+
 void PkgRepository::Discover()
 {
 	TimeStop ts;
@@ -1269,7 +1340,18 @@ void PkgRepository::Discover()
 	find_calls = 0;
 	discover_paths = 0;
 	loaded_packages = 0;
-	Vector<String> upp = FindAllPaths(root, "*.upp");
+	PkgNestFilter nest_filter;
+	sLoadNestFilter(paths.make_conf, nest_filter);
+	Vector<String> upp_all = FindAllPaths(root, "*.upp");
+	Vector<String> upp;
+	upp.Reserve(upp_all.GetCount());
+	for(const String& upp_path : upp_all) {
+		String nest;
+		sPackageAtomFromUpp(root, upp_path, nest);
+		if(!nest.IsEmpty() && !sNestIsAllowed(nest_filter, nest))
+			continue;
+		upp.Add(upp_path);
+	}
 	discover_paths = upp.GetCount();
 	cache_used = use_cache;
 
@@ -6487,6 +6569,15 @@ static void sPrintDoctorConfig(PkgDoctorSummary& sum, const PkgRepository& repo,
 	show(policy.package_mask_path);
 	show(policy.package_force_path);
 	Cout() << "  local root: " << repo.paths.ai_dir << "\n";
+	{
+		Vector<String> active_nests = clone(repo.nests);
+		Sort(active_nests);
+		String nest_list = active_nests.IsEmpty() ? String("[none]") : sJoin(active_nests, ", ");
+		if(policy.nests_explicit)
+			Cout() << "  active nests: " << nest_list << " (from NESTS= in .ai-upp/make.conf)\n";
+		else
+			Cout() << "  active nests: " << nest_list << " (default, excludes stdsrc)\n";
+	}
 	Cout() << "  effective defaults:\n";
 	if(!policy.make_use.IsEmpty())
 		Cout() << "    USE=" << policy.make_use << "\n";

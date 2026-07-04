@@ -38,7 +38,8 @@ a divergence needs to be pinned to a specific play, not just a trick.
   "leading_suit": "hearts",
   "hearts_broken": true,
   "player": 0,
-  "card_played": "QS"
+  "card_played": "QS",
+  "hand_counts": [8, 9, 9, 9]
 }
 ```
 
@@ -53,6 +54,7 @@ a divergence needs to be pinned to a specific play, not just a trick.
 | `hearts_broken` | bool | Whether hearts have been broken this round. |
 | `player` | int | Player index (0–3) who just played `card_played`. |
 | `card_played` | string | Two-character card code, rank+suit (e.g. `"QS"` = Queen of Spades). |
+| `hand_counts` | array[4], optional | Per-player remaining-card count, `len(state.players[i])` for each `i` (0–3), read live at the same instant as the other fields. Optional/additive (task 0073) — closes task 0070's flagged follow-up, needed to validate the on-screen HUD label's `"C:<n>"` segment (`main.py:394-407`'s `update_hud()`) without requiring a new schema tier. Producers that don't emit it are still schema-valid; consumers must not require it. |
 
 ## Tier 2 — `trick`
 

@@ -45,6 +45,14 @@ public:
 	}
 	int GetStepCount() const { return step_count; }
 
+	// Exposed for task 0073's OCR/divergence wiring (VsmHeartsOcrPipeline),
+	// which needs `host` directly for CardGameDocumentHost::GetZoneRect()
+	// (player-label zone rects, for cropping) — nothing this class itself
+	// needs from outside otherwise required this. `host` stays a plain
+	// member (not re-derived) since VsmHeartsOcrPipeline is driven in lockstep
+	// with this same open/Step() loop, never independently.
+	CardGameDocumentHost& GetHost() { return host; }
+
 private:
 	CardGameDocumentHost   host;
 	VsmCardGameStateExport exporter;

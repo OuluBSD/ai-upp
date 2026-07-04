@@ -34,7 +34,7 @@ NAMESPACE_UPP
 // public .gamestate contents is the non-invasive way to get it without
 // modifying CardGameDocumentHost for something that is not actually missing
 // -- the data needed is already public, just not pre-computed for us.
-static PyValue FindEntryModuleDict(CardGameDocumentHost& host, PyVM& vm)
+PyValue VsmCardGameStateExport::FindEntryModuleDict(CardGameDocumentHost& host, PyVM& vm)
 {
 	String gamestate_path = host.GetPath();
 	String module_name = "__game_main__";

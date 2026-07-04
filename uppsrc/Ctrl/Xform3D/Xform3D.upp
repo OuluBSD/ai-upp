@@ -1,0 +1,9 @@
+description "3D perspective rotate+project helper for flat rectangular images (built on Geometry)";
+
+uses
+	CtrlCore,
+	Geometry;
+
+file
+	Xform3D.h,
+	Xform3D.cpp;

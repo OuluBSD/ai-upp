@@ -1,0 +1,10 @@
+uses
+	Core,
+	Ctrl/Xform3D;
+
+file
+	Xform3DTest.cpp;
+
+mainconfig
+	"" = "GUI",
+	"" = "GUI USEMALLOC";

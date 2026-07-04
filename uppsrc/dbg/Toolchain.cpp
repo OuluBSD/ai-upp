@@ -195,6 +195,24 @@ DbgToolchainStatus CheckDbgBackendToolchain(const String& backend_name)
 #endif
 	}
 
+	if(backend_name == "java") {
+		String jdb_path;
+#ifdef PLATFORM_POSIX
+		const char *jdb_exe = "jdb";
+#else
+		const char *jdb_exe = "jdb.exe";
+#endif
+		if(FindExecutableOnPath(jdb_exe, jdb_path)) {
+			status.available = true;
+			status.messages.Add(String("java: ") + jdb_exe + " found at " + jdb_path);
+			status.messages.Add("java: toolchain check passed");
+		}
+		else {
+			status.messages.Add(String("java: ") + jdb_exe + " not found on PATH");
+		}
+		return status;
+	}
+
 	status.messages.Add(backend_name + ": unknown backend");
 	return status;
 }

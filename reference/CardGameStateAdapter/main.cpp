@@ -133,6 +133,7 @@ GUI_APP_MAIN
 		int card_play_events = 0, trick_events = 0, round_events = 0;
 		bool reached_round_end = false;
 		String last_json;
+		Vector<VsmCardGameEvent> all_events; // full emitted sequence, for the 0072 consistency check below
 
 		while(src.HasMoreSteps() && src.GetStepCount() < VsmHeartsSource::kMaxSteps) {
 			bool ok = src.Step();
@@ -154,6 +155,10 @@ GUI_APP_MAIN
 				else if(tier == "trick") trick_events++;
 				else if(tier == "round") { round_events++; reached_round_end = true; }
 				last_json = json;
+
+				VsmCardGameEvent& e = all_events.Add();
+				e.tier = tier;
+				e.state_json = json;
 			}
 			if(reached_round_end)
 				break;
@@ -174,6 +179,23 @@ GUI_APP_MAIN
 			"%d round event. Final round_json: %s\n",
 			src.GetStepCount(), card_play_events, trick_events, round_events, last_json);
 		Cout() << "VsmHeartsSource one-round drive: OK.\n";
+
+		// -------------------------------------------------------------
+		// Task 0072: ground-truth self-consistency check on the real,
+		// VsmHeartsSource-produced event sequence -- does the generator
+		// itself internally reconcile (trick winners vs round-score
+		// deltas, no duplicate cards, correct card count, correct round
+		// total/shoot-the-moon handling) before this ground truth would be
+		// fed into a pipeline test. See docs/VisualStateModel/HEARTS_SOURCE_INVESTIGATION.md
+		// gap #6 and uppsrc/VisualStateModel/CardGameConsistency.h.
+		Cout() << "\n--- VsmCheckCardGameConsistency: self-consistency check on the real round ---\n";
+		VsmValidationResult consistency = VsmCheckCardGameConsistency(all_events);
+		for(const VsmValidationIssue& issue : consistency.issues)
+			Cout() << "  [" << issue.severity << "] " << issue.message << "\n";
+		Cout() << Format("VsmCheckCardGameConsistency: %d event(s) checked, %d issue(s), ok=%s\n",
+			consistency.frames_checked, consistency.issues.GetCount(), consistency.ok ? "true" : "false");
+		ASSERT_(consistency.ok, "VsmCheckCardGameConsistency found consistency errors in the real VsmHeartsSource-driven round (see issues above)");
+		Cout() << "VsmCheckCardGameConsistency: OK.\n";
 	}
 
 	SetExitCode(0);

@@ -21,6 +21,8 @@ file
 	SessionStorage.cpp,
 	SessionValidator.h,
 	SessionValidator.cpp,
+	CardGameConsistency.h,
+	CardGameConsistency.cpp,
 	Annotation.h,
 	Annotation.cpp,
 	Preprocess.h,

@@ -1,44 +1,65 @@
 Scope: uppsrc/dbg
 
 Purpose
-- Headless debugger CLI skeleton.
-- Owns the first debugger command surface for future `dbg` work.
-- Current role is registry/dispatch scaffolding, not a real debugger backend.
+- Headless debugger CLI.
+- Direct integration with `ide/DebuggersCore` to run programs, capture crash signals, and output structured stack backtraces.
+- Supports local debugging (GDB and LLDB) and remote Android debugging (LLDB over ADB).
 
 Current Commands
 - `--help`
 - `--backends`
 - `--backend <name> --help`
-- `--backend <name> check`
+- `--backend <name> check` (probes toolchain/environment readiness)
 - `--backend <name> run <program> [args...]`
 
-Planned Backends
-- `vs`
-- `gdb`
-- `lldb`
+Backends Status
+- `vs`: Visual Studio backend (planned/supported on Windows; unsupported on POSIX/Linux).
+- `gdb`: GNU Debugger (fully supported on Linux/Windows).
+- `lldb`: LLVM Debugger (fully supported on Linux/Windows).
 
 Build
-- `bin/build.exe -m MSVS26x64 -j12 dbg`
-- Binary: `bin/dbg.exe`
+- Linux: `python3 script/build.py -m GCC dbg` -> Binary: `bin/dbg`
+- Windows: `bin/build.exe -m MSVS26x64 -j12 dbg` -> Binary: `bin/dbg.exe`
 
-Debugger Toolchain Notes
-- Future backend smoke tests should use a small crashing test executable and verify that each backend
-  can produce an automatic call stack.
-- On this Windows workstation, LLVM is installed and `lldb.exe` is expected under
-  `C:\Program Files\LLVM\bin`.
-- LLDB may fail if it loads the wrong Python runtime. Python 3.11 is installed at `C:\Python311`;
-  prepend `C:\Python311` and, if needed, `C:\Python311\Scripts` to `PATH` before running LLDB smoke
-  tests.
-- Do not hard-code this workstation path in production code. Keep it as a local test/setup note until
-  backend configuration is formalized.
-- `gdb.exe` availability should be detected in the test environment before enabling GDB smoke tests.
+Local Debugger Toolchain Notes
+- Both GDB and LLDB adapters run targets in headless batch mode.
+- If a target crashes (e.g. SIGSEGV), the adapters capture the raw debugger backtrace and format it into a structured Call Stack output on stdout.
+- On Linux, the CLI probes for `gdb` and `lldb` on `PATH`, and verifies Python 3 environment.
+- On Windows, LLVM is expected under `C:\Program Files\LLVM\bin` and Python 3.11 at `C:\Python311`.
+
+Android Remote Debugging via ADB (LLDB)
+To debug an arm64 target running on a physical Android device or virtual machine:
+1. **Locate lldb-server**:
+   - Get the precompiled `lldb-server` from Android Studio (e.g., under `plugins/android-ndk/resources/lldb/android/arm64-v8a/lldb-server`).
+2. **Deploy to Device**:
+   - Push the server and target executable to the device's tmp folder:
+     `adb push lldb-server /data/local/tmp/`
+     `adb push target_exe /data/local/tmp/`
+     `adb shell "chmod 755 /data/local/tmp/lldb-server /data/local/tmp/target_exe"`
+3. **Configure Port Forwarding**:
+   - Forward the debugger port (default 5039):
+     `adb forward tcp:5039 tcp:5039`
+4. **Launch lldb-server**:
+   - Start the remote platform server on the device. **Critical**: You must `cd` to `/data/local/tmp` first so that `lldb-server` can write cache/tmp files without raising "Read-only file system" errors:
+     `adb shell "cd /data/local/tmp && ./lldb-server platform --server --listen \"*:5039\""`
+5. **Connect and Debug from Host**:
+   - Launch `lldb` on host and connect:
+     `platform select remote-android`
+     `platform settings -w /data/local/tmp`
+     `platform connect connect://localhost:5039`
+     `target create ./local_exe -r /data/local/tmp/target_exe`
+     `run`
 
 Package Notes
 - `TcpProxy.*` are legacy MCP proxy files.
-- They are not part of `dbg.upp` and must stay out of the package manifest unless the package role changes again.
+- They are not part of `dbg.upp` and must stay out of the package manifest.
 
 File Map
 - `dbg.h` : umbrella header
 - `Backend.h/cpp` : backend registry, planned backend metadata, CLI dispatch
 - `Toolchain.h/cpp` : backend toolchain diagnostics
+- `Session.h/cpp` : debugger session/request definitions
+- `GdbAdapter.h/cpp` : adapter for GdbEngine
+- `LldbAdapter.h/cpp` : adapter for LldbEngine
+- `VsAdapter.h/cpp` : VS adapter skeleton
 - `main.cpp` : console entrypoint, delegates to `RunDbgCli`

@@ -10,6 +10,9 @@ NAMESPACE_UPP
 class Engine;
 END_UPP_NAMESPACE
 
+#define NAMESPACE_GUBO_BEGIN namespace Upp { namespace Gu {
+#define NAMESPACE_GUBO_END }}
+
 NAMESPACE_UPP
 
 struct VirtualGui3D {

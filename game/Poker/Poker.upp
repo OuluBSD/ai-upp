@@ -12,7 +12,6 @@ file
 	PokerHandInterface.h,
 	CardsValue.h,
 	CardsValue.cpp,
-	HeadlessTexasHoldem.cpp,
 	PokerLocalPlayer.h,
 	PokerLocalPlayer.cpp,
 	LocalHand.h,

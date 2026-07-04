@@ -1,0 +1,10 @@
+uses
+	Core,
+	CtrlLib,
+	Ctrl/Easing;
+
+file
+	EasingTest.cpp;
+
+mainconfig
+	"" = "GUI X11 USEMALLOC";

@@ -17,6 +17,7 @@ struct VsmOcrEngineInfo : Moveable<VsmOcrEngineInfo> {
 enum VsmTextExpectMode {
 	VSM_EXPECT_EXACT    = 0,
 	VSM_EXPECT_CONTAINS = 1,
+	VSM_EXPECT_DYNAMIC  = 2, // expected_text is resolved from template_text + a live state_json Value
 };
 
 enum VsmOcrStatus {
@@ -35,10 +36,28 @@ enum VsmOcrSeverity {
 struct VsmTextExpectation : Moveable<VsmTextExpectation> {
 	int    mode = VSM_EXPECT_EXACT;
 	String expected_text;
+	String template_text; // used instead of expected_text when mode == VSM_EXPECT_DYNAMIC
 	void Jsonize(JsonIO& json) {
-		json("mode",mode)("expected_text",expected_text);
+		json("mode",mode)("expected_text",expected_text)("template_text",template_text);
 	}
 };
+
+// ---------------------------------------------------------------------------
+// Dynamic OCR expected-text templates
+//
+// Minimal field-substitution against a parsed state_json Value — not a
+// general expression language. Syntax:
+//   {field}     -> scalar value of state[field], via Value::ToString()
+//   {field[N]}  -> the Nth element of the array-valued state[field]
+//
+// Fields absent from `state` (unknown key, index out of range, or state
+// itself null/empty) leave the original "{...}" placeholder text untouched
+// in the output rather than silently collapsing to an empty string
+// (loud-not-silent). Each unresolved placeholder is also reported via RLOG
+// and, if `missing_fields` is supplied, appended to it — callers can check
+// either to detect that this happened.
+String VsmResolveDynamicText(const String& template_text, const Value& state,
+                              Vector<String>* missing_fields = nullptr);
 
 struct VsmOcrRule : Moveable<VsmOcrRule> {
 	String             rule_id;
@@ -122,7 +141,12 @@ public:
 	void SetEngine(VsmOcrEngine* eng)   { engine_ = eng;       }
 
 	VsmOcrResult     RunRequest(const VsmFrameImage& img, const VsmOcrRequest& req);
-	VsmOcrComparison Compare(const VsmOcrResult& result, const VsmOcrRule& rule);
+	// live_state is only consulted when rule.expectation.mode == VSM_EXPECT_DYNAMIC:
+	// the effective expected text is resolved via VsmResolveDynamicText(template_text,
+	// live_state) before comparing. A null/empty live_state with dynamic mode is treated
+	// as a rule-configuration error (VSM_OCR_ERROR_S), not a silent pass.
+	VsmOcrComparison Compare(const VsmOcrResult& result, const VsmOcrRule& rule,
+	                          const Value& live_state = Value());
 
 private:
 	CoreLog       log_;

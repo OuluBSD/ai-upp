@@ -385,6 +385,84 @@ static void TestOcrLayer()
 }
 
 // ---------------------------------------------------------------------------
+// Test: Dynamic OCR expected_text templates (task 0070, gap #4)
+
+static void TestDynamicOcrText()
+{
+	Cout() << "\n=== Dynamic OCR expected_text templates ===\n";
+
+	Value state = ParseJSON("{\"round_scores\":[1,0,7,4],\"phase\":\"PLAYING\"}");
+
+	// Scalar + indexed-array substitution
+	String resolved = VsmResolveDynamicText("Score: {round_scores[2]}, phase={phase}", state);
+	if(resolved != "Score: 7, phase=PLAYING") {
+		Fail(("VsmResolveDynamicText basic substitution: got '" + resolved + "'"));
+		return;
+	}
+	Cout() << "VsmResolveDynamicText basic substitution: OK ('" << resolved << "')\n";
+
+	// Missing field: placeholder survives, is reported via missing_fields
+	Vector<String> missing;
+	String resolved2 = VsmResolveDynamicText("Hand count: {hand_count}", state, &missing);
+	if(resolved2 != "Hand count: {hand_count}") {
+		Fail(("VsmResolveDynamicText missing field should keep placeholder, got '" + resolved2 + "'"));
+		return;
+	}
+	if(missing.GetCount() != 1 || missing[0] != "hand_count") {
+		Fail("VsmResolveDynamicText missing field should report 'hand_count' via missing_fields");
+		return;
+	}
+	Cout() << "VsmResolveDynamicText missing field: OK (placeholder kept, reported as missing)\n";
+
+	// Out-of-range array index also counts as missing (placeholder kept)
+	Vector<String> missing3;
+	String resolved3 = VsmResolveDynamicText("Score[9]: {round_scores[9]}", state, &missing3);
+	if(resolved3 != "Score[9]: {round_scores[9]}" || missing3.GetCount() != 1) {
+		Fail("VsmResolveDynamicText out-of-range index should keep placeholder as missing");
+		return;
+	}
+	Cout() << "VsmResolveDynamicText out-of-range index: OK\n";
+
+	// VsmOcrExecutor::Compare() wiring
+	AppLog log;
+	log.SetForwardToUppLog(false);
+
+	VsmFakeOcrEngine fake("Score: 7, phase=PLAYING", 0.9);
+	VsmOcrExecutor exec;
+	exec.SetLog(&log);
+	exec.SetEngine(&fake);
+
+	VsmOcrRequest req;
+	req.rule_id = "ocr-dyn-001";
+	VsmFrameImage img;
+	FillSolidRGBA(img, 32, 32, 200, 200, 200);
+	VsmOcrResult result = exec.RunRequest(img, req);
+
+	VsmOcrRule rule;
+	rule.rule_id                   = "ocr-dyn-001";
+	rule.expectation.mode          = VSM_EXPECT_DYNAMIC;
+	rule.expectation.template_text = "Score: {round_scores[2]}, phase={phase}";
+	rule.confidence_threshold      = 0.5;
+
+	VsmOcrComparison cmp = exec.Compare(result, rule, state);
+	if(cmp.severity != VSM_OCR_OK) { Fail("Compare dynamic match should be OK"); return; }
+	Cout() << "Compare dynamic match: OK\n";
+
+	// Mismatch: OCR text no longer matches the dynamically-resolved text
+	VsmFakeOcrEngine fake_stale("Score: 4, phase=PLAYING", 0.9);
+	exec.SetEngine(&fake_stale);
+	VsmOcrResult stale_result = exec.RunRequest(img, req);
+	VsmOcrComparison cmp2 = exec.Compare(stale_result, rule, state);
+	if(cmp2.severity != VSM_OCR_WARNING) { Fail("Compare dynamic mismatch should warn"); return; }
+	Cout() << "Compare dynamic mismatch → warning: OK\n";
+
+	// No live_state supplied for a dynamic-mode rule: rule-configuration error
+	VsmOcrComparison cmp3 = exec.Compare(result, rule);
+	if(cmp3.severity != VSM_OCR_ERROR_S) { Fail("Compare dynamic mode without live_state should error"); return; }
+	Cout() << "Compare dynamic mode without live_state → error: OK\n";
+}
+
+// ---------------------------------------------------------------------------
 // Test: Template matching
 
 static void TestTemplateMatch()
@@ -1740,6 +1818,7 @@ CONSOLE_APP_MAIN
 	TestReplay();
 	TestModelRuntime();
 	TestOcrLayer();
+	TestDynamicOcrText();
 	TestPipelineCache();
 	TestPipelineRunner();
 	TestTemplateMatch();

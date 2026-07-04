@@ -136,16 +136,8 @@ static Value GetHandCounts(const PyValue& state)
 	return counts;
 }
 
-void VsmCardGameStateExport::TrackTrickNumber(const PyValue& state)
-{
-	PyValue winner_pv = GetAttr(state, "last_trick_winner");
-	int winner = winner_pv.IsNone() ? -1 : winner_pv.AsInt();
-	if(winner != -1 && winner != last_seen_trick_winner)
-		resolved_trick_count++;
-	last_seen_trick_winner = winner;
-}
-
-String VsmCardGameStateExport::ExportCardPlayState(CardGameDocumentHost& host, int player, const String& card_played)
+String VsmCardGameStateExport::ExportCardPlayState(CardGameDocumentHost& host, int player,
+                                                    const String& card_played, int trick_number)
 {
 	PyVM* vm = host.GetVM();
 	ASSERT_(vm, "VsmCardGameStateExport::ExportCardPlayState: host has no PyVM");
@@ -153,14 +145,12 @@ String VsmCardGameStateExport::ExportCardPlayState(CardGameDocumentHost& host, i
 	ASSERT_(state.GetType() == PY_DICT, "VsmCardGameStateExport::ExportCardPlayState: "
 	        "no live GameState 'state' object found -- has ExecuteSync() been run yet?");
 
-	TrackTrickNumber(state);
-
 	ValueMap v;
 	v.Add("tier", "card_play");
 	v.Add("round_number", GetInt(state, "round_number"));
 	v.Add("phase", GetStr(state, "phase"));
 	v.Add("turn", GetInt(state, "turn"));
-	v.Add("trick_number", resolved_trick_count + 1);
+	v.Add("trick_number", trick_number);
 	v.Add("leading_suit", GetStr(state, "leading_suit"));
 	v.Add("hearts_broken", GetBool(state, "hearts_broken"));
 	v.Add("player", player);

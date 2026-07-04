@@ -76,7 +76,7 @@ GUI_APP_MAIN
 
 	VsmCardGameStateExport exporter;
 
-	String card_play_json = exporter.ExportCardPlayState(host, 0, "2C");
+	String card_play_json = exporter.ExportCardPlayState(host, 0, "2C", 1);
 	Cout() << "card_play: " << card_play_json << "\n";
 	AssertFieldsExact(card_play_json, "card_play",
 		{"tier", "round_number", "phase", "turn", "trick_number", "leading_suit", "hearts_broken", "player", "card_played", "hand_counts"});

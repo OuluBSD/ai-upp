@@ -31,12 +31,14 @@ Files:
 ```cpp
 class VsmCardGameStateExport {
 public:
-    String ExportCardPlayState(CardGameDocumentHost& host, int player, const String& card_played);
+    String ExportCardPlayState(CardGameDocumentHost& host, int player, const String& card_played, int trick_number);
     String ExportTrickState(CardGameDocumentHost& host, int trick_number, int trick_winner, int trick_points);
     String ExportRoundState(CardGameDocumentHost& host, int round_number);
-    // ... internal trick_number tracking state, see header comments.
 };
 ```
+
+(`trick_number` is caller-supplied on all three tiers as of the follow-up
+fix below — there is no adapter-internal tracking state left.)
 
 Each method builds a `ValueMap` matching one schema tier exactly and returns
 `AsJSON(v)` — no new C++ struct, per the plan's requirement 3 (`state_json`
@@ -119,7 +121,7 @@ attributes — but the helper does the fully-general thing anyway).
 |---|---|---|
 | card_play | `round_number`, `phase`, `turn`, `leading_suit`, `hearts_broken` | live `state.<field>` (same names) |
 | card_play | `player`, `card_played` | caller-supplied (GameState has no "last play" record) |
-| card_play | `trick_number` | **adapter-derived**, see below |
+| card_play | `trick_number` | caller-supplied (see below — was adapter-derived, fixed) |
 | trick | `round_number` | live `state.round_number` |
 | trick | `trick_number`, `trick_winner`, `trick_points` | caller-supplied |
 | trick | `round_scores` | live `state.round_scores` (running in-round tally) |
@@ -141,24 +143,34 @@ between `resolve_round()` and the export call; using live `round_scores`
 would coincidentally also work immediately after `resolve_round()` but
 silently break once another round starts. Not used, on purpose.
 
-**`trick_number` derivation** (Tier 1 only): `hearts/logic.py::GameState`
+**`trick_number` derivation (fixed, post-0073)**: `hearts/logic.py::GameState`
 has no trick-sequence counter (confirmed by reading the whole file — the
-closest field is `last_trick_winner`, set only when a trick resolves). The
-adapter tracks `resolved_trick_count` privately, incrementing it whenever
-`state.last_trick_winner` changes value between calls to
-`ExportCardPlayState()`; `trick_number` is emitted as
-`resolved_trick_count + 1` (the trick currently in progress).
+closest field is `last_trick_winner`, set only when a trick resolves), so
+`ExportCardPlayState()` originally *guessed* the current trick number
+inside the adapter itself, by tracking `resolved_trick_count` privately and
+incrementing it whenever `state.last_trick_winner` changed value between
+calls. **That guess is gone.** `trick_number` is now a required,
+caller-supplied parameter, exactly like `ExportTrickState()`/
+`ExportRoundState()` already were — because the actual driver
+(`VsmHeartsSource::Step()`) already has an *exact* trick count available
+for free: `tricks_resolved`, incremented once per `finish_trick_collect()`
+call it makes itself (`VsmHeartsSource.cpp`). The driver is the only thing
+that ever calls `finish_trick_collect()` under manual stepping (real
+timers never fire — see the `set_timeout` gotchas below), so it cannot be
+wrong about how many tricks have actually resolved; there was never a need
+to re-derive that count by polling Python state from the adapter side. Card
+plays within the trick currently in progress use `tricks_resolved + 1`.
 
-**Known limitation, documented rather than hidden**: if the same player
-wins two consecutive tricks, `last_trick_winner` does not change between
-those two resolutions, so the tracker misses the second increment and
-`trick_number` under-counts by one from that point on for the rest of the
-round. There is no way to detect this from `GameState`'s current fields
-alone. A real fix means adding an explicit trick-sequence counter field to
-`hearts/logic.py::GameState` itself, which is out of this adapter's scope
-(it would change the ground-truth Python engine, not just the C++ read
-side) — flagged here as a follow-up for whoever next touches
-`hearts/logic.py`, rather than silently accepted or paved over.
+**Former known limitation, now closed**: the old adapter-internal guess
+under-counted by one whenever the same player won two consecutive tricks
+(`last_trick_winner` doesn't change across that boundary, so the
+value-diff heuristic missed the increment). Task 0072's
+`VsmCheckCardGameConsistency` (position-based vs. field-based trick-number
+cross-check) is what caught this concretely, in real driven rounds — it
+now reports zero mismatches, confirmed by re-running the full one-round
+demo three times against different random deals after the fix (0 issues
+each time; previously 28-36 `info`-level mismatches per run, depending on
+how many same-winner streaks that deal happened to produce).
 
 ## `PyValue::ToValue()` recursion — verified, not assumed
 
@@ -309,18 +321,18 @@ gap (worth closing in a future task), not a reason to call direct driving
 "premature" — the demo drives `Step()`/`HasMoreSteps()`/`ReadFrame()`
 directly instead, per the plan's own sanctioned fallback.
 
-`trick_number` for the `trick` tier is caller-supplied (via
-`VsmCardGameStateExport::ExportTrickState()`) and tracked *exactly* by
-`VsmHeartsSource` itself (incremented once per `finish_trick_collect()`
-call the driver makes) — this sidesteps the `card_play`-tier's own
-known same-winner-twice-in-a-row undercount (documented above), since the
-driver always knows precisely when a trick resolved, unlike the adapter's
-external `last_trick_winner`-diffing heuristic. That heuristic limitation
-did surface exactly as documented in a real run (round 1 had player 3 win
-tricks 5 and 6 back to back; the `card_play` events during trick 6 show
-`trick_number:5`, stuck) — confirming the known limitation is real and
-unrelated to anything `VsmHeartsSource` does, and that `VsmHeartsSource`'s
-own `trick`-tier counter is unaffected by it.
+`trick_number` for both the `trick` tier and (as of the follow-up fix in
+the "`trick_number` derivation" section above) the `card_play` tier is
+caller-supplied and tracked *exactly* by `VsmHeartsSource` itself
+(`tricks_resolved`, incremented once per `finish_trick_collect()` call the
+driver makes). Originally, only the `trick` tier used this exact count —
+the `card_play` tier still guessed via the adapter's own
+`last_trick_winner`-diffing heuristic, which did visibly undercount in a
+real run (round 1 had player 3 win tricks 5 and 6 back to back; the
+`card_play` events during trick 6 showed `trick_number:5`, stuck) before
+`VsmHeartsSource`'s own exact count was threaded through to
+`ExportCardPlayState()` too. Both tiers now share the same driver-supplied
+count; there is nothing left guessing from Python state.
 
 `ReadFrame()` reuses the same `Image` → `VsmImageBuffer` RGB conversion as
 `reference/VisualStateWorkbench/JpegSequenceImporter.cpp`'s
@@ -450,11 +462,24 @@ always 0.
    `assert_state_invariants`'s `total_cards % 4 == 0` / `total_cards <= 52`
    (`main.py:56-57`) to the emitted event log.
 
-## The `trick_number` limitation, worked around not rediscovered
+## The `trick_number` limitation, worked around not rediscovered (since fixed)
+
+**Status update, post-0072**: the `card_play`-tier `trick_number` undercount
+described in this section was subsequently fixed (see this doc's
+"`trick_number` derivation (fixed, post-0073)" section above) by threading
+`VsmHeartsSource`'s already-exact `tricks_resolved` count into
+`ExportCardPlayState()` instead of leaving the adapter to guess. The
+consistency-checker design described below is unchanged and still runs on
+every real drive — it now simply finds nothing to report (0 `info` notes
+across repeated runs against different random deals, confirmed by rerunning
+the demo three times). The original design rationale is kept below because
+it explains *why* the checker validates by position rather than trusting
+either tier's own field — that reasoning is still correct and is exactly
+what caught this bug in the first place.
 
 Per this doc's own "`trick_number` derivation" section above,
-`VsmCardGameStateExport`'s `card_play`-tier `trick_number` field undercounts
-by one once the same player wins two consecutive tricks (no
+`VsmCardGameStateExport`'s `card_play`-tier `trick_number` field used to
+undercount by one once the same player won two consecutive tricks (no
 `GameState`-side trick-sequence counter exists to disambiguate).
 `VsmCheckCardGameConsistency` never trusts either tier's own `trick_number`
 field for ordering — it tracks trick *position* itself (the Nth resolved
@@ -462,15 +487,14 @@ field for ordering — it tracks trick *position* itself (the Nth resolved
 that position for check 2's reconciliation and check 4's card-count math.
 Any mismatch it finds between position and a `card_play` or `trick` event's
 own `trick_number` field is reported as an informational note (severity
-`"info"`), tied explicitly to this known limitation in the message text —
-never as a validation failure. A real run against `VsmHeartsSource`'s output
-(below) confirms the `card_play`-tier field is the one that actually
-exhibits the bug in practice (36 `info` notes on one real round where a
-player won several tricks in a row); `VsmHeartsSource`'s own `trick`-tier
-counter (tracked independently, see the "trick_number for the trick tier"
-paragraph above) did not mismatch in that same run — the checker validates
-both fields identically and reports whatever it actually finds, rather than
-special-casing either tier.
+`"info"`), never as a validation failure — this is what caught the bug
+concretely, before it was fixed. A real run against `VsmHeartsSource`'s
+output, taken at the time this section was written (before the fix, kept
+here for the record — see "Real end-to-end wiring" below for current,
+post-fix output), showed 36 `info` notes on one real round where a player
+won several tricks in a row, all on the `card_play`-tier field;
+`VsmHeartsSource`'s own `trick`-tier counter did not mismatch in that same
+run, since it was already exact.
 
 ## Tests
 
@@ -486,7 +510,18 @@ mismatch is reported as `"info"` without failing `result.ok`.
 `VsmHeartsSource` emits while driving one full Hearts round (task 0069's
 demo) into a `Vector<VsmCardGameEvent>`, then runs
 `VsmCheckCardGameConsistency()` against that real sequence and prints its
-findings. Real output (one full round, 56 `Step()` calls, 66 total events):
+findings. Real output, current (post `trick_number` fix), one full round,
+66 total events, rerun three times against different random deals:
+
+```
+--- VsmCheckCardGameConsistency: self-consistency check on the real round ---
+VsmCheckCardGameConsistency: 66 event(s) checked, 0 issue(s), ok=true
+VsmCheckCardGameConsistency: OK.
+```
+
+(Historical output, before the `trick_number` fix, for the record — this is
+what the same tool reported against the same class of run when the
+`card_play`-tier field still guessed via the adapter-internal heuristic:)
 
 ```
 --- VsmCheckCardGameConsistency: self-consistency check on the real round ---
@@ -496,10 +531,10 @@ VsmCheckCardGameConsistency: 66 event(s) checked, 36 issue(s), ok=true
 VsmCheckCardGameConsistency: OK.
 ```
 
-All four hard checks passed against the real driven round; every reported
-issue was the documented `trick_number` limitation surfacing exactly where
-expected (a player won several consecutive tricks in this particular
-shuffle), at `"info"` severity, not a failure.
+All four hard checks passed against the real driven round both before and
+after the fix; the `info` notes were never a failure, just visibility into
+the `trick_number` guess being wrong — which is exactly what led to fixing
+it instead of leaving it as a permanent "known limitation."
 
 Build & run:
 
@@ -513,10 +548,15 @@ bin/CardGameStateAdapter
 
 ## Non-goals / what this does not do
 
-- Does not change `VsmCardGameStateExport`/`VsmHeartsSource` to fix the
-  underlying `trick_number` undercount (that requires a trick-sequence
-  counter in `hearts/logic.py::GameState` itself, out of scope here as it
-  was for task 0068 — see this doc's earlier "known limitation" section).
+- At the time this task (0072) was written, it deliberately did not change
+  `VsmCardGameStateExport`/`VsmHeartsSource` to fix the underlying
+  `trick_number` undercount — the checker's job was to detect and report,
+  not silently repair, the generator it's validating. That undercount was
+  fixed in a later pass once it became clear the "real" fix
+  (`hearts/logic.py`-side trick-sequence counter, once assumed necessary)
+  wasn't needed at all — `VsmHeartsSource` already tracks the exact count,
+  it just wasn't being threaded through to `ExportCardPlayState()`. See the
+  "`trick_number` derivation (fixed, post-0073)" section above.
 - Does not wire into `VsmGroundTruthComparison`/`VsmObservationPipeline` —
   this is a standalone pre-check a caller runs against a generated sequence
   before handing it to those tools, not a replacement for them.

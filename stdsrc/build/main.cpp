@@ -700,17 +700,22 @@ vector<BuildMethod> CollectMethods(const string& repo_root) {
 }
 
 string FindUppByName(const string& repo_root, const string& filename, const vector<string>& extra_search_roots, bool include_rainbow) {
+    // Rainbow must be searched before examples/tutorial/reference/etc, matching the
+    // root order the actual umk invocation uses (see the `roots` vector built for the
+    // real build below) — otherwise a package that exists under both e.g. examples/
+    // and rainbow/ with the same name resolves to the wrong .upp here (used for
+    // --list-mainconfigs / -M by name-or-index) while the real build picks the other.
     vector<string> search_roots = {
         JoinPath(repo_root, "upptst"),
         JoinPath(repo_root, "uppsrc"),
-        JoinPath(repo_root, "examples"),
-        JoinPath(repo_root, "tutorial"),
-        JoinPath(repo_root, "reference"),
-        JoinPath(repo_root, "stdsrc"),
-        JoinPath(repo_root, "stdtst"),
-        JoinPath(repo_root, "game")
     };
     if (include_rainbow) search_roots.push_back(JoinPath(repo_root, "rainbow"));
+    search_roots.push_back(JoinPath(repo_root, "examples"));
+    search_roots.push_back(JoinPath(repo_root, "tutorial"));
+    search_roots.push_back(JoinPath(repo_root, "reference"));
+    search_roots.push_back(JoinPath(repo_root, "stdsrc"));
+    search_roots.push_back(JoinPath(repo_root, "stdtst"));
+    search_roots.push_back(JoinPath(repo_root, "game"));
     for (const string& root : extra_search_roots) search_roots.push_back(root);
 
     for (const string& root : search_roots) {

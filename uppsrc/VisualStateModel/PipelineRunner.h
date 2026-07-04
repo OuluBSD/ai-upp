@@ -83,6 +83,12 @@ public:
 	// Saves frames to store_ if set.
 	VsmPipelineRunSummary RunFromSource(VsmFrameSource& src);
 
+	// Alternate entry: drive a semi-live, event-stepped source (see
+	// VsmSteppedFrameSource, FrameSource.h). Loops Step()+ReadFrame() while
+	// HasMoreSteps() is true; per-frame processing is identical to
+	// RunFromSource().
+	VsmPipelineRunSummary RunFromSteppedSource(VsmSteppedFrameSource& src);
+
 	// Run from source then compare observed divergences against ground truth.
 	// Saves comparison_result.json to session store if configured.
 	VsmPipelineRunWithGTSummary RunWithGroundTruth(VsmFrameSource& src,
@@ -127,6 +133,9 @@ private:
 	void EmitModelEvent(const VsmObservation& obs);
 	// Emit observation and record it
 	void EmitObservation(VsmObservation&& obs);
+	// Shared per-frame processing body for RunFromSource/RunFromSteppedSource
+	void ProcessSourceFrame(const VsmImageBuffer& img, int frame_idx,
+	                        int64 ts_ms, VsmPipelineRunSummary& summary);
 };
 
 } // namespace Upp

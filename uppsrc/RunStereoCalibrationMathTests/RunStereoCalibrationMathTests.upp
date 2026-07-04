@@ -15,5 +15,5 @@ file
 	RunStereoCalibrationMathTests.cpp;
 
 mainconfig
-	"" = "CONSOLE",
-	"" = "CONSOLE USEMALLOC";
+	"" = "",
+	"" = "USEMALLOC";

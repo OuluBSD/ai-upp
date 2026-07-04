@@ -389,5 +389,136 @@ VsmHeartsSource one-round drive: OK.
   called (see table above).
 - OCR wiring (task 0073).
 - Cardinality/`expected_child_count` (task 0071).
-- Self-consistency validation (task 0072).
+- Self-consistency validation — see task 0072 below (now implemented).
 - Fixing the `CardGameDocumentHost` sprite-count self-check finding above.
+
+---
+
+# VsmCheckCardGameConsistency (task 0072)
+
+Closes `plan/VisualStateModel/0072_ground_truth_self_consistency_validator.md`,
+`HEARTS_SOURCE_INVESTIGATION.md` gap #6: nothing previously validated that a
+controlled ground-truth generator's own emitted events are internally
+consistent before being fed into a pipeline test. Headless
+(`uppsrc/VisualStateModel/CardGameConsistency.h`/`.cpp`, `uses Core;` only,
+no `CardGameDocumentHost`/ScriptIDE dependency) — mirrors
+`assert_state_invariants()`/`assert_render_invariants()`
+(`uppsrc/ScriptIDE/reference/Hearts/main.py:37-105`) as a reusable,
+game-agnostic tool operating on the emitted `card_play`/`trick`/`round`
+tier event log (`CARD_GAME_STATE_SCHEMA.md`), not live Python state.
+
+## API
+
+```cpp
+struct VsmCardGameEvent : Moveable<VsmCardGameEvent> {
+    String tier;       // "card_play" | "trick" | "round"
+    String state_json; // serialized JSON object matching that tier's schema
+};
+
+VsmValidationResult VsmCheckCardGameConsistency(const Vector<VsmCardGameEvent>& events);
+```
+
+Reuses `VsmValidationResult`/`VsmValidationIssue` (`SessionValidator.h`)
+rather than inventing a new result shape, per the plan's instruction to
+mirror existing conventions. `frames_checked` is repurposed here as "total
+events examined"; `crops_checked` does not apply to this checker and is
+always 0.
+
+## The four checks
+
+1. **Card uniqueness** — every `card_play` event's `card_played` is unique
+   across the sequence (error on duplicate).
+2. **Trick-winner / round-score reconciliation** — for each `trick` event,
+   in sequence order, `round_scores` must show `trick_points` credited to
+   `trick_winner` relative to the previous `trick` event's `round_scores`
+   (all-zero before the first trick), with every other player's entry
+   unchanged (error on any wrong delta).
+3. **Round-total reconciliation** — the final `round` event's `round_scores`
+   must equal either the raw per-player sum of `trick_points` won across all
+   `trick` events (no shoot-the-moon), or the shoot-the-moon-adjusted values
+   (`round.moon_shooter`'s entry `0`, everyone else `26`) when
+   `round.moon_shooter >= 0`. The 26-point/0-26 rule was confirmed against
+   `hearts/logic.py::resolve_round()` (lines 254-276: `round_scores[i] == 26`
+   ⇒ that player's `round_scores[i] = 0`, everyone else's `= 26`) before
+   hardcoding it, per the plan's instruction not to guess.
+4. **Card-count invariant** — total `card_play` events equals `4 x` (number
+   of resolved `trick` events): every trick is exactly one card per player,
+   at any round size (a fully resolved 13-trick round is the familiar `52`,
+   but the check is not hardcoded to that value so a small synthetic test
+   sequence — e.g. 2 tricks/8 cards — can validate without being forced to
+   fabricate an entire round). This generalizes
+   `assert_state_invariants`'s `total_cards % 4 == 0` / `total_cards <= 52`
+   (`main.py:56-57`) to the emitted event log.
+
+## The `trick_number` limitation, worked around not rediscovered
+
+Per this doc's own "`trick_number` derivation" section above,
+`VsmCardGameStateExport`'s `card_play`-tier `trick_number` field undercounts
+by one once the same player wins two consecutive tricks (no
+`GameState`-side trick-sequence counter exists to disambiguate).
+`VsmCheckCardGameConsistency` never trusts either tier's own `trick_number`
+field for ordering — it tracks trick *position* itself (the Nth resolved
+`trick` event is trick N) across a single pass over the sequence, and uses
+that position for check 2's reconciliation and check 4's card-count math.
+Any mismatch it finds between position and a `card_play` or `trick` event's
+own `trick_number` field is reported as an informational note (severity
+`"info"`), tied explicitly to this known limitation in the message text —
+never as a validation failure. A real run against `VsmHeartsSource`'s output
+(below) confirms the `card_play`-tier field is the one that actually
+exhibits the bug in practice (36 `info` notes on one real round where a
+player won several tricks in a row); `VsmHeartsSource`'s own `trick`-tier
+counter (tracked independently, see the "trick_number for the trick tier"
+paragraph above) did not mismatch in that same run — the checker validates
+both fields identically and reports whatever it actually finds, rather than
+special-casing either tier.
+
+## Tests
+
+`reference/VisualStateModelTest/main.cpp`'s `TestCardGameConsistency()`:
+hand-crafted 2-trick synthetic sequence, one broken variant per case
+(duplicate card / wrong trick round_scores delta / wrong round total /
+wrong card count), plus one case confirming a `trick_number` field/position
+mismatch is reported as `"info"` without failing `result.ok`.
+
+## Real end-to-end wiring
+
+`reference/CardGameStateAdapter/main.cpp` collects every `state_json` event
+`VsmHeartsSource` emits while driving one full Hearts round (task 0069's
+demo) into a `Vector<VsmCardGameEvent>`, then runs
+`VsmCheckCardGameConsistency()` against that real sequence and prints its
+findings. Real output (one full round, 56 `Step()` calls, 66 total events):
+
+```
+--- VsmCheckCardGameConsistency: self-consistency check on the real round ---
+  [info] event[9] (card_play): position-based trick number (3) differs from this event's own trick_number field (2) -- known limitation, ...
+  ... (36 total [info] notes, 0 [error]s)
+VsmCheckCardGameConsistency: 66 event(s) checked, 36 issue(s), ok=true
+VsmCheckCardGameConsistency: OK.
+```
+
+All four hard checks passed against the real driven round; every reported
+issue was the documented `trick_number` limitation surfacing exactly where
+expected (a player won several consecutive tricks in this particular
+shuffle), at `"info"` severity, not a failure.
+
+Build & run:
+
+```
+bin/build --mainconfig 0 --jobs 12 VisualStateModel
+bin/build --mainconfig 0 --jobs 12 VisualStateModelTest
+bin/VisualStateModelTest
+bin/build --mainconfig 0 --release --jobs 12 CardGameStateAdapter
+bin/CardGameStateAdapter
+```
+
+## Non-goals / what this does not do
+
+- Does not change `VsmCardGameStateExport`/`VsmHeartsSource` to fix the
+  underlying `trick_number` undercount (that requires a trick-sequence
+  counter in `hearts/logic.py::GameState` itself, out of scope here as it
+  was for task 0068 — see this doc's earlier "known limitation" section).
+- Does not wire into `VsmGroundTruthComparison`/`VsmObservationPipeline` —
+  this is a standalone pre-check a caller runs against a generated sequence
+  before handing it to those tools, not a replacement for them.
+- OCR wiring (task 0073) and full-game multi-round driving remain out of
+  scope, as before.

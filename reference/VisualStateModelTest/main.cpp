@@ -1656,6 +1656,240 @@ static void TestCanonicalJsonCompare()
 }
 
 // ---------------------------------------------------------------------------
+// Test: Card-game ground-truth self-consistency validator (task 0072)
+
+static String CgcCardPlay(int round_number, const char* phase, int turn, int trick_number,
+                           const char* leading_suit, bool hearts_broken, int player, const char* card)
+{
+	ValueMap v;
+	v.Add("tier", "card_play");
+	v.Add("round_number", round_number);
+	v.Add("phase", phase);
+	v.Add("turn", turn);
+	v.Add("trick_number", trick_number);
+	v.Add("leading_suit", leading_suit);
+	v.Add("hearts_broken", hearts_broken);
+	v.Add("player", player);
+	v.Add("card_played", card);
+	return AsJSON(v);
+}
+
+static String CgcTrick(int round_number, int trick_number, int trick_winner, int trick_points,
+                        int s0, int s1, int s2, int s3)
+{
+	ValueMap v;
+	v.Add("tier", "trick");
+	v.Add("round_number", round_number);
+	v.Add("trick_number", trick_number);
+	v.Add("trick_winner", trick_winner);
+	v.Add("trick_points", trick_points);
+	ValueArray scores;
+	scores.Add(s0); scores.Add(s1); scores.Add(s2); scores.Add(s3);
+	v.Add("round_scores", scores);
+	return AsJSON(v);
+}
+
+static String CgcRound(int round_number, int s0, int s1, int s2, int s3,
+                        int moon_shooter, bool game_over)
+{
+	ValueMap v;
+	v.Add("tier", "round");
+	v.Add("round_number", round_number);
+	ValueArray round_scores;
+	round_scores.Add(s0); round_scores.Add(s1); round_scores.Add(s2); round_scores.Add(s3);
+	v.Add("round_scores", round_scores);
+	ValueArray scores; // cumulative game score -- same as round_scores for a fresh game in these tests
+	scores.Add(s0); scores.Add(s1); scores.Add(s2); scores.Add(s3);
+	v.Add("scores", scores);
+	v.Add("moon_shooter", moon_shooter);
+	v.Add("game_over", game_over);
+	return AsJSON(v);
+}
+
+// Builds a small, valid 2-trick synthetic round:
+//   trick 1: players 0,1,2,3 play 2C,3C,4C,5C -- player 2 wins, 5 points.
+//   trick 2: players 0,1,2,3 play 6C,7C,8C,9C -- player 0 wins, 3 points.
+//   round:   round_scores [3,0,5,0], no moon shooter.
+static void BuildValidTwoTrickSequence(Vector<VsmCardGameEvent>& events)
+{
+	events.Clear();
+	auto Add = [&](const char* tier, const String& json) {
+		VsmCardGameEvent& e = events.Add();
+		e.tier = tier;
+		e.state_json = json;
+	};
+
+	Add("card_play", CgcCardPlay(1, "PLAYING", 1, 1, "clubs", false, 0, "2C"));
+	Add("card_play", CgcCardPlay(1, "PLAYING", 2, 1, "clubs", false, 1, "3C"));
+	Add("card_play", CgcCardPlay(1, "PLAYING", 3, 1, "clubs", false, 2, "4C"));
+	Add("card_play", CgcCardPlay(1, "PLAYING", 2, 1, "clubs", false, 3, "5C"));
+	Add("trick",     CgcTrick(1, 1, 2, 5, 0, 0, 5, 0));
+
+	Add("card_play", CgcCardPlay(1, "PLAYING", 3, 2, "clubs", false, 2, "6C"));
+	Add("card_play", CgcCardPlay(1, "PLAYING", 0, 2, "clubs", false, 3, "7C"));
+	Add("card_play", CgcCardPlay(1, "PLAYING", 1, 2, "clubs", false, 0, "8C"));
+	Add("card_play", CgcCardPlay(1, "PLAYING", 0, 2, "clubs", false, 1, "9C"));
+	Add("trick",     CgcTrick(1, 2, 0, 3, 3, 0, 5, 0));
+
+	Add("round",     CgcRound(1, 3, 0, 5, 0, -1, false));
+}
+
+static void TestCardGameConsistency()
+{
+	Cout() << "\n=== Card-game ground-truth self-consistency validator ===\n";
+
+	// --- Valid sequence: all four checks pass ---
+	{
+		Vector<VsmCardGameEvent> events;
+		BuildValidTwoTrickSequence(events);
+
+		VsmValidationResult result = VsmCheckCardGameConsistency(events);
+		if(!result.ok) {
+			Fail("CardGameConsistency: valid sequence should pass");
+			for(const VsmValidationIssue& issue : result.issues)
+				Cout() << "  [" << issue.severity << "] " << issue.message << "\n";
+			return;
+		}
+		if(result.issues.GetCount() != 0) {
+			Fail(Format("CardGameConsistency: valid sequence should have zero issues, got %d",
+			            result.issues.GetCount()));
+			return;
+		}
+		Cout() << "Valid 2-trick sequence: OK (no issues)\n";
+	}
+
+	// --- Broken variant 1: duplicate card ---
+	{
+		Vector<VsmCardGameEvent> events;
+		BuildValidTwoTrickSequence(events);
+		// Trick 2's first card_play ("6C") is index 5; overwrite with "2C",
+		// a duplicate of trick 1's very first card.
+		events[5].state_json = CgcCardPlay(1, "PLAYING", 3, 2, "clubs", false, 2, "2C");
+
+		VsmValidationResult result = VsmCheckCardGameConsistency(events);
+		if(result.ok) {
+			Fail("CardGameConsistency: duplicate card should fail");
+			return;
+		}
+		bool found = false;
+		for(const VsmValidationIssue& issue : result.issues)
+			if(issue.severity == "error" && issue.message.Find("duplicate card_played") >= 0)
+				found = true;
+		if(!found) {
+			Fail("CardGameConsistency: duplicate card should report a 'duplicate card_played' error");
+			return;
+		}
+		Cout() << "Duplicate card detected: OK\n";
+	}
+
+	// --- Broken variant 2: wrong round_scores delta on a trick event ---
+	{
+		Vector<VsmCardGameEvent> events;
+		BuildValidTwoTrickSequence(events);
+		// Trick 2's round_scores should be [3,0,5,0] (player 0 credited 3);
+		// corrupt it to [4,0,5,0] -- wrong delta for the credited winner.
+		events[9].state_json = CgcTrick(1, 2, 0, 3, 4, 0, 5, 0);
+		// Keep the round event consistent with what the (broken) trick
+		// reconciliation will actually accumulate (player 2's trick 1 win
+		// only, since trick 2's row fails to reconcile and is not
+		// credited) so this variant isolates the single broken invariant.
+		events[10].state_json = CgcRound(1, 0, 0, 5, 0, -1, false);
+
+		VsmValidationResult result = VsmCheckCardGameConsistency(events);
+		if(result.ok) {
+			Fail("CardGameConsistency: wrong round_scores delta should fail");
+			return;
+		}
+		bool found = false;
+		for(const VsmValidationIssue& issue : result.issues)
+			if(issue.severity == "error" && issue.message.Find("changed by") >= 0)
+				found = true;
+		if(!found) {
+			Fail("CardGameConsistency: wrong round_scores delta should report a round_scores delta error");
+			return;
+		}
+		Cout() << "Wrong trick round_scores delta detected: OK\n";
+	}
+
+	// --- Broken variant 3: wrong round total ---
+	{
+		Vector<VsmCardGameEvent> events;
+		BuildValidTwoTrickSequence(events);
+		// Final round event should be [3,0,5,0]; corrupt to all-zero.
+		events[10].state_json = CgcRound(1, 0, 0, 0, 0, -1, false);
+
+		VsmValidationResult result = VsmCheckCardGameConsistency(events);
+		if(result.ok) {
+			Fail("CardGameConsistency: wrong round total should fail");
+			return;
+		}
+		bool found = false;
+		for(const VsmValidationIssue& issue : result.issues)
+			if(issue.severity == "error" && issue.message.Find("(round): round_scores[") >= 0)
+				found = true;
+		if(!found) {
+			Fail("CardGameConsistency: wrong round total should report a round-total error");
+			return;
+		}
+		Cout() << "Wrong round total detected: OK\n";
+	}
+
+	// --- Broken variant 4: wrong card count ---
+	{
+		Vector<VsmCardGameEvent> events;
+		BuildValidTwoTrickSequence(events);
+		// Drop one card_play event (trick 2's last play) -- 7 card_play
+		// events for 2 resolved tricks instead of the expected 8.
+		events.Remove(8);
+
+		VsmValidationResult result = VsmCheckCardGameConsistency(events);
+		if(result.ok) {
+			Fail("CardGameConsistency: wrong card count should fail");
+			return;
+		}
+		bool found = false;
+		for(const VsmValidationIssue& issue : result.issues)
+			if(issue.severity == "error" && issue.message.Find("card_play event count") >= 0)
+				found = true;
+		if(!found) {
+			Fail("CardGameConsistency: wrong card count should report a card_play event count error");
+			return;
+		}
+		Cout() << "Wrong card count detected: OK\n";
+	}
+
+	// --- Informational note: position-based vs field-based trick_number
+	// mismatch (the documented CARD_GAME_ADAPTER.md limitation) is flagged
+	// as "info", not treated as a validation failure. ---
+	{
+		Vector<VsmCardGameEvent> events;
+		BuildValidTwoTrickSequence(events);
+		// Trick 2's own trick_number field wrongly still says 1 (as if the
+		// adapter's same-winner-twice-in-a-row undercount had struck) --
+		// the checker must still validate reconciliation by position and
+		// must not fail outright over the field mismatch.
+		events[9].state_json = CgcTrick(1, /*trick_number field*/ 1, 0, 3, 3, 0, 5, 0);
+
+		VsmValidationResult result = VsmCheckCardGameConsistency(events);
+		if(!result.ok) {
+			Fail("CardGameConsistency: trick_number field/position mismatch alone should not fail validation");
+			for(const VsmValidationIssue& issue : result.issues)
+				Cout() << "  [" << issue.severity << "] " << issue.message << "\n";
+			return;
+		}
+		bool found_info = false;
+		for(const VsmValidationIssue& issue : result.issues)
+			if(issue.severity == "info" && issue.message.Find("known limitation") >= 0)
+				found_info = true;
+		if(!found_info) {
+			Fail("CardGameConsistency: trick_number field/position mismatch should report an 'info' note");
+			return;
+		}
+		Cout() << "trick_number field/position mismatch: flagged as info, validation still OK\n";
+	}
+}
+
+// ---------------------------------------------------------------------------
 // Test: Deterministic replay
 
 static void TestDeterministicReplay()
@@ -1832,6 +2066,7 @@ CONSOLE_APP_MAIN
 	TestMjpegParser();
 	TestRegionCardinality();
 	TestCanonicalJsonCompare();
+	TestCardGameConsistency();
 	TestDeterministicReplay();
 
 	if(GetExitCode() == 0)

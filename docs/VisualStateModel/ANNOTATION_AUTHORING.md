@@ -75,6 +75,33 @@ When a session is opened via `File → Open Session…`:
 
 ---
 
+## Variable-Cardinality Zones
+
+### Expected Child Count
+
+`VsmRegionAnnotation` includes an optional `expected_child_count` field
+(default `-1`) for zones that hold a variable number of child elements.
+For example, a Hearts playing-hand zone contains 0–13 individual card sprites,
+updating per-frame as cards are played.
+
+When annotating such zones:
+
+```json
+{
+  "id": "ann-hand",
+  "name": "Hand Zone",
+  "x": 100, "y": 300, "w": 500, "h": 100,
+  "expected_child_count": 13
+}
+```
+
+The `expected_child_count` field is optional and serializes to the
+ground-truth `region` events loaded by observation systems. Set it to
+a non-negative integer when the zone's cardinality matters for model state
+tracking. Omit or set to `-1` for zones with a fixed single region.
+
+---
+
 ## FrameCanvas API
 
 ```cpp

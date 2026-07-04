@@ -139,7 +139,8 @@ Region identity assignment or update.
   "rect": { "x": 100, "y": 200, "w": 80, "h": 40 },
   "parent_id": "rgn-0000",
   "fingerprint": "sha1:a3f8c...",
-  "fingerprint_file": "crops/rgn-0001-f001.bin"
+  "fingerprint_file": "crops/rgn-0001-f001.bin",
+  "expected_child_count": 13
 }
 ```
 
@@ -150,6 +151,13 @@ Region identity assignment or update.
 
 `fingerprint` is a compact hash string. `fingerprint_file` is an optional
 path to the full normalized fingerprint buffer (32×32 grayscale bytes).
+
+`expected_child_count` is an optional integer indicating the expected number
+of child regions (individual items) within a variable-cardinality zone. For example,
+a Hearts hand zone may expect 13 cards initially, then 12 after a play.
+Omit or set to `-1` for fixed single-region zones. This field is typically used
+with observation systems that track individual card sprites or other discrete
+child elements within a region.
 
 ---
 

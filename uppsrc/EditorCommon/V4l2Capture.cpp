@@ -3,7 +3,6 @@
 #include <Core/Core.h>
 #include <EditorCommon/Capture.h>
 #include <EditorCommon/EditorCommon.h>
-#include <EditorCommon/Recognition.h>
 #include <sys/ioctl.h>
 #include <sys/mman.h>
 #include <sys/stat.h>

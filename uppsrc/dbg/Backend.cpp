@@ -14,6 +14,9 @@ Vector<DbgBackendInfo> GetPlannedDbgBackends()
 	DbgBackendInfo& lldb = backends.Add();
 	lldb.name = "lldb";
 	lldb.description = "LLDB backend (planned)";
+	DbgBackendInfo& java = backends.Add();
+	java.name = "java";
+	java.description = "Java backend";
 	return backends;
 }
 

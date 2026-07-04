@@ -12,6 +12,7 @@ using namespace Upp;
 #include "GdbAdapter.h"
 #include "LldbAdapter.h"
 #include "VsAdapter.h"
+#include "JavaAdapter.h"
 #include "Backend.h"
 
 #endif

@@ -8,4 +8,4 @@ file
 	CardGameTest.cpp;
 
 mainconfig
-	"" = "CONSOLE";
+	"" = "";

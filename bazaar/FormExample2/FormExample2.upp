@@ -1,0 +1,9 @@
+uses
+	Core,
+	Form;
+
+file
+	FormExample2.cpp;
+
+mainconfig
+	"" = "GUI X11 USEMALLOC";

@@ -520,5 +520,179 @@ bin/CardGameStateAdapter
 - Does not wire into `VsmGroundTruthComparison`/`VsmObservationPipeline` —
   this is a standalone pre-check a caller runs against a generated sequence
   before handing it to those tools, not a replacement for them.
-- OCR wiring (task 0073) and full-game multi-round driving remain out of
-  scope, as before.
+- Full-game multi-round driving remains out of scope, as before. OCR wiring
+  is now implemented — see the next section.
+
+---
+
+# VsmHeartsOcrPipeline (task 0073)
+
+Closes `plan/VisualStateModel/0073_ocr_divergence_pipeline.md`,
+`HEARTS_SOURCE_INVESTIGATION.md` gap #5 — the final task in the Hearts
+controlled-source chain (tasks 0055–0073). Routes `VsmHeartsSource`'s live
+frames through VisualStateModel's real OCR/divergence machinery
+(`VsmOcrExecutor` + `VsmModelRuntime`, `uppsrc/VisualStateModel/OcrLayer.h`/
+`ModelRuntime.h`) instead of the stubbed `ocr_verify` Python module the
+investigation rejected, producing genuine `VsmDivergence` records
+(`Types.h`), not just a boolean pass/fail.
+
+## What HUD text is validated, and why not an exact match
+
+`main.py:394-407`'s `update_hud()` renders each player's label as
+`name + "  T:" + scores[i] + "  R:+" + round_scores[i] + "  C:" +
+len(players[i])`, with `name` conditionally wrapped in brackets
+(`"[" + name + "]"`) when it's that player's turn. The bracket logic and the
+static `PLAYER_NAMES` strings are not derivable from `state_json` alone, so
+this task does not attempt an exact-text match against the whole label.
+Instead, each of the four player-label zones (`label_self`/`label_left`/
+`label_top`/`label_right` — zone index *i* maps directly to player index *i*,
+confirmed straight from `update_hud()`'s `label_ids`/`PLAYER_NAMES` sharing
+the same loop index, no rotation) gets three independent
+`VSM_EXPECT_CONTAINS`-mode dynamic OCR rules, one per substring:
+`"T:{scores[i]}"`, `"R:+{round_scores[i]}"`, `"C:{hand_counts[i]}"`.
+
+## `hand_counts`: schema addition (requirement 1)
+
+`CARD_GAME_STATE_SCHEMA.md`'s `card_play` tier gained an optional
+`"hand_counts": [int,int,int,int]` field — `len(state.players[i])` per
+player, read live in `VsmCardGameStateExport::ExportCardPlayState()` exactly
+like `round_scores`/`scores` are read elsewhere (a new `GetHandCounts()`
+helper, since `state.players` is a list-of-lists and `PyValue::ToValue()`
+only gives per-element recursion, not "length of each sublist"). Additive
+and backward-compatible: existing consumers that don't know about the field
+simply don't see it change anything they already read.
+
+`scores`/`round_scores`/`hand_counts` as fed to the OCR templates below,
+though, are **not** read back out of a serialized `card_play` tier JSON
+string — `VsmHeartsOcrPipeline` reads them straight from live `state` via its
+own small `BuildHudLiveState()` helper (mirroring the same PyValue-attribute
+pattern `VsmCardGameStateExport`/`VsmHeartsSource` each already use
+independently), because the HUD label is redrawn on *every* frame, not only
+on `card_play` tier events — tying OCR validation to one specific tier's
+JSON payload would silently skip checking most frames.
+
+## The real `OcrLayer.h` gap this task found (requirement 3)
+
+The plan predicted `VSM_EXPECT_DYNAMIC` and `VSM_EXPECT_CONTAINS` might not
+combine, and asked to verify before assuming. Reading `OcrLayer.h`/`.cpp` in
+full confirmed the gap was real: `VsmTextExpectMode` was a single three-value
+enum (`EXACT`/`CONTAINS`/`DYNAMIC`), so `VsmOcrExecutor::Compare()`'s match
+logic was `mode == EXACT || mode == DYNAMIC → text == expected` vs.
+`mode == CONTAINS → text.Find(expected) >= 0` — dynamic-template resolution
+was wired to *always* compare `EXACT`, with no way to ask for "resolve this
+template, then check CONTAINS". Fixed by splitting the two orthogonal axes:
+`VsmTextExpectation` gained a separate `bool dynamic` field (whether
+`expected_text` is used verbatim or `template_text` is resolved against
+`live_state` first); `mode` now means *only* the comparison mode (`EXACT`/
+`CONTAINS`). `VSM_EXPECT_DYNAMIC` is kept as an enum value and still behaves
+exactly as before (dynamic resolution + `EXACT` compare) for every existing
+caller that sets `mode = VSM_EXPECT_DYNAMIC` without touching the new
+`dynamic` field — confirmed backward-compatible by re-running
+`VisualStateModelTest` unmodified (all pre-existing OCR tests, including
+`TestDynamicOcrText()`'s dynamic-match/mismatch/no-live-state cases, still
+pass). New callers
+(this task's Hearts label rules) set `mode = VSM_EXPECT_CONTAINS` and
+`dynamic = true` together to get the previously-unreachable combination.
+
+## Zone cropping: precise, not full-frame
+
+`CardGameDocumentHost::GetZoneRect(zone_id)` (`CardGamePlugin.h`/`.cpp`)
+returns the live, anchor-adjusted `{x,y,w,h}` for a named zone in
+`table_form`-local pixel coordinates — the same coordinate space
+`CaptureRecordFrame()`/`GetRecordFrameSize()` render into (`table_form`'s own
+size), confirmed by reading `GetZoneRectFromForm()` and
+`GetRecordFrameSize()` together. Since this rect is trivially available and
+directly indexes into the same frame buffer `VsmHeartsSource::ReadFrame()`
+already produces, precise per-zone cropping was not disproportionate effort
+here (unlike the plan's sanctioned full-frame fallback) — `VsmHeartsSource`
+gained a small `GetHost()` accessor so `VsmHeartsOcrPipeline` can call
+`GetZoneRect()` directly, and crops each zone out of the already-captured
+`VsmImageBuffer` into a `VsmFrameImage` (RGBA) before running OCR, mirroring
+`VsmObservationPipeline::GetRegionCrop()`'s real-frame crop-and-convert
+shape.
+
+## Routing through `VsmModelRuntime` (requirement 4)
+
+Mirrors `reference/VisualStateModelTest/main.cpp`'s `TestPipelineRunner()`/
+`TestDeterministicReplay()` pattern directly (not `VsmObservationPipeline`,
+whose `RunFromSteppedSource()` was already confirmed in task 0069's section
+above to have no hook for a stepped source's own state; using it here would
+also require a static, unchanging OCR engine text across the whole run,
+which doesn't fit ground truth that changes every step). For each of the 12
+zone/field rules, per `Step()`: the OCR rule's result feeds a
+`VSM_MR_SET_PROP_FROM_OCR` model rule, paired with a `VSM_MR_VALIDATE_PROP`
+rule whose `expected_value` is that step's freshly-resolved ground truth. A
+mismatch there — not just a `VsmOcrComparison` warning — is what produces a
+real `VsmDivergence` via `VsmModelRuntime::GetDivergences()`. Every rule
+pair's `rule_id`/`source_rule_id` folds in the `Step()` count, so a given
+step's OCR event can only ever match that same step's own rule pair — without
+this, a stale rule from an earlier step (baked-in expected value from a
+different point in the game) would refire against a later step's OCR event
+and report a false divergence. All rule pairs accumulate in one long-lived
+`VsmModelRuntime` across the whole round, so its final `GetDivergences()`
+reflects every step actually checked, not just the last one.
+
+## Demo scenarios (requirement 5)
+
+`reference/CardGameStateAdapter/main.cpp` drives two full, independent
+one-round games (fresh `VsmHeartsSource`/`VsmHeartsOcrPipeline`/
+`VsmFakeOcrEngine` each), running all 12 zone/field OCR+model-runtime checks
+at every `Step()`:
+
+- **Success path**: every rule, every step, is fed the actually-correct
+  resolved text (per this task's decision 3 — `VsmFakeOcrEngine` seeded with
+  truth, since there is no real OCR text-recognition engine in this repo and
+  never has been; "real `VsmOcrExecutor`/`VsmOcrEngine`" always meant the real
+  executor/comparison/divergence machinery). Result: 672 OCR rule
+  invocations (12 rules × 56 steps) over the real driven round, **zero**
+  `VsmDivergence` records.
+- **Divergence path**: `label_self`'s `"C:"` (hand-count) substring is fed a
+  deliberately wrong value (`"C:-1"`, guaranteed to differ from any live
+  non-negative count) at every step; every other rule/zone/step still gets
+  the correct text. Result: 56 real `VsmDivergence` records (one per step),
+  each with non-empty, meaningful `expected_json`/`observed_json` — e.g.
+  `expected_json: ""C:13""`, `observed_json: ""C:-1""` (double-quoted is
+  `VsmModelRuntime::ApplyValidateProp()`'s existing, pre-0073 convention —
+  `expected_value`/property values are themselves already JSON-string-quoted
+  before `ApplyValidateProp()` wraps them again; not something this task
+  changed or needed to fix).
+
+Real output (tail):
+
+```
+--- VsmHeartsOcrPipeline: OCR/divergence pipeline (success path) ---
+VsmHeartsOcrPipeline success path: 672 OCR rule(s) run over 56 Step() calls, 0 divergence(s)
+VsmHeartsOcrPipeline success path: OK (zero divergences).
+
+--- VsmHeartsOcrPipeline: OCR/divergence pipeline (divergence path) ---
+VsmHeartsOcrPipeline divergence path: 672 OCR rule(s) run over 56 Step() calls, 56 divergence(s)
+First real VsmDivergence:
+  region_id:     label_self
+  severity:      warning
+  message:       Property 'hand' expected "C:13" got "C:-1"
+  expected_json: ""C:13""
+  observed_json: ""C:-1""
+VsmHeartsOcrPipeline divergence path: OK (56 real divergence(s)).
+```
+
+Build & run:
+
+```
+bin/build --mainconfig 0 --jobs 12 VisualStateModel
+bin/build --mainconfig 0 --jobs 12 VisualStateModelTest
+bin/VisualStateModelTest
+bin/build --mainconfig 0 --release --jobs 12 CardGameStateAdapter
+bin/CardGameStateAdapter
+```
+
+## Non-goals / what this does not do
+
+- A real OCR text-recognition backend — out of scope for this repo entirely,
+  as established since task 0070; `VsmFakeOcrEngine` is the backend for every
+  test in this codebase, this task included.
+- Fixing `VsmModelRuntime::ApplyValidateProp()`'s pre-existing double-quoting
+  of already-quoted `expected_value`/property strings in `expected_json`/
+  `observed_json` — cosmetic, pre-dates this task, and does not affect
+  whether a divergence is correctly detected.
+- Full-game multi-round driving (still out of scope, as it has been since
+  task 0069).

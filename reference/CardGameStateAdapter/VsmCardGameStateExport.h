@@ -10,7 +10,10 @@ public:
 	// this itself — GameState does not record "last card played"); every other
 	// field is read live from the Python `state` object driving `host`.
 	// `trick_number` is derived internally (see TrackTrickNumber()) because
-	// `GameState` has no trick-sequence counter of its own.
+	// `GameState` has no trick-sequence counter of its own. `hand_counts`
+	// (task 0073, CARD_GAME_STATE_SCHEMA.md) is optional/additive: per-player
+	// `len(state.players[i])`, read live the same way `round_scores`/`scores`
+	// already are for the other tiers.
 	String ExportCardPlayState(CardGameDocumentHost& host, int player, const String& card_played);
 
 	// Tier 2 ("trick"): one event per resolved trick. `trick_number`/

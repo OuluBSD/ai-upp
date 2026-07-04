@@ -154,14 +154,23 @@ VsmOcrComparison VsmOcrExecutor::Compare(const VsmOcrResult& result,
 
 	const VsmTextExpectation& exp = rule.expectation;
 
+	// Two independent axes (see VsmTextExpectation's comment in OcrLayer.h,
+	// task 0073): whether the expected text is resolved from a live-state
+	// template (`is_dynamic`), and how the resolved text is compared to the
+	// OCR result (`compare_mode`, EXACT or CONTAINS). `mode ==
+	// VSM_EXPECT_DYNAMIC` is a back-compat spelling of "dynamic + EXACT" —
+	// every pre-0073 caller that set it gets identical behavior to before.
+	bool is_dynamic    = exp.dynamic || exp.mode == VSM_EXPECT_DYNAMIC;
+	int  compare_mode  = exp.mode == VSM_EXPECT_DYNAMIC ? VSM_EXPECT_EXACT : exp.mode;
+
 	// Resolve the effective expected text up front. For dynamic mode this
 	// requires a real live_state — its absence is a rule-configuration
 	// error, independent of this run's OCR confidence, so check it first.
 	String effective_expected = exp.expected_text;
-	if(exp.mode == VSM_EXPECT_DYNAMIC) {
+	if(is_dynamic) {
 		if(IsNull(live_state) || live_state.GetCount() == 0) {
 			cmp.severity = VSM_OCR_ERROR_S;
-			cmp.message  = "Rule '" + rule.rule_id + "' uses VSM_EXPECT_DYNAMIC but no "
+			cmp.message  = "Rule '" + rule.rule_id + "' uses dynamic expected text but no "
 			               "live_state was supplied (rule configuration error)";
 			LogError(log_, "VsmOCR", cmp.message);
 			return cmp;
@@ -182,10 +191,10 @@ VsmOcrComparison VsmOcrExecutor::Compare(const VsmOcrResult& result,
 	}
 
 	bool matches = false;
-	if(exp.mode == VSM_EXPECT_EXACT || exp.mode == VSM_EXPECT_DYNAMIC)
-		matches = (result.text == effective_expected);
-	else if(exp.mode == VSM_EXPECT_CONTAINS)
+	if(compare_mode == VSM_EXPECT_CONTAINS)
 		matches = (result.text.Find(effective_expected) >= 0);
+	else
+		matches = (result.text == effective_expected);
 
 	if(matches) {
 		cmp.severity = VSM_OCR_OK;

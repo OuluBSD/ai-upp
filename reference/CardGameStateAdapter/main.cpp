@@ -79,7 +79,8 @@ GUI_APP_MAIN
 	String card_play_json = exporter.ExportCardPlayState(host, 0, "2C");
 	Cout() << "card_play: " << card_play_json << "\n";
 	AssertFieldsExact(card_play_json, "card_play",
-		{"tier", "round_number", "phase", "turn", "trick_number", "leading_suit", "hearts_broken", "player", "card_played"});
+		{"tier", "round_number", "phase", "turn", "trick_number", "leading_suit", "hearts_broken", "player", "card_played", "hand_counts"});
+	AssertIntArrayLen(card_play_json, "hand_counts", 4);
 	ASSERT_(VsmCanonicalJsonEqual(card_play_json, card_play_json), "card_play_json does not round-trip against itself");
 
 	String trick_json = exporter.ExportTrickState(host, 1, 2, 5);
@@ -196,6 +197,111 @@ GUI_APP_MAIN
 			consistency.frames_checked, consistency.issues.GetCount(), consistency.ok ? "true" : "false");
 		ASSERT_(consistency.ok, "VsmCheckCardGameConsistency found consistency errors in the real VsmHeartsSource-driven round (see issues above)");
 		Cout() << "VsmCheckCardGameConsistency: OK.\n";
+	}
+
+	// -----------------------------------------------------------------
+	// Task 0073: wire VsmHeartsSource through the real OCR/divergence
+	// pipeline (VsmOcrExecutor + VsmModelRuntime), closing gap #5 of
+	// docs/VisualStateModel/HEARTS_SOURCE_INVESTIGATION.md -- the final step
+	// of the Hearts controlled-source chain (tasks 0055-0073). See
+	// docs/VisualStateModel/CARD_GAME_ADAPTER.md's "VsmHeartsOcrPipeline"
+	// section and VsmHeartsOcrPipeline.h for the full design writeup.
+	//
+	// Two scenarios, each driving a fresh full round from scratch:
+	//   1. Success path: every OCR rule, every Step(), is fed the actually-
+	//      correct resolved text -> zero real VsmDivergence records.
+	//   2. Divergence path: label_self's "C:" (hand-count) substring is fed
+	//      a deliberately wrong value at every Step() -> at least one real
+	//      VsmDivergence, with non-empty expected_json/observed_json.
+	Cout() << "\n--- VsmHeartsOcrPipeline: OCR/divergence pipeline (success path) ---\n";
+	{
+		CardGameDocumentHost::log_to_stdout = false;
+
+		VsmHeartsSource src;
+		bool opened = src.Open(gamestate_path);
+		ASSERT_(opened, "VsmHeartsOcrPipeline success-path: VsmHeartsSource::Open failed: " + src.GetLastError());
+
+		VsmFakeOcrEngine      engine;
+		VsmHeartsOcrPipeline  ocr_pipe;
+
+		bool reached_round_end = false;
+		while(src.HasMoreSteps() && src.GetStepCount() < VsmHeartsSource::kMaxSteps) {
+			bool ok = src.Step();
+			ASSERT_(ok, "VsmHeartsOcrPipeline success-path: Step failed: " + src.GetLastError());
+
+			VsmImageBuffer frame;
+			int64 ts_ms = 0;
+			bool got_frame = src.ReadFrame(frame, ts_ms);
+			ASSERT_(got_frame, "VsmHeartsOcrPipeline success-path: ReadFrame failed: " + src.GetLastError());
+
+			// No corruption: every rule this step is fed the actually-correct
+			// resolved text (decision 3: VsmFakeOcrEngine seeded with truth).
+			ocr_pipe.RunStep(src, engine, frame, src.GetStepCount());
+
+			for(const String& json : src.GetLastStepEvents())
+				if(ParseJSON(json)["tier"].ToString() == "round")
+					reached_round_end = true;
+			if(reached_round_end)
+				break;
+		}
+		ASSERT_(reached_round_end, "VsmHeartsOcrPipeline success-path: did not reach round end");
+
+		int n_divergences = ocr_pipe.GetModelRuntime().GetDivergences().GetCount();
+		Cout() << Format("VsmHeartsOcrPipeline success path: %d OCR rule(s) run over %d Step() calls, %d divergence(s)\n",
+			ocr_pipe.GetRulesRun(), src.GetStepCount(), n_divergences);
+		ASSERT_(n_divergences == 0, "VsmHeartsOcrPipeline success-path: expected zero divergences with correct OCR text");
+		Cout() << "VsmHeartsOcrPipeline success path: OK (zero divergences).\n";
+	}
+
+	Cout() << "\n--- VsmHeartsOcrPipeline: OCR/divergence pipeline (divergence path) ---\n";
+	{
+		CardGameDocumentHost::log_to_stdout = false;
+
+		VsmHeartsSource src;
+		bool opened = src.Open(gamestate_path);
+		ASSERT_(opened, "VsmHeartsOcrPipeline divergence-path: VsmHeartsSource::Open failed: " + src.GetLastError());
+
+		VsmFakeOcrEngine      engine;
+		VsmHeartsOcrPipeline  ocr_pipe;
+
+		bool reached_round_end = false;
+		while(src.HasMoreSteps() && src.GetStepCount() < VsmHeartsSource::kMaxSteps) {
+			bool ok = src.Step();
+			ASSERT_(ok, "VsmHeartsOcrPipeline divergence-path: Step failed: " + src.GetLastError());
+
+			VsmImageBuffer frame;
+			int64 ts_ms = 0;
+			bool got_frame = src.ReadFrame(frame, ts_ms);
+			ASSERT_(got_frame, "VsmHeartsOcrPipeline divergence-path: ReadFrame failed: " + src.GetLastError());
+
+			// Deliberately wrong OCR text for label_self's "C:" (hand-count)
+			// substring at every step -- every other rule/zone/step still
+			// gets the correct text, so this isolates one real mismatch path.
+			ocr_pipe.RunStep(src, engine, frame, src.GetStepCount(), /*corrupt_zone_index=*/0, "hand");
+
+			for(const String& json : src.GetLastStepEvents())
+				if(ParseJSON(json)["tier"].ToString() == "round")
+					reached_round_end = true;
+			if(reached_round_end)
+				break;
+		}
+		ASSERT_(reached_round_end, "VsmHeartsOcrPipeline divergence-path: did not reach round end");
+
+		const Vector<VsmDivergence>& divergences = ocr_pipe.GetModelRuntime().GetDivergences();
+		Cout() << Format("VsmHeartsOcrPipeline divergence path: %d OCR rule(s) run over %d Step() calls, %d divergence(s)\n",
+			ocr_pipe.GetRulesRun(), src.GetStepCount(), divergences.GetCount());
+		ASSERT_(!divergences.IsEmpty(), "VsmHeartsOcrPipeline divergence-path: expected at least one real VsmDivergence");
+
+		const VsmDivergence& d0 = divergences[0];
+		Cout() << "First real VsmDivergence:\n";
+		Cout() << "  region_id:     " << d0.region_id << "\n";
+		Cout() << "  severity:      " << d0.severity << "\n";
+		Cout() << "  message:       " << d0.message << "\n";
+		Cout() << "  expected_json: " << d0.expected_json << "\n";
+		Cout() << "  observed_json: " << d0.observed_json << "\n";
+		ASSERT_(!d0.expected_json.IsEmpty() && !d0.observed_json.IsEmpty(),
+			"VsmHeartsOcrPipeline divergence-path: expected_json/observed_json must not be empty");
+		Cout() << "VsmHeartsOcrPipeline divergence path: OK (" << divergences.GetCount() << " real divergence(s)).\n";
 	}
 
 	SetExitCode(0);

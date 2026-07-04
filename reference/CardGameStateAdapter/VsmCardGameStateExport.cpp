@@ -115,6 +115,27 @@ static Value GetIntList(const PyValue& obj, const char* name)
 	return v.ToValue();
 }
 
+// hand_counts (task 0073, CARD_GAME_STATE_SCHEMA.md's card_play-tier optional
+// field): per-player remaining-card count. `state.players` is a list of 4
+// lists of Card objects (hearts/logic.py: `self.players = [[], [], [], []]`),
+// i.e. list-of-lists — PyValue::ToValue() does NOT recurse usefully here for
+// "count per sublist" (it would produce nested ValueArrays of card dicts, not
+// counts), so this reads player list lengths manually via GetItem()/GetCount(),
+// same pattern VsmHeartsSource.cpp already uses for `state.trick` (a list of
+// tuples ToValue() also can't handle).
+static Value GetHandCounts(const PyValue& state)
+{
+	PyValue players = GetAttr(state, "players");
+	ValueArray counts;
+	if(players.GetType() == PY_LIST) {
+		for(int i = 0; i < players.GetCount(); i++) {
+			PyValue hand = players.GetItem(i);
+			counts.Add(hand.GetType() == PY_LIST ? hand.GetCount() : 0);
+		}
+	}
+	return counts;
+}
+
 void VsmCardGameStateExport::TrackTrickNumber(const PyValue& state)
 {
 	PyValue winner_pv = GetAttr(state, "last_trick_winner");
@@ -144,6 +165,7 @@ String VsmCardGameStateExport::ExportCardPlayState(CardGameDocumentHost& host, i
 	v.Add("hearts_broken", GetBool(state, "hearts_broken"));
 	v.Add("player", player);
 	v.Add("card_played", card_played);
+	v.Add("hand_counts", GetHandCounts(state));
 	return AsJSON(v);
 }
 

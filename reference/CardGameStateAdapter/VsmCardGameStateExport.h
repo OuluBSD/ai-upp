@@ -29,6 +29,15 @@ public:
 	// description ("post shoot-the-moon adjustment").
 	String ExportRoundState(CardGameDocumentHost& host, int round_number);
 
+	// Locates the live `sys.modules[<entry module name>]` dict for `host` --
+	// the same module dict `main.py`'s top-level code and `start()` mutate
+	// (see VsmCardGameStateExport.cpp's header comment for why this, and
+	// not PyVM::GetGlobals(), is the correct place to read/write `state`
+	// and module-level globals like `autoplay_enabled`). Exposed publicly
+	// (task 0069's VsmHeartsSource reuses this exact lookup rather than
+	// re-deriving it) after having been a file-local static here (task 0068).
+	static PyValue FindEntryModuleDict(CardGameDocumentHost& host, PyVM& vm);
+
 private:
 	// Best-effort trick_number tracking for Tier 1, which has no equivalent
 	// caller-supplied parameter. Counts resolved tricks by watching

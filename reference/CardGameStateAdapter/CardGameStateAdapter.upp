@@ -1,4 +1,4 @@
-description "CardGameDocumentHost -> VisualStateModel state_json adapter (task 0068)\377";
+description "CardGameDocumentHost -> VisualStateModel state_json adapter (task 0068), plus VsmHeartsSource stepped driver (task 0069)\377";
 
 uses
 	VisualStateModel,
@@ -10,6 +10,8 @@ file
 	CardGameStateAdapter.h,
 	VsmCardGameStateExport.h,
 	VsmCardGameStateExport.cpp,
+	VsmHeartsSource.h,
+	VsmHeartsSource.cpp,
 	main.cpp;
 
 mainconfig

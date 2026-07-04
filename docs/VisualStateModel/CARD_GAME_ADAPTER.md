@@ -236,3 +236,158 @@ cleanly.)
   compute internally but do not expose.
 - Does not add a trick-sequence counter to `hearts/logic.py::GameState`
   (flagged above as a real follow-up, not done here).
+
+---
+
+# VsmHeartsSource (task 0069)
+
+Closes `plan/VisualStateModel/0069_vsm_hearts_source.md`. Adds
+`VsmHeartsSource : VsmSteppedFrameSource` (`reference/CardGameStateAdapter/VsmHeartsSource.h`/`.cpp`),
+which drives `uppsrc/ScriptIDE/reference/Hearts/game.gamestate` one logical
+step at a time and captures a frame + `state_json` (via the
+`VsmCardGameStateExport` above) after each step. Lives in the same
+`reference/CardGameStateAdapter/` package (extended, not a new sibling
+package) since it builds directly on `VsmCardGameStateExport::FindEntryModuleDict()`,
+now made a public static method (was file-local `static` in
+`VsmCardGameStateExport.cpp`) precisely so this file could reuse it instead
+of re-deriving the `sys.modules[entry_module_name]` lookup.
+
+## Correcting 0067's own plan assumption
+
+0067 assumed 0069 would need a new Python-side stepping entry point. It
+does not: `main.py`'s existing `ai_step()` (`main.py:828-897`) already is
+the one-step unit; it is normally invoked via a `cardgame_view.set_timeout()`
+timer chain, which never fires under `ExecuteSync()` (no event loop pumps
+timers). `PyVM::Call(fn, {})` on `ai_step` obtained from the live module
+dict **is** the step mechanism — confirmed by reading `PY_MAKE_FUNCTION`
+(`PyVM.cpp`, `l2->globals = frame.globals`) and `PyVM::Call()`
+(`f.globals = l.globals.IsNone() ? globals : l.globals`) in full: every
+function defined at `main.py`'s top level captures that same module dict as
+its globals at definition time, so writing into the module dict (e.g.
+forcing `autoplay_enabled = True`) is visible to `ai_step()` on the very
+next call, with no VM-level indirection to work around.
+
+## The four `set_timeout` call sites, and what `Step()` does about each
+
+Grepped exhaustively (`grep -n "cardgame_view.set_timeout(" main.py`):
+
+| Call site | Schedules | `Step()`'s handling |
+|---|---|---|
+| `schedule_ai_step()` (main.py:716) | `ai_step` | This *is* the driver's main loop unit — called directly, once per `Step()`. |
+| `start_pass_animation()` (main.py:759) | `finish_pass_animation` | `start_pass_animation()` itself runs *synchronously* inside the `ai_step()` call that completes the 4th player's pass (main.py:867); `Step()` checks `pass_animating` in the module dict right after that `ai_step()` call and, if true, calls `finish_pass_animation()` itself, in the same `Step()`. |
+| `start_trick_collect()` (main.py:791) | `finish_trick_collect` | `start_trick_collect()` runs on the *next* `ai_step()` entry after the 4th card of a trick is played (main.py:840-843), setting `collecting_trick=True` and returning without resolving. `Step()` checks `state.trick_pending` after that `ai_step()` call and, if still true, calls `finish_trick_collect()` itself, in the same `Step()`. |
+| `finish_trick_collect()` (main.py:811) | `next_round` | **Deliberately never driven.** `next_round()` only matters for beginning round 2+ (`begin_next_round()` → `deal()`), which is out of this task's one-round scope (`hearts/logic.py::resolve_trick()` already calls `resolve_round()` *synchronously* — main.py:251-252 — the instant the round's last trick resolves, so every Tier-3 field is populated in `state` before `next_round()` would even be scheduled). Not calling it does not stall anything: `ai_step()`'s own guard (`if state.phase != 'PLAYING': return`, reached once `phase` is `ROUND_END`) makes every subsequent `ai_step()` call a safe no-op. |
+
+This is one correction beyond the plan's own gotcha list: the plan's gotcha
+#2 focused on trick collection; `next_round()` needed its own explicit
+scoping decision (drive it vs. don't), documented here rather than
+discovered by accident.
+
+## Step granularity and `state_json` emission
+
+One `Step()` = one `ai_step()` call, plus whichever of the two synchronous
+follow-ups (`finish_pass_animation`/`finish_trick_collect`) that same
+`ai_step()` call requires to avoid stalling. Concretely, for one full round
+of `game.gamestate` (round 1, passing not skipped): 56 `Step()` calls — 4
+consumed by the passing phase (no schema tier; `select_pass()` isn't one of
+`card_play`/`trick`/`round`), 52 producing `card_play` events (one per
+`state.play_card()`, including each trick's 4th/triggering card), 13
+producing `trick` events, and the last of those 13 *also* producing the
+`round` event in the same `Step()` (13th trick's resolution and
+`resolve_round()` happen inside the same Python call chain). A single
+`Step()` can therefore emit more than one tier event — `GetLastStepEvents()`
+returns all of them in emission order; `GetLastStateJson()` is a
+convenience returning the last (most significant) one, or `""` for a
+passing-phase sub-step.
+
+`RunFromSteppedSource()` (`uppsrc/VisualStateModel/PipelineRunner.cpp`) was
+read in full before deciding how to wire this up: its loop only calls
+`Step()`/`ReadFrame()`/`ProcessSourceFrame()` — there is no hook for a
+stepped source's own `state_json` at all, so routing through it today would
+silently drop every event this task exists to produce. This is a real API
+gap (worth closing in a future task), not a reason to call direct driving
+"premature" — the demo drives `Step()`/`HasMoreSteps()`/`ReadFrame()`
+directly instead, per the plan's own sanctioned fallback.
+
+`trick_number` for the `trick` tier is caller-supplied (via
+`VsmCardGameStateExport::ExportTrickState()`) and tracked *exactly* by
+`VsmHeartsSource` itself (incremented once per `finish_trick_collect()`
+call the driver makes) — this sidesteps the `card_play`-tier's own
+known same-winner-twice-in-a-row undercount (documented above), since the
+driver always knows precisely when a trick resolved, unlike the adapter's
+external `last_trick_winner`-diffing heuristic. That heuristic limitation
+did surface exactly as documented in a real run (round 1 had player 3 win
+tricks 5 and 6 back to back; the `card_play` events during trick 6 show
+`trick_number:5`, stuck) — confirming the known limitation is real and
+unrelated to anything `VsmHeartsSource` does, and that `VsmHeartsSource`'s
+own `trick`-tier counter is unaffected by it.
+
+`ReadFrame()` reuses the same `Image` → `VsmImageBuffer` RGB conversion as
+`reference/VisualStateWorkbench/JpegSequenceImporter.cpp`'s
+`ImageToVsmBuffer()` (no separate general-purpose helper existed to import
+instead).
+
+## A confirmed, orthogonal `CardGameDocumentHost` finding (not fixed here)
+
+Driving `ai_step()`/`refresh_ui()` manually more than once on a
+`CardGameDocumentHost` trips its own internal `CheckExpectedSpriteCounts()`
+self-check (`CardGamePlugin.cpp`), logging `"AssertionError: render sprite
+count mismatch in hand_self: expected N, got 0"`-style messages once
+`log_to_stdout` is on. Verified this is **not** specific to
+`VsmHeartsSource` or to running two `CardGameDocumentHost` instances in one
+process: reproduced identically by adding one extra manual `ai_step()` call
+to 0068's own single-`ExecuteSync()` demo host. It does not throw, does not
+corrupt `state` (a full round completed with mathematically correct scores
+summing to 26), and does not affect `CaptureRecordFrame()`'s pixel output
+(every `ReadFrame()` in a 56-step run returned a non-empty frame). It
+appears to be a sprite-positioning bookkeeping issue in
+`CardGamePlugin.cpp`'s `ApplySetCard()`/`CheckExpectedSpriteCounts()` path
+that simply had never been exercised by repeated manual driving before this
+task (0068's demo only ever calls `ExecuteSync()` once). Left alone — it's
+squarely inside `ScriptIDE`'s own GUI/sprite-rendering internals, outside
+this task's scope, and orthogonal to `state_json`/frame correctness; the
+demo works around the *symptom* only, by setting
+`CardGameDocumentHost::log_to_stdout = false` before driving (that static
+flag, left on from 0068's own demo, would otherwise make every mismatch
+re-log the *entire* accumulated game log, compounding into an unusably
+large log — a separate, easy-to-fix-locally side effect of the same root
+cause). Flagged here as a follow-up for whoever next touches
+`CardGamePlugin.cpp`'s sprite pipeline or task 0073's OCR wiring.
+
+## Demo / test
+
+Extends `reference/CardGameStateAdapter/main.cpp`'s existing `GUI_APP_MAIN`
+(same binary, no new package): after the existing `VsmCardGameStateExport`
+checks, opens a second `CardGameDocumentHost` via `VsmHeartsSource`, drives
+it with a `kMaxSteps = 200` hard cap (`ASSERT_`s loudly if exceeded without
+reaching a `"tier":"round"` event — never silently hangs), and asserts the
+final event's field set against the schema exactly.
+
+Build & run:
+
+```
+bin/build --mainconfig 0 --release --jobs 12 CardGameStateAdapter
+bin/CardGameStateAdapter
+```
+
+Sample output (real run, tail):
+
+```
+--- VsmHeartsSource: driving one full round ---
+VsmHeartsSource opened: VsmHeartsSource:/home/sblo/Dev/ai-upp/uppsrc/ScriptIDE/reference/Hearts/game.gamestate (1024x702)
+  [5] {"tier":"card_play","round_number":1,"phase":"PLAYING","turn":2,"trick_number":1,"leading_suit":"clubs","hearts_broken":false,"player":1,"card_played":"2C"}
+  ...
+  [56] {"tier":"trick","round_number":1,"trick_number":13,"trick_winner":2,"trick_points":1,"round_scores":[0,0,19,7]}
+  [56] {"tier":"round","round_number":1,"round_scores":[0,0,19,7],"scores":[0,0,19,7],"moon_shooter":-1,"game_over":false}
+VsmHeartsSource: 56 Step() calls, 52 card_play events, 13 trick events, 1 round event. Final round_json: {"tier":"round","round_number":1,"round_scores":[0,0,19,7],"scores":[0,0,19,7],"moon_shooter":-1,"game_over":false}
+VsmHeartsSource one-round drive: OK.
+```
+
+## Non-goals / what this does not do
+
+- Full-game (multi-round) driving — `next_round()` is deliberately never
+  called (see table above).
+- OCR wiring (task 0073).
+- Cardinality/`expected_child_count` (task 0071).
+- Self-consistency validation (task 0072).
+- Fixing the `CardGameDocumentHost` sprite-count self-check finding above.

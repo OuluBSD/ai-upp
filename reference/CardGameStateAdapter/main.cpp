@@ -98,5 +98,83 @@ GUI_APP_MAIN
 	ASSERT_(VsmCanonicalJsonEqual(round_json, round_json), "round_json does not round-trip against itself");
 
 	Cout() << "All CardGameStateAdapter checks passed.\n";
+
+	// -----------------------------------------------------------------
+	// VsmHeartsSource (task 0069): drive one full round via Step()/
+	// HasMoreSteps()/ReadFrame(), collecting state_json along the way.
+	// Driven directly rather than through VsmObservationPipeline::
+	// RunFromSteppedSource(): that function's per-frame loop
+	// (uppsrc/VisualStateModel/PipelineRunner.cpp) has no hook at all for
+	// a stepped source's own state_json (it only consumes frames via
+	// ProcessSourceFrame()), so wiring through it today would silently
+	// drop every state_json event this task exists to produce -- a real
+	// API gap, not "premature," confirmed by reading RunFromSteppedSource()
+	// in full before choosing direct driving instead.
+	Cout() << "\n--- VsmHeartsSource: driving one full round ---\n";
+	{
+		// CardGameDocumentHost::log_to_stdout is a *static* (process-wide) flag
+		// the 0068 demo above turned on for its own single ExecuteSync() call.
+		// Left on, it also applies to every ai_step()/refresh_ui() call this
+		// driver makes -- and CardGameDocumentHost's own internal
+		// CheckExpectedSpriteCounts() sprite-bookkeeping self-check (unrelated
+		// to game logic; see docs/VisualStateModel/CARD_GAME_ADAPTER.md's
+		// "VsmHeartsSource" section) re-logs its *entire* accumulated game_log
+		// on every mismatch, which compounds across dozens of Step() calls into
+        // an unusably large log. Turn it off before driving; it does not affect
+		// GetLastStepEvents()/state_json correctness, only stdout volume.
+		CardGameDocumentHost::log_to_stdout = false;
+
+		VsmHeartsSource src;
+		bool opened = src.Open(gamestate_path);
+		ASSERT_(opened, "VsmHeartsSource::Open failed: " + src.GetLastError());
+		Cout() << "VsmHeartsSource opened: " << src.GetSourceInfo()
+		       << " (" << src.GetWidth() << "x" << src.GetHeight() << ")\n";
+
+		int card_play_events = 0, trick_events = 0, round_events = 0;
+		bool reached_round_end = false;
+		String last_json;
+
+		while(src.HasMoreSteps() && src.GetStepCount() < VsmHeartsSource::kMaxSteps) {
+			bool ok = src.Step();
+			ASSERT_(ok, "VsmHeartsSource::Step failed: " + src.GetLastError());
+
+			VsmImageBuffer frame;
+			int64 ts_ms = 0;
+			bool got_frame = src.ReadFrame(frame, ts_ms);
+			ASSERT_(got_frame, "VsmHeartsSource::ReadFrame failed: " + src.GetLastError());
+			ASSERT_(!frame.IsEmpty(), "VsmHeartsSource::ReadFrame produced an empty frame");
+
+			for(const String& json : src.GetLastStepEvents()) {
+				Cout() << "  [" << src.GetStepCount() << "] " << json << "\n";
+				Value v = ParseJSON(json);
+				ASSERT_(!v.IsError(), "VsmHeartsSource emitted unparsable JSON: " + json);
+				ValueMap vm = v;
+				String tier = vm["tier"].ToString();
+				if(tier == "card_play") card_play_events++;
+				else if(tier == "trick") trick_events++;
+				else if(tier == "round") { round_events++; reached_round_end = true; }
+				last_json = json;
+			}
+			if(reached_round_end)
+				break;
+		}
+
+		ASSERT_(reached_round_end,
+			Format("VsmHeartsSource: did not reach a 'round' tier event within %d Step() calls "
+			       "(cap reached -- treating as a hang, not a pass): last_error='%s'",
+			       VsmHeartsSource::kMaxSteps, src.GetLastError()));
+
+		AssertFieldsExact(last_json, "round",
+			{"tier", "round_number", "round_scores", "scores", "moon_shooter", "game_over"});
+		AssertIntArrayLen(last_json, "round_scores", 4);
+		AssertIntArrayLen(last_json, "scores", 4);
+
+		Cout() << Format(
+			"VsmHeartsSource: %d Step() calls, %d card_play events, %d trick events, "
+			"%d round event. Final round_json: %s\n",
+			src.GetStepCount(), card_play_events, trick_events, round_events, last_json);
+		Cout() << "VsmHeartsSource one-round drive: OK.\n";
+	}
+
 	SetExitCode(0);
 }

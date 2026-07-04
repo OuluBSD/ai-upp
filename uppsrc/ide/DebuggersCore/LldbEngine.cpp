@@ -25,7 +25,11 @@ DbgBacktrace GetLldbBacktrace(const String& exe, const Vector<String>& args, con
 	lldb_args.Add("-o");
 	lldb_args.Add("run");
 	lldb_args.Add("-o");
+	lldb_args.Add("quit");
+	lldb_args.Add("-k");
 	lldb_args.Add("bt");
+	lldb_args.Add("-k");
+	lldb_args.Add("quit");
 	lldb_args.Add("-f");
 	lldb_args.Add(exe);
 	lldb_args.Add("--");
@@ -72,51 +76,42 @@ DbgBacktrace GetLldbBacktrace(const String& exe, const Vector<String>& args, con
 			line = TrimBoth(line.Mid(2));
 		}
 		if (line.StartsWith("frame #")) {
+			int colon = line.Find(':');
+			if (colon < 0) continue;
+			
+			String remainder = TrimBoth(line.Mid(colon + 1));
 			DbgFrame frame;
-			CParser p(line);
-			try {
-				p.Id("frame");
-				p.Char('#');
-				if (!p.IsNumber()) continue;
-				int frame_num = p.ReadInt();
-				p.Char(':');
-				
-				if (p.IsNumber(16)) {
-					frame.address = p.ReadId();
+			
+			if (remainder.StartsWith("0x")) {
+				int space = remainder.Find(' ');
+				if (space >= 0) {
+					frame.address = remainder.Left(space);
+					remainder = TrimBoth(remainder.Mid(space));
 				}
-				
-				const char *start = p.GetSpacePtr();
-				const char *at = strstr(start, " at ");
-				String func_part;
-				if (at) {
-					func_part = TrimBoth(String(start, at));
-					p.SetPos(at);
-				} else {
-					func_part = TrimBoth(start);
-					p.SetPos(start + strlen(start));
-				}
-				
-				int backtick = func_part.Find('`');
-				if (backtick >= 0) {
-					frame.function = func_part.Mid(backtick + 1);
-				} else {
-					frame.function = func_part;
-				}
-				
-				if (p.Id("at")) {
-					String file_line_col = TrimBoth(p.GetSpacePtr());
-					Vector<String> parts = Split(file_line_col, ':');
-					if (parts.GetCount() >= 2) {
-						frame.file = parts[0];
-						frame.line = atoi(parts[1]);
-					} else {
-						frame.file = file_line_col;
-					}
-				}
-				
-				bt.frames.Add(frame);
 			}
-			catch(CParser::Error) {}
+			
+			int at_pos = remainder.Find(" at ");
+			String func_part = at_pos >= 0 ? TrimBoth(remainder.Left(at_pos)) : remainder;
+			remainder = at_pos >= 0 ? TrimBoth(remainder.Mid(at_pos + 4)) : "";
+			
+			int backtick = func_part.Find('`');
+			if (backtick >= 0) {
+				frame.function = func_part.Mid(backtick + 1);
+			} else {
+				frame.function = func_part;
+			}
+			
+			if (at_pos >= 0) {
+				Vector<String> parts = Split(remainder, ':');
+				if (parts.GetCount() >= 2) {
+					frame.file = parts[0];
+					frame.line = atoi(parts[1]);
+				} else {
+					frame.file = remainder;
+				}
+			}
+			
+			bt.frames.Add(frame);
 		}
 	}
 	

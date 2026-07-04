@@ -305,7 +305,9 @@ bool VsmHeartsSource::Step()
 		int played_by = last_play.GetItem(0).AsInt();
 		PyValue card  = last_play.GetItem(1);
 		String card_code = HCardIdToCode(HGetStr(card, "id"));
-		String json = exporter.ExportCardPlayState(host, played_by, card_code);
+		// tricks_resolved counts *completed* tricks; the trick currently being
+		// played (this card play included) is the next one, 1-based.
+		String json = exporter.ExportCardPlayState(host, played_by, card_code, tricks_resolved + 1);
 		last_step_events.Add(json);
 	}
 
@@ -321,10 +323,13 @@ bool VsmHeartsSource::Step()
 			return false;
 		state = mod.GetItem(PyValue("state"));
 
-		tricks_resolved++; // exact -- we drove this resolution ourselves, unlike
-		                    // VsmCardGameStateExport's own best-effort
-		                    // last_trick_winner-diff heuristic (which undercounts
-		                    // on same-winner-twice-in-a-row; not a limitation here).
+		tricks_resolved++; // exact -- we drove this resolution ourselves. Also now
+		                    // fed into ExportCardPlayState()'s trick_number param
+		                    // (follow-up fix, post-0073): that used to guess via a
+		                    // last_trick_winner-diff heuristic in
+		                    // VsmCardGameStateExport, which undercounted by one on
+		                    // same-winner-twice-in-a-row -- removed in favor of
+		                    // this exact, driver-known count.
 		int winner = HGetInt(state, "last_trick_winner");
 		int points = HGetInt(state, "last_trick_points");
 		String trick_json = exporter.ExportTrickState(host, tricks_resolved, winner, points);

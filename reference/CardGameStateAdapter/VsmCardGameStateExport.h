@@ -9,12 +9,21 @@ public:
 	// describe the play that was just made (the adapter has no way to observe
 	// this itself — GameState does not record "last card played"); every other
 	// field is read live from the Python `state` object driving `host`.
-	// `trick_number` is derived internally (see TrackTrickNumber()) because
-	// `GameState` has no trick-sequence counter of its own. `hand_counts`
-	// (task 0073, CARD_GAME_STATE_SCHEMA.md) is optional/additive: per-player
-	// `len(state.players[i])`, read live the same way `round_scores`/`scores`
-	// already are for the other tiers.
-	String ExportCardPlayState(CardGameDocumentHost& host, int player, const String& card_played);
+	// `hand_counts` (task 0073, CARD_GAME_STATE_SCHEMA.md) is optional/additive:
+	// per-player `len(state.players[i])`, read live the same way
+	// `round_scores`/`scores` already are for the other tiers.
+	//
+	// `trick_number` is caller-supplied, same as ExportTrickState()/
+	// ExportRoundState() below (follow-up fix, post-0073): this used to be
+	// derived internally via TrackTrickNumber()'s last_trick_winner-diff
+	// heuristic, which undercounts by one whenever the same player wins two
+	// consecutive tricks in a row (no equivalent counter exists on
+	// `GameState` itself). A driver like VsmHeartsSource::Step() already
+	// knows the exact trick count synchronously — it is the one calling
+	// finish_trick_collect() — so there is no need to infer it from polling
+	// Python state at all; removed the heuristic in favor of that.
+	String ExportCardPlayState(CardGameDocumentHost& host, int player,
+	                           const String& card_played, int trick_number);
 
 	// Tier 2 ("trick"): one event per resolved trick. `trick_number`/
 	// `trick_winner`/`trick_points` are supplied by the caller (the driver
@@ -40,22 +49,4 @@ public:
 	// (task 0069's VsmHeartsSource reuses this exact lookup rather than
 	// re-deriving it) after having been a file-local static here (task 0068).
 	static PyValue FindEntryModuleDict(CardGameDocumentHost& host, PyVM& vm);
-
-private:
-	// Best-effort trick_number tracking for Tier 1, which has no equivalent
-	// caller-supplied parameter. Counts resolved tricks by watching
-	// `state.last_trick_winner` for changes across calls.
-	//
-	// KNOWN LIMITATION (documented, not silently patched): if the same
-	// player wins two consecutive tricks, `last_trick_winner` does not
-	// change between those two resolutions, so this under-counts by one.
-	// `hearts/logic.py::GameState` has no trick-sequence counter that could
-	// disambiguate "still trick N" from "already trick N+1, same winner" —
-	// confirmed absent by reading the whole file before adding this
-	// workaround. A real fix requires adding a counter field to GameState
-	// itself (out of scope for this adapter; noted as follow-up in
-	// docs/VisualStateModel/CARD_GAME_ADAPTER.md).
-	int last_seen_trick_winner = -1;
-	int resolved_trick_count   = 0;
-	void TrackTrickNumber(const PyValue& state);
 };

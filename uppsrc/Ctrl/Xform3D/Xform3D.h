@@ -19,13 +19,14 @@ public:
 	Xform3D();
 	~Xform3D();
 
-	// ROT_Y = vertical hinge (left/right turn), ROT_X = horizontal hinge (top/bottom turn)
-	enum Axis { ROT_Y, ROT_X };
-
-	// Configures the rotation: `angle_rad` in [0, pi/2] where 0 = fully face-on
-	// (no rotation) and pi/2 = fully edge-on. `quad_size` is the flat rectangle's
-	// size in pixels, e.g. the card image's on-screen size before any rotation.
-	void Set(Axis axis, double angle_rad, Size quad_size);
+	// Configures the rotation as two composed hinge rotations: `angle_x_rad` is
+	// the horizontal-hinge (top/bottom turn) component, `angle_y_rad` is the
+	// vertical-hinge (left/right turn) component. Each is in [0, pi/2] where 0 =
+	// fully face-on (no rotation) and pi/2 = fully edge-on; passing 0 for one of
+	// them reproduces a pure single-axis turn around the other. `quad_size` is
+	// the flat rectangle's size in pixels, e.g. the card image's on-screen size
+	// before any rotation.
+	void Set(double angle_x_rad, double angle_y_rad, Size quad_size);
 
 	// Projects an (n+1) x (n+1) grid of points evenly covering the quad
 	// (from one edge to the opposite edge in both directions) through the

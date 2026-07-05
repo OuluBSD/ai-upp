@@ -156,7 +156,7 @@ void DrawWarped3D(Draw& w, const Image& img, const Xform3D& xf, int n, Point cen
 	int by1 = center.y + (int)ceil(bmax.y) + 1;
 	Size bufsz(max(1, bx1 - bx0), max(1, by1 - by0));
 
-	ImagePainter ip(bufsz);
+	ImagePainter ip(bufsz, MODE_NOAA);
 	ip.Clear(RGBAZero());
 
 	for(int j = 0; j < n; j++) {

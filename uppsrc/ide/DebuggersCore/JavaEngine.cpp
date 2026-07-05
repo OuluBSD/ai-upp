@@ -30,7 +30,7 @@ DbgBacktrace GetJavaBacktrace(const String& exe, const Vector<String>& args, con
 	}
 	
 	String out;
-	bool sent_run = (exe == "-connect");
+	bool sent_run = false;
 	bool sent_where = false;
 	bool sent_quit = false;
 	
@@ -54,8 +54,12 @@ DbgBacktrace GetJavaBacktrace(const String& exe, const Vector<String>& args, con
 			no_output_ms += 20;
 		}
 		
-		if (!sent_run && out.Find(">") >= 0) {
-			lp.Write("run\n");
+		if (!sent_run && (out.Find(">") >= 0 || out.Find("] ") >= 0)) {
+			if (exe == "-connect") {
+				lp.Write("cont\n");
+			} else {
+				lp.Write("run\n");
+			}
 			sent_run = true;
 		}
 		

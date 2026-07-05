@@ -38,7 +38,6 @@ bool AndroidBuilder::BuildPackage(
 	int)
 {
 	Logd() << METHOD_NAME;
-	
 	InitProject();
 	if(!ValidateBuilderEnviorement())
 		return false;
@@ -66,6 +65,7 @@ bool AndroidBuilder::BuildPackage(
 	String jniSourcesDir     = project->GetJniDir();
 	String pkgJavaSourcesDir = javaSourcesDir + DIR_SEPS + package;
 	for(int i = 0; i < pkg.GetCount(); i++) {
+		PutConsole(String() << "DEBUG: pkg file = " << pkg[i] << ", IsXml = " << BuilderUtils::IsXmlFile(pkg[i]) << ", fileName = " << NormalizePathSeparator(pkg[i]) << ", isMain = " << isMainPackage);
 		if(!IdeIsBuilding())
 			return false;
 		if(pkg[i].separator)
@@ -118,6 +118,7 @@ bool AndroidBuilder::BuildPackage(
 					return false;
 				}
 				
+				RealizeDirectory(project->GetDir());
 				if(!FileCopy(filePath, project->GetManifestPath())) {
 					return false;
 				}

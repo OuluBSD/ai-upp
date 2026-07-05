@@ -1,0 +1,8 @@
+description "Android Java Crash Smoke test case\377";
+
+file
+	AndroidManifest.xml,
+	MainActivity.java;
+
+mainconfig
+	"" = "";

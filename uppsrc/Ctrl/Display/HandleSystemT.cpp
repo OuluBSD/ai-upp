@@ -1,4 +1,4 @@
-#include "GuiGlue.h"
+#include "Display.h"
 
 #ifdef flagGUI
 

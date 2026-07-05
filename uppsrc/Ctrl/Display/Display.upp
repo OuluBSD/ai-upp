@@ -1,0 +1,20 @@
+description "Templated window-manager primitives (ScopeT/FrameT/HandleSystemT): move/focus/maximize/minimize/close, frame painting, instantiated for native Ctrl/Draw via CtxUpp2D";
+
+uses
+	Eon/Core,
+	Vfs,
+	CtrlCore;
+
+uses(VIRTUALGUI) VirtualGui;
+
+file
+	README.md,
+	Display.h,
+	FrameT.h,
+	FrameT.cpp,
+	HandleSystemT.h,
+	HandleSystemT.cpp,
+	HandleTypes.h,
+	ScopeT.h,
+	ScopeT.cpp;
+

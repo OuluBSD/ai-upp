@@ -142,11 +142,16 @@ void PkgEselectState::Jsonize(JsonIO& jio)
 	jio("emscripten_profile", emscripten_profile);
 }
 
+void PkgUseEntry::Jsonize(JsonIO& jio)
+{
+	jio("text", text)("when", when);
+}
+
 void PkgPackage::Jsonize(JsonIO& jio)
 {
 	jio("atom", atom)("name", name)("nest", nest)("path", path)("dir", dir);
 	jio("description", description);
-	jio("accepts", accepts)("uses", uses)("mainconfig", mainconfig);
+	jio("accepts", accepts)("uses", uses)("uses_conditional", uses_conditional)("mainconfig", mainconfig);
 	jio("source_files", source_files)("manifest", manifest)("mtime", mtime);
 }
 
@@ -1385,7 +1390,16 @@ void PkgRepository::Discover()
 		Time uppkg_mtime = uppkg_exists ? FileGetTime(uppkg_path) : Time();
 		PkgPackage p;
 		bool reused = false;
-		if(use_cache && !rebuild_cache && cache_ok) {
+		// Plan/30b added PkgPackage::uses_conditional (schema 3). A cache file
+		// written before that (schema < 3) has no such data in its entries, so
+		// per-entry reuse must be refused for it: otherwise reused entries would
+		// silently carry an empty uses_conditional forever (since reuse itself
+		// keys off upp/manifest mtime, not schema), breaking graph resolution
+		// which now relies on uses_conditional rather than uses. Requiring the
+		// schema to be current forces one full reparse pass that self-heals the
+		// on-disk cache (rewritten with schema 3 below), after which normal
+		// mtime-based reuse resumes.
+		if(use_cache && !rebuild_cache && cache_ok && cache.schema >= 3) {
 			int ci = sFindMetadataCacheEntry(cache.entries, upp_path);
 			if(ci >= 0) {
 				const PkgMetadataCacheEntry& ce = cache.entries[ci];
@@ -1424,8 +1438,12 @@ void PkgRepository::Discover()
 				p.manifest.present = false;
 				p.manifest.ok = true;
 			}
-			for(int i = 0; i < pkg.uses.GetCount(); i++)
+			for(int i = 0; i < pkg.uses.GetCount(); i++) {
 				p.uses.Add(pkg.uses[i].text);
+				PkgUseEntry& ue = p.uses_conditional.Add();
+				ue.text = pkg.uses[i].text;
+				ue.when = pkg.uses[i].when;
+			}
 			for(int i = 0; i < pkg.config.GetCount(); i++)
 				if(!pkg.config[i].name.IsEmpty())
 					p.mainconfig.Add(pkg.config[i].name);
@@ -1467,7 +1485,7 @@ void PkgRepository::Discover()
 	discover_seconds = ts.Seconds();
 
 	if(use_cache && (cache_changed || rebuild_cache || !cache_ok)) {
-		cache.schema = 2;
+		cache.schema = 3;
 		cache.root = root;
 		cache.saved_at = GetSysTime();
 		cache.entries.Clear();
@@ -1676,6 +1694,12 @@ static void sCopyPkg(PkgPackage& dst, const PkgPackage& src)
 	dst.uses.Clear();
 	for(const String& s : src.uses)
 		dst.uses.Add(s);
+	dst.uses_conditional.Clear();
+	for(const PkgUseEntry& u : src.uses_conditional) {
+		PkgUseEntry& ue = dst.uses_conditional.Add();
+		ue.text = u.text;
+		ue.when = u.when;
+	}
 	dst.mainconfig.Clear();
 	for(const String& s : src.mainconfig)
 		dst.mainconfig.Add(s);
@@ -8322,6 +8346,70 @@ static void sGraphAppendOrder(PkgGraph& graph, const String& key)
 		graph.order.Add(key);
 }
 
+// Plan/30b: the set of flag names considered "active" when evaluating a
+// `uses(WHEN) atom;` condition (ide/Core's MatchWhen) during graph
+// resolution for a given plan/target. Scoped deliberately, not a byte-perfect
+// replica of what umk would compute - see uppsrc/pkg/plan/30b-uses-when-evaluation/
+// TASK.md and REPORT.md for the rationale and documented gaps:
+//  - host/target platform flags, derived from sTargetFamily(plan.target);
+//    "native" resolves via this build's own compile-time platform, matching
+//    the pattern already used by sVcpkgDefaultTriplet. "wasm" has no
+//    confident flag mapping yet and is intentionally left empty.
+//  - this package+target's already-computed USE-to-U++ projection
+//    (plan.upp.global), reused as-is rather than recomputed.
+//  - fixed build-method defaults matching this repo's actual default build
+//    config (DEBUG_FULL CLANG DEBUG SHARED BLITZ POSIX LINUX): SHARED, MT.
+//    STATIC/ST/NOSO builds are not modeled and are a known limitation.
+static void sAddUsesActiveFlag(Vector<String>& flags, const String& flag)
+{
+	if(FindIndex(flags, flag) < 0)
+		flags.Add(flag);
+}
+
+static Vector<String> sBuildUsesActiveFlags(const PkgPlan& plan)
+{
+	Vector<String> flags;
+	String fam = sTargetFamily(plan.target);
+	if(fam == "native") {
+#ifdef flagWIN32
+		fam = "windows";
+#elif defined(flagFREEBSD)
+		fam = "freebsd";
+#elif defined(flagOSX)
+		fam = "macos";
+#else
+		fam = "linux";
+#endif
+	}
+	if(fam == "windows")
+		sAddUsesActiveFlag(flags, "WIN32");
+	else if(fam == "linux") {
+		sAddUsesActiveFlag(flags, "POSIX");
+		sAddUsesActiveFlag(flags, "LINUX");
+	}
+	else if(fam == "macos") {
+		sAddUsesActiveFlag(flags, "POSIX");
+		sAddUsesActiveFlag(flags, "MACOS");
+	}
+	else if(fam == "freebsd") {
+		sAddUsesActiveFlag(flags, "POSIX");
+		sAddUsesActiveFlag(flags, "FREEBSD");
+	}
+	// else: "wasm" or an unrecognized target family - no confident platform
+	// flag mapping, leave empty rather than guessing (documented gap).
+
+	// Documented default build method (see comment above): SHARED/MT, not
+	// STATIC/ST/NOSO.
+	sAddUsesActiveFlag(flags, "SHARED");
+	sAddUsesActiveFlag(flags, "MT");
+
+	// Reuse this package+target's already-computed USE-to-U++ projection
+	// rather than recomputing anything.
+	for(const String& g : plan.upp.global)
+		sAddUsesActiveFlag(flags, g);
+	return flags;
+}
+
 static const PkgPackage *sResolveExactPackage(const PkgRepository& repo, const String& atom)
 {
 	PkgLookupResult lookup = repo.Resolve(atom);
@@ -8495,7 +8583,14 @@ static String sResolveGraphAtom(PkgGraph& graph, const PkgInvocation& inv, const
 	if(sShouldSkipPlannedAtom(inv, plan, repo, state, lookup.path.IsEmpty() ? pkg->name : lookup.path))
 		return key;
 	stack.Add(key);
-	for(const String& dep : pkg->uses) {
+	Vector<String> uses_active_flags = sBuildUsesActiveFlags(plan);
+	for(const PkgUseEntry& use_entry : pkg->uses_conditional) {
+		// Plan/30b: a conditional `uses(WHEN) atom;` only participates in
+		// this target/profile's graph if WHEN evaluates true; unconditional
+		// entries (empty when) are always included, same as before.
+		if(!use_entry.when.IsEmpty() && !MatchWhen(use_entry.when, uses_active_flags))
+			continue;
+		const String& dep = use_entry.text;
 		String dep_reason = String("dependency of ") + pkg->name;
 		String dep_key = sResolveGraphAtom(graph, inv, repo, state, plan, provider_plan, policy, dep, dep_reason, "dependency", depth + 1, false, false, false, stack);
 		if(!dep_key.IsEmpty()) {

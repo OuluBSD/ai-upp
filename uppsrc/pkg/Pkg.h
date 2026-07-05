@@ -201,6 +201,18 @@ struct PkgUppkgManifest : Moveable<PkgUppkgManifest> {
 	void Jsonize(JsonIO& jio);
 };
 
+// Plan/30b: one declared `uses(...)` entry, retaining its (possibly empty)
+// `when` condition string exactly as parsed by ide/Core's Package::Load
+// (see OptItem in ide/Core/Core.h). Discovery always populates this with
+// every declared entry regardless of condition; only graph-resolution time
+// (which knows the active target/profile) evaluates `when` via MatchWhen.
+struct PkgUseEntry : Moveable<PkgUseEntry> {
+	String text;
+	String when;
+
+	void Jsonize(JsonIO& jio);
+};
+
 struct PkgPackage : Moveable<PkgPackage> {
 	String atom;
 	String name;
@@ -210,6 +222,7 @@ struct PkgPackage : Moveable<PkgPackage> {
 	String description;
 	Vector<String> accepts;
 	Vector<String> uses;
+	Vector<PkgUseEntry> uses_conditional;
 	Vector<String> mainconfig;
 	Vector<String> source_files;
 	PkgUppkgManifest manifest;
@@ -231,7 +244,7 @@ struct PkgMetadataCacheEntry : Moveable<PkgMetadataCacheEntry> {
 };
 
 struct PkgMetadataCache : Moveable<PkgMetadataCache> {
-	int schema = 2;
+	int schema = 3;
 	String root;
 	Vector<PkgMetadataCacheEntry> entries;
 	Time saved_at;

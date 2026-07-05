@@ -1,7 +1,8 @@
 description "Commandline U++ package/assembly builder\377";
 
 uses
-	ide\Builders;
+	ide\Builders,
+	ide\Core;
 
 uses(!POSIX) Core/SSL;
 

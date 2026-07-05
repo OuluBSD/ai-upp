@@ -23,7 +23,7 @@ void Ide::PutVerbose(const char *s)
 
 const Workspace& Ide::IdeWorkspace() const
 {
-	return wspc;
+	return wspc.GetWorkspace();
 }
 
 bool Ide::IdeIsBuilding() const

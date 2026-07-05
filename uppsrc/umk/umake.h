@@ -93,7 +93,7 @@ public:
 };
 
 struct Ide : public IdeContext, public MakeBuild {
-	Workspace wspc;
+	IdeCoreWorkspace wspc;
 	Console   console;
 	String    onefile;
 	bool      verbose;

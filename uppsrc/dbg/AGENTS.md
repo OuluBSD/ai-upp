@@ -50,6 +50,23 @@ To debug an arm64 target running on a physical Android device or virtual machine
      `target create ./local_exe -r /data/local/tmp/target_exe`
      `run`
 
+Android Java Debugging via JDWP (jdb)
+To debug a Java-only Android application (such as `android/JavaCrashSmoke`):
+1. **Ensure app is debuggable**:
+   - Set `android:debuggable="true"` in the application manifest.
+2. **Build and Deploy**:
+   - Compile the APK, install it on the device (`adb install app.apk`), and launch it.
+3. **Get target process PID**:
+   - Probe the running process PID on the device:
+     `adb shell pidof org.upp.JavaCrashSmoke`
+4. **Configure Port Forwarding**:
+   - Forward host port 5005 to JDWP on the device:
+     `adb forward tcp:5005 jdwp:<PID>`
+5. **Connect and Debug from Host**:
+   - Attach host `jdb` to JDWP port:
+     `jdb -connect com.sun.jdi.SocketAttach:hostname=localhost,port=5005`
+   - Use `where` to print stack traces or `catch java.lang.Throwable` to intercept crashes.
+
 Package Notes
 - `TcpProxy.*` are legacy MCP proxy files.
 - They are not part of `dbg.upp` and must stay out of the package manifest.
@@ -62,4 +79,5 @@ File Map
 - `GdbAdapter.h/cpp` : adapter for GdbEngine
 - `LldbAdapter.h/cpp` : adapter for LldbEngine
 - `VsAdapter.h/cpp` : VS adapter skeleton
+- `JavaAdapter.h/cpp` : adapter for JavaEngine
 - `main.cpp` : console entrypoint, delegates to `RunDbgCli`

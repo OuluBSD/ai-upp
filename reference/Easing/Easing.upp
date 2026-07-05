@@ -1,0 +1,12 @@
+description "Demonstrates the Ctrl/Easing Tween class, comparing easing curves side by side\377";
+
+uses
+	CtrlLib,
+	Ctrl/Easing;
+
+file
+	main.cpp;
+
+mainconfig
+	"" = "GUI",
+	"" = "GUI X11 USEMALLOC";

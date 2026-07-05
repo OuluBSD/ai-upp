@@ -2,7 +2,8 @@ description "3D perspective rotate+project helper for flat rectangular images (b
 
 uses
 	CtrlCore,
-	Geometry;
+	Geometry,
+	Painter;
 
 file
 	Xform3D.h,

@@ -4,7 +4,9 @@ charset "windows-1250";
 
 uses
 	CtrlLib,
-	GridCtrl,
+	GridCtrl;
+
+uses(NETDPY)
 	Turtle;
 
 library

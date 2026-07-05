@@ -166,16 +166,60 @@ public:
 		}
 		case MAGIC_CARPET: { // wavy unfurl, ripple settling out as the card lands
 			PaintShadow(w, sz, dest, e);
-			int strips = 20;
+			int   strips = 20;
+			Image faded  = Faded(card, e);
+
+			// wobble()'s amplitude is capped at (1-e)*22 <= 22, so +/-22px plus a
+			// little slack is enough headroom for the offscreen buffer in any
+			// direction, same "bound just what this warp needs" idiom as
+			// DrawWarped3D (Xform3D.cpp).
+			int  margin = 24;
+			int  bx0    = dest.left - margin;
+			int  bx1    = dest.left + dest.Width() + margin;
+			int  by0    = dest.top;
+			int  by1    = dest.top + dest.Height() + margin;
+			Size bufsz(max(1, bx1 - bx0), max(1, by1 - by0));
+
+			// MODE_NOAA (no antialiasing) from the start: independently-antialiased
+			// adjacent strips sharing an edge in a shared transparent buffer don't
+			// sum to full opacity at the shared boundary (the seam bug Transforms/0005
+			// already had to fix once) - build hard-edged instead of reproducing it.
+			ImagePainter ip(bufsz, MODE_NOAA);
+			ip.Clear(RGBAZero());
+
 			for(int i = 0; i < strips; i++) {
 				double v0 = double(i) / strips, v1 = double(i + 1) / strips;
 				Rect   src(0, int(v0 * isz.cy), isz.cx, int(v1 * isz.cy) + 1);
 				int    sy = dest.top + int(v0 * dest.Height());
 				int    sh = max(1, dest.Height() / strips + 1);
-				double wobble = sin(v0 * M_PI * 4 + e * 14 + dir) * (1 - e) * 22;
-				Rect   d(dest.left + int(wobble), sy, dest.left + int(wobble) + dest.Width(), sy + sh);
-				w.DrawImage(d, Faded(card, e), src);
+				// Evaluated at both edges (not just v0) so that strip i's bottom
+				// edge (v1) and strip i+1's top edge (same v value) land on the
+				// exact same wobble - adjacent strips then share an exact boundary
+				// position instead of stepping.
+				double wobble0 = sin(v0 * M_PI * 4 + e * 14 + dir) * (1 - e) * 22;
+				double wobble1 = sin(v1 * M_PI * 4 + e * 14 + dir) * (1 - e) * 22;
+
+				Pointf p00(dest.left + wobble0 - bx0, sy - by0);
+				Pointf p10(dest.left + wobble0 + dest.Width() - bx0, sy - by0);
+				Pointf p01(dest.left + wobble1 - bx0, sy + sh - by0);
+				Pointf p11(dest.left + wobble1 + dest.Width() - bx0, sy + sh - by0);
+
+				// Real per-strip affine warp (3-point correspondence: top-left, top-right,
+				// bottom-left) instead of an axis-aligned blit, same idiom as DrawWarped3D's
+				// per-cell Xform2D::Map. The 4th corner (bottom-right, p11) isn't part of
+				// that basis and won't generally land exactly under a pure affine map - an
+				// accepted limitation, same as DrawWarped3D - but the clip path below still
+				// uses the true 4-corner quad (including p11), so adjacent strips' shared
+				// edges line up exactly.
+				Xform2D t = Xform2D::Map(Pointf(src.left, src.top), Pointf(src.right, src.top),
+				                         Pointf(src.left, src.bottom),
+				                         p00, p10, p01);
+
+				ip.Move(p00).Line(p10).Line(p11).Line(p01).Close();
+				ip.Fill(faded, t);
 			}
+
+			w.DrawImage(bx0, by0, ip.GetResult());
 			break;
 		}
 		}

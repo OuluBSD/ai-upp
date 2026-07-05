@@ -273,16 +273,17 @@ void ScopeT<Dim>::FocusHandle(TopContainer* tw)
 template <class Dim>
 void ScopeT<Dim>::MoveHandle(Pt pt, int handle_id)
 {
-	TODO
-	#if 0
 	if(maximize_all)
 		return;
-	Handle& h = handles.Get(handle_id);
-	Sz sz(h.GetFrameSize());
-	Pt tl = FirstCorner(h.GetFrameBox());
-	tl += pt;
-	h.SetFrameBox(BoxC(tl, sz));
-	#endif
+	int i = handles.Find(handle_id);
+	if(i < 0)
+		return;
+	Frame& h = handles[i];
+	if(h.IsMaximized())
+		return;
+	Box b = h.GetFrameBox();
+	Sz sz = b.GetSize();
+	h.SetFrameBox(RectC(b.left + pt.x, b.top + pt.y, sz.cx, sz.cy));
 }
 
 template <class Dim>
@@ -296,67 +297,56 @@ void ScopeT<Dim>::FocusHandle(int handle_id)
 template <class Dim>
 void ScopeT<Dim>::FocusHandlePos(int handle_pos)
 {
-	TODO
-	#if 0
 	if(handle_pos < 0 || handle_pos >= handles.GetCount())
 		return;
-	Handle& h = handles[handle_pos];
+	Frame& h = handles[handle_pos];
 	h.Show();
-	Interaction* c = &h;
-	if(GetLastSub() == c) {
-		int prev_active_id = active_id;
-		active_pos = handle_pos;
-		active_id = handles.GetKey(handle_pos);
-		if(handles.Find(prev_active_id) != -1)
-			handles.Get(prev_active_id).Refresh();
-		this->Refresh();
-		return;
-	}
 
-	if(!h.IsMaximized()) {
-		if(maximize_all)
-			MaximizeHandle(handles.GetKey(handle_pos));
-	}
-	else {
-		Sz sz(this->GetFrameSize());
-		Handle& h = handles[handle_pos];
-		h.SetFrameBox(BoxC(Pt(), sz));
-	}
-	h.GetTopContainer()->FocusEvent();
-	this->RemoveSub(&h);
-	this->AddSub(&h);
+	// Raise to the top of the desktop's Ctrl z-order (last child paints/hit-tests
+	// last, i.e. on top). Harmless no-op ordering-wise if desktop isn't attached to
+	// a visible window (e.g. the OpenGL variant, which composites separately and
+	// tracks its own z-order, but still reuses this bookkeeping).
+	h.Remove();
+	desktop.Add(h);
+
 	int prev_active_id = active_id;
 	active_pos = handle_pos;
 	active_id = handles.GetKey(handle_pos);
-	if(handles.Find(prev_active_id) != -1)
-		handles.Get(prev_active_id).Refresh();
+	int prev_pos = handles.Find(prev_active_id);
+	if(prev_pos >= 0)
+		handles[prev_pos].Refresh();
 	h.Refresh();
-	this->Refresh();
 	WhenActiveHandleChanges();
-	#endif
 }
 
 template <class Dim>
 void ScopeT<Dim>::CloseHandle(int handle_id)
 {
-	TODO
-	#if 0
 	int handle_pos = handles.Find(handle_id);
 	if(handle_pos == -1)
 		return;
-	Handle& h0 = handles[handle_pos];
-
-	if(h0.HasMouseDeep())
-		h0.DeepMouseLeave();
-	if(h0.HasFocusDeep())
-		h0.DeepUnfocus();
-	this->RemoveSub(&h0);
-	TopContainer* tw = h0.GetTopContainer();
+	if(active_id == handle_id) {
+		active_id = -1;
+		active_pos = -1;
+	}
+	// ~FrameT (via ~Ctrl) removes itself from its parent (desktop) automatically.
 	handles.Remove(handle_pos);
-	this->Refresh();
+	desktop.Refresh();
 	FocusPrevious();
 	WhenHandleClose();
-	#endif
+}
+
+template <class Dim>
+bool ScopeT<Dim>::ProcessCloseQueue()
+{
+	bool ret = close_handle_queue.GetCount() > 0;
+
+	Vector<int> q = pick(close_handle_queue);
+	close_handle_queue.Clear();
+	for(int id : q)
+		CloseHandle(id);
+
+	return ret;
 }
 
 template <class Dim>
@@ -382,30 +372,12 @@ void ScopeT<Dim>::RestoreHandle(int handle_id)
 template <class Dim>
 void ScopeT<Dim>::SetHandleMaximized(Frame& h, bool b)
 {
-	TODO
-	#if 0
-	Sz sz(this->GetFrameSize());
-	if(b) {
-		if(!h.IsMaximized()) {
-			h.StoreRect();
-			h.SetMaximized(true);
-		}
-		h.SetFrameBox(BoxC(Pt(), sz));
-		maximize_all = true;
-	}
-	else {
-		h.LoadRect();
-		h.SetMaximized(false);
-		maximize_all = false;
-		LoadDimsAll();
-
-		Sz h_size = h.GetFrameSize();
-		if(h_size.cx > sz.cx || h_size.cy > sz.cy) {
-			h.SetFrameBox(BoxC(Pt(10), sz - Sz(20)));
-		}
-	}
-	this->SetPendingLayout();
-	#endif
+	// FrameT already tracks its own maximized/overlapped-rect state (used directly
+	// by its title-bar maximize button); reuse that rather than duplicating it here.
+	if(b)
+		h.Maximize();
+	else
+		h.Overlap();
 }
 
 template <class Dim>
@@ -426,33 +398,29 @@ void ScopeT<Dim>::LoadDimsAll()
 template <class Dim>
 void ScopeT<Dim>::MinimizeHandle(int handle_id)
 {
-	TODO
-	#if 0
 	int handle_pos = handles.Find(handle_id);
 	if(handle_pos == -1)
 		return;
-	Handle& h = handles[handle_pos];
+	Frame& h = handles[handle_pos];
 	h.Hide();
+	if(active_id == handle_id) {
+		active_id = -1;
+		active_pos = -1;
+	}
 	FocusPrevious();
-	#endif
 }
 
 template <class Dim>
 void ScopeT<Dim>::FocusPrevious()
 {
-	TODO
-	#if 0
-	this->SetPendingLayout();
-	int handle_pos = active_pos;
-	// Focus previous
 	int count = handles.GetCount();
+	int handle_pos = active_pos;
 	while(handle_pos >= count)
 		handle_pos--;
 	for(int i = 0; i < count; i++) {
 		if(handle_pos <= -1)
 			handle_pos = count - 1;
-		Handle& h2 = handles[handle_pos];
-		// if (!maximize_all && !h2.IsShown()) {
+		Frame& h2 = handles[handle_pos];
 		if(!h2.IsShown()) {
 			handle_pos--;
 			continue;
@@ -462,7 +430,6 @@ void ScopeT<Dim>::FocusPrevious()
 	}
 	active_id = -1;
 	active_pos = -1;
-	#endif
 }
 
 template <class Dim>
@@ -519,12 +486,9 @@ void ScopeT<Dim>::CloseOthers(int handle_id)
 template <class Dim>
 typename ScopeT<Dim>::Frame* ScopeT<Dim>::GetActiveHandle()
 {
-	TODO
-	#if 0
 	if(active_pos >= 0 && active_pos < handles.GetCount())
 		return &handles[active_pos];
 	return 0;
-	#endif
 }
 
 #if 0
@@ -726,11 +690,13 @@ void ScopeT<Dim>::AddInterface(TopContainer& tw)
 	int pos = handles.GetCount();
 
 	Frame& h = handles.Add(id);
-	h.SetScope(this);
-	TODO //h.RefScopeParent<RefParent1<ScopeT<Dim>>>::SetParent(this);
+	h.SetScope(this); // scope pointer is enough bookkeeping; no separate parent-ref needed
 	h.SetId(id);
-	
-	//GeomInteraction::Add(h); // Add to Interaction (e.g. GeomInteraction2D)
+
+	// Attach to the desktop container so it actually participates in the Ctrl tree
+	// (paint/input dispatch for the software backend; a plain position/state model
+	// for backends that composite the desktop themselves, e.g. OpenGL).
+	desktop.Add(h);
 
 	// Default initial position
 	int i = handles.GetCount();
@@ -756,8 +722,11 @@ void ScopeT<Dim>::AddInterface(TopContainer& tw)
 	
 	h.Layout();
 	h.Refresh();
-	
-	// tw.SetTopFrame(h); // TODO: implement or remove
+
+	// `tw` (the hosting TopContainer) is accepted for forward compatibility with a
+	// future multi-OS-window mode; single-OS-window desktop compositing (this task)
+	// doesn't need to record it.
+	(void)tw;
 }
 
 template <class Dim>

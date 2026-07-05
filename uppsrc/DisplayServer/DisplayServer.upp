@@ -1,0 +1,17 @@
+description "Standalone windowed host: composites synthetic framed windows via Ctrl/Display's ScopeT/FrameT, in a software (Ctrl/Draw) or OpenGL (GLCtrl/GLDraw) backend, selected by mainconfig. No network code (NetworkDisplay/0005).";
+
+uses
+	CtrlLib,
+	Ctrl/Display;
+
+uses(GL) GLCtrl, GLDraw;
+
+file
+	Common.h,
+	Common.cpp,
+	SoftwareMain.cpp,
+	GLMain.cpp;
+
+mainconfig
+	"Software" = "GUI",
+	"OpenGL" = "GUI GL";

@@ -46,7 +46,15 @@ private:
 	//Pt global_mouse;
 	
 public:
-	void QueueCloseHandle(int handle_id) { close_handle_queue.Add(handle_id); }
+	// Closing a Frame from within its own Close button callback would destroy the
+	// Ctrl while it is still on the call stack that triggered the close, so actual
+	// removal is deferred to the next event-loop iteration via PostCallback.
+	void QueueCloseHandle(int handle_id)
+	{
+		close_handle_queue.Add(handle_id);
+		ScopeT<Dim>* self = this;
+		UPP::PostCallback([self] { self->ProcessCloseQueue(); });
+	}
 	void MoveHandle(Pt pt, int handle_id);
 	void FocusHandle(int handle_id);
 	void FocusHandlePos(int win_pos);
@@ -57,6 +65,7 @@ public:
 	bool IsActiveHandle(int handle_id) { return handle_id == active_id; }
 	void SetHandleMaximized(Frame& h, bool b);
 	void CloseHandle(int handle_id);
+	bool ProcessCloseQueue();
 
 	void FocusPrevious();
 	void SetTitle(int handle_id, String title);

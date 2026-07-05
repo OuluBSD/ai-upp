@@ -21,7 +21,7 @@ FrameT<Dim>::FrameT() {
 template <>
 FrameT<CtxUpp2D>::FrameT() {
 	//geom.SetTargetCtrl(*this);
-	
+
 	close.SetImage(FBImg::close());
 	close.EdgeStyle();
 	Add(close);
@@ -29,6 +29,9 @@ FrameT<CtxUpp2D>::FrameT() {
 	maximize.EdgeStyle();
 	Add(maximize);
 	maximize <<= THISBACK(ToggleMaximize);
+	minimize.SetImage(CtrlCoreImg::WinMinimize());
+	minimize.EdgeStyle();
+	Add(minimize);
 	maximized = false;
 	sizeable = false;
 	holding = false;
@@ -62,11 +65,16 @@ void FrameT<CtxUpp2D>::Paint(DrawT& w) {
 	Size sz = Ctrl::GetSize();
 	Box m = Margins();
 	int c = GetStdFontCy() + 4;
+	// `window` (the hosting OS TopContainer) isn't tracked in this single-OS-window
+	// desktop-compositing model; "active" here means "the scope's active handle",
+	// i.e. which composited window currently looks focused/on top.
+	bool is_active = scope && scope->IsActiveHandle(id);
 	ChPaintEdge(w, sz, FBImg::border());
 	ChPaint(w, m.left, m.top, sz.cx - m.left - m.right, GetStdFontCy() + 4,
-	        window->IsForeground() ? FBImg::title() : FBImg::bgtitle());
+	        is_active ? FBImg::title() : FBImg::bgtitle());
 	int tx = m.left + 2;
-	int tcx = sz.cx - m.left - m.right - 4 - c * (close.IsShown() + maximize.IsShown());
+	int tcx = sz.cx - m.left - m.right - 4 -
+	          c * (close.IsShown() + maximize.IsShown() + minimize.IsShown());
 	if(!IsNull(icon)) {
 		Image h = icon;
 		if(h.GetWidth() > c || h.GetHeight() > c)
@@ -212,6 +220,8 @@ void FrameT<Dim>::Layout() {
 		close.SetRect(x -= c, m.top, c, c);
 	if(maximize.IsShown())
 		maximize.SetRect(x -= c, m.top, c, c);
+	if(minimize.IsShown())
+		minimize.SetRect(x -= c, m.top, c, c);
 }
 
 template <class Dim>
@@ -260,6 +270,8 @@ void FrameT<Dim>::GripResize()
 template <class Dim>
 void FrameT<Dim>::LeftDown(Pt p, dword keyflags) {
 	#if 1
+	if(scope)
+		scope->FocusHandle(id);
 	dir = GetDragMode(p);
 	StartDrag();
 	#else

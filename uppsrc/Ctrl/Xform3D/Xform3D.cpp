@@ -159,6 +159,42 @@ void DrawWarped3D(Draw& w, const Image& img, const Xform3D& xf, int n, Point cen
 	ImagePainter ip(bufsz, MODE_NOAA);
 	ip.Clear(RGBAZero());
 
+	// Transforms/0006: MODE_NOAA (see Transforms/0005) thresholds each cell's
+	// OWN fractional coverage of a pixel independently (< 50% -> not painted at
+	// all by that cell, >= 50% -> fully painted), rather than accumulating
+	// coverage from all cells sharing that pixel before thresholding. At an
+	// interior grid vertex, up to 4 cells meet and divide any pixel touching
+	// that vertex into wedges that sum to ~100% combined but are frequently
+	// close to an even ~25% split -- so *no* individual cell reaches the 50%
+	// threshold there, and the pixel is left unpainted (still the initial
+	// RGBAZero() clear value), showing as a tiny transparent dot exactly at
+	// the vertex. This was confirmed empirically (Xform3DTest's temporary
+	// diagnostic showed bit-identical shared-vertex coordinates across cells,
+	// ruling out a rounding-input mismatch, while directly reproducing
+	// isolated fully-transparent pixels at grid vertices surrounded by
+	// fully-opaque neighbors).
+	//
+	// Fix: inflate each cell's *fill/clip* polygon slightly outward from its
+	// own centroid before rasterizing (the texture-sampling affine map below
+	// still uses the true, un-inflated corners, so the extra sliver is filled
+	// with a smooth linear extrapolation of the same cell's texture, not a
+	// seam). This makes neighboring cells overlap by a fraction of a pixel
+	// around every shared vertex/edge, so at least one of them now covers
+	// >= 50% of any pixel near the vertex and paints it -- closing the dot.
+	// The same overlap also can't reintroduce the Transforms/0005 seam: NOAA
+	// pixels are binary (0 or fully opaque), so overlapping opaque coverage
+	// from two cells still composites as a single solid pixel, not a
+	// see-through blend.
+	const float vertex_inflate_px = 0.75f;
+	auto Inflate = [](Pointf p, const Pointf& centroid, float d) -> Pointf {
+		float dx = p.x - centroid.x, dy = p.y - centroid.y;
+		float len = sqrtf(dx * dx + dy * dy);
+		if(len < 1e-4f)
+			return p;
+		float k = d / len;
+		return Pointf(p.x + dx * k, p.y + dy * k);
+	};
+
 	for(int j = 0; j < n; j++) {
 		for(int i = 0; i < n; i++) {
 			const Pointf& p00 = grid[j * stride + i];
@@ -197,7 +233,19 @@ void DrawWarped3D(Draw& w, const Image& img, const Xform3D& xf, int n, Point cen
 			                         Pointf(src.left, src.bottom),
 			                         s00, s10, s01);
 
-			ip.Move(s00).Line(s10).Line(s11).Line(s01).Close();
+			// Fill/clip path uses corners inflated a fraction of a pixel outward
+			// from the cell's own centroid (see vertex_inflate_px comment above)
+			// -- the texture transform `t` above still targets the true,
+			// un-inflated corners, so this only widens the rasterized coverage,
+			// it doesn't change what the texture looks like.
+			Pointf centroid((s00.x + s10.x + s01.x + s11.x) / 4.0f,
+			                (s00.y + s10.y + s01.y + s11.y) / 4.0f);
+			Pointf c00 = Inflate(s00, centroid, vertex_inflate_px);
+			Pointf c10 = Inflate(s10, centroid, vertex_inflate_px);
+			Pointf c01 = Inflate(s01, centroid, vertex_inflate_px);
+			Pointf c11 = Inflate(s11, centroid, vertex_inflate_px);
+
+			ip.Move(c00).Line(c10).Line(c11).Line(c01).Close();
 			ip.Fill(faded, t);
 		}
 	}

@@ -1347,10 +1347,11 @@ void PkgRepository::Discover()
 	loaded_packages = 0;
 	PkgNestFilter nest_filter;
 	sLoadNestFilter(paths.make_conf, nest_filter);
-	Vector<String> upp_all = FindAllPaths(root, "*.upp");
+	IdeCoreWorkspace wspc;
+	VectorMap<String, String> all_packages = wspc.ScanAllNests();
 	Vector<String> upp;
-	upp.Reserve(upp_all.GetCount());
-	for(const String& upp_path : upp_all) {
+	for(int i = 0; i < all_packages.GetCount(); i++) {
+		String upp_path = all_packages[i];
 		String nest;
 		sPackageAtomFromUpp(root, upp_path, nest);
 		if(!nest.IsEmpty() && !sNestIsAllowed(nest_filter, nest))
@@ -7227,6 +7228,7 @@ static Vector<PkgBuildMethod> sListBuildMethods(const String& buildexe)
 {
 	Vector<PkgBuildMethod> methods;
 	String cmdline = buildexe + " --list-methods";
+	String out;
 	IdeCoreConsoleHost ch;
 	if(ch.Execute(cmdline, &out, nullptr, true) < 0 || out.IsEmpty())
 		return methods;
@@ -7326,52 +7328,30 @@ static bool sIsBuildableStep(const PkgGraphNode& node)
 
 static bool sRunBuildCommand(const String& buildexe, const String& method, int jobs, const String& target, const String& cd, String& output)
 {
-	LocalProcess p;
-	p.NoConvertCharset();
-	Vector<String> args;
+	String cmdline = buildexe;
 	if(!method.IsEmpty()) {
-		args.Add("-m");
-		args.Add(method);
+		cmdline << " -m " << method;
 	}
 	if(jobs > 0) {
-		args.Add("-j" + AsString(jobs));
+		cmdline << " -j" << AsString(jobs);
 	}
-	args.Add(target);
-	if(!p.Start2(buildexe, args, nullptr, cd))
-		return false;
+	cmdline << " " << target;
+
+	String old_dir = GetCurrentDirectory();
+	if(!cd.IsEmpty())
+		ChangeCurrentDirectory(cd);
 
 	output.Clear();
-	String so, se;
-	while(p.IsRunning()) {
-		bool activity = false;
-		while(p.Read2(so, se)) {
-			if(!so.IsEmpty()) {
-				output.Cat(so);
-				Cout() << so;
-				activity = true;
-			}
-			if(!se.IsEmpty()) {
-				output.Cat(se);
-				Cerr() << se;
-				activity = true;
-			}
-			if(so.IsEmpty() && se.IsEmpty())
-				break;
-		}
-		if(!activity)
-			Sleep(10);
-	}
-	while(p.Read2(so, se)) {
-		if(!so.IsEmpty()) {
-			output.Cat(so);
-			Cout() << so;
-		}
-		if(!se.IsEmpty()) {
-			output.Cat(se);
-			Cerr() << se;
-		}
-	}
-	return p.GetExitCode() == 0;
+	IdeCoreConsoleHost ch;
+	int exit_code = ch.Execute(cmdline, [&](String s) {
+		output.Cat(s);
+		Cout() << s;
+	}, nullptr, true);
+
+	if(!cd.IsEmpty())
+		ChangeCurrentDirectory(old_dir);
+
+	return exit_code == 0;
 }
 
 static String sBuildArtifactPath(const String& root, const PkgBuildStep& step)

@@ -30,7 +30,7 @@ DbgBacktrace GetJavaBacktrace(const String& exe, const Vector<String>& args, con
 	}
 	
 	String out;
-	bool sent_run = false;
+	bool sent_run = (exe == "-connect");
 	bool sent_where = false;
 	bool sent_quit = false;
 	

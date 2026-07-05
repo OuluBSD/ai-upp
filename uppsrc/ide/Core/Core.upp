@@ -24,6 +24,7 @@ file
 	WorkspaceService.cpp,
 	ConsoleHost.h,
 	ConsoleHost.cpp,
+	Export.cpp,
 	usc.cpp,
 	BinObj.cpp,
 	Signature.cpp,

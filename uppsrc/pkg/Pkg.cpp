@@ -2441,8 +2441,8 @@ static int sRunProbeCommand(const String& exe, const Vector<String>& args, Strin
 		why = "command not found: " + exe;
 		return -1;
 	}
-	command = sProbeCommandText(path, args);
-	int rc = Sys(command, out);
+	IdeCoreConsoleHost ch;
+	int rc = ch.Execute(command, &out, nullptr, true);
 	if(rc < 0) {
 		why = "failed to launch: " + path;
 		return -1;
@@ -7226,10 +7226,9 @@ static String sBuildExePath(const String& root)
 static Vector<PkgBuildMethod> sListBuildMethods(const String& buildexe)
 {
 	Vector<PkgBuildMethod> methods;
-	String out;
-	Vector<String> args;
-	args.Add("--list-methods");
-	if(Sys(buildexe, args, out) < 0 || out.IsEmpty())
+	String cmdline = buildexe + " --list-methods";
+	IdeCoreConsoleHost ch;
+	if(ch.Execute(cmdline, &out, nullptr, true) < 0 || out.IsEmpty())
 		return methods;
 	Vector<String> lines = Split(out, '\n');
 	for(String line : lines) {

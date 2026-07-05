@@ -4,7 +4,7 @@
 #include <build_info.h>
 #endif
 
-bool SilentMode;
+
 
 String GetUmkFile(const char *fn)
 {
@@ -70,11 +70,7 @@ String Ide::GetMethodName(const String& method)
 	return GetBuildMethodPath(method);
 }
 
-void Puts(const char *s)
-{
-	if(!SilentMode)
-		Cout() << s;
-}
+
 
 String GetAndroidSDKPath()
 {
@@ -284,7 +280,7 @@ CONSOLE_APP_MAIN
 			SetExitCode(exit_code);
 			return;
 		}
-		ide.wspc.Scan(ide.main);
+		ide.wspc.LoadMainPackage(ide.main);
 		const Workspace& wspc = ide.IdeWorkspace();
 		if(!wspc.GetCount()) {
 			Puts("Empty assembly\n");

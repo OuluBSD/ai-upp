@@ -535,6 +535,9 @@ public:
 #include "WorkspaceService.h"
 #include "ConsoleHost.h"
 
+void IdeCoreGatherProjectFiles(const Workspace& wspc, Index<String>& used);
+bool IdeCoreExportProjectFiles(const Workspace& wspc, const String& ep, Index<String>& used, bool all, const Vector<String>& upp, Gate<int> step);
+
 struct Ide;
 
 String FindInDirs(const Vector<String>& dir, const String& file);

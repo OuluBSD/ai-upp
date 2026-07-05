@@ -3,6 +3,7 @@
 // Geometry headers must never leak into a public header (see Xform3D.h comment) --
 // this .cpp file is the only place in this package allowed to include them.
 #include <Geometry/Geometry.h>
+#include <Painter/Painter.h>
 
 NAMESPACE_UPP
 
@@ -137,33 +138,33 @@ void DrawWarped3D(Draw& w, const Image& img, const Xform3D& xf, int n, Point cen
 		faded = ib;
 	}
 
+	// Bounding box (in w's coordinate space) of the whole projected grid. DrawWarped3D
+	// only knows `center`, not the size of the Ctrl/window `w` is being painted into,
+	// so rather than assume a canvas size we paint into a local offscreen buffer sized
+	// just to what this warp actually needs, then blit that once onto `w`.
+	Pointf bmin(1e30, 1e30), bmax(-1e30, -1e30);
+	for(const Pointf& p : grid) {
+		bmin.x = min(bmin.x, (double)p.x);
+		bmin.y = min(bmin.y, (double)p.y);
+		bmax.x = max(bmax.x, (double)p.x);
+		bmax.y = max(bmax.y, (double)p.y);
+	}
+	// 1px margin for antialiasing bleed at the outer edge.
+	int bx0 = center.x + (int)floor(bmin.x) - 1;
+	int by0 = center.y + (int)floor(bmin.y) - 1;
+	int bx1 = center.x + (int)ceil(bmax.x) + 1;
+	int by1 = center.y + (int)ceil(bmax.y) + 1;
+	Size bufsz(max(1, bx1 - bx0), max(1, by1 - by0));
+
+	ImagePainter ip(bufsz);
+	ip.Clear(RGBAZero());
+
 	for(int j = 0; j < n; j++) {
 		for(int i = 0; i < n; i++) {
 			const Pointf& p00 = grid[j * stride + i];
 			const Pointf& p10 = grid[j * stride + (i + 1)];
 			const Pointf& p01 = grid[(j + 1) * stride + i];
 			const Pointf& p11 = grid[(j + 1) * stride + (i + 1)];
-
-			// Approximate destination rect: center of the 4 corners plus a
-			// locally-averaged width/height taken from the corner spread.
-			double cx = (p00.x + p10.x + p01.x + p11.x) / 4.0;
-			double cy = (p00.y + p10.y + p01.y + p11.y) / 4.0;
-			double w_top = fabs(p10.x - p00.x);
-			double w_bot = fabs(p11.x - p01.x);
-			double h_left = fabs(p01.y - p00.y);
-			double h_right = fabs(p11.y - p10.y);
-			double cell_w = max(w_top, w_bot);
-			double cell_h = max(h_left, h_right);
-			if(cell_w < 1) cell_w = 1;
-			if(cell_h < 1) cell_h = 1;
-
-			Rect dest;
-			dest.left = center.x + (int)round(cx - cell_w / 2.0);
-			dest.right = center.x + (int)round(cx + cell_w / 2.0);
-			dest.top = center.y + (int)round(cy - cell_h / 2.0);
-			dest.bottom = center.y + (int)round(cy + cell_h / 2.0);
-			if(dest.IsEmpty())
-				continue;
 
 			Rect src;
 			src.left = i * imgW / n;
@@ -173,9 +174,35 @@ void DrawWarped3D(Draw& w, const Image& img, const Xform3D& xf, int n, Point cen
 			if(src.IsEmpty())
 				continue;
 
-			w.DrawImage(dest, faded, src);
+			// Screen-space corners, offset into the local buffer's own coordinate frame.
+			Pointf s00(center.x + p00.x - bx0, center.y + p00.y - by0);
+			Pointf s10(center.x + p10.x - bx0, center.y + p10.y - by0);
+			Pointf s01(center.x + p01.x - bx0, center.y + p01.y - by0);
+			Pointf s11(center.x + p11.x - bx0, center.y + p11.y - by0);
+
+			// Real per-cell affine warp instead of an axis-aligned blit: an affine map
+			// is fully determined by 3 point correspondences, so it can only send a
+			// rectangle to a parallelogram, not a general quadrilateral. We pick the
+			// source cell rect's top-left/top-right/bottom-left corners as the basis
+			// (consistent with the row/column order used elsewhere in this file) and
+			// map them to the corresponding projected p00/p10/p01 screen corners. The
+			// 4th corner (bottom-right, s11) is NOT part of that basis, so it will not
+			// generally land exactly on its true projected position under the affine
+			// map alone -- a known, accepted limitation (see Transforms/0004 plan doc).
+			// The clip path below still uses the *true* projected quad (all 4 real
+			// corners, including p11), so adjacent cells' edges/seams line up exactly;
+			// only the interior texture warp of each cell is a parallelogram
+			// approximation of the true (trapezoidal) quad.
+			Xform2D t = Xform2D::Map(Pointf(src.left, src.top), Pointf(src.right, src.top),
+			                         Pointf(src.left, src.bottom),
+			                         s00, s10, s01);
+
+			ip.Move(s00).Line(s10).Line(s11).Line(s01).Close();
+			ip.Fill(faded, t);
 		}
 	}
+
+	w.DrawImage(bx0, by0, ip.GetResult());
 }
 
 END_UPP_NAMESPACE

@@ -15,7 +15,7 @@
 #include <Eon/Interaction/Interaction.h>
 
 #ifdef flagGUI
- #include <Eon/GuiGlue/GuiGlue.h>
+ #include <Ctrl/Display/Display.h>
 #endif
 
 #endif

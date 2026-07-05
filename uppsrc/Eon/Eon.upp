@@ -10,7 +10,7 @@ uses
 	Eon/Ecs,
 	Eon/Interaction;
 
-uses(GUI !SDL2GL) Eon/GuiGlue;
+uses(GUI !SDL2GL) Ctrl/Display;
 
 file
 	Eon.h,

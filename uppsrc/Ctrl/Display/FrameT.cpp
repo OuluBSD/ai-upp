@@ -1,4 +1,4 @@
-#include "GuiGlue.h"
+#include "Display.h"
 #include <CtrlLib/Eon/Eon.h>
 #ifdef flagVIRTUALGUI
 #include <VirtualGui/VirtualGui.h>

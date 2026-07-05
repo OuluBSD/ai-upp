@@ -1,5 +1,5 @@
-#ifndef _Eon_GuiGlue_GuiGlue_h_
-#define _Eon_GuiGlue_GuiGlue_h_
+#ifndef _Ctrl_Display_Display_h_
+#define _Ctrl_Display_Display_h_
 
 #include <CtrlLib/CtrlLib.h>
 #include <Eon/Draw/Draw.h>

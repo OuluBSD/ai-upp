@@ -117,8 +117,6 @@ public:
 			double angle = (dir & 1 ? 1 : -1) * (1 - e) * (M_PI / 2.2);
 			double scale = 0.5 + 0.5 * e;
 			PaintShadow(w, sz, dest, e);
-			DrawPainter dp(w, sz);
-			dp.Clear(RGBAZero());
 			Point c = dest.CenterPoint();
 			// Xform2D's operator* composes "apply left side first, then right side" - so
 			// this reads, in order: center the image at the origin, scale it, rotate it,
@@ -127,7 +125,35 @@ public:
 			          * Xform2D::Scale(scale * dest.Width() / (double)isz.cx, scale * dest.Height() / (double)isz.cy)
 			          * Xform2D::Rotation(angle)
 			          * Xform2D::Translation(c.x, c.y);
-			dp.Rectangle(0, 0, sz.cx, sz.cy).Fill(Faded(card, e), t);
+
+			// CardTableRenderer/0003: t above maps the card image (0,0)-(isz) straight
+			// into full-control canvas space, so bound the offscreen buffer to just
+			// that transformed footprint instead of the whole control - same "local
+			// buffer + blit once" idiom as DrawWarped3D (Xform3D.cpp) and MAGIC_CARPET
+			// below, rather than a DrawPainter(w, sz)-sized (control-sized) buffer.
+			Pointf p00 = t.Transform(0, 0);
+			Pointf p10 = t.Transform(isz.cx, 0);
+			Pointf p01 = t.Transform(0, isz.cy);
+			Pointf p11 = t.Transform(isz.cx, isz.cy);
+			Pointf bmin(min(min(p00.x, p10.x), min(p01.x, p11.x)), min(min(p00.y, p10.y), min(p01.y, p11.y)));
+			Pointf bmax(max(max(p00.x, p10.x), max(p01.x, p11.x)), max(max(p00.y, p10.y), max(p01.y, p11.y)));
+			// 1px margin for antialiasing bleed at the outer edge, same as DrawWarped3D.
+			int  bx0 = (int)floor(bmin.x) - 1;
+			int  by0 = (int)floor(bmin.y) - 1;
+			int  bx1 = (int)ceil(bmax.x) + 1;
+			int  by1 = (int)ceil(bmax.y) + 1;
+			Size bufsz(max(1, bx1 - bx0), max(1, by1 - by0));
+
+			// Same transform, just re-targeted from full-control canvas coordinates
+			// to the local buffer's own coordinate frame.
+			Xform2D t2 = t;
+			t2.t.x -= bx0;
+			t2.t.y -= by0;
+
+			ImagePainter ip(bufsz);
+			ip.Clear(RGBAZero());
+			ip.Rectangle(0, 0, bufsz.cx, bufsz.cy).Fill(Faded(card, e), t2);
+			w.DrawImage(bx0, by0, ip.GetResult());
 			break;
 		}
 		case FLIP_H: { // genuine 3D turn around the vertical axis, hinged left or right

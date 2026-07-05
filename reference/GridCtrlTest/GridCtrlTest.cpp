@@ -1,5 +1,9 @@
 #include "GridCtrlTest.h"
 
+#if defined(flagTURTLE) || defined(flagNETDPY)
+#include <Turtle/Turtle.h>
+#endif
+
 void MakeGrid(One<Ctrl>& ctrl)
 {
 	GridCtrl &c = ctrl.Create<GridCtrl>();
@@ -85,7 +89,7 @@ void App::FromXml()
 	LoadFromXML(*panel.grid, s);
 }
 
-GUI_APP_MAIN
+void AppMainLoop()
 {
 	SetLanguage(LNGC_('E','N','E','N', CHARSET_UTF8));
 	App app;
@@ -94,3 +98,31 @@ GUI_APP_MAIN
 	app.Run();
 	StoreToFile(app);
 }
+
+#if defined(flagTURTLE) || defined(flagNETDPY)
+
+// Turtle/NETDPY backend: the process is a network display server, not a
+// plain GUI process, so it needs its own console entry point that starts
+// TurtleServer and drives AppMainLoop() through RunTurtleGui() instead of
+// GUI_APP_MAIN.
+CONSOLE_APP_MAIN
+{
+#ifdef _DEBUG
+	TurtleServer::DebugMode();
+#endif
+
+	TurtleServer guiserver;
+	guiserver.Host("localhost");
+	guiserver.HtmlPort(8888);
+	guiserver.MaxConnections(100);
+	RunTurtleGui(guiserver, AppMainLoop);
+}
+
+#else
+
+GUI_APP_MAIN
+{
+	AppMainLoop();
+}
+
+#endif

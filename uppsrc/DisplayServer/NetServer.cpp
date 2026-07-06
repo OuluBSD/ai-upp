@@ -41,19 +41,35 @@ void NetClientSession::ApplyDrawBatch(const Vector<DrawCmd>& cmds)
 			w.DrawText(c.x, c.y, c.text, StdFont(), col);
 			break;
 		case DOP_IMAGE: {
-			// Raw opaque RGB blit (NetworkDisplay/0007 protocol extension -- see
-			// Net/Protocol.h's DOP_IMAGE comment): rebuild an Image from the raw
-			// row-major r,g,b bytes and blit it in one go.
-			if(c.w > 0 && c.h > 0 && c.image_rgb.GetCount() == c.w * c.h * 3) {
+			// Real RGBA blit (NetworkDisplay/0007 protocol extension, widened to
+			// carry real alpha in NetworkDisplay/0011 -- see Net/Protocol.h's
+			// DOP_IMAGE comment). The wire bytes are already alpha-premultiplied
+			// (NetDpy's PutImage sends the source Image's own RGBA verbatim, and
+			// U++ Image content is premultiplied internally for IMAGE_ALPHA kind
+			// -- see Premultiply()/AlphaBlend() in uppsrc/Draw/Image.h), which is
+			// exactly what's needed for a correct "source-over" composite. So
+			// this reuses the same already-established premultiplied-alpha
+			// compositing knowledge this codebase relies on elsewhere
+			// (Ctrl/Compositing, CompositeEasingNetwork/Compositing/0002;
+			// SImageDraw1::PutImage's Over()/AlphaBlend() in
+			// uppsrc/Draw/ImageOp.cpp+ImageBlit.cpp) rather than re-deriving the
+			// blend formula here: build a properly-kinded premultiplied Image and
+			// let Draw::DrawImage's normal alpha-compositing path (the same one
+			// used for every translucent icon/glyph any other U++ GUI draws)
+			// blend it against whatever is already in `canvas`.
+			if(c.w > 0 && c.h > 0 && c.image_rgba.GetCount() == c.w * c.h * 4) {
 				ImageBuffer ib(c.w, c.h);
-				const byte *src = (const byte *)~c.image_rgb;
+				const byte *src = (const byte *)~c.image_rgba;
 				RGBA *dst = ~ib;
+				bool has_alpha = false;
 				for(int i = 0; i < c.w * c.h; i++) {
-					dst[i].r = src[3 * i + 0];
-					dst[i].g = src[3 * i + 1];
-					dst[i].b = src[3 * i + 2];
-					dst[i].a = 255;
+					dst[i].r = src[4 * i + 0];
+					dst[i].g = src[4 * i + 1];
+					dst[i].b = src[4 * i + 2];
+					dst[i].a = src[4 * i + 3];
+					has_alpha |= dst[i].a != 255;
 				}
+				ib.SetKind(has_alpha ? IMAGE_ALPHA : IMAGE_OPAQUE);
 				w.DrawImage(c.x, c.y, Image(ib));
 			}
 			break;

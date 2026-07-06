@@ -39,6 +39,8 @@ enum GUI_OPTIONS {
 	GUI_SETCARET       = 0x02,
 };
 
+class TopWindow;
+
 struct VirtualGui {
 	virtual dword       GetOptions();
 	// Whether VirtualGui's own TopWindowFrame (Top.h/TopFrame.cpp) should draw its
@@ -61,6 +63,42 @@ struct VirtualGui {
 	virtual bool        IsWaitingEvent() = 0;
 	virtual SystemDraw& BeginDraw() = 0;
 	virtual void        CommitDraw() = 0;
+
+	// NetworkDisplay/0014: whether Wnd.cpp's Ctrl::PopUp()/Ctrl::DestroyWnd()/
+	// Ctrl::PaintScene() should route each genuine top-level TopWindow (the main
+	// window, plus any popup/dialog that is itself a TopWindow -- NOT transient
+	// plain-Ctrl popups such as dropdowns/tooltips/menus, which stay glued to
+	// whichever real TopWindow owns them via the existing Ctrl::GetTopWindow())
+	// to its own isolated paint batch/connection via WindowOpened()/WindowClosed()/
+	// SelectWindow(), instead of compositing everything into one shared
+	// StaticRect-backed virtual desktop canvas (Ctrl::PaintScene()'s original,
+	// single-canvas loop). False by default: Turtle's entire virtual desktop
+	// genuinely *is* one browser <canvas> element, so the existing shared-desktop
+	// compositing is correct there and must stay exactly as-is. NetDpy overrides
+	// this to true -- every TopWindow becomes its own DisplayServer connection and
+	// window (see NetDpy/NetDpy.h/.cpp).
+	virtual bool        WantsPerWindowRouting();
+
+	// Called once, only when WantsPerWindowRouting() is true, right after a genuine
+	// TopWindow (never a TopWindowFrame, never a transient plain-Ctrl popup) becomes
+	// open -- from Ctrl::PopUp() (Wnd.cpp), guarded by dynamic_cast<TopWindow*>(this).
+	// w->GetRect() already holds the window's final, resolved rect at this point.
+	// Default no-op.
+	virtual void        WindowOpened(TopWindow *w);
+
+	// Mirror of WindowOpened(), called once from Ctrl::DestroyWnd() (Wnd.cpp) right
+	// before the matching topctrl entry is removed, guarded the same way. Default
+	// no-op.
+	virtual void        WindowClosed(TopWindow *w);
+
+	// Called once per genuine-TopWindow "cluster" (that window plus every transient
+	// popup anchored to it via Ctrl::GetTopWindow()), immediately before painting
+	// that cluster, only when WantsPerWindowRouting() is true (from the new
+	// Ctrl::PaintPerWindowScene(), Wnd.cpp) -- lets the backend point subsequent
+	// PutRect()/PutImage() calls (and the CommitDraw() that follows) at that
+	// window's own per-connection state. Default no-op (irrelevant when
+	// WantsPerWindowRouting() is false).
+	virtual void        SelectWindow(TopWindow *w);
 };
 
 void RunVirtualGui(VirtualGui& gui, Event<> app_main);

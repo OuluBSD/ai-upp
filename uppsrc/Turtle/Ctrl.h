@@ -69,6 +69,11 @@ public:
 	static Ctrl *FindMouseTopCtrl();
 
 	static void PaintScene(SystemDraw& draw);
+	// NetworkDisplay/0014: declared here purely so shared VirtualGui/Wnd.cpp (which
+	// Turtle also compiles) still links -- Turtle never overrides
+	// WantsPerWindowRouting(), so this function is unreachable code from Turtle's
+	// perspective, never executed. See VirtualGui/Ctrl.h for the real doc comment.
+	static void PaintPerWindowScene(SystemDraw& draw);
 	static void PaintCaretCursor(SystemDraw& draw);
 	
 	enum { DRAWDRAGRECT_SCREEN = 0x8000 };

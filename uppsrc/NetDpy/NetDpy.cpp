@@ -5,80 +5,176 @@
 
 namespace Upp {
 
-NetworkDisplayTransport      NetDpyServer::transport;
-FrameParser                  NetDpyServer::parser;
+ArrayMap<TopWindow *, NetDpyServer::WindowConn> NetDpyServer::conns;
+NetDpyServer::WindowConn    *NetDpyServer::current = NULL;
+NetDpyServer::WindowConn    *NetDpyServer::pending_conn = NULL;
+
+String  NetDpyServer::host;
+int     NetDpyServer::port = 0;
+
 Vector<NetDpyServer::QueuedEvent> NetDpyServer::events;
-Vector<DrawCmd>               NetDpyServer::pending;
 
 Size    NetDpyServer::canvas_size = Size(900, 700);
 dword   NetDpyServer::mousebuttons = 0;
 bool    NetDpyServer::mousein = true;
-bool    NetDpyServer::got_close = false;
-int     NetDpyServer::window_id = -1;
 
 static NetDpyServer::Draw sNetDpyDraw;
 
-bool NetDpyServer::Connect(const String& host, int port, const String& title, Size sz)
+static void LogWindowConnect(const String& title, Size sz)
 {
+	// NetworkDisplay/0014: real stderr output (not an LLOG, those compile out by
+	// default), so a NetDpy-hosted app's per-window connect/disconnect can be
+	// correlated 1:1 against DisplayServer's own --verbose [net] client N
+	// connected/disconnected log lines in the same test run.
+	fprintf(stderr, "[netdpy] window connect: title=\"%s\" size=%dx%d\n",
+	        title.Begin(), sz.cx, sz.cy);
+	fflush(stderr);
+}
+
+static void LogWindowDisconnect(const String& title)
+{
+	fprintf(stderr, "[netdpy] window disconnect: title=\"%s\"\n", title.Begin());
+	fflush(stderr);
+}
+
+bool NetDpyServer::Connect(const String& h, int p, const String& title, Size sz)
+{
+	host = h;
+	port = p;
 	canvas_size = sz;
 	sNetDpyDraw.Init(sz);
+
+	pending_conn = new WindowConn;
+	pending_conn->size = sz;
+	pending_conn->title = title;
+
 	String endpoint = host + ":" + AsString(port);
-	if(!transport.Connect(endpoint))
+	if(!pending_conn->transport.Connect(endpoint))
 		return false;
-	transport.Send(EncodeFrame(CMSG_HELLO, EncodeHello(title, sz)));
+	pending_conn->transport.Send(EncodeFrame(CMSG_HELLO, EncodeHello(title, sz)));
+	pending_conn->hello_sent = true;
 	return true;
 }
 
 bool NetDpyServer::IsConnected() const
 {
-	return transport.IsOpen();
+	if(pending_conn)
+		return pending_conn->transport.IsOpen();
+	for(int i = 0; i < conns.GetCount(); i++)
+		if(conns[i].transport.IsOpen())
+			return true;
+	return false;
 }
 
 void NetDpyServer::Quit()
 {
-	if(transport.IsOpen()) {
-		transport.Send(EncodeFrame(CMSG_BYE, String()));
-		transport.Close();
+	for(int i = 0; i < conns.GetCount(); i++) {
+		WindowConn& c = conns[i];
+		if(c.transport.IsOpen()) {
+			c.transport.Send(EncodeFrame(CMSG_BYE, String()));
+			c.transport.Close();
+		}
+	}
+	if(pending_conn && pending_conn->transport.IsOpen()) {
+		pending_conn->transport.Send(EncodeFrame(CMSG_BYE, String()));
+		pending_conn->transport.Close();
 	}
 }
 
-void NetDpyServer::Pump()
+void NetDpyServer::WindowOpened(TopWindow *w)
 {
-	if(!transport.IsOpen())
+	if(!w || conns.Find(w) >= 0)
+		return;
+
+	WindowConn *c;
+	if(pending_conn) {
+		// Adopt the connection Connect() already opened before any TopWindow
+		// existed, instead of wastefully opening a second one for the very first
+		// window that ever opens (always the app's real main window -- apps open
+		// their main window before any dialog/popup can exist). See
+		// NetworkDisplay/0014's plan doc, design proposal point 2.
+		c = pending_conn;
+		pending_conn = NULL;
+		conns.Add(w, c);
+	}
+	else {
+		c = &conns.Add(w);
+		c->size = w->GetRect().GetSize();
+		c->title = w->GetTitle().ToString();
+		String endpoint = host + ":" + AsString(port);
+		if(c->transport.Connect(endpoint)) {
+			c->transport.Send(EncodeFrame(CMSG_HELLO, EncodeHello(c->title, c->size)));
+			c->hello_sent = true;
+		}
+	}
+	c->win = w;
+	LogWindowConnect(c->title, c->size);
+}
+
+void NetDpyServer::WindowClosed(TopWindow *w)
+{
+	if(!w)
+		return;
+	int i = conns.Find(w);
+	if(i < 0)
+		return;
+	WindowConn& c = conns[i];
+	LogWindowDisconnect(c.title);
+	if(c.transport.IsOpen()) {
+		c.transport.Send(EncodeFrame(CMSG_BYE, String()));
+		c.transport.Close();
+	}
+	if(current == &c)
+		current = NULL;
+	conns.Remove(i);
+}
+
+void NetDpyServer::SelectWindow(TopWindow *w)
+{
+	int i = w ? conns.Find(w) : -1;
+	current = i >= 0 ? &conns[i] : NULL;
+}
+
+void NetDpyServer::PumpOne(WindowConn& c)
+{
+	if(!c.transport.IsOpen())
 		return;
 
 	byte buf[16384];
 	for(;;) {
-		int n = transport.Receive(buf, sizeof(buf));
+		int n = c.transport.Receive(buf, sizeof(buf));
 		if(n < 0) { // connection lost -- treat exactly like an explicit server close
-			if(!got_close) {
-				got_close = true;
+			if(!c.got_close) {
+				c.got_close = true;
 				QueuedEvent& e = events.Add();
 				e.kind = QueuedEvent::CLOSE;
+				e.win = c.win;
 			}
 			break;
 		}
 		if(n == 0)
 			break;
-		parser.Feed(buf, n);
+		c.parser.Feed(buf, n);
 	}
 
 	byte type;
 	String payload;
-	while(parser.Next(type, payload)) {
+	while(c.parser.Next(type, payload)) {
 		switch(type) {
 		case SMSG_WELCOME:
-			DecodeWelcome(payload, window_id);
+			DecodeWelcome(payload, c.window_id);
 			break;
 		case SMSG_INPUT_MOUSE: {
 			QueuedEvent& e = events.Add();
 			e.kind = QueuedEvent::MOUSE;
+			e.win = c.win;
 			DecodeInputMouse(payload, e.mkind, e.pos, e.keyflags);
 			break;
 		}
 		case SMSG_INPUT_KEY: {
 			QueuedEvent& e = events.Add();
 			e.kind = QueuedEvent::KEY;
+			e.win = c.win;
 			DecodeInputKey(payload, e.kkind, e.keycode);
 			break;
 		}
@@ -87,16 +183,26 @@ void NetDpyServer::Pump()
 			// known limitation: no live host-resize renegotiation yet); ignored.
 			break;
 		case SMSG_CLOSE:
-			if(!got_close) {
-				got_close = true;
+			if(!c.got_close) {
+				c.got_close = true;
 				QueuedEvent& e = events.Add();
 				e.kind = QueuedEvent::CLOSE;
+				e.win = c.win;
 			}
 			break;
 		default:
 			break;
 		}
 	}
+}
+
+void NetDpyServer::Pump()
+{
+	for(int i = 0; i < conns.GetCount(); i++)
+		PumpOne(conns[i]);
+	// pending_conn (not yet adopted by any TopWindow) never carries real window
+	// input -- DisplayServer only starts forwarding SMSG_INPUT_*/SMSG_CLOSE after
+	// SMSG_WELCOME, which nothing consumes until WindowOpened() adopts it anyway.
 }
 
 bool NetDpyServer::IsWaitingEvent()
@@ -121,6 +227,14 @@ bool NetDpyServer::ProcessEvent(bool *quit)
 	QueuedEvent e = events[0];
 	events.Remove(0);
 
+	// NetworkDisplay/0014: input coordinates arrive window-local (from whichever
+	// window's own DisplayServer connection produced them); translate back into
+	// NetDpy's shared internal virtual-desktop coordinate space before dispatching
+	// through the unmodified Ctrl::DoMouseFB/DoKeyFB -- topctrl's existing
+	// rect-hit-testing keeps working exactly as before, since every window's
+	// GetRect() is still a real, distinct rect in that shared space.
+	Point off = e.win ? e.win->GetRect().TopLeft() : Point(0, 0);
+
 	switch(e.kind) {
 	case QueuedEvent::MOUSE: {
 		int ev = Ctrl::MOUSEMOVE;
@@ -133,7 +247,7 @@ bool NetDpyServer::ProcessEvent(bool *quit)
 		default: break;
 		}
 		mousein = true;
-		Ctrl::DoMouseFB(ev, e.pos, 0);
+		Ctrl::DoMouseFB(ev, e.pos + off, 0);
 		return true;
 	}
 	case QueuedEvent::KEY:
@@ -143,7 +257,15 @@ bool NetDpyServer::ProcessEvent(bool *quit)
 		Ctrl::DoKeyFB(e.keycode, 1);
 		return true;
 	case QueuedEvent::CLOSE:
-		Ctrl::EndSession();
+		// NetworkDisplay/0014: the main window's connection closing still ends the
+		// whole app (Ctrl::EndSession(), as before 0014); any other (popup/dialog)
+		// window's connection closing just closes that one window -- exactly like
+		// clicking its own close button would -- leaving the app and every other
+		// open window running.
+		if(e.win && e.win->GetMainWindow() != e.win)
+			e.win->Close();
+		else
+			Ctrl::EndSession();
 		if(quit)
 			*quit = true;
 		return true;
@@ -158,9 +280,10 @@ SystemDraw& NetDpyServer::BeginDraw()
 
 void NetDpyServer::CommitDraw()
 {
-	if(pending.GetCount() && transport.IsOpen())
-		transport.Send(EncodeFrame(CMSG_DRAW_BATCH, EncodeDrawBatch(pending)));
-	pending.Clear();
+	if(current && current->pending.GetCount() && current->transport.IsOpen())
+		current->transport.Send(EncodeFrame(CMSG_DRAW_BATCH, EncodeDrawBatch(current->pending)));
+	if(current)
+		current->pending.Clear();
 }
 
 NetDpyServer::Draw::Draw()
@@ -181,17 +304,26 @@ void NetDpyServer::Draw::PutRect(const Rect& r, Color color)
 	if(color == InvertColor()) // DisplayServer's protocol has no invert-rect primitive
 		return;                 // (documented limitation -- caret/selection XOR effects are skipped)
 
-	DrawCmd& c = NetDpyServer::pending.Add();
-	c.op = DOP_RECT;
+	NetDpyServer::WindowConn *c = NetDpyServer::current;
+	if(!c)
+		return; // nothing selected (e.g. PaintCaretCursor called outside any cluster) -- drop, not crash
+
+	Point off = c->win ? c->win->GetRect().TopLeft() : Point(0, 0);
+	DrawCmd& d = c->pending.Add();
+	d.op = DOP_RECT;
 	Size sz = r.GetSize();
-	c.x = r.left; c.y = r.top; c.w = sz.cx; c.h = sz.cy;
-	c.r = color.GetR(); c.g = color.GetG(); c.b = color.GetB();
+	d.x = r.left - off.x; d.y = r.top - off.y; d.w = sz.cx; d.h = sz.cy;
+	d.r = color.GetR(); d.g = color.GetG(); d.b = color.GetB();
 }
 
 void NetDpyServer::Draw::PutImage(Point p, const Image& img, const Rect& src)
 {
 	Size sz = src.GetSize();
 	if(sz.cx <= 0 || sz.cy <= 0)
+		return;
+
+	NetDpyServer::WindowConn *c = NetDpyServer::current;
+	if(!c)
 		return;
 
 	// DisplayServer's baseline NetworkDisplay/0006 protocol only had flat-color
@@ -209,9 +341,10 @@ void NetDpyServer::Draw::PutImage(Point p, const Image& img, const Rect& src)
 	// RGB-only shape had to do that, which is what produced solid black boxes
 	// wherever the source was transparent instead of blending against the real
 	// window background).
-	DrawCmd& c = NetDpyServer::pending.Add();
-	c.op = DOP_IMAGE;
-	c.x = p.x; c.y = p.y; c.w = sz.cx; c.h = sz.cy;
+	Point off = c->win ? c->win->GetRect().TopLeft() : Point(0, 0);
+	DrawCmd& d = c->pending.Add();
+	d.op = DOP_IMAGE;
+	d.x = p.x - off.x; d.y = p.y - off.y; d.w = sz.cx; d.h = sz.cy;
 
 	StringBuffer sb(sz.cx * sz.cy * 4);
 	byte *out = sb;
@@ -222,7 +355,7 @@ void NetDpyServer::Draw::PutImage(Point p, const Image& img, const Rect& src)
 			*out++ = px.r; *out++ = px.g; *out++ = px.b; *out++ = px.a;
 		}
 	}
-	c.image_rgba = String(sb);
+	d.image_rgba = String(sb);
 }
 
 void RunNetDpyGui(NetDpyServer& gui, Event<> app_main)

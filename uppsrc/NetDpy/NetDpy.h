@@ -18,6 +18,18 @@
 // arrive from a web browser and need translating, NetDpy's key codes are already raw
 // Upp K_ codes forwarded verbatim by DisplayServer, see Net/Protocol.h's SMSG_INPUT_KEY
 // doc comment).
+//
+// NetworkDisplay/0014: NetDpy no longer funnels the whole app (main window + any
+// popup/dialog) through VirtualGui's single shared virtual-desktop canvas. Instead it
+// overrides VirtualGui::WantsPerWindowRouting() (true) and gives every genuine
+// TopWindow (dynamic_cast<TopWindow*> succeeds -- the app's main window, and any
+// dialog derived from TopWindow such as PromptOK's PromptDlgWnd__) its own
+// DisplayServer connection/window via a per-TopWindow WindowConn, keyed in `conns`.
+// Transient plain-Ctrl popups (dropdowns/tooltips/menus/IME) are NOT given their own
+// connection -- they keep compositing into whichever real TopWindow's connection
+// currently owns them (Ctrl::GetTopWindow()), exactly as before, just scoped to that
+// one window's canvas instead of the whole process's. See the plan doc
+// (CompositeEasingNetwork/NetworkDisplay/0014) for the full design rationale.
 
 #define GUIPLATFORM_CTRL_TOP_DECLS   Ctrl *owner_window;
 #define GUIPLATFORM_CTRL_DECLS_INCLUDE <VirtualGui/Ctrl.h>
@@ -39,17 +51,20 @@ namespace Upp {
 
 // NetDpyServer is deliberately single-instance/static-state, exactly like
 // TurtleServer -- a process using this backend represents exactly one virtual
-// "desktop" (one DisplayServer connection/window), so there is never a second
-// instance to keep separate from the free-standing Draw/event-queue state.
+// "desktop" (one shared internal Ctrl coordinate space, still used for input
+// dispatch, see NetworkDisplay/0014's WindowConn/Pump() below), so there is never a
+// second instance to keep separate from the free-standing Draw/event-queue state.
 class NetDpyServer : public VirtualGui {
 public:
 	NetDpyServer() {}
 
 	// Connects to a DisplayServer listening at host:port and sends CMSG_HELLO with
-	// the given title/canvas size. Must be called (successfully) before
-	// RunNetDpyGui(). The canvas size is fixed for the lifetime of the connection --
-	// live resize renegotiation is out of scope here, same known limitation
-	// NetworkDisplay/0006 already documented for SMSG_WINDOW_RESIZED/CMSG_RESIZE.
+	// the given title/canvas size -- this becomes the app's *main* window's
+	// connection once the app's first TopWindow opens (WindowOpened() adopts it;
+	// see NetworkDisplay/0014). Must be called (successfully) before
+	// RunNetDpyGui(). host/port are also remembered so any further TopWindow
+	// (popup/dialog) opened later gets its own additional connection to the same
+	// endpoint.
 	bool Connect(const String& host, int port, const String& title, Size canvas_size);
 
 	bool IsConnected() const;
@@ -75,22 +90,56 @@ private:
 	virtual void        WakeUpGuiThread()                  {}
 	virtual void        Quit();
 
+	// NetworkDisplay/0014: every genuine TopWindow gets its own DisplayServer
+	// connection/window -- see VirtualGui.h's doc comments for the general hook
+	// contract, and the .cpp for what each override actually does here.
+	virtual bool        WantsPerWindowRouting()            { return true; }
+	virtual void        WindowOpened(TopWindow *w);
+	virtual void        WindowClosed(TopWindow *w);
+	virtual void        SelectWindow(TopWindow *w);
+
 private:
 	struct QueuedEvent : Moveable<QueuedEvent> {
 		enum Kind { MOUSE, KEY, CLOSE } kind;
-		byte  mkind = 0;
-		byte  kkind = 0;
-		Point pos   = Point(0, 0);
-		dword keyflags = 0;
-		dword keycode = 0;
+		byte       mkind = 0;
+		byte       kkind = 0;
+		Point      pos   = Point(0, 0);
+		dword      keyflags = 0;
+		dword      keycode = 0;
+		// Which window's connection this event arrived on (NetworkDisplay/0014) --
+		// used to translate MOUSE positions back into NetDpy's shared internal
+		// virtual-desktop coordinate space, and to decide whether a CLOSE ends just
+		// that one window (win->Close()) or the whole app (Ctrl::EndSession(), main
+		// window only). Never null once a WindowConn exists.
+		TopWindow *win = NULL;
 	};
 
-	static void Pump(); // reads the socket, decodes frames into the event queue
+	// One DisplayServer connection per genuine TopWindow (NetworkDisplay/0014).
+	// Analogous to (and, on the DisplayServer side, indistinguishable from) any
+	// other independent NetClientSession -- see DisplayServer/NetServer.h.
+	struct WindowConn {
+		TopWindow              *win = NULL;   // back-reference; NULL only for `pending_conn` before it's adopted
+		NetworkDisplayTransport transport;
+		FrameParser             parser;
+		Vector<DrawCmd>         pending;       // accumulated since this window's last CommitDraw
+		int                     window_id = -1;
+		Size                    size = Size(0, 0);
+		String                  title;
+		bool                    hello_sent = false;
+		bool                    got_close = false; // this connection's own close-notice de-dup flag
+	};
+
+	static void PumpOne(WindowConn& c); // reads one connection's socket, decodes frames into the event queue
+	static void Pump();                 // pumps every open WindowConn (+ the not-yet-adopted pending_conn)
 
 public:
 	// Analogous in spirit to TurtleServer::Draw: an SDraw whose PutRect/PutImage
 	// (the two primitives every other SDraw *Op ends up rasterized down to) become
 	// DisplayServer DrawCmd's instead of Turtle's own websocket binary protocol.
+	// NetworkDisplay/0014: both now route to whichever WindowConn `current` points
+	// at (set by SelectWindow(), from Ctrl::PaintPerWindowScene()) instead of one
+	// shared global batch, and subtract that window's own top-left so coordinates
+	// recorded here are window-local, not shared-virtual-desktop-absolute.
 	struct Draw : SDraw {
 		Draw();
 		void            Init(const Size& sz);
@@ -103,16 +152,22 @@ public:
 	friend struct NetDpyServer::Draw;
 
 private:
-	static NetworkDisplayTransport transport;
-	static FrameParser              parser;
-	static Vector<QueuedEvent>      events;
-	static Vector<DrawCmd>          pending; // accumulated since the last CommitDraw
+	static ArrayMap<TopWindow *, WindowConn> conns;   // keyed by the TopWindow* itself
+	static WindowConn              *current;          // set by SelectWindow(), consumed by Draw::Put*
+	// The connection Connect() opened before any TopWindow existed yet (there is no
+	// TopWindow to key it by at that point). Adopted wholesale -- not duplicated --
+	// by the first-ever WindowOpened() call, which in practice is always the app's
+	// real main window (apps always open their main window before any dialog).
+	static WindowConn               *pending_conn;
 
-	static Size    canvas_size;
+	static String  host; // recorded from Connect() so later per-window Connect() calls reuse the same endpoint
+	static int     port;
+
+	static Vector<QueuedEvent>      events;
+
+	static Size    canvas_size; // NetDpy's own shared internal "virtual desktop" size (Ctrl::SetDesktopSize) -- unrelated to any one window's own DisplayServer canvas size
 	static dword   mousebuttons;
 	static bool    mousein;
-	static bool    got_close;
-	static int     window_id;
 
 	friend void RunNetDpyGui(NetDpyServer&, Event<>);
 };

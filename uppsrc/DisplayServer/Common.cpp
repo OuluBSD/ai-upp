@@ -11,6 +11,15 @@ void ParseVerboseFlag()
 			g_verbose = true;
 }
 
+bool g_demo_windows = false;
+
+void ParseDemoWindowsFlag()
+{
+	for(const String& a : CommandLine())
+		if(a == "--demo-windows")
+			g_demo_windows = true;
+}
+
 void LogPaint(const char *backend, int window_id, const String& title, Rect rect)
 {
 	if(!g_verbose)
@@ -56,6 +65,8 @@ void LogNetDraw(int client_index, int batch_count, int64 total_count)
 Vector<WindowSpec> DefaultWindowSpecs()
 {
 	Vector<WindowSpec> v;
+	if(!g_demo_windows)
+		return v; // return empty vector unless --demo-windows flag is set (NetworkDisplay/0009)
 	v.Add(WindowSpec("Alpha", Color(198, 82, 82), 0));
 	v.Add(WindowSpec("Beta", Color(82, 140, 198), 1));
 	v.Add(WindowSpec("Gamma", Color(96, 176, 96), 2));

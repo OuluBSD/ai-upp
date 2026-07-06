@@ -149,6 +149,7 @@ public:
 GUI_APP_MAIN
 {
 	ParseVerboseFlag();
+	ParseDemoWindowsFlag();
 	if(g_verbose)
 		fprintf(stderr, "[software] DisplayServer starting, verbose logging enabled\n");
 

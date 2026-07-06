@@ -383,6 +383,7 @@ public:
 GUI_APP_MAIN
 {
 	ParseVerboseFlag();
+	ParseDemoWindowsFlag();
 	if(g_verbose)
 		fprintf(stderr, "[opengl] DisplayServer starting, verbose logging enabled\n");
 

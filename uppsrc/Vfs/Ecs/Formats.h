@@ -13,10 +13,20 @@ struct AudioFormat :
 	DimBase<1>,
 	TimeSeriesBase
 {
-	static constexpr int base_size =
-		sizeof(SampleBase<SoundSample>) +
-		sizeof(DimBase<1>) +
-		sizeof(TimeSeriesBase);
+private:
+	// Summing sizeof() of each base independently (as the other Format structs in
+	// this file do) misses alignment padding the compiler inserts *between* base
+	// subobjects when they're combined -- e.g. the 1-byte SampleBase here needs 3
+	// bytes of padding before the 4-byte-aligned DimBase<1> that follows it. That gap
+	// is invisible to a naive sum, so on MSVC (where it isn't absorbed by trailing
+	// alignment rounding the way it happens to be for the other Format structs) the
+	// pad array below came out 3 bytes short, overflowing sizeof(AudioFormat) to 72
+	// instead of STD_FMT_SIZE's required 64. Bases_ has the exact same base list and
+	// no members of its own, so sizeof(Bases_) is the compiler's own true combined
+	// size, correct on any platform/ABI, no manual arithmetic involved.
+	struct Bases_ : SampleBase<SoundSample>, DimBase<1>, TimeSeriesBase {};
+public:
+	static constexpr int base_size = sizeof(Bases_);
 
 	void Set(SoundSample::Type t, int channels, int freq, int sample_rate);
 

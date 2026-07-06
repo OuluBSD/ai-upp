@@ -40,6 +40,24 @@ void NetClientSession::ApplyDrawBatch(const Vector<DrawCmd>& cmds)
 		case DOP_TEXT:
 			w.DrawText(c.x, c.y, c.text, StdFont(), col);
 			break;
+		case DOP_IMAGE: {
+			// Raw opaque RGB blit (NetworkDisplay/0007 protocol extension -- see
+			// Net/Protocol.h's DOP_IMAGE comment): rebuild an Image from the raw
+			// row-major r,g,b bytes and blit it in one go.
+			if(c.w > 0 && c.h > 0 && c.image_rgb.GetCount() == c.w * c.h * 3) {
+				ImageBuffer ib(c.w, c.h);
+				const byte *src = (const byte *)~c.image_rgb;
+				RGBA *dst = ~ib;
+				for(int i = 0; i < c.w * c.h; i++) {
+					dst[i].r = src[3 * i + 0];
+					dst[i].g = src[3 * i + 1];
+					dst[i].b = src[3 * i + 2];
+					dst[i].a = 255;
+				}
+				w.DrawImage(c.x, c.y, Image(ib));
+			}
+			break;
+		}
 		default:
 			break;
 		}

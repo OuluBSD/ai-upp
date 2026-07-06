@@ -1,0 +1,10 @@
+description "NetDpy backend (NetworkDisplay/0007): a VirtualGui host that makes an ordinary U++ GUI app act as a network client of a running DisplayServer process (NetworkDisplay/0005/0006), instead of opening its own native X11/GTK/Win32 window. Selected as CtrlCore.h's GUIPLATFORM_INCLUDE when flagNETDPY is defined -- this is flagNETDPY's real, redefined meaning (NetworkDisplay/0003's old meaning, a plain flagTURTLE alias, is superseded).";
+
+uses
+	CtrlLib,
+	VirtualGui,
+	DisplayServer/Net;
+
+file
+	NetDpy.h,
+	NetDpy.cpp;

@@ -9,6 +9,9 @@ uses
 uses(MLUI)
 	VirtualGui;
 
+uses(NETDPY)
+	NetDpy;
+
 file
 	UWord.cpp,
 	UWord.iml;
@@ -17,4 +20,5 @@ mainconfig
 	"" = "GUI",
 	"" = "GUI X11",
 	"" = "GUI ST",
-	"Markup Language User Interface" = "GUI MLUI";
+	"Markup Language User Interface" = "GUI MLUI",
+	"" = "GUI NETDPY";

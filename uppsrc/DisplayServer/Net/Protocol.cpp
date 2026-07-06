@@ -31,6 +31,9 @@ void DrawCmd::Serialize(Stream& s)
 	case DOP_TEXT:
 		s % x % y % r % g % b % text;
 		break;
+	case DOP_IMAGE:
+		s % x % y % w % h % image_rgb;
+		break;
 	default:
 		break;
 	}

@@ -33,13 +33,24 @@
 			#define VIRTUALGUI 1
 		#endif
 
-		#if defined(flagTURTLE) || defined(flagNETDPY)
+		#if defined(flagTURTLE)
 		#define GUIPLATFORM_KEYCODES_INCLUDE <Turtle/Keys.h>
 		//need to make SDL_keysym.h known before K_ enum
 		#define GUIPLATFORM_INCLUDE          <Turtle/Turtle.h>
 		#define GUIPLATFORM_NOSCROLL
 		#define PLATFORM_TURTLE
 		#define TURTLE
+		#elif defined(flagNETDPY)
+		// NetworkDisplay/0007: flagNETDPY no longer aliases flagTURTLE (that was
+		// NetworkDisplay/0003's meaning, now superseded). It now selects the NetDpy
+		// backend (uppsrc/NetDpy), which makes this process act as a network client
+		// of a separate, already-running DisplayServer process (uppsrc/DisplayServer,
+		// NetworkDisplay/0005/0006) instead of embedding its own browser-facing
+		// TurtleServer or opening a native OS window.
+		#define GUIPLATFORM_KEYCODES_INCLUDE <VirtualGui/Keys.h>
+		#define GUIPLATFORM_INCLUDE          <NetDpy/NetDpy.h>
+		#define GUIPLATFORM_NOSCROLL
+		#define PLATFORM_NETDPY
 		#elif VIRTUALGUI
 		#define GUIPLATFORM_KEYCODES_INCLUDE <VirtualGui/Keys.h>
 		#define GUIPLATFORM_INCLUDE          <VirtualGui/VirtualGui.h>

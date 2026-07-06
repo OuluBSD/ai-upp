@@ -276,12 +276,58 @@ void UWord::SerializeApp(Stream& s)
 		s % lrufile();
 }
 
+#if defined(flagNETDPY)
+
+// NetDpy backend (NetworkDisplay/0007): this process is a network client, not a
+// plain GUI process (CtrlCore.h no longer selects a native X11/GTK/Win32 window for
+// flagNETDPY -- it selects uppsrc/NetDpy, see CtrlCore.h's GUIPLATFORM_INCLUDE
+// selection), so it needs its own console entry point that connects a NetDpyServer
+// to a running DisplayServer and drives AppMainLoop() through RunNetDpyGui() instead
+// of GUI_APP_MAIN, exactly the same shape flagTURTLE apps use for RunTurtleGui().
+static void AppMainLoop()
+{
+	new UWord;
+	Ctrl::EventLoop();
+}
+
+CONSOLE_APP_MAIN
+{
+	StdLogSetup(LOG_FILE|LOG_ELAPSED);
+	SetLanguage(LNG_ENGLISH);
+	SetDefaultCharset(CHARSET_UTF8);
+
+	UWordFs().Type("QTF files", "*.qtf")
+	         .Type("RTF files", "*.rtf")
+	         .AllFilesType()
+	         .DefaultExt("qtf");
+	PdfFs().Type("PDF files", "*.pdf")
+	       .AllFilesType()
+	       .DefaultExt("pdf");
+
+	LoadFromFile(callback(UWord::SerializeApp));
+
+	String host = GetCommandLineArgValue("--host", "127.0.0.1");
+	int    port = GetDisplayServerPort();
+
+	NetDpyServer guiserver;
+	if(!guiserver.Connect(host, port, "UWord", Size(900, 700))) {
+		Cerr() << "UWord: failed to connect to DisplayServer at " << host << ":" << port << "\n";
+		SetExitCode(1);
+		return;
+	}
+	RunNetDpyGui(guiserver, AppMainLoop);
+
+	StoreToFile(callback(UWord::SerializeApp));
+}
+
+#else
+
 GUI_APP_MAIN
 {
 	StdLogSetup(LOG_FILE|LOG_ELAPSED);
 	SetLanguage(LNG_ENGLISH);
 	SetDefaultCharset(CHARSET_UTF8);
-	
+
 	Ctrl::SkinChangeSensitive();
 
 	UWordFs().Type("QTF files", "*.qtf")
@@ -297,3 +343,5 @@ GUI_APP_MAIN
 	Ctrl::EventLoop();
 	StoreToFile(callback(UWord::SerializeApp));
 }
+
+#endif

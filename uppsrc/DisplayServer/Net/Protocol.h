@@ -74,6 +74,13 @@ enum DrawOpType {
 	DOP_LINE    = 2, // int32 x,y,x2,y2,width; byte r,g,b -- a single line segment
 	DOP_ELLIPSE = 3, // int32 x,y,w,h; byte r,g,b -- filled ellipse inscribed in (x,y,w,h)
 	DOP_TEXT    = 4, // int32 x,y; byte r,g,b; String text -- drawn with StdFont()
+	DOP_IMAGE   = 5, // int32 x,y,w,h; String image_rgb (w*h*3 raw bytes, row-major, no
+	                 // alpha) -- opaque raster blit. Added in NetworkDisplay/0007: a
+	                 // generic Ctrl/Draw client (unlike 0006's own hand-written
+	                 // TestClient) ends up rasterizing almost everything -- glyphs,
+	                 // icons, gradients -- through Draw::PutImage, so a real backend
+	                 // needs a raw-pixel primitive alongside the flat-color ones 0006
+	                 // shipped with.
 };
 
 struct DrawCmd : Moveable<DrawCmd> {
@@ -82,6 +89,7 @@ struct DrawCmd : Moveable<DrawCmd> {
 	int    width = 1;
 	byte   r = 255, g = 255, b = 255;
 	String text;
+	String image_rgb; // DOP_IMAGE payload only (w*h*3 bytes)
 
 	// Symmetric encode/decode: reads current fields into `s` when storing, fills
 	// fields from `s` when loading (standard Upp::Stream idiom).

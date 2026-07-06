@@ -35,6 +35,15 @@ FrameT<CtxUpp2D>::FrameT() {
 	maximized = false;
 	sizeable = false;
 	holding = false;
+	// Never initialized before (this ctor predates any drag-resize call site actually
+	// reaching MouseMove()'s minsize-based clamp, since sizeable was always false and
+	// StartDrag() bailed out of every edge-drag before that clamp could run) -- left at
+	// whatever indeterminate value the member happened to have otherwise. Now that
+	// sizeable can be true (NetworkDisplay/0018), that clamp is live, so this needs a
+	// real value: same general-purpose default TopWindow::TopWindow() uses for the
+	// equivalent field (CtrlCore/TopWindow.cpp), interpreted the same way ComputeClient()
+	// already treats it elsewhere in this file -- a minimum *client* size.
+	minsize = Size(80, 20);
 }
 
 template <>

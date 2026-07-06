@@ -100,13 +100,38 @@ void NetDpyServer::WindowOpened(TopWindow *w)
 	if(!w || conns.Find(w) >= 0)
 		return;
 
+	// NetworkDisplay/0017: resolve which already-open window (if any) this one is a
+	// popup/dialog of, so its CMSG_HELLO can tell DisplayServer which existing window
+	// to center over instead of falling back to AddInterface()'s generic staggered
+	// default position. w->GetOwner() (VirtualGui/Wnd.cpp) is already correctly set by
+	// the time Ctrl::PopUp() calls WindowOpened() here -- see TopWindow::Open()'s
+	// frame->PopUp(owner, ...) / PopUp(frame, ...) pair, which resolves all the way
+	// through the (invisible, chrome-suppressed for NetDpy) TopWindowFrame's own
+	// owner_window to the real ancestor TopWindow. Only usable once that owner already
+	// has its own DisplayServer-assigned window_id (from a previously-received
+	// SMSG_WELCOME on the owner's own connection, recorded in conns[oi].window_id) --
+	// in practice always true here, since an owner window is always opened (and its
+	// connection pumped at least once) well before any dialog/popup of its own opens.
+	// If the owner's WELCOME genuinely hasn't arrived yet, owner_window_id is left at
+	// -1 and the popup just falls back to the generic default position, same as if it
+	// had no owner.
+	int owner_window_id = -1;
+	if(TopWindow *owner_win = dynamic_cast<TopWindow *>(w->GetOwner())) {
+		int oi = conns.Find(owner_win);
+		if(oi >= 0 && conns[oi].window_id >= 0)
+			owner_window_id = conns[oi].window_id;
+	}
+
 	WindowConn *c;
 	if(pending_conn) {
 		// Adopt the connection Connect() already opened before any TopWindow
 		// existed, instead of wastefully opening a second one for the very first
 		// window that ever opens (always the app's real main window -- apps open
 		// their main window before any dialog/popup can exist). See
-		// NetworkDisplay/0014's plan doc, design proposal point 2.
+		// NetworkDisplay/0014's plan doc, design proposal point 2. Always ownerless
+		// (it's the main window), so its already-sent CMSG_HELLO (from Connect(),
+		// before any TopWindow existed to resolve an owner from anyway) correctly
+		// carried EncodeHello's default owner_window_id of -1.
 		c = pending_conn;
 		pending_conn = NULL;
 		conns.Add(w, c);
@@ -117,7 +142,7 @@ void NetDpyServer::WindowOpened(TopWindow *w)
 		c->title = w->GetTitle().ToString();
 		String endpoint = host + ":" + AsString(port);
 		if(c->transport.Connect(endpoint)) {
-			c->transport.Send(EncodeFrame(CMSG_HELLO, EncodeHello(c->title, c->size)));
+			c->transport.Send(EncodeFrame(CMSG_HELLO, EncodeHello(c->title, c->size, owner_window_id)));
 			c->hello_sent = true;
 		}
 	}

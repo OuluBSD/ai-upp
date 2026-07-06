@@ -78,7 +78,7 @@ public:
 		net.WhenConnect = [this](int client_index) {
 			NetClientSession *c = net.Find(client_index);
 			if(c)
-				AddNetworkWindow(client_index, c->title, c->size);
+				AddNetworkWindow(client_index, c->title, c->size, c->owner_window_id);
 			Refresh();
 		};
 		net.WhenDrawBatch = [this](int) { Refresh(); };
@@ -119,6 +119,15 @@ public:
 		WindowManager::Frame& h = scope[pos];
 		int id = scope.GetPosId(pos);
 		h.SetTitle(spec.title);
+		// NetworkDisplay/0018: opt this Frame into FrameT's sizeable state (kept for
+		// consistency with the software backend and any future caller that consults
+		// f->IsSizeable() -- see the file header and this backend's own LeftDown()/
+		// MouseMove() below for why it has no user-visible effect *yet* here: this
+		// Frame is never attached to a live Ctrl tree in this backend, so FrameT's own
+		// GetDragMode()/StartDrag()/MouseMove()/CursorImage() are never actually
+		// invoked -- GLDesktop hit-tests/drags chrome itself, manually, and today only
+		// implements titlebar move + maximize/minimize/close, not edge/corner resize).
+		h.Sizeable(true);
 		specs.Add(id, spec);
 		zorder.Add(id);
 	}
@@ -127,7 +136,7 @@ public:
 	// same Frame machinery), just tagged in net_index instead of specs so GLPaint()
 	// and input handling know to source this window's content from NetServer instead
 	// of PaintSyntheticContent().
-	void AddNetworkWindow(int client_index, const String& title, Size csize)
+	void AddNetworkWindow(int client_index, const String& title, Size csize, int owner_window_id = -1)
 	{
 		ASSERT(host);
 		scope.AddInterface(*host);
@@ -135,6 +144,23 @@ public:
 		WindowManager::Frame& h = scope[pos];
 		int id = scope.GetPosId(pos);
 		h.SetTitle(title.GetCount() ? title : Format("Client %d", client_index));
+		// NetworkDisplay/0018: same Sizeable(true) opt-in as AddWindow() above -- see
+		// there for why it doesn't yet do anything user-visible in this backend.
+		h.Sizeable(true);
+
+		// NetworkDisplay/0017: same owner-centered repositioning as the software
+		// backend's AddNetworkWindow() -- see SoftwareMain.cpp for the full rationale.
+		// Only the position (not size) of AddInterface()'s just-set default frame box
+		// is overridden here, and only when owner_window_id names a still-open window.
+		if(owner_window_id >= 0) {
+			WindowManager::Frame *owner_frame = FindWindowFrame(scope, owner_window_id);
+			if(owner_frame) {
+				Rect box = h.GetFrameBox();
+				Size want = csize.cx > 0 && csize.cy > 0 ? csize : box.GetSize();
+				Rect centered = owner_frame->GetFrameBox().CenterRect(want);
+				h.SetFrameBox(RectC(centered.left, centered.top, box.GetWidth(), box.GetHeight()));
+			}
+		}
 
 		// NetworkDisplay/0015: same real-declared-size sizing as the software
 		// backend's AddNetworkWindow() -- see SoftwareMain.cpp for the rationale.
@@ -249,16 +275,28 @@ public:
 			w.End();
 		}
 
-		// taskbar (also serves to un-minimize windows, mirroring the software backend)
+		// taskbar (also serves to un-minimize windows, mirroring the software backend).
+		// NetworkDisplay/0019: every open window gets an entry here, synthetic or
+		// network -- `zorder` already tracks both uniformly (see AddWindow()/
+		// AddNetworkWindow() above and PruneClosed() for removal on close), so no
+		// separate bookkeeping is needed. A network window's title is read straight
+		// off its own Frame (kept live via WhenTitleChanged, see the constructor)
+		// instead of a synthetic WindowSpec, which network windows don't have. Every
+		// connected client (main app window or popup/dialog alike, per
+		// NetworkDisplay/0014) is its own entry here, matching the software backend's
+		// choice for the same reason: nothing distinguishes a transient dialog from a
+		// real top-level window in this backend either.
 		Rect bar(0, sz.cy - TASKBAR_H, sz.cx, sz.cy);
 		w.DrawRect(bar, Color(30, 32, 38));
 		int x = 4;
-		for(int i = 0; i < specs.GetCount(); i++) {
-			int id = specs.GetKey(i);
+		for(int id : zorder) {
+			WindowManager::Frame *f = FindWindowFrame(scope, id);
+			if(!f)
+				continue;
 			bool active = scope.IsActiveHandle(id);
 			w.DrawRect(RectC(x, bar.top + 2, 120, TASKBAR_H - 4),
 			           active ? Color(90, 110, 140) : Color(60, 62, 70));
-			w.DrawText(x + 6, bar.top + 6, specs[i].title, StdFont(), White());
+			w.DrawText(x + 6, bar.top + 6, f->GetTitle(), StdFont(), White());
 			x += 124;
 		}
 
@@ -269,11 +307,17 @@ public:
 	{
 		Size sz = GetSize();
 		if(p.y >= sz.cy - TASKBAR_H) {
+			// NetworkDisplay/0019: same zorder-based entry list as the taskbar's own
+			// drawing loop in GLPaint() above -- must stay in lockstep with it (same
+			// ids in the same order) since hit-testing here relies on identical x
+			// positions.
 			int x = 4;
-			for(int i = 0; i < specs.GetCount(); i++) {
+			for(int id : zorder) {
+				if(!FindWindowFrame(scope, id))
+					continue;
 				Rect br(x, sz.cy - TASKBAR_H + 2, x + 120, sz.cy - 2);
 				if(br.Contains(p)) {
-					RaiseToTop(specs.GetKey(i));
+					RaiseToTop(id);
 					Refresh();
 					return;
 				}

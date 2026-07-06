@@ -36,7 +36,13 @@ int GetDisplayServerPort(int default_port = DEFAULT_DISPLAYSERVER_PORT);
 
 // Client -> DisplayServer.
 enum ClientMsgType {
-	CMSG_HELLO      = 1, // payload: String title, int32 width, int32 height
+	CMSG_HELLO      = 1, // payload: String title, int32 width, int32 height, int32
+	                     // owner_window_id (NetworkDisplay/0017: -1 if this window has
+	                     // no owner, otherwise the DisplayServer-assigned window_id
+	                     // (see SMSG_WELCOME) of the connection's owner window -- the
+	                     // client can only supply this once it already knows the
+	                     // owner's own window_id, i.e. after the owner's own
+	                     // SMSG_WELCOME has arrived on the owner's connection)
 	CMSG_DRAW_BATCH = 2, // payload: int32 command_count, then that many DrawCmd (see DrawCmd::Serialize)
 	CMSG_RESIZE     = 3, // payload: int32 width, int32 height (client-requested canvas resize)
 	CMSG_BYE        = 4, // payload: (empty) -- graceful disconnect notice
@@ -117,8 +123,10 @@ String EncodeFrame(byte msg_type, const String& payload);
 // Payload encode/decode helpers. Each operates purely on the payload bytes (i.e.
 // everything after the msg_type byte) -- overall frame length-prefixing is handled
 // by EncodeFrame()/FrameParser.
-String EncodeHello(const String& title, Size sz);
-bool   DecodeHello(const String& payload, String& title, Size& sz);
+// owner_window_id defaults to -1 ("no owner") so existing callers that only ever open
+// ownerless windows (e.g. TestClient) don't need to pass it explicitly.
+String EncodeHello(const String& title, Size sz, int owner_window_id = -1);
+bool   DecodeHello(const String& payload, String& title, Size& sz, int& owner_window_id);
 
 String EncodeDrawBatch(Vector<DrawCmd>& cmds);
 bool   DecodeDrawBatch(const String& payload, Vector<DrawCmd>& cmds);

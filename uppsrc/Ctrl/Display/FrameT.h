@@ -82,6 +82,15 @@ public:
 	void Restore();
 	
 	bool IsMaximized() const                 { return maximized; }
+
+	// Capability flag, not a transient user-toggled state (unlike maximized/holding,
+	// which only ever change via action methods like Maximize()/Hold() below) -- so it
+	// follows TopWindow::Sizeable(bool)/IsSizeable() instead (CtrlCore/TopWindow.h),
+	// the existing convention in this codebase for "is this window resizeable by the
+	// user", which VirtualGui's TopFrame (VirtualGui/Local.h+Top.cpp) already mirrors
+	// the same way for its own `sizeable` field.
+	Frame& Sizeable(bool b = true)            { sizeable = b; return *this; }
+	bool IsSizeable() const                  { return sizeable; }
 	
 	void Close() override;
 	void Paint(DrawT& draw) override;

@@ -73,22 +73,25 @@ bool FrameParser::Next(byte& msg_type, String& payload)
 	return true;
 }
 
-String EncodeHello(const String& title, Size sz)
+String EncodeHello(const String& title, Size sz, int owner_window_id)
 {
 	StringStream ss;
 	ss.Create();
 	String t = title;
 	int w = sz.cx, h = sz.cy;
-	ss % t % w % h;
+	int owner = owner_window_id;
+	ss % t % w % h % owner;
 	return ss.GetResult();
 }
 
-bool DecodeHello(const String& payload, String& title, Size& sz)
+bool DecodeHello(const String& payload, String& title, Size& sz, int& owner_window_id)
 {
 	StringStream ss(payload);
 	int w = 0, h = 0;
-	ss % title % w % h;
+	int owner = -1;
+	ss % title % w % h % owner;
 	sz = Size(w, h);
+	owner_window_id = owner;
 	return !ss.IsError();
 }
 

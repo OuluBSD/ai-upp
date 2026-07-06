@@ -737,6 +737,20 @@ typename Dim::Pt ScopeT<Dim>::GetMousePos() const {
 template <class Dim>
 void ScopeT<Dim>::SetFrameBox(const Box& b) {
 	desktop.SetRect(b);
+
+	// NetworkDisplay/0016: this is the one choke point both DisplayServer backends'
+	// TopWindow::Layout() overrides call through whenever the host desktop/work area
+	// resizes (see SoftwareMain.cpp's DesktopWindow::Layout() and GLMain.cpp's
+	// equivalent, both of which do `scope.SetFrameBox(...)` on every host resize).
+	// Re-apply the new work-area size to every already-maximized handle here so a
+	// maximized window tracks a live host resize instead of staying stuck at whatever
+	// size GetWorkArea().GetSize() returned back when Maximize() was first clicked.
+	// FrameT<Dim>::SyncBox() is a no-op for non-maximized handles (leaves them at
+	// their own explicit rect) and never touches `overlapped` (the saved pre-maximize
+	// rect Overlap() restores to), so non-maximized windows and restore are both
+	// unaffected by this.
+	for(int i = 0; i < handles.GetCount(); i++)
+		handles[i].SyncBox();
 }
 
 GUIGLUE_EXCPLICIT_INITIALIZE_CLASS(ScopeT)

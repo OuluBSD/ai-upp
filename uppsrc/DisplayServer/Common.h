@@ -27,6 +27,8 @@ void LogComposite(const char *backend, int window_count);
 void LogNetConnect(int client_index, const String& peer);
 void LogNetDisconnect(int client_index);
 void LogNetDraw(int client_index, int batch_count, int64 total_count);
+void LogNetTitle(int client_index, const String& title);  // NetworkDisplay/0015
+void LogNetResize(int client_index, Size sz);              // NetworkDisplay/0015
 
 struct WindowSpec : Moveable<WindowSpec> {
 	String title;
@@ -84,6 +86,15 @@ public:
 	void MouseMove(Point p, dword keyflags) override;
 	void RightDown(Point p, dword keyflags) override;
 	bool Key(dword key, int count) override;
+
+	// NetworkDisplay/0015: this Ctrl is anchored (HSizePos/VSizePos) inside its
+	// FrameT's client area, so whenever that frame's real rect changes (maximize,
+	// restore, manual drag-resize), Ctrl's normal child-relayout machinery
+	// (Ctrl::SyncLayout(), CtrlPos.cpp) already calls this Ctrl's own Layout() with
+	// its newly-resolved size -- reused here instead of adding new polling, per the
+	// plan doc. NetServer::SendResize() itself no-ops if the size didn't actually
+	// change, so it's safe to call unconditionally.
+	void Layout() override;
 };
 #endif
 

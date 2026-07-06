@@ -98,6 +98,15 @@ private:
 	virtual void        WindowClosed(TopWindow *w);
 	virtual void        SelectWindow(TopWindow *w);
 
+	// NetworkDisplay/0015: fired by VirtualGui/Top.cpp's TopWindow::SyncTitle()
+	// (only when VirtualGuiPtr->WantsPerWindowRouting() is true, i.e. only for
+	// NetDpy -- Turtle's own per-window chrome is unaffected) whenever a hosted
+	// TopWindow's title actually changes after connect (Ctrl::Title() called
+	// again, e.g. examples/UWord's Save As/new-document titling). Sends CMSG_TITLE
+	// on that window's own connection so DisplayServer's frame title stays live
+	// instead of frozen at whatever CMSG_HELLO carried at connect time.
+	virtual void        WindowTitleChanged(TopWindow *w);
+
 private:
 	struct QueuedEvent : Moveable<QueuedEvent> {
 		enum Kind { MOUSE, KEY, CLOSE } kind;

@@ -99,6 +99,17 @@ struct VirtualGui {
 	// window's own per-connection state. Default no-op (irrelevant when
 	// WantsPerWindowRouting() is false).
 	virtual void        SelectWindow(TopWindow *w);
+
+	// NetworkDisplay/0015: called from TopWindow::SyncTitle() (VirtualGui/Top.cpp),
+	// only when WantsPerWindowRouting() is true (NetDpy only -- Turtle never
+	// overrides WantsPerWindowRouting(), so this is unreachable for it, same as
+	// WindowOpened()/WindowClosed() above), right after `w`'s title actually
+	// changed (TopWindow::Title() already guards on title != previous title, so
+	// this never fires spuriously). There is no other existing signal for this --
+	// SyncTitle()/SyncCaption() just assign a plain member on VirtualGui's own
+	// internal TopWindowFrame and repaint it locally, with nothing observable from
+	// outside. Default no-op.
+	virtual void        WindowTitleChanged(TopWindow *w);
 };
 
 void RunVirtualGui(VirtualGui& gui, Event<> app_main);

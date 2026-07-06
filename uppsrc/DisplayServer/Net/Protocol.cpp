@@ -136,6 +136,22 @@ bool DecodeSize(const String& payload, Size& sz)
 	return !ss.IsError();
 }
 
+String EncodeTitle(const String& title)
+{
+	StringStream ss;
+	ss.Create();
+	String t = title;
+	ss % t;
+	return ss.GetResult();
+}
+
+bool DecodeTitle(const String& payload, String& title)
+{
+	StringStream ss(payload);
+	ss % title;
+	return !ss.IsError();
+}
+
 String EncodeWelcome(int window_id)
 {
 	StringStream ss;

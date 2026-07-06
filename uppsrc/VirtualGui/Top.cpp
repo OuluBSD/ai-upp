@@ -30,6 +30,11 @@ void TopWindow::SyncSizeHints()
 void TopWindow::SyncTitle()
 {
 	SyncCaption();
+	// NetworkDisplay/0015: notify the backend a genuine TopWindow's title actually
+	// changed after connect -- scoped to WantsPerWindowRouting() backends (NetDpy)
+	// only, so Turtle (which never overrides that hook) is completely unaffected.
+	if(VirtualGuiPtr && VirtualGuiPtr->WantsPerWindowRouting())
+		VirtualGuiPtr->WindowTitleChanged(this);
 }
 
 void TopWindow::SyncCaption()

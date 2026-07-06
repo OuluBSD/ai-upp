@@ -78,7 +78,7 @@ public:
 		net.WhenConnect = [this](int client_index) {
 			NetClientSession *c = net.Find(client_index);
 			if(c)
-				AddNetworkWindow(client_index, c->title);
+				AddNetworkWindow(client_index, c->title, c->size);
 			Refresh();
 		};
 		net.WhenDrawBatch = [this](int) { Refresh(); };
@@ -88,6 +88,20 @@ public:
 					scope.QueueCloseHandle(net_index.GetKey(i));
 					break;
 				}
+		};
+		// NetworkDisplay/0015: same live title-update wiring as the software
+		// backend (SoftwareMain.cpp) -- see its WhenTitleChanged for the rationale.
+		net.WhenTitleChanged = [this](int client_index) {
+			for(int i = 0; i < net_index.GetCount(); i++)
+				if(net_index[i] == client_index) {
+					int id = net_index.GetKey(i);
+					WindowManager::Frame *f = FindWindowFrame(scope, id);
+					NetClientSession *c = net.Find(client_index);
+					if(f && c)
+						f->SetTitle(c->title);
+					break;
+				}
+			Refresh();
 		};
 	}
 
@@ -113,7 +127,7 @@ public:
 	// same Frame machinery), just tagged in net_index instead of specs so GLPaint()
 	// and input handling know to source this window's content from NetServer instead
 	// of PaintSyntheticContent().
-	void AddNetworkWindow(int client_index, const String& title)
+	void AddNetworkWindow(int client_index, const String& title, Size csize)
 	{
 		ASSERT(host);
 		scope.AddInterface(*host);
@@ -121,6 +135,14 @@ public:
 		WindowManager::Frame& h = scope[pos];
 		int id = scope.GetPosId(pos);
 		h.SetTitle(title.GetCount() ? title : Format("Client %d", client_index));
+
+		// NetworkDisplay/0015: same real-declared-size sizing as the software
+		// backend's AddNetworkWindow() -- see SoftwareMain.cpp for the rationale.
+		if(csize.cx > 0 && csize.cy > 0) {
+			Rect box = h.GetFrameBox();
+			h.SetClient(RectC(box.left, box.top, csize.cx, csize.cy));
+		}
+
 		net_index.Add(id, client_index);
 		zorder.Add(id);
 		net.SendWelcome(client_index, id);
@@ -282,6 +304,17 @@ public:
 					scope.RestoreHandle(id);
 				else
 					scope.MaximizeHandle(id);
+				// NetworkDisplay/0015: Maximize()/Overlap() (called via
+				// MaximizeHandle()/RestoreHandle() above) already resized `f`
+				// in-place -- tell the client its real client-area size just
+				// changed so it stops rendering at its stale original size
+				// (previously the black-area bug: DisplayServer just filled the
+				// newly-enlarged frame with black, nothing else painted there).
+				int np = net_index.Find(id);
+				if(np >= 0) {
+					Rect client = FrameClientLocal(*f);
+					net.SendResize(net_index[np], client.GetSize());
+				}
 			}
 			else if(!f->IsMaximized() && ButtonRect(*f, 3).Contains(local))
 				scope.MinimizeHandle(id);

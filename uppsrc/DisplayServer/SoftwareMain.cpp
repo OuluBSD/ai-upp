@@ -34,7 +34,7 @@ public:
 		net.WhenConnect = [this](int client_index) {
 			NetClientSession *c = net.Find(client_index);
 			if(c)
-				AddNetworkWindow(client_index, c->title);
+				AddNetworkWindow(client_index, c->title, c->size);
 		};
 		net.WhenDrawBatch = [this](int client_index) {
 			for(NetworkContent& c : net_contents)
@@ -50,6 +50,24 @@ public:
 					break;
 				}
 		};
+		// NetworkDisplay/0015: the client's hosted TopWindow's title changed after
+		// connect -- update this window's live DisplayServer frame title to match
+		// (previously only ever set once, from CMSG_HELLO, at connect time).
+		net.WhenTitleChanged = [this](int client_index) {
+			NetClientSession *c = net.Find(client_index);
+			if(!c)
+				return;
+			for(NetworkContent& nc : net_contents)
+				if(nc.client_index == client_index) {
+					WindowManager::Frame *f = FindFrame(nc.id);
+					if(f) {
+						f->SetTitle(c->title);
+						f->Refresh();
+					}
+					nc.title = c->title;
+					break;
+				}
+		};
 		// Closing is always deferred (QueueCloseHandle -> next tick), whether it was
 		// triggered by the frame's own close button (user click) or by us above (a
 		// client disconnecting) -- either way, once the handle is actually gone from
@@ -57,13 +75,38 @@ public:
 		scope.WhenHandleClose << [this] { PruneClosedNetworkWindows(); };
 	}
 
-	void AddNetworkWindow(int client_index, const String& title)
+	// Finds the live ScopeT<CtxUpp2D> Frame for a given handle id, or NULL if it has
+	// since been closed. Needed here (not just by GLMain.cpp's own copy) to reach a
+	// network window's Frame again after connect time, e.g. to update its title live
+	// (NetworkDisplay/0015).
+	WindowManager::Frame *FindFrame(int id)
+	{
+		for(int p = 0; p < scope.GetCount(); p++)
+			if(scope.GetPosId(p) == id)
+				return &scope[p];
+		return NULL;
+	}
+
+	void AddNetworkWindow(int client_index, const String& title, Size csize)
 	{
 		scope.AddInterface(*this);
 		int pos = scope.GetCount() - 1;
 		WindowManager::Frame& h = scope[pos];
 		int id = scope.GetPosId(pos);
 		h.SetTitle(title.GetCount() ? title : Format("Client %d", client_index));
+
+		// NetworkDisplay/0015: size the frame to the network client's own real
+		// declared canvas size (from CMSG_HELLO), instead of leaving
+		// ScopeT<Dim>::AddInterface()'s generic default handle dimensions in place
+		// -- scoped to network windows only, via SetClient() (already-existing
+		// FrameT API: computes the frame box that yields this exact client rect,
+		// same margins/titlebar math GetClient() uses in reverse). Synthetic
+		// AddWindow() windows below are untouched, so --demo-windows keeps its
+		// existing default sizing.
+		if(csize.cx > 0 && csize.cy > 0) {
+			Rect box = h.GetFrameBox();
+			h.SetClient(RectC(box.left, box.top, csize.cx, csize.cy));
+		}
 
 		NetworkContent& content = net_contents.Add();
 		content.id = id;

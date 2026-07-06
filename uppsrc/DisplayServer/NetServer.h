@@ -55,13 +55,22 @@ public:
 	void SendMouse(int client_index, byte kind, Point p, dword keyflags);
 	void SendKey(int client_index, byte kind, dword keycode);
 
+	// NetworkDisplay/0015: tells the client its usable client-area size changed
+	// (maximize/restore/manual frame resize on the DisplayServer side) by sending
+	// SMSG_WINDOW_RESIZED. No-op (and doesn't re-send) if `sz` already matches this
+	// session's last-known size, so callers can call this unconditionally from a
+	// Layout()/paint-time hook without spamming identical resizes.
+	void SendResize(int client_index, Size sz);
+
 	// Sends SMSG_CLOSE (best-effort) and tears down bookkeeping for this client.
 	// Idempotent -- safe to call even if the client already disconnected on its own.
 	void CloseAndRemove(int client_index);
 
-	Event<int> WhenConnect;    // HELLO received, session ready for a window (arg: client_index)
-	Event<int> WhenDrawBatch;  // canvas updated (arg: client_index) -- backend should Refresh()
-	Event<int> WhenDisconnect; // transport closed remotely, window not yet torn down (arg: client_index)
+	Event<int> WhenConnect;      // HELLO received, session ready for a window (arg: client_index)
+	Event<int> WhenDrawBatch;    // canvas updated (arg: client_index) -- backend should Refresh()
+	Event<int> WhenDisconnect;   // transport closed remotely, window not yet torn down (arg: client_index)
+	Event<int> WhenTitleChanged; // CMSG_TITLE received (arg: client_index) -- backend should update
+	                             // that window's live frame title (NetworkDisplay/0015)
 };
 
 #endif

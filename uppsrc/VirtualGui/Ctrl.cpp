@@ -108,6 +108,10 @@ void VirtualGui::SelectWindow(TopWindow *)
 {
 }
 
+void VirtualGui::WindowTitleChanged(TopWindow *)
+{
+}
+
 void VirtualGui::SetMouseCursor(const Image& image) {}
 void VirtualGui::SetCaret(const Rect& caret) {}
 

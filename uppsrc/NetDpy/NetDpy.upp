@@ -5,6 +5,14 @@ uses
 	VirtualGui,
 	DisplayServer/Net;
 
+// NetworkDisplay/0007: apps using flagNETDPY get a plain console entry point
+// (CONSOLE_APP_MAIN, see examples/UWord/UWord.cpp) instead of a native window's
+// GUI_APP_MAIN/WinMain -- this process never opens its own OS window, it's a
+// network client of a separate DisplayServer process. Without this, MSVC's linker
+// still infers /SUBSYSTEM:WINDOWS from the mainconfig's "GUI" flag and fails with
+// an unresolved WinMain, since our actual entry point is main(), not WinMain().
+link(WIN32 & MSC & NETDPY) "/SUBSYSTEM:CONSOLE";
+
 file
 	NetDpy.h,
 	NetDpy.cpp;

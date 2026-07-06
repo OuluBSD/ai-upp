@@ -128,10 +128,12 @@ void NetServer::PumpClient(NetClientSession& c)
 		case CMSG_HELLO: {
 			String title;
 			Size sz;
-			if(!c.hello_received && DecodeHello(payload, title, sz)) {
+			int owner_window_id = -1;
+			if(!c.hello_received && DecodeHello(payload, title, sz, owner_window_id)) {
 				c.hello_received = true;
 				c.title = title;
 				c.size = sz;
+				c.owner_window_id = owner_window_id;
 				WhenConnect(c.index);
 			}
 			break;

@@ -22,6 +22,11 @@ struct NetClientSession {
 	bool                   disconnect_notified = false;
 	String                 title;
 	Size                   size = Size(640, 480);
+	// NetworkDisplay/0017: DisplayServer-assigned window_id (see SendWelcome()) of this
+	// connection's owner window, decoded from CMSG_HELLO -- -1 if this window has no
+	// owner (e.g. the app's main window). The backend (SoftwareMain.cpp/GLMain.cpp)
+	// uses this to center a popup/dialog's initial frame over its owner's current one.
+	int                    owner_window_id = -1;
 	One<ImageDraw>         canvas;
 	Size                   canvas_alloc_size = Size(0, 0);
 	Image                  snapshot; // last-rendered content; safe to read from a Ctrl::Paint()

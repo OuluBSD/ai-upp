@@ -69,6 +69,13 @@ public:
 	static Ctrl *FindMouseTopCtrl();
 
 	static void PaintScene(SystemDraw& draw);
+	// NetworkDisplay/0014: entered from PaintScene() instead of the single-canvas
+	// loop whenever VirtualGuiPtr->WantsPerWindowRouting() is true (NetDpy only --
+	// see VirtualGui.h). Declared here (not just Turtle/Ctrl.h) because Wnd.cpp is
+	// shared source compiled into both Turtle and NetDpy backends via VirtualGui's
+	// own package; mirrored verbatim into Turtle/Ctrl.h so Wnd.cpp still compiles
+	// there even though Turtle never reaches this function.
+	static void PaintPerWindowScene(SystemDraw& draw);
 	static void PaintCaretCursor(SystemDraw& draw);
 	
 	enum { DRAWDRAGRECT_SCREEN = 0x8000 };

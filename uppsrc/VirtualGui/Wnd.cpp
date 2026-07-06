@@ -134,6 +134,15 @@ Rect Ctrl::GetClipBound(const Vector<Rect>& inv, const Rect& r)
 
 void Ctrl::PaintScene(SystemDraw& draw)
 {
+	// NetworkDisplay/0014: NetDpy substitutes a completely different, per-TopWindow
+	// paint/composite path instead of this shared single-canvas loop -- see
+	// PaintPerWindowScene() below. Every other backend (Turtle included) never
+	// overrides WantsPerWindowRouting(), so this branch is unreachable for them and
+	// the rest of this function is textually unchanged from before NetworkDisplay/0014.
+	if(VirtualGuiPtr && VirtualGuiPtr->WantsPerWindowRouting()) {
+		PaintPerWindowScene(draw);
+		return;
+	}
 	if(!desktop)
 		return;
 	LLOG("@ DoPaint");
@@ -155,6 +164,81 @@ void Ctrl::PaintScene(SystemDraw& draw)
 	Rect ri = GetClipBound(invalid, desktop->GetRect().GetSize());
 	if(!IsNull(ri))
 		desktop->UpdateArea(draw, ri);
+	draw.End();
+}
+
+// NetworkDisplay/0014: per-TopWindow-cluster paint path, only ever reached when
+// VirtualGuiPtr->WantsPerWindowRouting() is true (NetDpy). Groups topctrl into
+// "clusters": each genuine TopWindow entry (dynamic_cast<TopWindow*> succeeds) is
+// the head of its own cluster; every other entry that is not a TopWindowFrame (a
+// transient popup -- dropdown/tooltip/menu/IME) is attached to the cluster of its
+// nearest genuine TopWindow ancestor (Ctrl::GetTopWindow()), falling back to
+// Ctrl::GetMainWindow() if that's null (e.g. a popup opened with no owner).
+// TopWindowFrame entries themselves are skipped outright: with
+// VirtualGuiPtr->WantsOwnWindowFrame() false (NetworkDisplay/0010), TopWindowFrame::
+// Paint()/Margins() are already unconditional no-ops, so there is nothing for them
+// to contribute here.
+//
+// Per-entry Clipoff/UpdateArea body and invalid-region bookkeeping below are copied
+// unmodified from PaintScene()'s original loop; the only change is that
+// VirtualGuiPtr->SelectWindow()/CommitDraw() now bracket each contiguous run of
+// entries that share the same cluster owner (topctrl's existing add/remove order
+// already keeps a cluster's members contiguous), instead of one CommitDraw() for
+// the whole frame. The final desktop->UpdateArea(...) "leftover" fill is skipped
+// entirely -- there is no shared background to paint once every window owns its
+// own canvas (this is exactly what makes the StaticRect desktop's Cyan background
+// stop reaching DisplayServer).
+void Ctrl::PaintPerWindowScene(SystemDraw& draw)
+{
+	if(!desktop)
+		return;
+	LLOG("@ DoPaint (per-window)");
+	LTIMING("DoPaint per-window paint");
+	draw.Begin();
+	Vector<Rect> invalid;
+	invalid.Add(VirtualGuiPtr->GetSize());
+
+	TopWindow *active_cluster = NULL;
+	bool       cluster_open = false;
+
+	for(int i = topctrl.GetCount() - 1; i >= 0; i--) {
+		TopWindow *w;
+		if(dynamic_cast<TopWindowFrame *>(topctrl[i]))
+			w = NULL;
+		else {
+			w = dynamic_cast<TopWindow *>(topctrl[i]);
+			if(!w)
+				w = topctrl[i]->GetTopWindow();
+			if(!w)
+				w = topctrl[i]->GetMainWindow();
+		}
+
+		if(w != active_cluster) {
+			if(cluster_open)
+				VirtualGuiPtr->CommitDraw();
+			active_cluster = w;
+			cluster_open = false;
+			if(w) {
+				VirtualGuiPtr->SelectWindow(w);
+				cluster_open = true;
+			}
+		}
+
+		if(!w)
+			continue;
+
+		Rect r = topctrl[i]->GetRect();
+		Rect ri = GetClipBound(invalid, r);
+		if(!IsNull(ri)) {
+			draw.Clipoff(r);
+			topctrl[i]->UpdateArea(draw, ri - r.TopLeft());
+			draw.End();
+			Subtract(invalid, r);
+			draw.ExcludeClip(r);
+		}
+	}
+	if(cluster_open)
+		VirtualGuiPtr->CommitDraw();
 	draw.End();
 }
 
@@ -276,6 +360,9 @@ void Ctrl::DestroyWnd()
 	int q = FindTopCtrl();
 	if(q >= 0) {
 		Invalidate();
+		if(VirtualGuiPtr && VirtualGuiPtr->WantsPerWindowRouting())
+			if(TopWindow *w = dynamic_cast<TopWindow *>(this))
+				VirtualGuiPtr->WindowClosed(w);
 		topctrl.Remove(q);
 	}
 	if(top)
@@ -415,6 +502,9 @@ void Ctrl::PopUp(Ctrl *owner, bool savebits, bool activate, bool dropshadow, boo
 		}
 	}
 	topctrl.Add(this);
+	if(VirtualGuiPtr && VirtualGuiPtr->WantsPerWindowRouting())
+		if(TopWindow *w = dynamic_cast<TopWindow *>(this))
+			VirtualGuiPtr->WindowOpened(w);
 	popup = isopen = true;
 	RefreshLayoutDeep();
 	if(activate) SetFocusWnd();

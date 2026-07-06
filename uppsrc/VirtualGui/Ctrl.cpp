@@ -91,6 +91,23 @@ bool VirtualGui::WantsOwnWindowFrame()
 	return true;
 }
 
+bool VirtualGui::WantsPerWindowRouting()
+{
+	return false;
+}
+
+void VirtualGui::WindowOpened(TopWindow *)
+{
+}
+
+void VirtualGui::WindowClosed(TopWindow *)
+{
+}
+
+void VirtualGui::SelectWindow(TopWindow *)
+{
+}
+
 void VirtualGui::SetMouseCursor(const Image& image) {}
 void VirtualGui::SetCaret(const Rect& caret) {}
 

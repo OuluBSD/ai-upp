@@ -228,7 +228,7 @@ CONSOLE_APP_MAIN
 		#ifdef PLATFORM_POSIX
 			Vector<String> h = Split(param[0], [](int c) { return c == ':' || c == ',' ? c : 0; });
 		#else
-			Vector<String> h = Split(param[0], ',');
+			Vector<String> h = Split(param[0], [](int c) { return c == ';' || c == ',' ? c : 0; });
 		#endif
 			for(int i = 0; i < h.GetCount(); i++)
 				h[i] = GetFullPath(TrimBoth(h[i]));

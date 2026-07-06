@@ -8,10 +8,12 @@ one of two rendering backends. Some windows are synthetic (built in for
 demo/testing); others belong to real client processes that connect to it over
 the network and have their drawing shown as a real window here.
 
-This is a client/server pair — `DisplayServer` alone just shows its 3 built-in
-synthetic windows (`Alpha`/`Beta`/`Gamma`). To see a *network* client's window,
-you need a second program connected to it. Two are already built and verified
-against this exact server; see below.
+This is a client/server pair — by default, `DisplayServer` starts with an empty
+desktop (no synthetic windows), ready to host network clients. The 3 built-in
+synthetic demo windows (`Alpha`/`Beta`/`Gamma`) can be enabled with the
+`--demo-windows` flag if needed for standalone testing. To see a *network*
+client's window, you need a second program connected to it. Two are already
+built and verified against this exact server; see below.
 
 ## Building and running the server
 
@@ -29,6 +31,10 @@ DISPLAY=:0 ./bin/DisplayServer --verbose
 `--verbose` logs each composite pass and each connected client's draw activity
 — the quickest way to confirm a client actually connected and is drawing
 something, without needing to look at the screen.
+
+`--demo-windows` creates the 3 built-in Alpha/Beta/Gamma synthetic demo windows
+on startup (for standalone testing without a network client). The server starts
+with an empty desktop by default.
 
 The server listens on TCP port `47821` by default
 (`Net/Protocol.h`'s `DEFAULT_DISPLAYSERVER_PORT`), overridable with `--port N`

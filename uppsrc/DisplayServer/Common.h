@@ -10,6 +10,11 @@ NAMESPACE_UPP
 extern bool g_verbose;
 void ParseVerboseFlag();
 
+// Set once at startup by ParseDemoWindowsFlag(); controls whether the Alpha/Beta/Gamma
+// synthetic windows are created (NetworkDisplay/0009).
+extern bool g_demo_windows;
+void ParseDemoWindowsFlag();
+
 // One line per window paint / composite pass, used by both backends
 // (NetworkDisplay/0007 will consume this log to confirm drawing happened without
 // visually inspecting the screen).

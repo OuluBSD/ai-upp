@@ -49,6 +49,13 @@ public:
 	                                // since it doesn't rely on Ctrl sibling order for paint)
 	VectorMap<int, WindowSpec> specs;
 
+	// NetworkDisplay/0006: real client connections, each with its own entry in
+	// `scope`/`zorder` exactly like the synthetic windows above -- `net_index` (window
+	// id -> client index) is how GLPaint()/input handling tell a network-backed
+	// window apart from a synthetic one (mutually exclusive with `specs`).
+	NetServer              net;
+	VectorMap<int, int>    net_index;
+
 	bool  dragging = false;
 	int   drag_id = -1;
 	Point drag_start;
@@ -62,8 +69,26 @@ public:
 		// CloseHandle runs a tick after QueueCloseHandle (deferred via PostCallback,
 		// see Ctrl/Display/ScopeT.h), so trigger a repaint once it actually happens --
 		// otherwise the closed window would linger on screen until some unrelated
-		// event (e.g. a later click) happened to trigger the next GLPaint().
+		// event (e.g. a later click) happened to trigger the next GLPaint(). Also the
+		// one reliable place to notice a network window actually closing (see
+		// PruneClosed(): WhenHandleClose fires with no id, so we diff our own
+		// bookkeeping against what's still in `scope`).
 		scope.WhenHandleClose << [this] { Refresh(); };
+
+		net.WhenConnect = [this](int client_index) {
+			NetClientSession *c = net.Find(client_index);
+			if(c)
+				AddNetworkWindow(client_index, c->title);
+			Refresh();
+		};
+		net.WhenDrawBatch = [this](int) { Refresh(); };
+		net.WhenDisconnect = [this](int client_index) {
+			for(int i = 0; i < net_index.GetCount(); i++)
+				if(net_index[i] == client_index) {
+					scope.QueueCloseHandle(net_index.GetKey(i));
+					break;
+				}
+		};
 	}
 
 	void Layout() override
@@ -84,13 +109,39 @@ public:
 		zorder.Add(id);
 	}
 
-	// Drops zorder/specs entries whose Frame no longer exists (closed windows are
-	// removed from `scope` a tick after being queued, via ScopeT's PostCallback).
+	// Same window-creation path as AddWindow() above (same scope.AddInterface() call,
+	// same Frame machinery), just tagged in net_index instead of specs so GLPaint()
+	// and input handling know to source this window's content from NetServer instead
+	// of PaintSyntheticContent().
+	void AddNetworkWindow(int client_index, const String& title)
+	{
+		ASSERT(host);
+		scope.AddInterface(*host);
+		int pos = scope.GetCount() - 1;
+		WindowManager::Frame& h = scope[pos];
+		int id = scope.GetPosId(pos);
+		h.SetTitle(title.GetCount() ? title : Format("Client %d", client_index));
+		net_index.Add(id, client_index);
+		zorder.Add(id);
+		net.SendWelcome(client_index, id);
+	}
+
+	// Drops zorder/specs/net_index entries whose Frame no longer exists (closed
+	// windows are removed from `scope` a tick after being queued, via ScopeT's
+	// PostCallback) -- and, for a network window, this is also the one place that
+	// notices the close actually happened, so it's where we tear down the matching
+	// NetServer session.
 	void PruneClosed()
 	{
 		for(int i = zorder.GetCount() - 1; i >= 0; i--) {
-			if(!FindWindowFrame(scope, zorder[i])) {
-				specs.RemoveKey(zorder[i]);
+			int id = zorder[i];
+			if(!FindWindowFrame(scope, id)) {
+				specs.RemoveKey(id);
+				int np = net_index.Find(id);
+				if(np >= 0) {
+					net.CloseAndRemove(net_index[np]);
+					net_index.Remove(np);
+				}
 				zorder.Remove(i);
 			}
 		}
@@ -157,9 +208,18 @@ public:
 
 			Rect client = FrameClientLocal(*f);
 			if(w.Clipoff(client)) {
-				bool active = scope.IsActiveHandle(id);
-				const WindowSpec& spec = specs.Get(id);
-				PaintSyntheticContent(w, client.GetSize(), spec, active);
+				int np = net_index.Find(id);
+				if(np >= 0) {
+					w.DrawRect(client.GetSize(), Black());
+					Image img = net.GetSnapshot(net_index[np]);
+					if(!img.IsEmpty())
+						w.DrawImage(0, 0, img);
+				}
+				else {
+					bool active = scope.IsActiveHandle(id);
+					const WindowSpec& spec = specs.Get(id);
+					PaintSyntheticContent(w, client.GetSize(), spec, active);
+				}
 				LogPaint("opengl", id, f->GetTitle(), client);
 				w.End();
 			}
@@ -232,9 +292,58 @@ public:
 				drag_start_rect = r;
 				SetCapture();
 			}
+			else {
+				// Not on any chrome button/titlebar -- if this is a network window and
+				// the click landed in its content area, forward it as real mouse input
+				// (NetworkDisplay/0006's basic input round-trip).
+				int np = net_index.Find(id);
+				if(np >= 0) {
+					Rect client = FrameClientLocal(*f);
+					if(client.Contains(local))
+						net.SendMouse(net_index[np], MOUSE_LEFT_DOWN, local - client.TopLeft(),
+						              keyflags);
+				}
+			}
 			Refresh();
 			return;
 		}
+	}
+
+	void LeftUp(Point p, dword keyflags) override
+	{
+		if(dragging) {
+			dragging = false;
+			ReleaseCapture();
+			return;
+		}
+		for(int idx = zorder.GetCount() - 1; idx >= 0; idx--) {
+			int id = zorder[idx];
+			WindowManager::Frame *f = FindWindowFrame(scope, id);
+			if(!f || !f->IsShown())
+				continue;
+			Rect r = f->GetFrameBox();
+			if(!r.Contains(p))
+				continue;
+			int np = net_index.Find(id);
+			if(np >= 0) {
+				Rect client = FrameClientLocal(*f);
+				Point local = p - r.TopLeft();
+				if(client.Contains(local))
+					net.SendMouse(net_index[np], MOUSE_LEFT_UP, local - client.TopLeft(), keyflags);
+			}
+			return;
+		}
+	}
+
+	bool Key(dword key, int count) override
+	{
+		int id = scope.GetActiveHandleId();
+		int np = net_index.Find(id);
+		if(np >= 0) {
+			net.SendKey(net_index[np], KEY_DOWN, key);
+			return true;
+		}
+		return false;
 	}
 
 	void MouseMove(Point p, dword keyflags) override
@@ -247,14 +356,26 @@ public:
 				f->SetFrameBox(r);
 				Refresh();
 			}
+			return;
 		}
-	}
-
-	void LeftUp(Point p, dword keyflags) override
-	{
-		if(dragging) {
-			dragging = false;
-			ReleaseCapture();
+		// Not dragging chrome -- forward hover/drag-inside-content moves to whichever
+		// network window is topmost under the cursor.
+		for(int idx = zorder.GetCount() - 1; idx >= 0; idx--) {
+			int id = zorder[idx];
+			WindowManager::Frame *f = FindWindowFrame(scope, id);
+			if(!f || !f->IsShown())
+				continue;
+			Rect r = f->GetFrameBox();
+			if(!r.Contains(p))
+				continue;
+			int np = net_index.Find(id);
+			if(np >= 0) {
+				Rect client = FrameClientLocal(*f);
+				Point local = p - r.TopLeft();
+				if(client.Contains(local))
+					net.SendMouse(net_index[np], MOUSE_MOVE, local - client.TopLeft(), keyflags);
+			}
+			return;
 		}
 	}
 };
@@ -280,7 +401,15 @@ GUI_APP_MAIN
 	for(const WindowSpec& spec : DefaultWindowSpecs())
 		gl.AddWindow(spec);
 
+	int port = GetDisplayServerPort();
+	gl.net.Start(port);
+
 	win.Open();
+
+	// Same single-threaded, non-blocking poll approach as the software backend (see
+	// SoftwareMain.cpp) -- pumps NetServer from inside GLCtrl's own event loop.
+	SetTimeCallback(-20, [&gl] { gl.net.Poll(); });
+
 	win.Run();
 }
 

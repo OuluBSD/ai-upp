@@ -1,14 +1,17 @@
-description "Standalone windowed host: composites synthetic framed windows via Ctrl/Display's ScopeT/FrameT, in a software (Ctrl/Draw) or OpenGL (GLCtrl/GLDraw) backend, selected by mainconfig. No network code (NetworkDisplay/0005).";
+description "Standalone windowed host: composites synthetic framed windows and real network-client windows via Ctrl/Display's ScopeT/FrameT, in a software (Ctrl/Draw) or OpenGL (GLCtrl/GLDraw) backend, selected by mainconfig. Real TCP transport for client windows, shared-memory transport stubbed (NetworkDisplay/0006).";
 
 uses
 	CtrlLib,
-	Ctrl/Display;
+	Ctrl/Display,
+	DisplayServer/Net;
 
 uses(GL) GLCtrl, GLDraw;
 
 file
 	Common.h,
 	Common.cpp,
+	NetServer.h,
+	NetServer.cpp,
 	SoftwareMain.cpp,
 	GLMain.cpp;
 

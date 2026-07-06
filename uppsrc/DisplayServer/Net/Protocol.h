@@ -74,13 +74,24 @@ enum DrawOpType {
 	DOP_LINE    = 2, // int32 x,y,x2,y2,width; byte r,g,b -- a single line segment
 	DOP_ELLIPSE = 3, // int32 x,y,w,h; byte r,g,b -- filled ellipse inscribed in (x,y,w,h)
 	DOP_TEXT    = 4, // int32 x,y; byte r,g,b; String text -- drawn with StdFont()
-	DOP_IMAGE   = 5, // int32 x,y,w,h; String image_rgb (w*h*3 raw bytes, row-major, no
-	                 // alpha) -- opaque raster blit. Added in NetworkDisplay/0007: a
+	DOP_IMAGE   = 5, // int32 x,y,w,h; String image_rgba (w*h*4 raw bytes, row-major:
+	                 // r,g,b,a per pixel, r/g/b PREMULTIPLIED by a -- same convention
+	                 // U++'s own Image/RGBA uses internally for IMAGE_ALPHA content,
+	                 // see Premultiply()/AlphaBlend() in uppsrc/Draw/Image.h) -- raster
+	                 // blit with a real per-pixel alpha channel. Added in
+	                 // NetworkDisplay/0007 as an opaque RGB-only (w*h*3 bytes) blit; a
 	                 // generic Ctrl/Draw client (unlike 0006's own hand-written
 	                 // TestClient) ends up rasterizing almost everything -- glyphs,
 	                 // icons, gradients -- through Draw::PutImage, so a real backend
 	                 // needs a raw-pixel primitive alongside the flat-color ones 0006
-	                 // shipped with.
+	                 // shipped with. NetworkDisplay/0011 widened the payload to RGBA
+	                 // (breaking change to this one op's payload shape -- no
+	                 // versioning/back-compat requirement per 0006) because the
+	                 // RGB-only shape forced fully-transparent source pixels to be
+	                 // encoded as literal black and discarded partial alpha entirely,
+	                 // so anti-aliased glyph edges/icon transparency rendered as solid
+	                 // black boxes instead of blending against the real window
+	                 // background.
 };
 
 struct DrawCmd : Moveable<DrawCmd> {
@@ -89,7 +100,7 @@ struct DrawCmd : Moveable<DrawCmd> {
 	int    width = 1;
 	byte   r = 255, g = 255, b = 255;
 	String text;
-	String image_rgb; // DOP_IMAGE payload only (w*h*3 bytes)
+	String image_rgba; // DOP_IMAGE payload only (w*h*4 bytes, premultiplied RGBA)
 
 	// Symmetric encode/decode: reads current fields into `s` when storing, fills
 	// fields from `s` when loading (standard Upp::Stream idiom).

@@ -198,34 +198,31 @@ void NetDpyServer::Draw::PutImage(Point p, const Image& img, const Rect& src)
 	// primitives (RECT/LINE/ELLIPSE/TEXT); PutImage is the seam every non-trivial
 	// Ctrl paint (glyphs, icons, gradients, ...) actually rasterizes through, so a
 	// generic backend needs a real raster blit. Extended the wire protocol here with
-	// DOP_IMAGE (see Net/Protocol.h) -- an opaque RGB blit, alpha unmultiplied and
-	// dropped (DisplayServer's canvas has no alpha channel of its own to composite
-	// against, same as its other ops).
+	// DOP_IMAGE (see Net/Protocol.h) -- a real RGBA blit.
+	//
+	// NetworkDisplay/0011: `img`'s own RGBA pixels are already alpha-premultiplied
+	// (U++'s standard internal Image storage convention for IMAGE_ALPHA content --
+	// see Premultiply()/AlphaBlend() in uppsrc/Draw/Image.h), which is exactly the
+	// representation the server side needs to do a correct alpha-over composite. So
+	// just send each pixel's real, un-discarded r,g,b,a verbatim -- no unmultiply,
+	// no dropping alpha into a hardcoded opaque/black fallback (the previous 0007
+	// RGB-only shape had to do that, which is what produced solid black boxes
+	// wherever the source was transparent instead of blending against the real
+	// window background).
 	DrawCmd& c = NetDpyServer::pending.Add();
 	c.op = DOP_IMAGE;
 	c.x = p.x; c.y = p.y; c.w = sz.cx; c.h = sz.cy;
 
-	StringBuffer sb(sz.cx * sz.cy * 3);
+	StringBuffer sb(sz.cx * sz.cy * 4);
 	byte *out = sb;
 	for(int y = 0; y < sz.cy; y++) {
 		const RGBA *row = img[src.top + y] + src.left;
 		for(int x = 0; x < sz.cx; x++) {
 			RGBA px = row[x];
-			int a = px.a;
-			if(a == 0) {
-				*out++ = 0; *out++ = 0; *out++ = 0;
-			}
-			else if(a == 255) {
-				*out++ = px.r; *out++ = px.g; *out++ = px.b;
-			}
-			else {
-				*out++ = (byte)min(255, px.r * 255 / a);
-				*out++ = (byte)min(255, px.g * 255 / a);
-				*out++ = (byte)min(255, px.b * 255 / a);
-			}
+			*out++ = px.r; *out++ = px.g; *out++ = px.b; *out++ = px.a;
 		}
 	}
-	c.image_rgb = String(sb);
+	c.image_rgba = String(sb);
 }
 
 void RunNetDpyGui(NetDpyServer& gui, Event<> app_main)

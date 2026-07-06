@@ -56,6 +56,11 @@ public:
 
 private:
 	virtual dword       GetOptions()                       { return 0; }
+	// DisplayServer already draws a real, interactive outer window frame around
+	// the hosted window (NetworkDisplay/0004/0005); suppress VirtualGui's own
+	// TopWindowFrame chrome so the app's content isn't double-framed
+	// (NetworkDisplay/0010).
+	virtual bool        WantsOwnWindowFrame()              { return false; }
 	virtual Size        GetSize()                          { return canvas_size; }
 	virtual dword       GetMouseButtons()                  { return mousebuttons; }
 	virtual dword       GetModKeys()                       { return 0; } // see Known limitations in the plan doc

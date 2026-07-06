@@ -41,6 +41,13 @@ enum GUI_OPTIONS {
 
 struct VirtualGui {
 	virtual dword       GetOptions();
+	// Whether VirtualGui's own TopWindowFrame (Top.h/TopFrame.cpp) should draw its
+	// generic title bar + border chrome around every hosted TopWindow. True by
+	// default (Turtle's browser canvas has no window manager of its own, so it
+	// genuinely needs this chrome to fake a window). NetDpy overrides this to false
+	// since DisplayServer already draws a real, interactive outer frame around the
+	// hosted window (see NetworkDisplay/0010) -- drawing both would double-frame it.
+	virtual bool        WantsOwnWindowFrame();
 	virtual Size        GetSize() = 0;
 	virtual dword       GetMouseButtons() = 0;
 	virtual dword       GetModKeys() = 0;

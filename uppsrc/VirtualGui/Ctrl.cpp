@@ -86,6 +86,11 @@ dword VirtualGui::GetOptions()
 	return 0;
 }
 
+bool VirtualGui::WantsOwnWindowFrame()
+{
+	return true;
+}
+
 void VirtualGui::SetMouseCursor(const Image& image) {}
 void VirtualGui::SetCaret(const Rect& caret) {}
 

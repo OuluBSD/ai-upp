@@ -57,13 +57,35 @@ void TopWindowFrame::ToggleMaximize()
 		Maximize();
 }
 
+// Whether the current backend (VirtualGuiPtr) wants VirtualGui's own generic
+// TopWindowFrame chrome (title bar + border) painted at all. False for NetDpy
+// (NetworkDisplay/0010): its host, DisplayServer, already draws a real, interactive
+// outer frame, so painting a second one here would double-frame every window.
+// True for everything else (Turtle included) -- unchanged, existing behavior.
+static bool sWantsOwnWindowFrame()
+{
+	return !VirtualGuiPtr || VirtualGuiPtr->WantsOwnWindowFrame();
+}
+
+// The title-bar text row height Paint()/Layout() reserve above Margins() -- also zero
+// when chrome is suppressed, so GetClient()/ComputeClient() don't leave a residual,
+// unpainted gap between the (now zero-margin) frame rect and the window it hosts.
+static int sTitleBarHeight()
+{
+	return sWantsOwnWindowFrame() ? GetStdFontCy() + 4 : 0;
+}
+
 Rect TopWindowFrame::Margins() const
 {
+	if(!sWantsOwnWindowFrame())
+		return Rect(0, 0, 0, 0);
 	return maximized ? Rect(0, 0, 0, 0) : ChMargins(FBImg::border());
 }
 
 void TopWindowFrame::Paint(Draw& w)
 {
+	if(!sWantsOwnWindowFrame())
+		return;
 	Size sz = GetSize();
 	Rect m = Margins();
 	int c = GetStdFontCy() + 4;
@@ -85,6 +107,15 @@ void TopWindowFrame::Paint(Draw& w)
 
 void TopWindowFrame::Layout()
 {
+	if(!sWantsOwnWindowFrame()) {
+		// No chrome painted (Margins() is zero too), so close/maximize would
+		// otherwise float, unpositioned and clickable, over the app's own content
+		// with nothing drawn under them -- hide them; DisplayServer's real outer
+		// frame already provides equivalent, working close/maximize controls.
+		close.Show(false);
+		maximize.Show(false);
+		return;
+	}
 	Size sz = GetSize();
 	Rect m = Margins();
 	int c = GetStdFontCy() + 4;
@@ -103,7 +134,7 @@ Rect TopWindowFrame::GetClient() const
 	r.right -= m.right;
 	r.top += m.top;
 	r.bottom -= m.bottom;
-	r.top += GetStdFontCy() + 4;
+	r.top += sTitleBarHeight();
 	return r;
 }
 
@@ -114,7 +145,7 @@ Rect TopWindowFrame::ComputeClient(Rect r)
 	r.right += m.right;
 	r.top -= m.top;
 	r.bottom += m.bottom;
-	r.top -= GetStdFontCy() + 4;
+	r.top -= sTitleBarHeight();
 	return r;
 }
 

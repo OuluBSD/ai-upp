@@ -83,7 +83,35 @@ void FrameT<CtxUpp2D>::Paint(DrawT& w) {
 		tx += c;
 		tcx -= c;
 	}
-	DrawTextEllipsis(w, tx, m.top + 2, tcx, title, "..", StdFont(), SColorHighlightText());
+	// Draw title text with black shadow + white foreground for legibility.
+	// Calculate truncation once (if needed), then draw twice with different colors.
+	Font titlefont = StdFont();
+	FontInfo f = titlefont.Info();
+	const char *ellipsis = "..";
+	int dtl = 0;
+	for(const char *s = ellipsis; *s; s++)
+		dtl += f[*s];
+	int l = 0;
+	int i;
+	for(i = 0; i < (int)title.GetLength(); i++) {
+		l += f[(byte) title[i]];
+		if(l > tcx) {
+			while(l + dtl > tcx && i > 0) {
+				l -= f[title[i]];
+				i--;
+			}
+			i++;
+			break;
+		}
+	}
+	// Draw black shadow at offset (1, 1)
+	w.DrawText(tx + 1, m.top + 3, title, titlefont, Black(), i);
+	if(i < (int)title.GetLength())
+		w.DrawText(tx + 1 + l, m.top + 3, ellipsis, titlefont, Black(), 2);
+	// Draw white text at nominal position
+	w.DrawText(tx, m.top + 2, title, titlefont, White(), i);
+	if(i < (int)title.GetLength())
+		w.DrawText(tx + l, m.top + 2, ellipsis, titlefont, White(), 2);
 	#else
 	Size sz(GetFrameSize());
 	ASSERT(!sz.IsEmpty());

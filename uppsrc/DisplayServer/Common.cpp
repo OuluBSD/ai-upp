@@ -62,6 +62,22 @@ void LogNetDraw(int client_index, int batch_count, int64 total_count)
 	fflush(stderr);
 }
 
+void LogNetTitle(int client_index, const String& title)
+{
+	if(!g_verbose)
+		return;
+	fprintf(stderr, "[net] client %d: title changed to \"%s\"\n", client_index, title.Begin());
+	fflush(stderr);
+}
+
+void LogNetResize(int client_index, Size sz)
+{
+	if(!g_verbose)
+		return;
+	fprintf(stderr, "[net] client %d: sent SMSG_WINDOW_RESIZED %dx%d\n", client_index, sz.cx, sz.cy);
+	fflush(stderr);
+}
+
 Vector<WindowSpec> DefaultWindowSpecs()
 {
 	Vector<WindowSpec> v;
@@ -175,6 +191,19 @@ bool NetworkContent::Key(dword key, int count)
 	if(net)
 		net->SendKey(client_index, KEY_DOWN, key);
 	return true; // handled: don't let the frame/desktop try to interpret it too
+}
+
+void NetworkContent::Layout()
+{
+	// Guard against firing before this Ctrl is actually parented into its FrameT's
+	// client area: HSizePos()/VSizePos() (called fluently in AddNetworkWindow(),
+	// still on an as-yet-unparented Ctrl) each independently resolve/sync a rect of
+	// their own via GetPrimaryWorkArea() (Ctrl::UpdateRect0(), CtrlPos.cpp) --
+	// spuriously firing Layout() with the *screen's* size, not this window's real
+	// client area, before h.Add() ever runs. Only real, post-parenting resizes
+	// matter here.
+	if(net && GetParent())
+		net->SendResize(client_index, GetSize());
 }
 #endif
 

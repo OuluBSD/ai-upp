@@ -37,6 +37,20 @@ static void LogWindowDisconnect(const String& title)
 	fflush(stderr);
 }
 
+static void LogWindowTitleChanged(const String& title)
+{
+	// NetworkDisplay/0015: same real-stderr-output rationale as LogWindowConnect.
+	fprintf(stderr, "[netdpy] window title changed: \"%s\"\n", title.Begin());
+	fflush(stderr);
+}
+
+static void LogWindowResized(const String& title, Size sz)
+{
+	fprintf(stderr, "[netdpy] window resized: title=\"%s\" size=%dx%d\n", title.Begin(), sz.cx,
+	        sz.cy);
+	fflush(stderr);
+}
+
 bool NetDpyServer::Connect(const String& h, int p, const String& title, Size sz)
 {
 	host = h;
@@ -129,6 +143,20 @@ void NetDpyServer::WindowClosed(TopWindow *w)
 	conns.Remove(i);
 }
 
+void NetDpyServer::WindowTitleChanged(TopWindow *w)
+{
+	if(!w)
+		return;
+	int i = conns.Find(w);
+	if(i < 0)
+		return;
+	WindowConn& c = conns[i];
+	c.title = w->GetTitle().ToString();
+	if(c.transport.IsOpen())
+		c.transport.Send(EncodeFrame(CMSG_TITLE, EncodeTitle(c.title)));
+	LogWindowTitleChanged(c.title);
+}
+
 void NetDpyServer::SelectWindow(TopWindow *w)
 {
 	int i = w ? conns.Find(w) : -1;
@@ -178,10 +206,37 @@ void NetDpyServer::PumpOne(WindowConn& c)
 			DecodeInputKey(payload, e.kkind, e.keycode);
 			break;
 		}
-		case SMSG_WINDOW_RESIZED:
-			// Not currently emitted by DisplayServer (documented NetworkDisplay/0006
-			// known limitation: no live host-resize renegotiation yet); ignored.
+		case SMSG_WINDOW_RESIZED: {
+			// NetworkDisplay/0015: DisplayServer's real Ctrl/Display frame around
+			// this window was resized (maximize/restore/manual drag-resize) --
+			// update this window's own size to match and let it actually
+			// relayout/repaint at the new size, instead of the previous no-op
+			// (which left the client rendering at its stale original size while
+			// DisplayServer just filled the enlarged frame with black).
+			Size sz;
+			if(DecodeSize(payload, sz) && c.win) {
+				c.size = sz;
+				Rect r = c.win->GetRect();
+				r.right = r.left + sz.cx;
+				r.bottom = r.top + sz.cy;
+				c.win->SetRect(r); // triggers Ctrl's normal resize/relayout/repaint path
+				// The shared virtual-desktop bound (canvas_size/sNetDpyDraw) is what
+				// Ctrl::PaintPerWindowScene() (VirtualGui/Wnd.cpp) seeds its per-pass
+				// paintable region from (VirtualGuiPtr->GetSize()) -- grow it if this
+				// window's new rect no longer fits inside it, or painting beyond the
+				// old bound would silently clip. Mirrors the same sNetDpyDraw.Init()
+				// call Connect() already does once at startup; unrelated to any one
+				// window's own per-connection canvas size (see canvas_size's own doc
+				// comment above).
+				Size needed(max(canvas_size.cx, r.right), max(canvas_size.cy, r.bottom));
+				if(needed != canvas_size) {
+					canvas_size = needed;
+					sNetDpyDraw.Init(needed);
+				}
+				LogWindowResized(c.title, sz);
+			}
 			break;
+		}
 		case SMSG_CLOSE:
 			if(!c.got_close) {
 				c.got_close = true;

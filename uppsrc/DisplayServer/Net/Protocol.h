@@ -40,6 +40,10 @@ enum ClientMsgType {
 	CMSG_DRAW_BATCH = 2, // payload: int32 command_count, then that many DrawCmd (see DrawCmd::Serialize)
 	CMSG_RESIZE     = 3, // payload: int32 width, int32 height (client-requested canvas resize)
 	CMSG_BYE        = 4, // payload: (empty) -- graceful disconnect notice
+	CMSG_TITLE      = 5, // payload: String title (NetworkDisplay/0015) -- sent whenever the
+	                     // client's hosted TopWindow's title changes after the initial
+	                     // CMSG_HELLO (e.g. Ctrl::Title() called again later); DisplayServer
+	                     // should update that connection's live frame title.
 };
 
 // DisplayServer -> client.
@@ -121,6 +125,9 @@ bool   DecodeDrawBatch(const String& payload, Vector<DrawCmd>& cmds);
 
 String EncodeSize(Size sz); // shared shape: CMSG_RESIZE and SMSG_WINDOW_RESIZED
 bool   DecodeSize(const String& payload, Size& sz);
+
+String EncodeTitle(const String& title); // CMSG_TITLE payload (NetworkDisplay/0015)
+bool   DecodeTitle(const String& payload, String& title);
 
 String EncodeWelcome(int window_id);
 bool   DecodeWelcome(const String& payload, int& window_id);

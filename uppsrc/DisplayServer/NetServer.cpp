@@ -151,6 +151,15 @@ void NetServer::PumpClient(NetClientSession& c)
 				c.size = sz;
 			break;
 		}
+		case CMSG_TITLE: {
+			String title;
+			if(c.hello_received && DecodeTitle(payload, title)) {
+				c.title = title;
+				LogNetTitle(c.index, title);
+				WhenTitleChanged(c.index);
+			}
+			break;
+		}
 		case CMSG_BYE:
 			closed = true;
 			break;
@@ -210,6 +219,18 @@ void NetServer::SendKey(int client_index, byte kind, dword keycode)
 	if(!c || c->transport.IsEmpty() || !c->transport->IsOpen())
 		return;
 	c->transport->Send(EncodeFrame(SMSG_INPUT_KEY, EncodeInputKey(kind, keycode)));
+}
+
+void NetServer::SendResize(int client_index, Size sz)
+{
+	NetClientSession *c = Find(client_index);
+	if(!c || c->transport.IsEmpty() || !c->transport->IsOpen())
+		return;
+	if(c->size == sz)
+		return; // already at this size (server's own record) -- nothing to tell the client
+	c->size = sz;
+	c->transport->Send(EncodeFrame(SMSG_WINDOW_RESIZED, EncodeSize(sz)));
+	LogNetResize(client_index, sz);
 }
 
 void NetServer::CloseAndRemove(int client_index)

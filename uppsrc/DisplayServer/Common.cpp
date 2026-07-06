@@ -28,6 +28,31 @@ void LogComposite(const char *backend, int window_count)
 	fflush(stderr);
 }
 
+void LogNetConnect(int client_index, const String& peer)
+{
+	if(!g_verbose)
+		return;
+	fprintf(stderr, "[net] client %d connected (%s)\n", client_index, peer.Begin());
+	fflush(stderr);
+}
+
+void LogNetDisconnect(int client_index)
+{
+	if(!g_verbose)
+		return;
+	fprintf(stderr, "[net] client %d disconnected\n", client_index);
+	fflush(stderr);
+}
+
+void LogNetDraw(int client_index, int batch_count, int64 total_count)
+{
+	if(!g_verbose)
+		return;
+	fprintf(stderr, "[net] client %d: received %d draw command(s) (total %lld)\n", client_index,
+	        batch_count, (long long)total_count);
+	fflush(stderr);
+}
+
 Vector<WindowSpec> DefaultWindowSpecs()
 {
 	Vector<WindowSpec> v;
@@ -93,6 +118,52 @@ Rect FrameClientLocal(WindowManager::Frame& h)
 	if(r.bottom < r.top)
 		r.bottom = r.top;
 	return r;
+}
+
+void NetworkContent::Paint(Draw& w)
+{
+	Size sz = GetSize();
+	w.DrawRect(sz, Black());
+	if(net) {
+		Image img = net->GetSnapshot(client_index);
+		if(!img.IsEmpty())
+			w.DrawImage(0, 0, img);
+	}
+	LogPaint("software", id, title, RectC(0, 0, sz.cx, sz.cy));
+}
+
+void NetworkContent::LeftDown(Point p, dword keyflags)
+{
+	if(scope)
+		scope->FocusHandle(id);
+	SetFocus();
+	if(net)
+		net->SendMouse(client_index, MOUSE_LEFT_DOWN, p, keyflags);
+}
+
+void NetworkContent::LeftUp(Point p, dword keyflags)
+{
+	if(net)
+		net->SendMouse(client_index, MOUSE_LEFT_UP, p, keyflags);
+}
+
+void NetworkContent::MouseMove(Point p, dword keyflags)
+{
+	if(net)
+		net->SendMouse(client_index, MOUSE_MOVE, p, keyflags);
+}
+
+void NetworkContent::RightDown(Point p, dword keyflags)
+{
+	if(net)
+		net->SendMouse(client_index, MOUSE_RIGHT_DOWN, p, keyflags);
+}
+
+bool NetworkContent::Key(dword key, int count)
+{
+	if(net)
+		net->SendKey(client_index, KEY_DOWN, key);
+	return true; // handled: don't let the frame/desktop try to interpret it too
 }
 #endif
 

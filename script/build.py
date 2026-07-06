@@ -1068,9 +1068,9 @@ def bootstrap_build_umk_windows(repo_root, opts):
     packages = [
         "plugin/z", "plugin/pcre", "plugin/bz2", "plugin/lzma",
         "plugin/lz4", "plugin/zstd", "plugin/png", "Core", "Draw", "Esc",
-        "ide/Core", "ide/Android", "ide/Java", "ide/Builders", "umk"
+        "ide/Core", "ide/Android", "ide/Java", "ide/Builders", "ide/clang", "umk"
     ]
-    
+
     # MSVC flags
     common_flags = ["/nologo", "/bigobj", "/D_CRT_SECURE_NO_WARNINGS", "/O2", "/std:c++17", "/EHsc", "/MT"]
     common_macros = [

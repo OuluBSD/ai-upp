@@ -801,7 +801,7 @@ int Bootstrap(const string& repo_root, const Options& opts) {
     vector<string> packages = {
         "plugin/z", "plugin/pcre", "plugin/bz2", "plugin/lzma",
         "plugin/lz4", "plugin/zstd", "plugin/png", "Core", "Draw", "Esc",
-        "ide/Core", "ide/Android", "ide/Java", "ide/Builders", "umk"
+        "ide/Core", "ide/Android", "ide/Java", "ide/Builders", "ide/clang", "umk"
     };
 
 #ifdef _WIN32

@@ -29,8 +29,7 @@ public:
 	Difficulty difficulty;
 
 	// UI Buttons
-	Button btn_pass;
-	Button btn_clear;
+	Form ui;
 
 	// Animation state
 	Vector<AnimCard> anim_cards;
@@ -45,13 +44,21 @@ public:
 	bool collecting_trick;
 	int collecting_winner;
 	int collecting_points;
+	bool debug_render_trace;
+	bool human_card_animating;
+	double human_card_anim_progress;
 
 	HeartsCtrl();
+	void SetDebugRenderTrace(bool b = true) { debug_render_trace = b; }
 
 	void StartGame();
+	void HandleUiSignal(const String& path, const String& op, const String& action);
 	void ResetGame();
 	void RefreshUI();
 	void UpdateHUD();
+	void UpdateForm();
+	void DumpLayout();
+	Image RenderSnapshot();
 	void ScheduleAiStep(int delay_ms);
 	void AiStep();
 	void StartTrickCollect();
@@ -69,17 +76,30 @@ public:
 
 	// Layout and Paint
 	virtual void Paint(Draw& w) override;
+	virtual Image MouseEvent(int event, Point p, int zdelta, dword keyflags) override;
 	virtual void LeftDown(Point p, dword flags) override;
+	virtual void ChildMouseEvent(Ctrl *child, int event, Point p, int zdelta, dword keyflags) override;
 	virtual void Layout() override;
 
 private:
 	Vector<VisualCard> human_card_rects; // Cached for hit testing
+	Vector<Rect> human_card_base_rects;
+	Vector<String> human_card_image_keys;
+	Vector<String> trick_card_image_keys;
+	Vector<Rect> human_card_anim_from;
+	Vector<Rect> human_card_anim_to;
 
+	void StartHumanCardAnimation(const Vector<Rect>& target);
+	void ApplyHumanCardAnimation(double t);
+	static bool RectsEqual(const Rect& a, const Rect& b);
 	void AnimateStep();
 	void AddCardAnimation(const Card& card, Point src, Point dst, int angle, bool back = false);
 	Point GetHandCenter(int player_idx) const;
 	Point GetTrickCenter(int player_idx) const;
-	Image LoadCardImage(const String& card_id);
+	String GetRenderedCardKey(const Card& card, bool back) const;
+	Image LoadCardImage(const String& card_id, bool back = false, Size target = Size(96, 136));
+	Image LoadCardImage(const Card& card, bool back = false, Size target = Size(96, 136));
+	void TraceRenderedCard(const String& ctrl_name, const String& ctrl_kind, const String& card_id, const String& file_name, const String& resolved_path, const String& load_outcome, const Size& image_size, const Rect& screen_rect) const;
 };
 
 #endif

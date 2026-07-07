@@ -1,25 +1,166 @@
 #include "Hearts.h"
 
+#include <cstdio>
+
 NAMESPACE_UPP
 
-Image RotateCardImage(const Image& img, int rotation_deg) {
-	int rot = rotation_deg % 360;
-	if (rot < 0) rot += 360;
-	if (rot == 90) return RotateClockwise(img);
-	if (rot == 180) return Rotate180(img);
-	if (rot == 270) return RotateAntiClockwise(img);
-	return img;
+static String ResolveHeartsFormPath()
+{
+	Vector<String> candidates;
+	candidates.Add(AppendFileName(GetCurrentDirectory(), "game/Hearts/Hearts.form"));
+	candidates.Add(AppendFileName(GetFileDirectory(GetExeFilePath()), "../game/Hearts/Hearts.form"));
+	candidates.Add(ConfigFile("Hearts.form"));
+	for (const String& candidate : candidates) {
+		if (FileExists(candidate))
+			return candidate;
+	}
+	return ConfigFile("Hearts.form");
+}
+
+static Ctrl* GetNamedCtrl(Form& form, const String& name)
+{
+	ArrayMap<String, Ctrl>& ctrls = form.GetCtrls();
+	int index = ctrls.Find(name);
+	return index >= 0 ? &ctrls[index] : nullptr;
+}
+
+static String ResolveHeartsCardArtPath(const String& theme, const String& file_name)
+{
+	auto MakeRelativePath = [](const String& base_theme, const String& name) {
+		return AppendFileName(AppendFileName("imgs", "cards"), AppendFileName(base_theme, name));
+	};
+
+	Vector<String> candidates;
+	String requested_theme = TrimBoth(theme);
+	if (requested_theme.IsEmpty())
+		requested_theme = "default";
+
+	auto AddCandidates = [&](const String& use_theme) {
+		String rel = MakeRelativePath(use_theme, file_name);
+		candidates.Add(ShareDirFile(rel));
+		candidates.Add(AppendFileName(GetFileDirectory(GetExeFilePath()), AppendFileName("..", AppendFileName("share", rel))));
+		candidates.Add(AppendFileName(GetCurrentDirectory(), AppendFileName("share", rel)));
+	};
+
+	AddCandidates(requested_theme);
+	if (requested_theme != "default")
+		AddCandidates("default");
+
+	for (const String& candidate : candidates) {
+		if (FileExists(candidate))
+			return candidate;
+	}
+	return String();
+}
+
+static String FormatScreenRect(const Rect& r)
+{
+	char buffer[64];
+	snprintf(buffer, sizeof(buffer), "(%d,%d %dx%d)", r.left, r.top, r.Width(), r.Height());
+	return buffer;
+}
+
+static String TraceMouseEventName(int event)
+{
+	switch(event) {
+	case Ctrl::MOUSEENTER: return "MOUSEENTER";
+	case Ctrl::MOUSEMOVE: return "MOUSEMOVE";
+	case Ctrl::MOUSELEAVE: return "MOUSELEAVE";
+	case Ctrl::LEFTDOWN: return "LEFTDOWN";
+	case Ctrl::LEFTUP: return "LEFTUP";
+	case Ctrl::LEFTDOUBLE: return "LEFTDOUBLE";
+	case Ctrl::LEFTTRIPLE: return "LEFTTRIPLE";
+	case Ctrl::LEFTDRAG: return "LEFTDRAG";
+	case Ctrl::RIGHTDOWN: return "RIGHTDOWN";
+	case Ctrl::RIGHTUP: return "RIGHTUP";
+	case Ctrl::RIGHTDOUBLE: return "RIGHTDOUBLE";
+	case Ctrl::MIDDLEDOWN: return "MIDDLEDOWN";
+	case Ctrl::MIDDLEUP: return "MIDDLEUP";
+	case Ctrl::MOUSEWHEEL: return "MOUSEWHEEL";
+	case Ctrl::MOUSEHWHEEL: return "MOUSEHWHEEL";
+	}
+	return Format("EVENT_%d", event);
+}
+
+static String FindCtrlName(Form& form, Ctrl *ctrl)
+{
+	if (!ctrl)
+		return "<null>";
+	ArrayMap<String, Ctrl>& ctrls = form.GetCtrls();
+	for (int i = 0; i < ctrls.GetCount(); i++)
+		if (&ctrls[i] == ctrl)
+			return ctrls.GetKey(i);
+	return "<unknown>";
+}
+
+static Rect LerpRect(const Rect& from, const Rect& to, double t)
+{
+	auto Lerp = [t](int a, int b) {
+		return int(a + (b - a) * t + (b >= a ? 0.5 : -0.5));
+	};
+	return Rect(Lerp(from.left, to.left), Lerp(from.top, to.top),
+	            Lerp(from.right, to.right), Lerp(from.bottom, to.bottom));
+}
+
+static double EaseOutCubic(double t)
+{
+	t = clamp(t, 0.0, 1.0);
+	return 1.0 - pow(1.0 - t, 3.0);
+}
+
+bool HeartsCtrl::RectsEqual(const Rect& a, const Rect& b)
+{
+	return a.left == b.left && a.top == b.top && a.right == b.right && a.bottom == b.bottom;
+}
+
+static Vector<Rect> MakeRowLayout(const Size& window, int count, const Size& card_size, int margin, bool top_row)
+{
+	Vector<Rect> layout;
+	layout.Reserve(max(0, count));
+	if (count <= 0)
+		return layout;
+
+	int available = max(0, window.cx - 2 * margin - card_size.cx);
+	int gap = count > 1 ? available / (count - 1) : 0;
+	gap = clamp(gap, 24, 64);
+	int row_width = card_size.cx + gap * (count - 1);
+	int left = max(margin, (window.cx - row_width) / 2);
+	int top = top_row ? margin : max(margin, window.cy - margin - card_size.cy);
+	for (int i = 0; i < count; i++)
+		layout.Add(RectC(left + i * gap, top, card_size.cx, card_size.cy));
+	return layout;
+}
+
+static void TraceCardLoad(const String& card_id, const String& file_name, const String& resolved_path,
+                          const String& load_outcome, const Size& image_size)
+{
+	String line = Format("HEARTS_LOAD card=%s file=%s resolved=%s load=%s image=%dx%d",
+	                     card_id, file_name,
+	                     resolved_path.IsEmpty() ? "<missing>" : resolved_path,
+	                     load_outcome, image_size.cx, image_size.cy);
+	FileAppend out(AppendFileName(GetCurrentDirectory(), "tmp/HeartsTrace.txt"));
+	out.Put(line + "\n");
 }
 
 HeartsCtrl::HeartsCtrl() {
-	Add(btn_pass);
-	Add(btn_clear);
-
-	btn_pass.SetLabel("Pass Cards");
-	btn_clear.SetLabel("Clear Selection");
-
-	btn_pass.WhenAction = THISBACK(OnPassClick);
-	btn_clear.WhenAction = THISBACK(OnClearClick);
+	String form_path = ResolveHeartsFormPath();
+	if (!ui.Load(form_path))
+		ASSERT_(false, "Could not load Hearts.form");
+	ui.SetScaleMode(Form::SCALE_FIT);
+	if (!ui.Layout("Default"))
+		ASSERT_(false, "Hearts.form missing Default layout");
+	Add(ui.SizePos());
+	ui.SignalHandler = callback(this, &HeartsCtrl::HandleUiSignal);
+	ArrayMap<String, Ctrl>& ctrls = ui.GetCtrls();
+	for (int i = 0; i < ctrls.GetCount(); i++) {
+		if (ImageCtrl* img = dynamic_cast<ImageCtrl*>(&ctrls[i])) {
+			String name = ctrls.GetKey(i);
+			if (name.StartsWith("HumanCard") || name.StartsWith("TrickCard")) {
+				img->SetTransitionMode(Ctrl::TRANSITION_NONE);
+				img->SetTransitionDuration(1);
+			}
+		}
+	}
 
 	autoplay_enabled = false;
 	started = false;
@@ -28,8 +169,13 @@ HeartsCtrl::HeartsCtrl() {
 	collecting_trick = false;
 	collecting_winner = -1;
 	collecting_points = 0;
+	debug_render_trace = false;
 	animating = false;
+	human_card_animating = false;
+	human_card_anim_progress = 1.0;
 	difficulty = DIFFICULTY_HARD;
+	human_card_image_keys.SetCount(4 * 13);
+	trick_card_image_keys.SetCount(4);
 
 	BackPaint();
 }
@@ -54,6 +200,22 @@ void HeartsCtrl::StartGame() {
 	RefreshUI();
 }
 
+void HeartsCtrl::HandleUiSignal(const String& path, const String& op, const String& action) {
+	if (op != "OnAction")
+		return;
+	if (action == "NewGame")
+		StartGame();
+	else if (action == "PassCards")
+		OnPassClick();
+	else if (action == "ClearSelection")
+		OnClearClick();
+	else if (action.StartsWith("HumanCard")) {
+		int index = ScanInt(action.Mid(9));
+		if (index >= 0 && index < state.players[0].GetCount())
+			OnCardClick(state.players[0][index]);
+	}
+}
+
 void HeartsCtrl::ResetGame() {
 	anim_cards.Clear();
 	animating = false;
@@ -64,25 +226,35 @@ void HeartsCtrl::ResetGame() {
 	collecting_trick = false;
 	collecting_winner = -1;
 	collecting_points = 0;
+	human_card_animating = false;
+	human_card_anim_progress = 1.0;
 	KillTimeCallback(1);
 	KillTimeCallback(2);
 }
 
 void HeartsCtrl::RefreshUI() {
+	Layout();
 	UpdateHUD();
-	Refresh();
+	UpdateForm();
 }
 
 void HeartsCtrl::UpdateHUD() {
 	bool show_pass = (state.phase == "PASSING" && pending_pass_player < 0);
-	if (show_pass) {
-		btn_pass.Show();
-		btn_clear.Show();
-		btn_pass.Enable(selected_cards.GetCount() == 3);
-		btn_clear.Enable(selected_cards.GetCount() > 0);
-	} else {
-		btn_pass.Hide();
-		btn_clear.Hide();
+	if (Ctrl* ctrl = GetNamedCtrl(ui, "PassButton")) {
+		if (show_pass) {
+			ctrl->Show();
+			ctrl->Enable(selected_cards.GetCount() == 3);
+		}
+		else
+			ctrl->Hide();
+	}
+	if (Ctrl* ctrl = GetNamedCtrl(ui, "ClearButton")) {
+		if (show_pass) {
+			ctrl->Show();
+			ctrl->Enable(selected_cards.GetCount() > 0);
+		}
+		else
+			ctrl->Hide();
 	}
 }
 
@@ -173,7 +345,6 @@ void HeartsCtrl::StartPassAnimation() {}
 void HeartsCtrl::FinishPassAnimation() {}
 void HeartsCtrl::NextRound() {}
 void HeartsCtrl::FinishAutoplayIfNeeded() {}
-void HeartsCtrl::AnimateStep() {}
 void HeartsCtrl::AddCardAnimation(const Card& card, Point src, Point dst, int angle, bool back) {}
 
 Point HeartsCtrl::GetHandCenter(int player_idx) const {
@@ -196,7 +367,7 @@ Point HeartsCtrl::GetTrickCenter(int player_idx) const {
 	int cy = GetSize().cy;
 	int centerX = cx / 2;
 	int centerY = cy / 2;
-	int offset = min(cx, cy) * 0.12;
+	int offset = int(min(cx, cy) * 0.12);
 	
 	switch (player_idx) {
 		case 0: return Point(centerX, centerY + offset);
@@ -267,104 +438,18 @@ void HeartsCtrl::OnClearClick() {
 	RefreshUI();
 }
 
-void HeartsCtrl::Paint(Draw& w) {
-	// Card metrics configuration
-	static const int CARD_WIDTH = 71;
-	static const int CARD_HEIGHT = 96;
-	static const int HAND_SPACING = 25;
+void HeartsCtrl::UpdateForm() {
+	static const char* player_prefix[4] = { "South", "East", "North", "West" };
+	static const int trick_slots = 4;
 
-	w.DrawRect(GetSize(), Color(20, 100, 40)); // Felt green
-	DrawFatFrame(w, GetSize(), Color(80, 50, 20), 8); // Wood border
+	if (Ctrl* ctrl = GetNamedCtrl(ui, "TitleLabel"))
+		if (Label* label = dynamic_cast<Label*>(ctrl))
+			label->SetLabel("HEARTS ROYAL 💎");
 
-	w.DrawText(20, 20, "HEARTS ROYAL 💎", Arial(20).Bold(), Color(255, 215, 0));
+	if (Ctrl* ctrl = GetNamedCtrl(ui, "StartHintLabel"))
+		if (Label* label = dynamic_cast<Label*>(ctrl))
+			label->SetLabel(started ? "" : "Click New Game to start playing.");
 
-	if (!started) {
-		int cx = GetSize().cx;
-		int cy = GetSize().cy;
-		w.DrawText(cx / 2 - 150, cy / 2 - 10, "Click Game -> New Game to start playing!", Arial(16).Bold().Italic(), White());
-		return;
-	}
-
-	int cx = GetSize().cx;
-	int cy = GetSize().cy;
-	int centerX = cx / 2;
-	int centerY = cy / 2;
-
-	// Draw player label tags
-	for (int i = 0; i < 4; i++) {
-		Point handCenter = GetHandCenter(i);
-		String name_tag;
-		if (i == 0) name_tag = "You (P0)";
-		else name_tag = Format("AI (P%d)", i);
-
-		String info = Format("%s | %d pts", name_tag, state.scores[i]);
-		if (state.phase == "PLAYING" && state.turn == i) {
-			info += " ◄";
-		}
-		
-		int ty = handCenter.y + (i == 2 ? 65 : -75);
-		int tx = handCenter.x - 60;
-		w.DrawText(tx, ty, info, Arial(14).Bold(), (state.turn == i) ? Color(255, 215, 0) : White());
-	}
-
-	human_card_rects.Clear();
-
-	// Draw player hands
-	for (int i = 0; i < 4; i++) {
-		Point px = GetHandCenter(i);
-		const Vector<Card>& hand = state.players[i];
-		int num_cards = hand.GetCount();
-		if (num_cards == 0) continue;
-
-		int start_offset = - ((num_cards - 1) * HAND_SPACING) / 2;
-
-		for (int j = 0; j < num_cards; j++) {
-			Card card = hand[j];
-			int cx_card = px.x;
-			int cy_card = px.y;
-
-			if (i == 0) { // South (Human)
-				cx_card = px.x + start_offset + j * HAND_SPACING;
-				cy_card = px.y;
-				if (FindIndex(selected_cards, card) != -1) {
-					cy_card -= 15;
-				}
-				
-				Rect r(cx_card - CARD_WIDTH/2, cy_card - CARD_HEIGHT/2, cx_card + CARD_WIDTH/2, cy_card + CARD_HEIGHT/2);
-				w.DrawImage(r.left, r.top, LoadCardImage(card.id));
-				
-				VisualCard vc;
-				vc.card = card;
-				vc.rect = r;
-				human_card_rects.Add(vc);
-			} else { // AIs (backs)
-				if (i == 2) { // North
-					cx_card = px.x + start_offset + j * 15;
-					cy_card = px.y;
-					w.DrawImage(cx_card - CARD_WIDTH/2, cy_card - CARD_HEIGHT/2, LoadCardImage("back9"));
-				} else if (i == 1) { // East
-					cx_card = px.x;
-					cy_card = px.y + start_offset + j * 15;
-					Image img = RotateCardImage(LoadCardImage("back9"), 90);
-					w.DrawImage(cx_card - img.GetWidth()/2, cy_card - img.GetHeight()/2, img);
-				} else { // West
-					cx_card = px.x;
-					cy_card = px.y + start_offset + j * 15;
-					Image img = RotateCardImage(LoadCardImage("back9"), 270);
-					w.DrawImage(cx_card - img.GetWidth()/2, cy_card - img.GetHeight()/2, img);
-				}
-			}
-		}
-	}
-
-	// Draw trick cards
-	for (int i = 0; i < state.trick.GetCount(); i++) {
-		TrickItem item = state.trick[i];
-		Point pt = GetTrickCenter(item.player_index);
-		w.DrawImage(pt.x - CARD_WIDTH/2, pt.y - CARD_HEIGHT/2, LoadCardImage(item.card.id));
-	}
-
-	// Draw game info
 	String phase_info = "Phase: " + state.phase;
 	if (state.phase == "PASSING") {
 		int pass_direction = state.round_number % 4;
@@ -372,64 +457,331 @@ void HeartsCtrl::Paint(Draw& w) {
 		else if (pass_direction == 2) phase_info += " (Pass Right)";
 		else if (pass_direction == 3) phase_info += " (Pass Across)";
 	}
-	w.DrawText(20, cy - 30, phase_info, Arial(14), LtGray());
+	if (Ctrl* ctrl = GetNamedCtrl(ui, "PhaseLabel"))
+		if (Label* label = dynamic_cast<Label*>(ctrl))
+			label->SetLabel(phase_info);
 
-	if (state.game_over) {
-		w.DrawRect(centerX - 200, centerY - 60, 400, 120, Color(30, 30, 30));
-		w.DrawText(centerX - 100, centerY - 40, "GAME OVER!", Arial(28).Bold(), Color(255, 100, 100));
+	if (Ctrl* ctrl = GetNamedCtrl(ui, "GameOverLabel"))
+		if (Label* label = dynamic_cast<Label*>(ctrl))
+			label->SetLabel(state.game_over ? "GAME OVER!" : "");
 
-		int winner = 0;
-		int min_score = state.scores[0];
-		for (int i = 1; i < 4; i++) {
-			if (state.scores[i] < min_score) {
-				min_score = state.scores[i];
-				winner = i;
+	for (int i = 0; i < 4; i++) {
+		String name = Format("ScoreLabel%d", i);
+		if (Ctrl* ctrl = GetNamedCtrl(ui, name))
+			if (Label* label = dynamic_cast<Label*>(ctrl)) {
+				String text = Format("%s | %d pts", i == 0 ? "You (P0)" : Format("AI (P%d)", i), state.scores[i]);
+				if (state.phase == "PLAYING" && state.turn == i)
+					text += " ◄";
+				label->SetLabel(text);
+				label->SetInk(state.turn == i ? Color(255, 215, 0) : White());
+			}
+	}
+
+	if (!started) {
+		for (int i = 0; i < 13; i++) {
+			if (Ctrl* ctrl = GetNamedCtrl(ui, Format("HumanCard%d", i)))
+				ctrl->Hide();
+			for (int p = 1; p < 4; p++)
+				if (Ctrl* other = GetNamedCtrl(ui, String(player_prefix[p]) + "Card" + AsString(i)))
+					other->Hide();
+		}
+		for (int i = 0; i < trick_slots; i++)
+			if (Ctrl* trick = GetNamedCtrl(ui, Format("TrickCard%d", i)))
+				trick->Hide();
+		return;
+	}
+
+	for (int i = 0; i < 4; i++) {
+		const Vector<Card>& hand = state.players[i];
+		for (int j = 0; j < 13; j++) {
+			String ctrl_name = i == 0 ? Format("HumanCard%d", j)
+			                           : String(player_prefix[i]) + "Card" + AsString(j);
+			Ctrl* ctrl = GetNamedCtrl(ui, ctrl_name);
+			if (j >= hand.GetCount()) {
+				if (ctrl)
+					ctrl->Hide();
+				continue;
+			}
+
+			Image art = LoadCardImage(hand[j], i != 0);
+			if (i == 1)
+				art = RotateCardArt(art, 90);
+			else if (i == 3)
+				art = RotateCardArt(art, 270);
+			String ctrl_kind = ctrl ? (dynamic_cast<ImageCtrl*>(ctrl) ? "ImageCtrl" : "Ctrl") : "missing";
+			Rect screen_rect = ctrl ? ctrl->GetScreenRect() : Rect();
+			String rendered_card_key = GetRenderedCardKey(hand[j], i != 0);
+			int image_key_index = i * 13 + j;
+			if (ImageCtrl* img = dynamic_cast<ImageCtrl*>(ctrl)) {
+				ASSERT(image_key_index >= 0 && image_key_index < human_card_image_keys.GetCount());
+				if (human_card_image_keys[image_key_index] != rendered_card_key) {
+					human_card_image_keys[image_key_index] = rendered_card_key;
+					img->SetImage(art);
+				}
+			}
+			if (ctrl)
+				ctrl->Show();
+			if (debug_render_trace) {
+				String requested_file = i != 0 ? "back9.png" : hand[j].id + ".png";
+				String resolved_path = ResolveHeartsCardArtPath("default", requested_file);
+				String load_outcome = art.IsEmpty() ? (resolved_path.IsEmpty() ? "missing" : "empty") : "loaded";
+				TraceRenderedCard(ctrl_name, ctrl_kind, hand[j].id, requested_file, resolved_path, load_outcome, art.GetSize(), screen_rect);
 			}
 		}
-		w.DrawText(centerX - 120, centerY + 10, Format("Player %d Wins with %d points!", winner, min_score), Arial(16), Color(255, 215, 0));
 	}
+
+	Vector<Rect> human_target_rects;
+	for (int j = 0; j < state.players[0].GetCount(); j++) {
+		if (Ctrl* ctrl = GetNamedCtrl(ui, Format("HumanCard%d", j))) {
+			Rect rect = j < human_card_base_rects.GetCount() ? human_card_base_rects[j] : ctrl->GetRect();
+			if (FindIndex(selected_cards, state.players[0][j]) >= 0)
+				rect.top -= 16;
+			human_target_rects.Add(rect);
+		}
+	}
+
+	for (int j = state.players[0].GetCount(); j < 13; j++)
+		if (Ctrl* ctrl = GetNamedCtrl(ui, Format("HumanCard%d", j)))
+			ctrl->Hide();
+
+	if (!human_target_rects.IsEmpty()) {
+		bool same_target = human_card_anim_to.GetCount() == human_target_rects.GetCount();
+		if (same_target) {
+			for (int i = 0; i < human_target_rects.GetCount(); i++) {
+				if (!RectsEqual(human_card_anim_to[i], human_target_rects[i])) {
+					same_target = false;
+					break;
+				}
+			}
+		}
+		if (!same_target) {
+			StartHumanCardAnimation(human_target_rects);
+		}
+		else if (!human_card_animating) {
+			ApplyHumanCardAnimation(1.0);
+		}
+	}
+
+	for (int i = 0; i < trick_slots; i++) {
+		String ctrl_name = Format("TrickCard%d", i);
+		Ctrl* ctrl = GetNamedCtrl(ui, ctrl_name);
+		if (i >= state.trick.GetCount()) {
+			if (ctrl)
+				ctrl->Hide();
+			continue;
+		}
+		Image art = LoadCardImage(state.trick[i].card, false);
+		String ctrl_kind = ctrl ? (dynamic_cast<ImageCtrl*>(ctrl) ? "ImageCtrl" : "Ctrl") : "missing";
+		Rect screen_rect = ctrl ? ctrl->GetScreenRect() : Rect();
+		String rendered_card_key = GetRenderedCardKey(state.trick[i].card, false);
+		if (ImageCtrl* img = dynamic_cast<ImageCtrl*>(ctrl)) {
+			ASSERT(i >= 0 && i < trick_card_image_keys.GetCount());
+			if (trick_card_image_keys[i] != rendered_card_key) {
+				trick_card_image_keys[i] = rendered_card_key;
+				img->SetImage(art);
+			}
+		}
+		if (ctrl)
+			ctrl->Show();
+		if (debug_render_trace) {
+			String requested_file = state.trick[i].card.id + ".png";
+			String resolved_path = ResolveHeartsCardArtPath("default", requested_file);
+			String load_outcome = art.IsEmpty() ? (resolved_path.IsEmpty() ? "missing" : "empty") : "loaded";
+			TraceRenderedCard(ctrl_name, ctrl_kind, state.trick[i].card.id, requested_file, resolved_path, load_outcome, art.GetSize(), screen_rect);
+		}
+	}
+
+	bool show_pass = (state.phase == "PASSING" && pending_pass_player < 0);
+	if (Ctrl* ctrl = GetNamedCtrl(ui, "PassButton")) {
+		if (show_pass) ctrl->Show(); else ctrl->Hide();
+		ctrl->Enable(selected_cards.GetCount() == 3);
+	}
+	if (Ctrl* ctrl = GetNamedCtrl(ui, "ClearButton")) {
+		if (show_pass) ctrl->Show(); else ctrl->Hide();
+		ctrl->Enable(selected_cards.GetCount() > 0);
+	}
+	if (Ctrl* ctrl = GetNamedCtrl(ui, "NewGameButton"))
+		if (!started || state.game_over) ctrl->Show(); else ctrl->Hide();
+}
+
+void HeartsCtrl::StartHumanCardAnimation(const Vector<Rect>& target)
+{
+	human_card_anim_from.Clear();
+	human_card_anim_to.Clear();
+	human_card_anim_to.Reserve(target.GetCount());
+	for (const Rect& rect : target)
+		human_card_anim_to.Add(rect);
+	human_card_anim_from.Reserve(target.GetCount());
+	for (int i = 0; i < target.GetCount(); i++) {
+		if (Ctrl* ctrl = GetNamedCtrl(ui, Format("HumanCard%d", i)))
+			human_card_anim_from.Add(ctrl->GetRect());
+		else
+			human_card_anim_from.Add(target[i]);
+	}
+	human_card_anim_progress = 0.0;
+	human_card_animating = true;
+	SetTimeCallback(16, THISBACK(AnimateStep), 4);
+}
+
+void HeartsCtrl::ApplyHumanCardAnimation(double t)
+{
+	double eased = EaseOutCubic(t);
+	for (int i = 0; i < human_card_anim_to.GetCount(); i++) {
+		if (Ctrl* ctrl = GetNamedCtrl(ui, Format("HumanCard%d", i))) {
+			ctrl->SetRect(LerpRect(human_card_anim_from[i], human_card_anim_to[i], eased));
+			ctrl->Show();
+		}
+	}
+}
+
+void HeartsCtrl::AnimateStep()
+{
+	if (!human_card_animating)
+		return;
+
+	human_card_anim_progress = min(1.0, human_card_anim_progress + 0.16);
+	ApplyHumanCardAnimation(human_card_anim_progress);
+	if (human_card_anim_progress >= 1.0) {
+		human_card_animating = false;
+		KillTimeCallback(4);
+		ApplyHumanCardAnimation(1.0);
+	}
+	else {
+		SetTimeCallback(16, THISBACK(AnimateStep), 4);
+	}
+}
+
+void HeartsCtrl::DumpLayout() {
+	Layout();
+	Cout() << "Hearts layout dump\n";
+	Cout() << "window=" << GetRect() << " size=" << GetSize() << "\n";
+	LOG("Hearts layout dump");
+	LOG(Format("window=%s size=%s", AsString(GetRect()), AsString(GetSize())));
+
+	ArrayMap<String, Ctrl>& ctrls = ui.GetCtrls();
+	for (int i = 0; i < ctrls.GetCount(); i++) {
+		Ctrl& ctrl = ctrls[i];
+		Cout() << Format("%-16s rect=%s\n", ctrls.GetKey(i), AsString(ctrl.GetRect()));
+		LOG(Format("%s rect=%s", ctrls.GetKey(i), AsString(ctrl.GetRect())));
+	}
+}
+
+Image HeartsCtrl::RenderSnapshot()
+{
+	Layout();
+	ImageDraw draw(GetSize());
+	DrawCtrl(draw);
+	return draw;
+}
+
+Image HeartsCtrl::MouseEvent(int event, Point p, int zdelta, dword keyflags)
+{
+	String line = Format("HEARTS_MOUSE mouse event=%s p=(%d,%d) z=%d flags=%x started=%d phase=%s selected=%d",
+	                     TraceMouseEventName(event), p.x, p.y, zdelta, (int)keyflags,
+	                     started ? 1 : 0, state.phase, selected_cards.GetCount());
+	Cout() << line << "\n";
+	LOG(line);
+	return Ctrl::MouseEvent(event, p, zdelta, keyflags);
 }
 
 void HeartsCtrl::LeftDown(Point p, dword flags) {
-	if (!started || state.game_over) return;
-	
+	String line = Format("HEARTS_MOUSE leftdown p=(%d,%d) flags=%x started=%d phase=%s",
+	                     p.x, p.y, (int)flags, started ? 1 : 0, state.phase);
+	Cout() << line << "\n";
+	LOG(line);
+	if (!started || state.game_over)
+		return;
+
 	if (state.phase == "PASSING" || (state.phase == "PLAYING" && state.turn == 0)) {
-		for (int i = human_card_rects.GetCount() - 1; i >= 0; i--) {
-			if (human_card_rects[i].rect.Contains(p)) {
-				OnCardClick(human_card_rects[i].card);
-				break;
+		for (int i = state.players[0].GetCount() - 1; i >= 0; i--) {
+			String ctrl_name = Format("HumanCard%d", i);
+			if (Ctrl* ctrl = GetNamedCtrl(ui, ctrl_name)) {
+				if (ctrl->GetRect().Contains(p)) {
+					OnCardClick(state.players[0][i]);
+					break;
+				}
 			}
 		}
 	}
 }
 
-void HeartsCtrl::Layout() {
-	int centerX = GetSize().cx / 2;
-	int centerY = GetSize().cy / 2;
-	btn_pass.SetRect(centerX - 110, centerY + 120, 100, 30);
-	btn_clear.SetRect(centerX + 10, centerY + 120, 100, 30);
+void HeartsCtrl::ChildMouseEvent(Ctrl *child, int event, Point p, int zdelta, dword keyflags)
+{
+	String child_name = FindCtrlName(ui, child);
+	String line = Format("HEARTS_MOUSE child event=%s child=%s p=(%d,%d) z=%d flags=%x started=%d phase=%s",
+	                     TraceMouseEventName(event), child_name, p.x, p.y, zdelta, (int)keyflags,
+	                     started ? 1 : 0, state.phase);
+	Cout() << line << "\n";
+	LOG(line);
+
+	if (event == LEFTDOWN && started && !state.game_over) {
+		for (int i = 0; i < state.players[0].GetCount(); i++) {
+			Ctrl *card = GetNamedCtrl(ui, Format("HumanCard%d", i));
+			if (card && card == child) {
+				OnCardClick(state.players[0][i]);
+				return;
+			}
+		}
+	}
+	if (!child || child == &ui)
+		Ctrl::ChildMouseEvent(child, event, p, zdelta, keyflags);
 }
 
-Image HeartsCtrl::LoadCardImage(const String& card_id) {
-	static VectorMap<String, Image> cache;
-	int idx = cache.Find(card_id);
-	if (idx >= 0) return cache[idx];
+void HeartsCtrl::Layout() {
+	ui.SizePos();
+	ui.Layout();
 
-	String filename = card_id + ".png";
-	String path = AppendFileName(GetFileDirectory(GetExeFilePath()), "../share/imgs/cards/default/" + filename);
-	if (!FileExists(path)) {
-		path = AppendFileName(GetCurrentDirectory(), "share/imgs/cards/default/" + filename);
-	}
-	if (!FileExists(path)) {
-		path = "C:/Users/sblo/Dev/ai-upp/share/imgs/cards/default/" + filename;
-	}
-	if (!FileExists(path)) {
-		path = "C:/Users/sblo/Dev/PKR/data/gfx/cards/default/" + filename;
+	Size card_size = Size(84, 118);
+	if (Ctrl* sample = GetNamedCtrl(ui, "HumanCard0"))
+		card_size = sample->GetRect().GetSize();
+
+	Vector<Rect> human_layout = MakeRowLayout(GetSize(), state.players[0].GetCount(), card_size, 24, false);
+	human_card_base_rects.SetCount(0);
+	for (int j = 0; j < human_layout.GetCount(); j++) {
+		human_card_base_rects.Add(human_layout[j]);
+		if (Ctrl* ctrl = GetNamedCtrl(ui, Format("HumanCard%d", j)))
+			ctrl->SetRect(human_layout[j]);
 	}
 
-	Image img = StreamRaster::LoadFileAny(path);
-	cache.Add(card_id, img);
+	Vector<Rect> north_layout = MakeRowLayout(GetSize(), state.players[2].GetCount(), card_size, 24, true);
+	for (int j = 0; j < north_layout.GetCount(); j++)
+		if (Ctrl* ctrl = GetNamedCtrl(ui, Format("NorthCard%d", j)))
+			ctrl->SetRect(north_layout[j]);
+}
+
+void HeartsCtrl::Paint(Draw& w) {
+	(void)w;
+}
+
+Image HeartsCtrl::LoadCardImage(const String& card_id, bool back, Size target) {
+	String file_name = back ? "back9.png" : card_id + ".png";
+	Image img = LoadCardArt(file_name, target, "default");
+	if (debug_render_trace) {
+		String resolved_path = ResolveHeartsCardArtPath("default", file_name);
+		String load_outcome = img.IsEmpty() ? (resolved_path.IsEmpty() ? "missing" : "empty") : "loaded";
+		TraceCardLoad(back ? "<back>" : card_id, file_name, resolved_path, load_outcome, img.GetSize());
+	}
 	return img;
+}
+
+Image HeartsCtrl::LoadCardImage(const Card& card, bool back, Size target) {
+	return LoadCardImage(card.id, back, target);
+}
+
+String HeartsCtrl::GetRenderedCardKey(const Card& card, bool back) const
+{
+	return String(back ? "back:" : "front:") + card.id;
+}
+
+void HeartsCtrl::TraceRenderedCard(const String& ctrl_name, const String& ctrl_kind, const String& card_id, const String& file_name, const String& resolved_path, const String& load_outcome, const Size& image_size, const Rect& screen_rect) const
+{
+	String screen_rect_text = FormatScreenRect(screen_rect);
+	String line = Format("HEARTS_RENDER ctrl=%s kind=%s card=%s file=%s resolved=%s load=%s image=%dx%d screen_rect=%s",
+	                     ctrl_name, ctrl_kind, card_id, file_name,
+	                     resolved_path.IsEmpty() ? "<missing>" : resolved_path,
+	                     load_outcome, image_size.cx, image_size.cy, screen_rect_text);
+	FileAppend out(AppendFileName(GetCurrentDirectory(), "tmp/HeartsTrace.txt"));
+	out.Put(line + "\n");
 }
 
 END_UPP_NAMESPACE

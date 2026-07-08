@@ -36,8 +36,21 @@ void Ctrl::Lay1(int& pos, int& r, int align, int a, int b, int sz) const
 	r = pos + max(size, 0);
 }
 
+Rect Ctrl::CalcRelativeRect(const Rect& prect, const Rect& pview) const
+{
+	Size sz = InFrame() ? prect.Size() : pview.Size();
+	Rect r;
+	r.left   = int(sz.cx * rel_rect.left   / 10000.0 + 0.5);
+	r.top    = int(sz.cy * rel_rect.top    / 10000.0 + 0.5);
+	r.right  = sz.cx - int(sz.cx * rel_rect.right  / 10000.0 + 0.5);
+	r.bottom = sz.cy - int(sz.cy * rel_rect.bottom / 10000.0 + 0.5);
+	return r;
+}
+
 Rect Ctrl::CalcRect(LogPos pos, const Rect& prect, const Rect& pview) const
 {
+	if(relpos)
+		return CalcRelativeRect(prect, pview);
 	Rect r;
 	Size sz = InFrame() ? prect.Size() : pview.Size();
 	Lay1(r.left, r.right, pos.x.GetAlign(),
@@ -216,7 +229,9 @@ Ctrl::MoveCtrl *Ctrl::FindMoveCtrlPtr(VectorMap<Ctrl *, MoveCtrl>& m, Ctrl *x)
 void Ctrl::SetPos0(LogPos p, bool _inframe)
 {
 	GuiLock __;
-	if(p == pos && inframe == _inframe) return;
+	bool was_relpos = relpos;
+	relpos = false;
+	if(!was_relpos && p == pos && inframe == _inframe) return;
 	Ctrl *parent = GetParent();
 	if(parent && !IsDHCtrl()) {
 		if(!globalbackbuffer) {
@@ -411,6 +426,35 @@ Ctrl& Ctrl::VSizePos(int a, int b) {
 
 Ctrl& Ctrl::SizePos() {
 	return HSizePos().VSizePos();
+}
+
+Ctrl& Ctrl::HSizeRel(double a, double b)
+{
+	relpos = true;
+	rel_rect.left = int(a * 10000.0 + 0.5);
+	rel_rect.right = int(b * 10000.0 + 0.5);
+	UpdateRect();
+	return *this;
+}
+
+Ctrl& Ctrl::VSizeRel(double a, double b)
+{
+	relpos = true;
+	rel_rect.top = int(a * 10000.0 + 0.5);
+	rel_rect.bottom = int(b * 10000.0 + 0.5);
+	UpdateRect();
+	return *this;
+}
+
+Ctrl& Ctrl::SizeRel(double left, double top, double right, double bottom)
+{
+	relpos = true;
+	rel_rect.left = int(left * 10000.0 + 0.5);
+	rel_rect.top = int(top * 10000.0 + 0.5);
+	rel_rect.right = int(right * 10000.0 + 0.5);
+	rel_rect.bottom = int(bottom * 10000.0 + 0.5);
+	UpdateRect();
+	return *this;
 }
 
 Ctrl& Ctrl::HCenterPos(int size, int delta) {

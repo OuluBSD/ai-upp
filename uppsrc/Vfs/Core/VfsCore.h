@@ -9,9 +9,5 @@ struct VfsValueExt;
 struct VfsValueExtCtrl; // GUI-side counterpart lives outside core
 struct AstValue;
 
-// Minimal enums/placeholders to anchor includes without behavior changes
-typedef uint64 hash_t;
-
 
 #endif
-

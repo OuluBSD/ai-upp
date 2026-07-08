@@ -589,6 +589,7 @@ private:
 	Ctrl        *next_sibling = nullptr;
 	Ctrl        *children = nullptr;
 	PackedData   attrs;
+	Rect         rel_rect = Rect(0, 0, 0, 0);
 
 	byte         overpaint;
 
@@ -605,6 +606,7 @@ private:
 	bool         editable:1;
 	bool         modify:1;
 	bool         ignoremouse:1;
+	bool         relpos:1;
 	bool         inframe:1;
 	bool         inloop:1;
 	bool         isopen:1;
@@ -671,6 +673,7 @@ private:
 
 	Size    PosVal(int v) const;
 	void    Lay1(int& pos, int& r, int align, int a, int b, int sz) const;
+	Rect    CalcRelativeRect(const Rect& prect, const Rect& pview) const;
 	Rect    CalcRect(LogPos pos, const Rect& prect, const Rect& pview) const;
 	Rect    CalcRect(const Rect& prect, const Rect& pview) const;
 	void    UpdateRect0(bool sync = true);
@@ -877,6 +880,7 @@ private:
 
 protected:
 	static void     TimerProc(dword time);
+	void            TickTransition();
 
 			Ctrl&   Unicode()                         { unicode = true; return *this; }
 
@@ -890,6 +894,7 @@ protected:
 		ATTR_HELPTOPIC,
 		ATTR_MEGARECT_X,
 		ATTR_MEGARECT_Y,
+		ATTR_TRANSITION_DATA,
 		ATTR_LAST
 	};
 
@@ -922,6 +927,20 @@ protected:
 	T     GetAttr(int ii) const   { void *p = GetVoidPtrAttr(ii); return p ? *(T *)p : T(); }
 
 public:
+	enum TransitionMode {
+		TRANSITION_NONE,
+		TRANSITION_FADE,
+		TRANSITION_FLIP_H,
+		TRANSITION_FLIP_V,
+	};
+
+	enum TransitionCurve {
+		TRANSITION_LINEAR,
+		TRANSITION_EASE_IN_CUBIC,
+		TRANSITION_EASE_OUT_CUBIC,
+		TRANSITION_EASE_IN_OUT_CUBIC,
+	};
+
 	enum StateReason {
 		FOCUS      = 10,
 		ACTIVATE   = 11,
@@ -1227,6 +1246,9 @@ public:
 	Ctrl&       HSizePos(int a = 0, int b = 0);
 	Ctrl&       VSizePos(int a = 0, int b = 0);
 	Ctrl&       SizePos();
+	Ctrl&       HSizeRel(double a = 0.0, double b = 0.0);
+	Ctrl&       VSizeRel(double a = 0.0, double b = 0.0);
+	Ctrl&       SizeRel(double left = 0.0, double top = 0.0, double right = 0.0, double bottom = 0.0);
 	Ctrl&       HCenterPos(int size = STDSIZE, int delta = 0);
 	Ctrl&       VCenterPos(int size = STDSIZE, int delta = 0);
 
@@ -1401,6 +1423,18 @@ public:
 	bool    ExistsTimeCallback(int id = 0) const;
 	void    PostCallback(Function<void ()> cb, int id = 0);
 	void    KillPostCallback(Function<void ()> cb, int id);
+
+	Ctrl&   SetTransitionMode(TransitionMode mode);
+	TransitionMode GetTransitionMode() const;
+	Ctrl&   SetTransitionCurve(TransitionCurve curve);
+	TransitionCurve GetTransitionCurve() const;
+	Ctrl&   SetTransitionDuration(int ms);
+	int     GetTransitionDuration() const;
+	void    StartTransition();
+	void    StopTransition();
+	bool    IsTransitionRunning() const;
+	double  GetTransitionProgress() const;
+	double  GetTransitionValue() const;
 
 	enum { TIMEID_COUNT = 1 };
 

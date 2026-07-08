@@ -2,6 +2,8 @@
 #define _Vfs_Backend_h_
 
 #include <Core/Core.h>
+#include <Vfs/Core/Core.h>
+#include <Esc/Esc.h>
 
 NAMESPACE_UPP
 
@@ -31,9 +33,6 @@ END_UPP_NAMESPACE
 #include <clang-c/Index.h>
 #endif
 #endif
-
-#include <Vfs/Core/Core.h>
-#include <Esc/Esc.h>
 
 NAMESPACE_UPP
 

@@ -13,13 +13,22 @@ class Form : public ParentCtrl
 	typedef Form CLASSNAME;
 
 public:
+	enum ScaleMode {
+		SCALE_NONE,
+		SCALE_FIT,
+	};
+
 	 Form();
 	~Form();
 
 	bool Load(const String& file);
 	bool LoadString(const String& xml, bool compression);
 	bool Layout(const String& layout, Font font = StdFont());
+	void Layout() override;
 	bool Generate(Font font = StdFont());
+
+	void SetScaleMode(ScaleMode scale_mode) { _ScaleMode = scale_mode; }
+	ScaleMode GetScaleMode() const { return _ScaleMode; }
 
 	Ctrl* GetCtrl(const String& var);
 	Value GetData(const String& var);
@@ -56,8 +65,21 @@ protected:
 	
 private:
 	int _Current;
+	ScaleMode _ScaleMode;
 	String _File;
 };
+
+using FormCtrlFactory = Function<Ctrl*(ArrayMap<String, Ctrl>& ctrls, const String& variable)>;
+
+void RegisterFormCtrlFactory(const String& type, FormCtrlFactory factory);
+
+template <class T>
+inline void RegisterFormCtrlType(const String& type)
+{
+	RegisterFormCtrlFactory(type, [](ArrayMap<String, Ctrl>& ctrls, const String& variable) -> Ctrl* {
+		return &ctrls.Create<T>(variable);
+	});
+}
 
 class FormWindow : public TopWindow {
 	Form form;

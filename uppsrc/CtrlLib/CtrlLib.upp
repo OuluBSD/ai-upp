@@ -4,7 +4,8 @@ acceptflags
 	NOGTK;
 
 uses
-	CtrlCore;
+	CtrlCore,
+	Ctrl/Xform3D;
 
 uses(POSIX) PdfDraw;
 

@@ -137,6 +137,7 @@ public:
 
 protected:
 	Image   img;
+	Image   prev_img;
 
 public:
 	ImageCtrl&   SetImage(const Image& _img);

@@ -25,6 +25,13 @@ namespace {
 constexpr int LOCAL_GAME_DEFAULT_NUM_PLAYERS = 10;
 constexpr int LOCAL_GAME_DEFAULT_START_CASH = 2000;
 constexpr int LOCAL_GAME_DEFAULT_SPEED = 4;
+
+static void TraceTexasHoldem(const String& line)
+{
+	FileAppend out(AppendFileName(GetCurrentDirectory(), "TexasHoldemMainTrace.txt"));
+	out.Put(line + "\n");
+	out.Flush();
+}
 }
 
 END_UPP_NAMESPACE
@@ -321,52 +328,29 @@ GUI_APP_MAIN
 		virtual void SignalNetClientError(int errorId, int osErrorCode) override { table.SignalNetClientError(errorId, osErrorCode); }
 	};
 
-	        MainGui mainGui;
+	MainGui mainGui;
+	RemoteClient remote;
 
-	        
+	for (int i = 0; i < args.GetCount(); i++) {
+		if (args[i] == "--connect" && i + 1 < args.GetCount()) {
+			remote.WhenUpdate = [&mainGui](const ScreenGameState& s) {
+				mainGui.table.SetRemoteState(s);
+			};
+			remote.Start(args[i + 1]);
+			mainGui.startWindow.Hide();
+			mainGui.table.OpenMain();
+			break;
+		}
+	}
 
-	        RemoteClient remote;
-
-	        for (int i = 0; i < args.GetCount(); i++) {
-
-	                if (args[i] == "--connect" && i + 1 < args.GetCount()) {
-
-	                        remote.WhenUpdate = [&mainGui](const ScreenGameState& s) {
-
-	                                mainGui.table.SetRemoteState(s);
-
-	                        };
-
-	                        remote.Start(args[i + 1]);
-
-	                        mainGui.startWindow.Hide();
-
-	                        mainGui.table.OpenMain();
-
-	                        break;
-
-	                }
-
-	        }
-
-	
-
-	        	        if (!mainGui.table.IsOpen()) {
-
-	
-
-	        	                mainGui.startWindow.Init(config, engineLog);
-
-	
-
-	        	                mainGui.startWindow.Run();
-
-	
-
-	        	        } else {
-
-	                Ctrl::EventLoop();
-
+	if (!mainGui.table.IsOpen()) {
+		TraceTexasHoldem("before-startwindow-init");
+		mainGui.startWindow.Init(config, engineLog);
+		TraceTexasHoldem("before-startwindow-run");
+		mainGui.startWindow.Run();
+		TraceTexasHoldem("after-startwindow-run");
+	} else {
+		Ctrl::EventLoop();
 	}
 }
 #endif

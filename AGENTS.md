@@ -96,8 +96,23 @@ Deep Dives
   - Extending with new Systems, Components, Atoms, and Links (registration patterns included).
 
 Conventions For Packages
-- Place an `AGENTS.md` in every package directory; it applies to that directory tree. Nested AGENTS override parents.
+- Place an `AGENTS.md` in every package directory; it applies to that directory tree. Nested AGENTS override parents. Sowing `AGENTS.md` files is a good practice to accelerate visiting agents' onboarding.
 - In `.upp` manifests, list `AGENTS.md` as the first entry in the `file` section for quick discoverability. All relevant `.upp` files in `uppsrc` have been updated accordingly.
+- **AGENTS.md Quality Spec**: Every `AGENTS.md` must contain high-quality, accurate, and up-to-date information matching the actual code. Outdated, low-quality, or misleading `AGENTS.md` files must be updated or deleted immediately to avoid misleading incoming developers or agents.
+- **Package & Symbol Naming Rules**:
+  - Challenge and critique sub-optimal or nested package names (e.g. `Core/*`, `Ctrl/*`, `Vfs/*`, `AI/*`, `Eon/*`).
+  - Traditional U++ names (e.g., Core, Ctrl, Lib) start with a capital letter. Historical exceptions (lowercase) are `ide`, `umk`, `pkg`, and `dbg`.
+  - Avoid abbreviations and acronyms unless they are extremely common and widely understood.
+  - Names should be **pronounceable** words (lausuttavia sanoja); they should feel easy to speak aloud, rather than just being read visually.
+  - **Acronym Casing**: Acronyms should NOT have all their letters in uppercase. Uppercase letters are reserved for separating boundaries in compound words (e.g., write `Ogl` instead of `OpenGL` or `OGL`, `D3d` instead of `D3D`, `Vfs` instead of `VFS`, `Fol` instead of `FOL`).
+    - *Exceptions*: Well-known acronyms like `VM` (Virtual Machine) and `XML` (Extensible Markup Language) are exempt and may be written in all-caps if desired.
+    - *SQL Exemption*: Symbols/classes inside SQL packages (e.g. `SQL`, `SQLCLASS`, `SQLID`) are allowed to be in UPPER_CASE style to simulate database query syntax, making it easier for developers to bridge C++ and SQL.
+  - **Macro Casing**: Preprocessor macros must be written in `UPPER_CASE` style (e.g., `SOME_MACRO` or `flagWIN32` for config flags). Preprocessor macros and constants are fully allowed to be UPPER_CASE.
+  - **Platform-Agnostic Paths**: Do not hardcode raw path separators like `\\` or `/` in code. Use standard U++ macros/constants (`SEP_STR`, `SEP_CHR`, `PATH_SEP`) for platform-agnostic path formatting.
+  - Non-traditional conventions (e.g., `Soft*`) are not locked and should be challenged. For example, `CtrlCore` and `CtrlLib` are planned to be refactored into sub-packages `Ctrl/Core` and `Ctrl/Lib`.
+  - Proposed names should be intuitive to computer science professionals and aligned with standard naming patterns in widely adopted open-source software libraries.
+
+
 
 Current Task Files (`CURRENT_TASK.md`)
 - Any directory or package may contain a `CURRENT_TASK.md`. Treat it as the authoritative, living note for what is being worked on right now in that scope.
@@ -108,11 +123,11 @@ Current Task Files (`CURRENT_TASK.md`)
 
 ## Build & Sandbox Policy
 
-- Build projects with `script/build.py`, not by invoking `theide` directly.
-- Build entrypoints live in `script/`. We do **not** maintain repo-level `Makefile` or `umkMakefile`; use our custom U++ make utility `uppsrc/umk` via the helper scripts.
-- Common entrypoints such as `script/build_ide_console.sh` are examples of that workflow.
-- Repository build scripts (e.g., those under `script/`) assume full filesystem access. Running them inside a sandboxed environment (read-only cache paths) causes permission failures in `~/.cache/upp.out`.
-- AI agents must detect sandboxed execution before invoking `script/build_*.sh`. If sandboxing is active (no write access to `~/.cache`), halt and report instead of attempting the build.
+- Build projects with `bin/build.exe`, not by invoking `theide` directly.
+- Build entrypoints live in `bin/`. We do **not** maintain repo-level `Makefile` or `umkMakefile`; use our custom U++ make utility `uppsrc/umk` via the helper scripts.
+- Common entrypoints such as `bin/build.exe` are examples of that workflow.
+- Repository build tools (e.g., those under `bin/`) assume full filesystem access. Running them inside a sandboxed environment (read-only cache paths) causes permission failures in `~/.cache/upp.out`.
+- AI agents must detect sandboxed execution before invoking `bin/build.exe`. If sandboxing is active (no write access to `~/.cache`), halt and report instead of attempting the build.
 - **Windows Environment**: In Windows environments, `busybox` might be available and should be preferred for shell-like operations where standard Windows commands (cmd/PowerShell) might behave unexpectedly or when Unix-like behavior is needed (e.g., `busybox sh`, `busybox base64`).
 
 ## Platform and Tooling Notes
@@ -175,11 +190,11 @@ When the debug build reports heap leaks (e.g., "PANIC: Heap leaks detected!"), y
 
 1. **Check available configurations**:
    ```bash
-   script/build.py --list-conf upptst/Eon03
+   bin/build.exe --list-conf upptst/Eon03
    ```
 
 2. **Look for a "Valgrind" or "Release (Valgrind)" configuration**:
-   - If it exists, use it: `script/build.py -mc <num> -j12 upptst/Eon03`
+   - If it exists, use it: `bin/build.exe -mc <num> -j12 upptst/Eon03`
    - Then run under valgrind: `valgrind --leak-check=full bin/Eon03 <args>`
 
 3. **If no Valgrind config exists, create one**:
@@ -192,7 +207,7 @@ When the debug build reports heap leaks (e.g., "PANIC: Heap leaks detected!"), y
          "Release (Valgrind)" = "USEMALLOC .AI .SCREEN .AUDIO ...";
      ```
    - **USEMALLOC is critical** - it disables U++'s custom allocator and uses system malloc, which valgrind can track
-   - Then build: `script/build.py -mc <valgrind-num> -j12 upptst/Eon03`
+   - Then build: `bin/build.exe -mc <valgrind-num> -j12 upptst/Eon03`
 
 4. **Run under valgrind**:
    ```bash

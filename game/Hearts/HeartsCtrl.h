@@ -1,6 +1,8 @@
 #ifndef _game_Hearts_HeartsCtrl_h_
 #define _game_Hearts_HeartsCtrl_h_
 
+class HeartsCtrl;
+
 struct VisualCard : public Moveable<VisualCard> {
 	Card card;
 	Rect rect;
@@ -15,9 +17,18 @@ struct AnimCard : public Moveable<AnimCard> {
 	bool back;
 };
 
+class HeartsAnimationLayer : public Ctrl {
+public:
+	HeartsCtrl *owner = nullptr;
+
+	typedef HeartsAnimationLayer CLASSNAME;
+	virtual void Paint(Draw& w) override;
+};
+
 class HeartsCtrl : public Ctrl {
 public:
 	typedef HeartsCtrl CLASSNAME;
+	friend class HeartsAnimationLayer;
 
 	enum Difficulty {
 		DIFFICULTY_EASY,
@@ -30,6 +41,7 @@ public:
 
 	// UI Buttons
 	Form ui;
+	HeartsAnimationLayer anim_layer;
 
 	// Animation state
 	Vector<AnimCard> anim_cards;
@@ -93,13 +105,20 @@ private:
 	void ApplyHumanCardAnimation(double t);
 	static bool RectsEqual(const Rect& a, const Rect& b);
 	void AnimateStep();
+	void AnimateOverlayStep();
 	void AddCardAnimation(const Card& card, Point src, Point dst, int angle, bool back = false);
 	Point GetHandCenter(int player_idx) const;
 	Point GetTrickCenter(int player_idx) const;
+	Rect GetCardRect(int player_idx, const Card& card) const;
+	Point GetCardCenter(int player_idx, const Card& card) const;
+	void PreparePassAnimation(int player_idx, const Vector<Card>& cards);
+	bool WillCompletePassWith(int player_idx) const;
+	bool HasAnimatingCard(const String& card_id) const;
 	String GetRenderedCardKey(const Card& card, bool back) const;
 	Image LoadCardImage(const String& card_id, bool back = false, Size target = Size(96, 136));
 	Image LoadCardImage(const Card& card, bool back = false, Size target = Size(96, 136));
 	void TraceRenderedCard(const String& ctrl_name, const String& ctrl_kind, const String& card_id, const String& file_name, const String& resolved_path, const String& load_outcome, const Size& image_size, const Rect& screen_rect) const;
+	void PaintAnimations(Draw& w);
 };
 
 #endif

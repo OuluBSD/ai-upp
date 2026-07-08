@@ -124,7 +124,7 @@ struct HoloStatePtrPayload {
 	TransformMatrix* trans;
 	ControllerMatrix* ctrl;
 	ControllerState* state;
-	byte _pad[GEOM_EVENT_PAYLOAD_BYTES - 24];
+	byte _pad[GEOM_EVENT_PAYLOAD_BYTES - 3 * sizeof(void*)];
 };
 
 struct HmdPosePayload {

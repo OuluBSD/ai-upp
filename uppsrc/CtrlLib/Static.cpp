@@ -1,5 +1,7 @@
 #include "CtrlLib.h"
 
+#include <Ctrl/Xform3D/Xform3D.h>
+
 namespace Upp {
 
 CH_COLOR(LabelBoxColor, SColorShadow());
@@ -326,10 +328,53 @@ StaticRect::~StaticRect() {}
 
 void ImageCtrl::Paint(Draw& w)
 {
-	if(!img) return;
+	if(!img && !prev_img)
+		return;
+
 	Size sz = GetSize();
-	Size bsz = GetStdSize();
-	w.DrawImage((sz.cx - bsz.cx) / 2, (sz.cy - bsz.cy) / 2, img);
+	Size bsz = img ? img.GetSize() : prev_img.GetSize();
+	if(bsz.IsEmpty())
+		return;
+
+	Size fit = sz;
+	if(fit.cx <= 0 || fit.cy <= 0)
+		return;
+	double scale = min(double(fit.cx) / bsz.cx, double(fit.cy) / bsz.cy);
+	fit.cx = max(1, int(floor(bsz.cx * scale)));
+	fit.cy = max(1, int(floor(bsz.cy * scale)));
+
+	Ctrl::TransitionMode mode = GetTransitionMode();
+	bool flip = mode == Ctrl::TRANSITION_FLIP_H || mode == Ctrl::TRANSITION_FLIP_V;
+	double progress = flip && IsTransitionRunning() ? GetTransitionValue() : 1.0;
+
+	if(flip && IsTransitionRunning()) {
+		double squeeze = 0.0;
+		Image shown = progress < 0.5 ? prev_img : img;
+		if(!shown)
+			shown = img ? img : prev_img;
+		if(!shown)
+			return;
+		if(progress < 0.5)
+			squeeze = 1.0 - progress * 2.0;
+		else
+			squeeze = (progress - 0.5) * 2.0;
+
+		Point center = Point(sz.cx / 2, sz.cy / 2);
+		Xform3D xf;
+		if(fit != bsz)
+			shown = CachedRescale(shown, fit);
+		if(mode == Ctrl::TRANSITION_FLIP_H)
+			xf.Set(0.0, acos(clamp(squeeze, 0.0, 1.0)), fit);
+		else
+			xf.Set(acos(clamp(squeeze, 0.0, 1.0)), 0.0, fit);
+		DrawWarped3D(w, shown, xf, 10, center);
+		return;
+	}
+
+	if(fit == bsz)
+		w.DrawImage((sz.cx - bsz.cx) / 2, (sz.cy - bsz.cy) / 2, img);
+	else
+		w.DrawImage((sz.cx - fit.cx) / 2, (sz.cy - fit.cy) / 2, fit.cx, fit.cy, CachedRescale(img, fit));
 }
 
 Size ImageCtrl::GetStdSize() const
@@ -346,7 +391,14 @@ ImageCtrl& ImageCtrl::SetImage(const Image& _img)
 {
 	if(img.IsSame(_img))
 		return *this;
+	prev_img = img;
 	img = _img;
+	if(GetTransitionMode() == Ctrl::TRANSITION_FLIP_H || GetTransitionMode() == Ctrl::TRANSITION_FLIP_V) {
+		if(prev_img && img)
+			StartTransition();
+		else
+			StopTransition();
+	}
 	Refresh();
 	return *this;
 }

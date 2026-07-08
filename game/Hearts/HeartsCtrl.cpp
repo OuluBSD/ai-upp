@@ -102,12 +102,6 @@ static Rect LerpRect(const Rect& from, const Rect& to, double t)
 	            Lerp(from.right, to.right), Lerp(from.bottom, to.bottom));
 }
 
-static double EaseOutCubic(double t)
-{
-	t = clamp(t, 0.0, 1.0);
-	return 1.0 - pow(1.0 - t, 3.0);
-}
-
 bool HeartsCtrl::RectsEqual(const Rect& a, const Rect& b)
 {
 	return a.left == b.left && a.top == b.top && a.right == b.right && a.bottom == b.bottom;
@@ -131,6 +125,12 @@ static Vector<Rect> MakeRowLayout(const Size& window, int count, const Size& car
 	return layout;
 }
 
+void HeartsAnimationLayer::Paint(Draw& w)
+{
+	if (owner)
+		owner->PaintAnimations(w);
+}
+
 static void TraceCardLoad(const String& card_id, const String& file_name, const String& resolved_path,
                           const String& load_outcome, const Size& image_size)
 {
@@ -150,12 +150,16 @@ HeartsCtrl::HeartsCtrl() {
 	if (!ui.Layout("Default"))
 		ASSERT_(false, "Hearts.form missing Default layout");
 	Add(ui.SizePos());
+	anim_layer.owner = this;
+	anim_layer.Transparent();
+	anim_layer.IgnoreMouse();
+	Add(anim_layer.SizePos());
 	ui.SignalHandler = callback(this, &HeartsCtrl::HandleUiSignal);
 	ArrayMap<String, Ctrl>& ctrls = ui.GetCtrls();
 	for (int i = 0; i < ctrls.GetCount(); i++) {
 		if (ImageCtrl* img = dynamic_cast<ImageCtrl*>(&ctrls[i])) {
 			String name = ctrls.GetKey(i);
-			if (name.StartsWith("HumanCard") || name.StartsWith("TrickCard")) {
+			if (name.EndsWith("Card") || name.Find("Card") >= 0) {
 				img->SetTransitionMode(Ctrl::TRANSITION_NONE);
 				img->SetTransitionDuration(1);
 			}
@@ -346,6 +350,10 @@ void HeartsCtrl::FinishPassAnimation() {}
 void HeartsCtrl::NextRound() {}
 void HeartsCtrl::FinishAutoplayIfNeeded() {}
 void HeartsCtrl::AddCardAnimation(const Card& card, Point src, Point dst, int angle, bool back) {}
+
+void HeartsCtrl::PaintAnimations(Draw&)
+{
+}
 
 Point HeartsCtrl::GetHandCenter(int player_idx) const {
 	int cx = GetSize().cx;
@@ -625,10 +633,9 @@ void HeartsCtrl::StartHumanCardAnimation(const Vector<Rect>& target)
 
 void HeartsCtrl::ApplyHumanCardAnimation(double t)
 {
-	double eased = EaseOutCubic(t);
 	for (int i = 0; i < human_card_anim_to.GetCount(); i++) {
 		if (Ctrl* ctrl = GetNamedCtrl(ui, Format("HumanCard%d", i))) {
-			ctrl->SetRect(LerpRect(human_card_anim_from[i], human_card_anim_to[i], eased));
+			ctrl->SetRect(LerpRect(human_card_anim_from[i], human_card_anim_to[i], t));
 			ctrl->Show();
 		}
 	}

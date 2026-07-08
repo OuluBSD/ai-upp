@@ -25,6 +25,8 @@ PropertiesWindow::PropertiesWindow()
 	_DropList.Add("TabCtrl");
 	_DropList.Add("GridCtrl");
 	_DropList.Add("ProgressBar");
+	_DropList.Add("StaticRect");
+	_DropList.Add("ImageCtrl");
 	_DropList.Add("Form");
 
 	_DropList.WhenAction = THISBACK1(OnEndEdit, 1);
@@ -59,7 +61,7 @@ void PropertiesWindow::OnEndEdit(int mode)
 		for (int i = 0; i < _Properties.GetCount(); ++i)
 		{
 			String param = _Properties.GetKey(i);
-			if (param.Find("Color") >= 0) // if color found
+			if (param.Find("Color") >= 0 || param == "StaticRect.Background") // if color found
 			{
 				Color r = _Properties[i].GetData();
 				_Item->Set(param, Encode64(StoreAsString(r)));
@@ -175,6 +177,16 @@ void PropertiesWindow::Property(const String& id, const String& label, const Str
 	}
 }
 
+static Color LoadFormColor(const String& data, Color fallback)
+{
+	if (data.IsEmpty())
+		return fallback;
+	if (data.Find('#') >= 0 || data.Find(',') >= 0 || data.Find(';') >= 0 || data.Find('.') >= 0)
+		return Nvl(ColorFromText(data), fallback);
+	LoadFromString(fallback, Decode64(data));
+	return fallback;
+}
+
 void PropertiesWindow::Generate(FormObject* pI, int index)
 {
 	if (!pI) return;
@@ -198,6 +210,12 @@ void PropertiesWindow::Generate(FormObject* pI, int index)
 
 	Property("Font.Height", t_("Font height:"), "EditInt", Array<String>()
 		<< AsString(pI->GetNumber("Font.Height", 0, 0, 500)));
+	Property("Transition.Mode", t_("Transition mode:"), "DropList",
+		Array<String>() << pI->Get("Transition.Mode") << "None" << "Fade" << "Flip horizontal" << "Flip vertical");
+	Property("Transition.Easing", t_("Transition easing:"), "DropList",
+		Array<String>() << pI->Get("Transition.Easing") << "Ease out cubic" << "Linear" << "Ease in cubic" << "Ease in/out cubic");
+	Property("Transition.Duration", t_("Transition duration:"), "EditInt", Array<String>()
+		<< AsString(pI->GetNumber("Transition.Duration", 350, 1, 5000)));
 
 	if (type == "EditField")
 	{
@@ -222,11 +240,25 @@ void PropertiesWindow::Generate(FormObject* pI, int index)
 	if (type == "Label")
 	{
 		Color src = Black();
-		LoadFromString( src, Decode64(pI->Get("Font.Color", Encode64(StoreAsString(src)))) );
+		src = LoadFormColor(pI->Get("Font.Color", Encode64(StoreAsString(src))), src);
 		Property("Label", t_("Label:"), "EditField", Array<String>() << pI->Get("Label"));
 		Property("Text.Align", t_("Text align:"), "DropList",
 			Array<String>() << pI->Get("Text.Align") << "Left" << "Center" << "Right");
 		Property("Font.Color", t_("Font color:"), "EditColor", src);
+	}
+
+	if (type == "StaticRect")
+	{
+		Color bg = SColorFace();
+		bg = LoadFormColor(pI->Get("StaticRect.Background",
+			pI->Get("Background", pI->Get("Background.Color", Encode64(StoreAsString(bg))))), bg);
+		Property("StaticRect.Background", t_("Background:"), "EditColor", bg);
+	}
+
+	if (type == "ImageCtrl")
+	{
+		Property("ImageCtrl.Image.Path", t_("Image path:"), "EditField",
+			Array<String>() << pI->Get("ImageCtrl.Image.Path", pI->Get("Image.Path")));
 	}
 
 	if (type == "Button")
@@ -242,6 +274,8 @@ void PropertiesWindow::Generate(FormObject* pI, int index)
 			Array<String>() << pI->Get("Form.PathType") << "Relative" << "Absolute");
 		Property("Form.Path", t_("Path:"), "EditField", Array<String>() << pI->Get("Form.Path"));
 		Property("Form.Layout", t_("Layout:"), "EditField", Array<String>() << pI->Get("Form.Layout"));
+		Property("Form.ScaleMode", t_("Scale mode:"), "DropList",
+			Array<String>() << pI->Get("Form.ScaleMode") << "None" << "Fit");
 	}
 
 	if (type == "TabCtrl")

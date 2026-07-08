@@ -12,67 +12,111 @@
 
 NAMESPACE_UPP
 
+static String ResolveStartWindowFormPath()
+{
+	Vector<String> candidates;
+	candidates.Add(AppendFileName(GetCurrentDirectory(), "game/TexasHoldem/StartWindow.form"));
+	candidates.Add(AppendFileName(GetFileDirectory(GetExeFilePath()), "../game/TexasHoldem/StartWindow.form"));
+	candidates.Add(ConfigFile("StartWindow.form"));
+	for (const String& candidate : candidates) {
+		if (FileExists(candidate))
+			return candidate;
+	}
+	return ConfigFile("StartWindow.form");
+}
+
 StartWindow::StartWindow()
 {
-	CtrlLayout(*this);
+	Sizeable().Zoomable();
 	Title("PKR - Texas Hold'em");
-	
-	AddFrame(menu);
-	menu.Set(THISBACK(MainMenu));
 
-	btnLocalGame << [this] { OnLocalGame(); };
-	btnInternetGame << [this] { OnInternetGame(); };
-	btnNetworkGame << [this] { OnNetworkJoin(); };
-	btnSettings << [this] { OnSettings(); };
-	btnLog << [this] { OnLog(); };
-	btnQuit << [this] { OnQuit(); };
-	
+	String form_path = ResolveStartWindowFormPath();
+	if (!ui.Load(form_path))
+		ASSERT_(false, "Could not load StartWindow.form");
+	ui.SetScaleMode(Form::SCALE_FIT);
+	if (!ui.Layout("Default"))
+		ASSERT_(false, "StartWindow.form missing Default layout");
+	Add(ui.SizePos());
+	ui.SignalHandler = callback(this, &StartWindow::HandleUiSignal);
+
+	providerChoice = dynamic_cast<DropList*>(ui.GetCtrl("providerChoice"));
+	ASSERT(providerChoice);
+	FillProviders();
+
 	m_config = nullptr;
+	UpdateTitleFromProvider();
 }
 
-void StartWindow::MainMenu(Bar& bar)
+void StartWindow::FillProviders()
 {
-	bar.Add(t_("App"), THISBACK(AppMenu));
-	bar.Add(t_("Settings"), THISBACK(SettingsMenu));
+	ASSERT(providerChoice);
+	providerChoice->Clear();
+	providerChoice->Add("PokerTH", t_("PokerTH"));
+	providerChoice->Add("Classic", t_("Classic"));
+	providerChoice->Add("Minimal", t_("Minimal"));
+	providerChoice->SetData("PokerTH");
+	m_provider = AsString(providerChoice->GetData());
 }
 
-void StartWindow::AppMenu(Bar& bar)
+String StartWindow::SelectedProvider() const
 {
-	bar.Add(t_("New local game"), THISBACK(OnLocalGame));
-	bar.Add(t_("Internet game"), THISBACK(OnInternetGame));
-	bar.Add(t_("Network game"), THISBACK(NetworkSubMenu));
-	bar.Separator();
-	bar.Add(t_("Info"), THISBACK(OnInfo));
-	bar.Add(t_("Exit"), THISBACK(OnQuit));
+	if (providerChoice) {
+		String provider = AsString(providerChoice->GetData());
+		if (!provider.IsEmpty())
+			return provider;
+	}
+	return m_provider.IsEmpty() ? String("PokerTH") : m_provider;
 }
 
-void StartWindow::NetworkSubMenu(Bar& bar)
+void StartWindow::UpdateTitleFromProvider()
 {
-	bar.Add(t_("Create"), THISBACK(OnNetworkCreate));
-	bar.Add(t_("Join"), THISBACK(OnNetworkJoin));
+	String provider = SelectedProvider();
+	m_provider = provider;
+	Title(Format("PKR - Texas Hold'em [%s]", provider));
 }
 
-void StartWindow::SettingsMenu(Bar& bar)
+void StartWindow::HandleUiSignal(const String& path, const String& op, const String& action)
 {
-	bar.Add(t_("Program Settings"), THISBACK(OnSettings));
+	if (path == "providerChoice") {
+		UpdateTitleFromProvider();
+		return;
+	}
+	if (op != "OnAction")
+		return;
+	if (action == "LocalGame")
+		OnLocalGame();
+	else if (action == "InternetGame")
+		OnInternetGame();
+	else if (action == "NetworkGame")
+		OnNetworkCreate();
+	else if (action == "JoinNetwork")
+		OnNetworkJoin();
+	else if (action == "Settings")
+		OnSettings();
+	else if (action == "Log")
+		OnLog();
+	else if (action == "Info")
+		OnInfo();
+	else if (action == "Quit")
+		OnQuit();
 }
 
 extern void RunLocalGame(int numPlayers, int startCash, int gameSpeed, class ConfigFile& config, EngineLog& engineLog);
 
 void StartWindow::OnLocalGame()
 {
+	UpdateTitleFromProvider();
 	NewGameWindow dlg;
 	if (m_config) dlg.Init(*m_config);
-	if (dlg.Run() != IDOK) return;
+	if (dlg.Run() != IDOK)
+		return;
 
-	if (m_engineLog && m_config) {
+	if (m_engineLog && m_config)
 		RunLocalGame((int)dlg.numPlayers.GetData(), (int)dlg.startCash.GetData(), (int)dlg.gameSpeed.GetData(), *m_config, *m_engineLog);
-	}
 }
 
 void StartWindow::OnInternetGame()
 {
-	// TODO: Internet game dialog
 	LobbyWindow().Run();
 }
 
@@ -88,7 +132,7 @@ void StartWindow::OnNetworkJoin()
 
 void StartWindow::OnInfo()
 {
-	PromptOK(t_("PKR U++ Port v0.1\n1:1 Parity with PokerTH project."));
+	PromptOK(Format("PKR U++ Port v0.1\nProvider: %s\n1:1 Parity with PokerTH project.", SelectedProvider()));
 }
 
 void StartWindow::OnSettings()
@@ -100,7 +144,6 @@ void StartWindow::OnSettings()
 
 void StartWindow::OnLog()
 {
-	// TODO: Show logs
 	PromptOK(t_("Log window not implemented yet."));
 }
 

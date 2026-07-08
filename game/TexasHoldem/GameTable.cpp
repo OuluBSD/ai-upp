@@ -17,10 +17,157 @@
 #include <EditorCommon/ConfigFile.h>
 #include <plugin/png/png.h>
 #include <cmath>
+#include <CardRender/CardRender.h>
 
 NAMESPACE_UPP
 
 extern std::shared_ptr<ClientThread> g_clientThread;
+
+static void RegisterGameTableFormFactories()
+{
+	static bool done = false;
+	if (done)
+		return;
+	done = true;
+
+	RegisterFormCtrlType<BoardCtrl>("BoardCtrl");
+	RegisterFormCtrlType<PlayerCtrl>("PlayerCtrl");
+	RegisterFormCtrlType<ActionButton>("ActionButton");
+	RegisterFormCtrlType<ScaledImageCtrl>("ScaledImageCtrl");
+	RegisterFormCtrlType<PokerChatCtrl>("PokerChatCtrl");
+	RegisterFormCtrlType<ProbabilityCtrl>("ProbabilityCtrl");
+	RegisterFormCtrlType<ParentCtrl>("ParentCtrl");
+	RegisterFormCtrlType<SliderCtrl>("SliderCtrl");
+	RegisterFormCtrlType<RichTextView>("RichTextView");
+}
+
+String GameTable::ResolveFormPath()
+{
+	Vector<String> candidates;
+	candidates.Add(AppendFileName(GetCurrentDirectory(), "game/TexasHoldem/GameTable.form"));
+	candidates.Add(AppendFileName(GetFileDirectory(GetExeFilePath()), "../game/TexasHoldem/GameTable.form"));
+	candidates.Add(ConfigFile("GameTable.form"));
+	for (const String& candidate : candidates) {
+		if (FileExists(candidate))
+			return candidate;
+	}
+	return ConfigFile("GameTable.form");
+}
+
+template <class T>
+T& GameTable::CtrlAs(const String& name) const
+{
+	Form& form = const_cast<Form&>(m_form);
+	Ctrl* ctrl = form.GetCtrl(name);
+	ASSERT(ctrl);
+	T* out = dynamic_cast<T*>(ctrl);
+	ASSERT(out);
+	return *out;
+}
+
+PlayerCtrl& GameTable::PlayersProxy::operator[](int index) const
+{
+	ASSERT(owner);
+	return owner->PlayerAt(index);
+}
+
+BoardCtrl& GameTable::Board() const { return CtrlAs<BoardCtrl>("board"); }
+Label& GameTable::LblPotTitle() const { return CtrlAs<Label>("lblPotTitle"); }
+Label& GameTable::LblPotTotal() const { return CtrlAs<Label>("lblPotTotal"); }
+Label& GameTable::LblPotBets() const { return CtrlAs<Label>("lblPotBets"); }
+Label& GameTable::LblTurnTitle() const { return CtrlAs<Label>("lblTurnTitle"); }
+Label& GameTable::LblGameInfo() const { return CtrlAs<Label>("lblGameInfo"); }
+Label& GameTable::LblHandInfo() const { return CtrlAs<Label>("lblHandInfo"); }
+TabCtrl& GameTable::TabLeft() const { return CtrlAs<TabCtrl>("tabLeft"); }
+TabCtrl& GameTable::TabRight() const { return CtrlAs<TabCtrl>("tabRight"); }
+ParentCtrl& GameTable::HumanButtons() const { return CtrlAs<ParentCtrl>("humanButtons"); }
+ActionButton& GameTable::BtnFold() const { return CtrlAs<ActionButton>("btnFold"); }
+ActionButton& GameTable::BtnCheckCall() const { return CtrlAs<ActionButton>("btnCheckCall"); }
+ActionButton& GameTable::BtnBetRaise() const { return CtrlAs<ActionButton>("btnBetRaise"); }
+ActionButton& GameTable::BtnAllIn() const { return CtrlAs<ActionButton>("btnAllIn"); }
+ActionButton& GameTable::BtnPot33() const { return CtrlAs<ActionButton>("btnPot33"); }
+ActionButton& GameTable::BtnPot50() const { return CtrlAs<ActionButton>("btnPot50"); }
+ActionButton& GameTable::BtnPot100() const { return CtrlAs<ActionButton>("btnPot100"); }
+EditInt& GameTable::EditBet() const { return CtrlAs<EditInt>("editBet"); }
+SliderCtrl& GameTable::SliderBet() const { return CtrlAs<SliderCtrl>("sliderBet"); }
+Label& GameTable::LblSpeed() const { return CtrlAs<Label>("lblSpeed"); }
+SliderCtrl& GameTable::SliderSpeed() const { return CtrlAs<SliderCtrl>("sliderSpeed"); }
+Button& GameTable::BtnPause() const { return CtrlAs<Button>("btnPause"); }
+PokerChatCtrl& GameTable::ChatCtrl() const { return CtrlAs<PokerChatCtrl>("chatCtrl"); }
+StaticRect& GameTable::HandsImgPane() const { return CtrlAs<StaticRect>("handsImgPane"); }
+ImageCtrl& GameTable::HandsImg() const { return CtrlAs<ImageCtrl>("handsImg"); }
+ProbabilityCtrl& GameTable::ProbCtrl() const { return CtrlAs<ProbabilityCtrl>("probCtrl"); }
+RichTextView& GameTable::EngineLogView() const { return CtrlAs<RichTextView>("engineLogView"); }
+RichTextView& GameTable::AwayLog() const { return CtrlAs<RichTextView>("awayLog"); }
+PlayerCtrl& GameTable::PlayerAt(int index) const
+{
+	ASSERT(index >= 0 && index < 10);
+	ASSERT(m_player[index]);
+	return *m_player[index];
+}
+
+void GameTable::BindFormControls()
+{
+	m_board = &Board();
+	m_lblPotTitle = &LblPotTitle();
+	m_lblPotTotal = &LblPotTotal();
+	m_lblPotBets = &LblPotBets();
+	m_lblTurnTitle = &LblTurnTitle();
+	m_lblGameInfo = &LblGameInfo();
+	m_lblHandInfo = &LblHandInfo();
+	m_tabLeft = &TabLeft();
+	m_tabRight = &TabRight();
+	m_humanButtons = &HumanButtons();
+	m_btnFold = &BtnFold();
+	m_btnCheckCall = &BtnCheckCall();
+	m_btnBetRaise = &BtnBetRaise();
+	m_btnAllIn = &BtnAllIn();
+	m_btnPot33 = &BtnPot33();
+	m_btnPot50 = &BtnPot50();
+	m_btnPot100 = &BtnPot100();
+	m_editBet = &EditBet();
+	m_sliderBet = &SliderBet();
+	m_lblSpeed = &LblSpeed();
+	m_sliderSpeed = &SliderSpeed();
+	m_btnPause = &BtnPause();
+	m_chatCtrl = &ChatCtrl();
+	m_handsImgPane = &HandsImgPane();
+	m_handsImg = &HandsImg();
+	m_probCtrl = &ProbCtrl();
+	m_engineLogView = &EngineLogView();
+	m_awayLog = &AwayLog();
+	for (int i = 0; i < 10; i++)
+		m_player[i] = &CtrlAs<PlayerCtrl>(String("player") + AsString(i));
+}
+
+#define board Board()
+#define lblPotTitle LblPotTitle()
+#define lblPotTotal LblPotTotal()
+#define lblPotBets LblPotBets()
+#define lblTurnTitle LblTurnTitle()
+#define lblGameInfo LblGameInfo()
+#define lblHandInfo LblHandInfo()
+#define tabLeft TabLeft()
+#define tabRight TabRight()
+#define humanButtons HumanButtons()
+#define btnFold BtnFold()
+#define btnCheckCall BtnCheckCall()
+#define btnBetRaise BtnBetRaise()
+#define btnAllIn BtnAllIn()
+#define btnPot33 BtnPot33()
+#define btnPot50 BtnPot50()
+#define btnPot100 BtnPot100()
+#define editBet EditBet()
+#define sliderBet SliderBet()
+#define lblSpeed LblSpeed()
+#define sliderSpeed SliderSpeed()
+#define btnPause BtnPause()
+#define chatCtrl ChatCtrl()
+#define handsImgPane HandsImgPane()
+#define handsImg HandsImg()
+#define probCtrl ProbCtrl()
+#define engineLogView EngineLogView()
+#define awayLog AwayLog()
 
 static Image SwapRBForPng(const Image& src)
 {
@@ -104,18 +251,11 @@ Image GameTable::GetCardImage(int card)
 		}
 	}
 
-	String path = AppendFileName(GetFileDirectory(GetExeFilePath()), "../share/imgs/cards/default/" + filename);
-	if (!FileExists(path)) {
-		path = AppendFileName(GetCurrentDirectory(), "share/imgs/cards/default/" + filename);
-	}
-	if (!FileExists(path)) {
-		path = "C:/Users/sblo/Dev/ai-upp/share/imgs/cards/default/" + filename;
-	}
-
-	Image img = StreamRaster::LoadFileAny(path);
+	Image img = LoadCardArt(filename, Size(48, 76), currentCardTheme);
 	if (!img.IsEmpty()) {
-		img = Rescale(img, Size(48, 76));
-	} else {
+		// already loaded at the target size by the shared helper
+	}
+	else {
 		ImageDraw iw(48, 76);
 		iw.Alpha().DrawRect(0, 0, 48, 76, RGBAZero());
 		iw.DrawRect(0, 0, 48, 76, (card < 0 && card != -2) ? Color(0, 0, 150) : White());
@@ -190,68 +330,78 @@ void PlayerCtrl::Layout()
 
 GameTable::GameTable()
 {
-	// BOARD FIRST - IMPORTANT FOR Z-ORDER
-	Add(board);
-	
-	Add(lblPotTitle); Add(lblPotTotal); Add(lblPotBets);
-	Add(lblTurnTitle); Add(lblGameInfo); Add(lblHandInfo);
-	Add(tabLeft); Add(tabRight);
-	
-	Add(humanButtons);
-	humanButtons.Transparent();
-	humanButtons.Add(btnFold); humanButtons.Add(btnCheckCall); humanButtons.Add(btnBetRaise);
-	humanButtons.Add(btnAllIn); humanButtons.Add(btnPot33); humanButtons.Add(btnPot50);
-	humanButtons.Add(btnPot100); humanButtons.Add(editBet); humanButtons.Add(sliderBet);
-	
-	Add(lblSpeed); Add(sliderSpeed); Add(btnPause);
-	
-	for(int i = 0; i < 10; i++) Add(players[i]);
-
+	players.Bind(this);
 	Sizeable().Zoomable();
 	Title(t_("PKR Game Table"));
 	AddFrame(menu);
 	menu.Set(callback(this, &GameTable::MainMenu));
 
+	RegisterGameTableFormFactories();
+	Add(m_form.SizePos());
+	m_form.SetScaleMode(Form::SCALE_FIT);
+	String form_path = ResolveFormPath();
+	bool form_loaded = m_form.Load(form_path);
+	bool layout_ok = false;
+	if (form_loaded) {
+		layout_ok = m_form.Layout("GameTable");
+	}
+	if (form_loaded && layout_ok)
+		BindFormControls();
+	else {
+		LOG("Could not load GameTable form: " + form_path);
+		ASSERT_(false, "Could not load GameTable form");
+	}
+	HumanButtons().Transparent();
+	HumanButtons().Add(BtnFold());
+	HumanButtons().Add(BtnCheckCall());
+	HumanButtons().Add(BtnBetRaise());
+	HumanButtons().Add(BtnAllIn());
+	HumanButtons().Add(BtnPot33());
+	HumanButtons().Add(BtnPot50());
+	HumanButtons().Add(BtnPot100());
+	HumanButtons().Add(EditBet());
+	HumanButtons().Add(SliderBet());
+
+	TabLeft().Add(ChatCtrl().SizePos(), t_("Chat"));
+	HandsImgPane().Background(Color(0, 60, 0));
+	HandsImgPane().Add(HandsImg().SizePos());
+	TabLeft().Add(HandsImgPane().SizePos(), t_("Hands"));
+
+	TabRight().Add(EngineLogView().SizePos(), t_("Log"));
+	TabRight().Add(ProbCtrl().SizePos(), t_("Probabilities"));
+	TabRight().Add(AwayLog().SizePos(), t_("Away"));
+
 	LoadTheme("default");
 
-	tabLeft.Add(chatCtrl.SizePos(), t_("Chat"));
-	handsImgPane.Background(Color(0, 60, 0));
-	handsImgPane.Add(handsImg.SizePos());
-	tabLeft.Add(handsImgPane.SizePos(), t_("Hands"));
-	
-	tabRight.Add(engineLogView.SizePos(), t_("Log"));
-	tabRight.Add(probCtrl.SizePos(), t_("Probabilities"));
-	tabRight.Add(awayLog.SizePos(), t_("Away"));
-	
-	sliderBet.WhenAction = [this] {
-		editBet.SetData(sliderBet.GetData());
+	SliderBet().WhenAction = [this] {
+		EditBet().SetData(SliderBet().GetData());
 		UpdateActionLabels();
 	};
-	editBet.WhenAction = [this] {
-		sliderBet.SetData(editBet.GetData());
+	EditBet().WhenAction = [this] {
+		SliderBet().SetData(EditBet().GetData());
 		UpdateActionLabels();
 	};
 
-	btnFold.WhenAction = callback(this, &GameTable::OnFold);
-	btnCheckCall.WhenAction = callback(this, &GameTable::OnCheckCall);
-	btnBetRaise.WhenAction = callback(this, &GameTable::OnBetRaise);
-	btnAllIn.WhenAction = callback(this, &GameTable::OnAllIn);
-	
-	btnFold.SetLabel(t_("Fold")); btnFold.shortcut = "F1";
-	btnCheckCall.SetLabel(t_("Check")); btnCheckCall.shortcut = "F2";
-	btnBetRaise.SetLabel(t_("Raise")); btnBetRaise.shortcut = "F3";
-	btnAllIn.SetLabel(t_("All-In")); btnAllIn.shortcut = "F4";
-	
-	btnPot33.WhenAction = callback(this, &GameTable::OnPot33);
-	btnPot50.WhenAction = callback(this, &GameTable::OnPot50);
-	btnPot100.WhenAction = callback(this, &GameTable::OnPot100);
-	
-	btnPot33.SetLabel("33%");
-	btnPot50.SetLabel("50%");
-	btnPot100.SetLabel("100%");
+	BtnFold().WhenAction = callback(this, &GameTable::OnFold);
+	BtnCheckCall().WhenAction = callback(this, &GameTable::OnCheckCall);
+	BtnBetRaise().WhenAction = callback(this, &GameTable::OnBetRaise);
+	BtnAllIn().WhenAction = callback(this, &GameTable::OnAllIn);
 
-	humanButtons.Hide();
-	
+	BtnFold().SetLabel(t_("Fold")); BtnFold().shortcut = "F1";
+	BtnCheckCall().SetLabel(t_("Check")); BtnCheckCall().shortcut = "F2";
+	BtnBetRaise().SetLabel(t_("Raise")); BtnBetRaise().shortcut = "F3";
+	BtnAllIn().SetLabel(t_("All-In")); BtnAllIn().shortcut = "F4";
+
+	BtnPot33().WhenAction = callback(this, &GameTable::OnPot33);
+	BtnPot50().WhenAction = callback(this, &GameTable::OnPot50);
+	BtnPot100().WhenAction = callback(this, &GameTable::OnPot100);
+
+	BtnPot33().SetLabel("33%");
+	BtnPot50().SetLabel("50%");
+	BtnPot100().SetLabel("100%");
+
+	HumanButtons().Hide();
+
 	m_script.action_proxy = [this](int act) {
 		switch(act) {
 			case 0: OnFold(); break;
@@ -264,11 +414,11 @@ GameTable::GameTable()
 
 	SetTimeCallback(-500, [this] { Timer(); });
 
-	chatCtrl.btnSend << [this] {
-		String msg = chatCtrl.chatInput.GetData();
+	ChatCtrl().btnSend << [this] {
+		String msg = ChatCtrl().chatInput.GetData();
 		if (!msg.IsEmpty() && m_game && m_game->getPlayerByNumber(0)) {
-			chatCtrl.chatHistory.Append("[" + m_game->getPlayerByNumber(0)->getMyName() + "] " + msg + "\n");
-			chatCtrl.chatInput.SetData("");
+			ChatCtrl().chatHistory.Append("[" + m_game->getPlayerByNumber(0)->getMyName() + "] " + msg + "\n");
+			ChatCtrl().chatInput.SetData("");
 		}
 	};
 
@@ -276,22 +426,22 @@ GameTable::GameTable()
 	SColorText_Write(White());
 	SColorFace_Write(Color(0, 60, 0));
 
-	lblPotTitle.SetInk(Color(255, 255, 120)).SetAlign(ALIGN_CENTER).SetFont(StdFont().Bold());
-	lblPotTitle = t_("Pot");
-	lblTurnTitle.SetInk(Color(255, 255, 120)).SetAlign(ALIGN_CENTER).SetFont(StdFont().Bold());
-	lblPotTotal.SetInk(Yellow()).SetAlign(ALIGN_CENTER);
-	lblPotBets.SetInk(Yellow()).SetAlign(ALIGN_CENTER);
-	lblGameInfo.SetInk(Yellow()).SetAlign(ALIGN_CENTER);
-	lblHandInfo.SetInk(Yellow()).SetAlign(ALIGN_CENTER);
+	LblPotTitle().SetInk(Color(255, 255, 120)).SetAlign(ALIGN_CENTER).SetFont(StdFont().Bold());
+	LblPotTitle() = t_("Pot");
+	LblTurnTitle().SetInk(Color(255, 255, 120)).SetAlign(ALIGN_CENTER).SetFont(StdFont().Bold());
+	LblPotTotal().SetInk(Yellow()).SetAlign(ALIGN_CENTER);
+	LblPotBets().SetInk(Yellow()).SetAlign(ALIGN_CENTER);
+	LblGameInfo().SetInk(Yellow()).SetAlign(ALIGN_CENTER);
+	LblHandInfo().SetInk(Yellow()).SetAlign(ALIGN_CENTER);
 
-	lblSpeed = t_("Speed: 4");
-	sliderSpeed.Range(10).SetData(4);
-	sliderSpeed.WhenAction = callback(this, &GameTable::OnSpeedChange);
-	btnPause.WhenAction = callback(this, &GameTable::OnPause);
-	btnPause.SetLabel(t_("Pause"));
-	
-	board.WhenPaint = [this](Draw& w) { PaintBoard(w); };
-	
+	LblSpeed() = t_("Speed: 4");
+	SliderSpeed().Range(10).SetData(4);
+	SliderSpeed().WhenAction = callback(this, &GameTable::OnSpeedChange);
+	BtnPause().WhenAction = callback(this, &GameTable::OnPause);
+	BtnPause().SetLabel(t_("Pause"));
+
+	Board().WhenPaint = [this](Draw& w) { PaintBoard(w); };
+
 	for (int i = 0; i < 5; i++) boardCards[i] = -1;
 }
 
@@ -299,53 +449,7 @@ GameTable::~GameTable() {}
 
 void GameTable::Layout()
 {
-	Size sz = GetSize();
-	if (sz.cx <= 0 || sz.cy <= 0) return;
-	
-	board.SetRect(0, 0, sz.cx, sz.cy);
-	
-	double fx = (double)sz.cx / 1024.0;
-	double fy = (double)sz.cy / 648.0;
-
-	for (int i = 0; i < 10; i++)
-	{
-		players[i].SetRect(TexasTableLayout::PlayerRect(sz, i));
-		players[i].Layout();
-	}
-
-	Rect pr = TexasTableLayout::PotRect(sz);
-	lblPotTitle.SetRect(pr.left, max(0, pr.top - (int)(40 * fy)), pr.GetWidth(), max(12, (int)(20 * fy)));
-	lblPotTotal.SetRect(pr.left, max(0, pr.top - (int)(18 * fy)), pr.GetWidth(), max(12, (int)(16 * fy)));
-	lblPotBets.SetRect(pr.left, pr.top, pr.GetWidth(), max(12, (int)(16 * fy)));
-
-	Point rt = TexasTableLayout::RoundTextPos(sz);
-	lblTurnTitle.SetRect(rt.x, rt.y, max(100, (int)(200 * fx)), max(16, (int)(20 * fy)));
-	lblGameInfo.SetRect(rt.x, rt.y + max(16, (int)(22 * fy)), max(100, (int)(200 * fx)), max(12, (int)(16 * fy)));
-	lblHandInfo.SetRect(rt.x, rt.y + max(30, (int)(40 * fy)), max(100, (int)(200 * fx)), max(12, (int)(16 * fy)));
-
-	tabLeft.SetRect(2 * fx, 456 * fy, 260 * fx, 190 * fy);
-	tabRight.SetRect(762 * fx, 456 * fy, 260 * fx, 190 * fy);
-	
-	humanButtons.SetRect(428 * fx, 436 * fy, 166 * fx, 206 * fy);
-	
-	// HumanButtons Relative Layout
-	double hbx = fx;
-	double hby = fy;
-	
-	btnAllIn.SetRect(0, 0, 92 * hbx, 30 * hby);
-	editBet.SetRect(92 * hbx, 0, 74 * hbx, 30 * hby);
-	sliderBet.SetRect(0, 30 * hby, 168 * hbx, 20 * hby);
-	btnPot33.SetRect(0, 50 * hby, 56 * hbx, 24 * hby);
-	btnPot50.SetRect(58 * hbx, 50 * hby, 56 * hbx, 24 * hby);
-	btnPot100.SetRect(114 * hbx, 50 * hby, 56 * hbx, 24 * hby);
-	btnBetRaise.SetRect(0, 74 * hby, 168 * hbx, 44 * hby);
-	btnCheckCall.SetRect(0, 118 * hby, 168 * hbx, 44 * hby);
-	btnFold.SetRect(0, 162 * hby, 168 * hbx, 44 * hby);
-
-	lblSpeed.SetRect(762 * fx, 430 * fy, 80 * fx, 20 * fy);
-	sliderSpeed.SetRect(842 * fx, 430 * fy, 100 * fx, 20 * fy);
-	btnPause.SetRect(942 * fx, 430 * fy, 80 * fx, 20 * fy);
-	
+	TopWindow::Layout();
 	Refresh();
 }
 
@@ -582,10 +686,10 @@ void GameTable::BuildThemeGameState(GameState& st) const
 	std::shared_ptr<HandInterface> hand = m_game->getCurrentHand();
 	if (!hand)
 		return;
-	std::shared_ptr<BoardInterface> board = hand->getBoard();
-	if (board) {
-		st.pot = board->getPot();
-		const int* cards = board->getMyCards();
+	std::shared_ptr<BoardInterface> tableBoard = hand->getBoard();
+	if (tableBoard) {
+		st.pot = tableBoard->getPot();
+		const int* cards = tableBoard->getMyCards();
 		for (int i = 0; i < 5; i++) {
 			if (cards[i] >= 0)
 				st.community_cards.Add(cards[i]);
@@ -885,16 +989,20 @@ void GameTable::LoadTheme(const String& themeName)
 void GameTable::PaintBoard(Draw& w)
 {
 	Size sz = board.GetSize();
-	auto DrawScaled = [&](int x, int y, int cx, int cy, const Image& img) {
+	auto DrawStretched = [&](int x, int y, int cx, int cy, const Image& img) {
 		if (img.IsEmpty()) return;
-		Size isz = img.GetSize();
-		if (isz.cx == cx && isz.cy == cy)
+		if (img.GetWidth() == cx && img.GetHeight() == cy)
 			w.DrawImage(x, y, img);
 		else
 			w.DrawImage(x, y, Rescale(img, cx, cy));
 	};
+	auto DrawFitted = [&](int x, int y, int cx, int cy, const Image& img) {
+		if (img.IsEmpty()) return;
+		Image fitted = FitCardArt(img, Size(cx, cy));
+		w.DrawImage(x + (cx - fitted.GetWidth()) / 2, y + (cy - fitted.GetHeight()) / 2, fitted);
+	};
 	if (!tableImg.IsEmpty())
-		DrawScaled(0, 0, sz.cx, sz.cy, tableImg);
+		DrawStretched(0, 0, sz.cx, sz.cy, tableImg);
 	else {
 		w.DrawRect(sz, Color(0, 100, 0));
 		w.DrawEllipse(sz.cx / 10, sz.cy / 10, 8 * sz.cx / 10, 8 * sz.cy / 10, Color(0, 80, 0), 2, Gray());
@@ -911,14 +1019,14 @@ void GameTable::PaintBoard(Draw& w)
 		int h1 = br.GetHeight();
 		if (boardCards[i] >= 0) {
 			Image img = GetCardImage(boardCards[i]);
-			DrawScaled(x, y, w1, h1, img);
+			DrawFitted(x, y, w1, h1, img);
 		} else {
 			Image holder;
 			if (i < 3) holder = cardHolderFlop;
 			else if (i == 3) holder = cardHolderTurn;
 			else holder = cardHolderRiver;
 			if (!holder.IsEmpty())
-				DrawScaled(x, y, w1, h1, holder);
+				DrawFitted(x, y, w1, h1, holder);
 			else
 				w.DrawRect(x, y, w1, h1, Color(0, 80, 0));
 		}

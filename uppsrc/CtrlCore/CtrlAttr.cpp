@@ -2,6 +2,29 @@
 
 namespace Upp {
 
+struct CtrlTransitionData {
+	Ctrl::TransitionMode  mode = Ctrl::TRANSITION_NONE;
+	Ctrl::TransitionCurve curve = Ctrl::TRANSITION_EASE_OUT_CUBIC;
+	int                   duration = 350;
+	double                progress = 1.0;
+	bool                  running = false;
+	TimeCallback          timer;
+};
+
+static double ApplyTransitionCurve(Ctrl::TransitionCurve curve, double t)
+{
+	t = clamp(t, 0.0, 1.0);
+	switch (curve) {
+	case Ctrl::TRANSITION_LINEAR: return t;
+	case Ctrl::TRANSITION_EASE_IN_CUBIC: return t * t * t;
+	case Ctrl::TRANSITION_EASE_IN_OUT_CUBIC:
+		return t < 0.5 ? 4 * t * t * t : 1 - pow(-2 * t + 2, 3) / 2;
+	case Ctrl::TRANSITION_EASE_OUT_CUBIC:
+	default:
+		return 1 - pow(1 - t, 3);
+	}
+}
+
 PackedData& Ctrl::Attrs()
 {
 	if(layout_id_literal) {
@@ -98,6 +121,7 @@ String Ctrl::GetHelpTopic() const
 
 void Ctrl::ClearInfo()
 {
+	DeleteAttr<CtrlTransitionData>(ATTR_TRANSITION_DATA);
 	if(layout_id_literal)
 		attrs.SetRawPtr(nullptr);
 	layout_id_literal = false;
@@ -176,6 +200,140 @@ void *Ctrl::GetVoidPtrAttr(int ii) const
 	if(layout_id_literal)
 		return NULL;
 	return attrs.GetPtr(ii);
+}
+
+Ctrl& Ctrl::SetTransitionMode(TransitionMode mode)
+{
+	Attrs();
+	CtrlTransitionData *data = (CtrlTransitionData *)attrs.GetPtr(ATTR_TRANSITION_DATA);
+	if(!data) {
+		data = new CtrlTransitionData;
+		attrs.SetPtr(ATTR_TRANSITION_DATA, data);
+	}
+	data->mode = mode;
+	return *this;
+}
+
+Ctrl::TransitionMode Ctrl::GetTransitionMode() const
+{
+	if(layout_id_literal)
+		return TRANSITION_NONE;
+	const CtrlTransitionData *data = (const CtrlTransitionData *)attrs.GetPtr(ATTR_TRANSITION_DATA);
+	return data ? data->mode : TRANSITION_NONE;
+}
+
+Ctrl& Ctrl::SetTransitionCurve(TransitionCurve curve)
+{
+	Attrs();
+	CtrlTransitionData *data = (CtrlTransitionData *)attrs.GetPtr(ATTR_TRANSITION_DATA);
+	if(!data) {
+		data = new CtrlTransitionData;
+		attrs.SetPtr(ATTR_TRANSITION_DATA, data);
+	}
+	data->curve = curve;
+	return *this;
+}
+
+Ctrl::TransitionCurve Ctrl::GetTransitionCurve() const
+{
+	if(layout_id_literal)
+		return TRANSITION_EASE_OUT_CUBIC;
+	const CtrlTransitionData *data = (const CtrlTransitionData *)attrs.GetPtr(ATTR_TRANSITION_DATA);
+	return data ? data->curve : TRANSITION_EASE_OUT_CUBIC;
+}
+
+Ctrl& Ctrl::SetTransitionDuration(int ms)
+{
+	Attrs();
+	CtrlTransitionData *data = (CtrlTransitionData *)attrs.GetPtr(ATTR_TRANSITION_DATA);
+	if(!data) {
+		data = new CtrlTransitionData;
+		attrs.SetPtr(ATTR_TRANSITION_DATA, data);
+	}
+	data->duration = max(1, ms);
+	return *this;
+}
+
+int Ctrl::GetTransitionDuration() const
+{
+	if(layout_id_literal)
+		return 350;
+	const CtrlTransitionData *data = (const CtrlTransitionData *)attrs.GetPtr(ATTR_TRANSITION_DATA);
+	return data ? data->duration : 350;
+}
+
+void Ctrl::StartTransition()
+{
+	GuiLock __;
+	Attrs();
+	CtrlTransitionData *data = (CtrlTransitionData *)attrs.GetPtr(ATTR_TRANSITION_DATA);
+	if(!data) {
+		data = new CtrlTransitionData;
+		attrs.SetPtr(ATTR_TRANSITION_DATA, data);
+	}
+	data->timer.Kill();
+	data->progress = 0.0;
+	data->running = true;
+	data->timer.KillSet(16, [this] { TickTransition(); });
+	Refresh();
+}
+
+void Ctrl::StopTransition()
+{
+	GuiLock __;
+	if(layout_id_literal)
+		return;
+	if(CtrlTransitionData *data = (CtrlTransitionData *)attrs.GetPtr(ATTR_TRANSITION_DATA)) {
+		data->timer.Kill();
+		data->running = false;
+		data->progress = 1.0;
+	}
+}
+
+bool Ctrl::IsTransitionRunning() const
+{
+	if(layout_id_literal)
+		return false;
+	const CtrlTransitionData *data = (const CtrlTransitionData *)attrs.GetPtr(ATTR_TRANSITION_DATA);
+	return data && data->running;
+}
+
+double Ctrl::GetTransitionProgress() const
+{
+	if(layout_id_literal)
+		return 1.0;
+	const CtrlTransitionData *data = (const CtrlTransitionData *)attrs.GetPtr(ATTR_TRANSITION_DATA);
+	return data ? data->progress : 1.0;
+}
+
+double Ctrl::GetTransitionValue() const
+{
+	if(layout_id_literal)
+		return 1.0;
+	const CtrlTransitionData *data = (const CtrlTransitionData *)attrs.GetPtr(ATTR_TRANSITION_DATA);
+	if(!data)
+		return 1.0;
+	return ApplyTransitionCurve(data->curve, data->progress);
+}
+
+void Ctrl::TickTransition()
+{
+	GuiLock __;
+	if(layout_id_literal)
+		return;
+	CtrlTransitionData *data = (CtrlTransitionData *)attrs.GetPtr(ATTR_TRANSITION_DATA);
+	if(!data || !data->running)
+		return;
+
+	double step = 16.0 / max(1, data->duration);
+	data->progress = min(1.0, data->progress + step);
+	Refresh();
+	if(data->progress >= 1.0) {
+		data->running = false;
+		data->timer.Kill();
+	}
+	else
+		data->timer.KillSet(16, [this] { TickTransition(); });
 }
 
 };

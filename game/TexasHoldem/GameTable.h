@@ -2,6 +2,7 @@
 #define _CardEngine_GameTable_h_
 
 #include <CtrlLib/CtrlLib.h>
+#include <Form/Form.hpp>
 #include <memory>
 #include <GameRules/GuiInterface.h>
 #include <EditorCommon/GameTheme.h>
@@ -212,25 +213,35 @@ public:
 	int GetActionDelayMs() const;
 	bool IsActionFlowPaused() const;
 	void SetScriptAutomationEnabled(bool enabled);
-	
+
 	virtual void Layout() override;
 	virtual void Paint(Draw& w) override;
 	virtual void Timer();
 
 private:
+	class PlayersProxy {
+	public:
+		PlayersProxy() = default;
+		explicit PlayersProxy(GameTable* owner) : owner(owner) {}
+		void Bind(GameTable* table) { owner = table; }
+		PlayerCtrl& operator[](int index) const;
+	private:
+		GameTable* owner = nullptr;
+	};
+
 	void MainMenu(Bar& bar);
 	void ViewMenu(Bar& bar);
 	void ShowMenu(Bar& bar);
 	void SettingsMenu(Bar& bar);
 	void ActionsMenu(Bar& bar);
-	
+
 	public: void OnViewNormal();
 	void OnViewImage();
 	void OnSaveScreenshot();
-	
+
 	void ToggleTab(TabCtrl& tab, Ctrl& pane, int index);
 	void OnSettings();
-	
+
 	void OnToggleFullScreen();
 	void OnToggleChat();
 	void OnToggleHands();
@@ -242,7 +253,7 @@ private:
 	void OnNextHand();
 	void OnPause();
 	void AppendLog(const String& s);
-	
+
 	void OnFold();
 	void OnCheckCall();
 	void OnBetRaise();
@@ -254,6 +265,9 @@ private:
 	void UpdateActionLabels();
 	void ApplyProjectThemeMetadata(const String& project_name, const String& platform_name);
 	void BuildThemeGameState(GameState& st) const;
+	void BindFormControls();
+	static String ResolveFormPath();
+	template <class T> T& CtrlAs(const String& name) const;
 
 	bool m_imageMode = false;
 	bool m_scriptAutomationEnabled = false;
@@ -263,38 +277,45 @@ private:
 	ThemeFile m_loadedTheme;
 	String m_themeProfile = "default";
 	Vector<String> m_gameLog;
-	
+
 	bool m_isPaused = false;
 	bool m_isFullScreen = false;
 	std::shared_ptr<class Game> m_game;
 	MenuBar menu;
-	
-	BoardCtrl board;
-	Label lblPotTitle, lblPotTotal, lblPotBets;
-	Label lblTurnTitle, lblGameInfo, lblHandInfo;
-	TabCtrl tabLeft, tabRight;
-	
-	ParentCtrl humanButtons;
-	ActionButton btnFold, btnCheckCall, btnBetRaise, btnAllIn;
-	ActionButton btnPot33, btnPot50, btnPot100;
-	EditInt editBet;
-	SliderCtrl sliderBet;
-	
-	Label lblSpeed;
-	SliderCtrl sliderSpeed;
-	Button btnPause;
 
-	PokerChatCtrl chatCtrl;
-	StaticRect handsImgPane;
-	ImageCtrl handsImg;
-	ProbabilityCtrl probCtrl;
-	
-	RichTextView engineLogView;
-	RichTextView awayLog;
-	
-	PlayerCtrl players[10];
+	Form m_form;
+	PlayersProxy players;
+	BoardCtrl* m_board = nullptr;
+	Label* m_lblPotTitle = nullptr;
+	Label* m_lblPotTotal = nullptr;
+	Label* m_lblPotBets = nullptr;
+	Label* m_lblTurnTitle = nullptr;
+	Label* m_lblGameInfo = nullptr;
+	Label* m_lblHandInfo = nullptr;
+	TabCtrl* m_tabLeft = nullptr;
+	TabCtrl* m_tabRight = nullptr;
+	ParentCtrl* m_humanButtons = nullptr;
+	ActionButton* m_btnFold = nullptr;
+	ActionButton* m_btnCheckCall = nullptr;
+	ActionButton* m_btnBetRaise = nullptr;
+	ActionButton* m_btnAllIn = nullptr;
+	ActionButton* m_btnPot33 = nullptr;
+	ActionButton* m_btnPot50 = nullptr;
+	ActionButton* m_btnPot100 = nullptr;
+	EditInt* m_editBet = nullptr;
+	SliderCtrl* m_sliderBet = nullptr;
+	Label* m_lblSpeed = nullptr;
+	SliderCtrl* m_sliderSpeed = nullptr;
+	Button* m_btnPause = nullptr;
+	PokerChatCtrl* m_chatCtrl = nullptr;
+	StaticRect* m_handsImgPane = nullptr;
+	ImageCtrl* m_handsImg = nullptr;
+	ProbabilityCtrl* m_probCtrl = nullptr;
+	RichTextView* m_engineLogView = nullptr;
+	RichTextView* m_awayLog = nullptr;
+	PlayerCtrl* m_player[10] = {};
 	int boardCards[5];
-	
+
 	Image tableImg;
 	Image puckDealer, puckSB, puckBB;
 	Image avatarDefault;
@@ -305,6 +326,37 @@ private:
 	Image GetCardImage(int card);
 	Image GetTransparentCard(int card, int alpha);
 	Image ApplyInterlacedTransparency(const Image& img);
+
+public:
+	BoardCtrl& Board() const;
+	Label& LblPotTitle() const;
+	Label& LblPotTotal() const;
+	Label& LblPotBets() const;
+	Label& LblTurnTitle() const;
+	Label& LblGameInfo() const;
+	Label& LblHandInfo() const;
+	TabCtrl& TabLeft() const;
+	TabCtrl& TabRight() const;
+	ParentCtrl& HumanButtons() const;
+	ActionButton& BtnFold() const;
+	ActionButton& BtnCheckCall() const;
+	ActionButton& BtnBetRaise() const;
+	ActionButton& BtnAllIn() const;
+	ActionButton& BtnPot33() const;
+	ActionButton& BtnPot50() const;
+	ActionButton& BtnPot100() const;
+	EditInt& EditBet() const;
+	SliderCtrl& SliderBet() const;
+	Label& LblSpeed() const;
+	SliderCtrl& SliderSpeed() const;
+	Button& BtnPause() const;
+	PokerChatCtrl& ChatCtrl() const;
+	StaticRect& HandsImgPane() const;
+	ImageCtrl& HandsImg() const;
+	ProbabilityCtrl& ProbCtrl() const;
+	RichTextView& EngineLogView() const;
+	RichTextView& AwayLog() const;
+	PlayerCtrl& PlayerAt(int index) const;
 };
 
 END_UPP_NAMESPACE

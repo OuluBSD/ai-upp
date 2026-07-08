@@ -12,6 +12,7 @@ uses
 	AI/Logic;
 
 library(LINUX | BSD) Xtst;
+library(WIN32) "mfplat mfuuid mfreadwrite mf";
 
 pkg_config(LINUX | BSD) "egl gl x11 xtst";
 
@@ -38,4 +39,3 @@ file
 	Tools.cpp,
 	CryptHelper.h,
 	CryptHelper.cpp;
-

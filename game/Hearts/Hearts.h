@@ -3,6 +3,8 @@
 
 #include <CtrlLib/CtrlLib.h>
 #include <CardGame/CardGame.h>
+#include <Form/Form.hpp>
+#include <CardRender/CardRender.h>
 
 NAMESPACE_UPP
 

@@ -69,6 +69,8 @@ void FormEdit<T>::Construct(bool std_font_zoom) {
 	_ItemList.NotUseKeys();
 	_TypeList.Add("Button");
 	_TypeList.Add("Label");
+	_TypeList.Add("StaticRect");
+	_TypeList.Add("ImageCtrl");
 	_TypeList.Add("EditField");
 	_TypeList.Add("EditInt");
 	_TypeList.Add("DropDate");
@@ -652,6 +654,30 @@ void FormEdit<T>::UpdateChildCount(int count)
 			b->Set(0, 100);
 			if (_ViewMode != VIEW_MODE_WIREFRAME)
 				_CtrlContainer.Add( b->NoWantFocus() );
+		}
+		else if (type == "StaticRect")
+		{
+			StaticRect *b = &_Ctrls.Create<StaticRect>();
+			Color bg = SColorFace();
+			LoadFromString(bg, Decode64((*_View.GetObjects())[i].Get("Background",
+				Encode64(StoreAsString(bg)))));
+			b->Background(bg);
+			if (_ViewMode != VIEW_MODE_WIREFRAME)
+				_CtrlContainer.Add(*b);
+		}
+		else if (type == "ImageCtrl")
+		{
+			ImageCtrl *b = &_Ctrls.Create<ImageCtrl>();
+			String path = (*_View.GetObjects())[i].Get("Image.Path");
+			if (!path.IsEmpty())
+			{
+				String resolved = path;
+				if (!IsFullPath(resolved) && !_File.IsEmpty())
+					resolved = AppendFileName(GetFileDirectory(_File), resolved);
+				b->SetImage(StreamRaster::LoadFileAny(resolved));
+			}
+			if (_ViewMode != VIEW_MODE_WIREFRAME)
+				_CtrlContainer.Add(*b);
 		}
 		else if (type == "TabCtrl")
 		{

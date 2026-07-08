@@ -4,7 +4,81 @@
 
 static int tempFormsCount = 0;
 
-Form:: Form() : _Current(-1) {}
+static Ctrl::TransitionMode ParseTransitionMode(const String& s)
+{
+	if (s == "Fade")
+		return Ctrl::TRANSITION_FADE;
+	if (s == "Flip horizontal")
+		return Ctrl::TRANSITION_FLIP_H;
+	if (s == "Flip vertical")
+		return Ctrl::TRANSITION_FLIP_V;
+	return Ctrl::TRANSITION_NONE;
+}
+
+static VectorMap<String, FormCtrlFactory>& GetFormCtrlFactories()
+{
+	static VectorMap<String, FormCtrlFactory> factories;
+	return factories;
+}
+
+INITBLOCK {
+	RegisterFormCtrlType<DropList>("DropList");
+}
+
+void RegisterFormCtrlFactory(const String& type, FormCtrlFactory factory)
+{
+	if (type.IsEmpty() || !factory)
+		return;
+	VectorMap<String, FormCtrlFactory>& factories = GetFormCtrlFactories();
+	int pos = factories.Find(type);
+	if (pos >= 0)
+		factories[pos] = factory;
+	else
+		factories.Add(type, factory);
+}
+
+static Ctrl::TransitionCurve ParseTransitionCurve(const String& s)
+{
+	if (s == "Linear")
+		return Ctrl::TRANSITION_LINEAR;
+	if (s == "Ease in cubic")
+		return Ctrl::TRANSITION_EASE_IN_CUBIC;
+	if (s == "Ease in/out cubic")
+		return Ctrl::TRANSITION_EASE_IN_OUT_CUBIC;
+	return Ctrl::TRANSITION_EASE_OUT_CUBIC;
+}
+
+static Form::ScaleMode ParseScaleMode(const String& s)
+{
+	if (s == "Fit")
+		return Form::SCALE_FIT;
+	return Form::SCALE_NONE;
+}
+
+static Color LoadFormColor(const FormObject& object, const char *key, Color fallback)
+{
+	String data = object.Get(key);
+	if (data.IsEmpty())
+		return fallback;
+	if (data.Find('#') >= 0 || data.Find(',') >= 0 || data.Find(';') >= 0 || data.Find('.') >= 0)
+		return Nvl(ColorFromText(data), fallback);
+	LoadFromString(fallback, Decode64(data));
+	return fallback;
+}
+
+static Image LoadFormImage(const String& form_file, const String& path)
+{
+	if (path.IsEmpty())
+		return Null;
+
+	String resolved = path;
+	if (!IsFullPath(resolved) && !form_file.IsEmpty())
+		resolved = AppendFileName(GetFileDirectory(form_file), resolved);
+
+	return StreamRaster::LoadFileAny(resolved);
+}
+
+Form:: Form() : _Current(-1), _ScaleMode(SCALE_NONE) {}
 Form::~Form() { Clear(); }
 
 bool Form::Load(const String& file)
@@ -56,8 +130,46 @@ bool Form::Layout(const String& layout, Font font)
 		{
 			_Current = i;
 			return Generate(font);
-		}
+	}
 	return false;
+}
+
+void Form::Layout()
+{
+	if(!IsLayout() || _Ctrls.IsEmpty())
+		return;
+
+	if(_ScaleMode != SCALE_FIT) {
+		for(Ctrl& ctrl : _Ctrls)
+			if(Form* form = dynamic_cast<Form*>(&ctrl))
+				if(form->GetScaleMode() == SCALE_FIT)
+					form->Layout();
+		return;
+	}
+
+	FormLayout& layout = _Layouts[_Current];
+	Size base = layout.GetFormSize();
+	Size size = GetSize();
+	if(base.cx <= 0 || base.cy <= 0 || size.cx <= 0 || size.cy <= 0)
+		return;
+
+	double scale = min((double)size.cx / base.cx, (double)size.cy / base.cy);
+	int scaled_cx = max(1, int(base.cx * scale + 0.5));
+	int scaled_cy = max(1, int(base.cy * scale + 0.5));
+	int offset_x = (size.cx - scaled_cx) / 2;
+	int offset_y = (size.cy - scaled_cy) / 2;
+
+	Array<FormObject>& objects = layout.GetObjects();
+	for(int i = 0; i < objects.GetCount() && i < _Ctrls.GetCount(); ++i) {
+		Rect r = objects[i].GetRect();
+		r.left   = offset_x + int(r.left   * scale + 0.5);
+		r.top    = offset_y + int(r.top    * scale + 0.5);
+		r.right  = offset_x + int(r.right  * scale + 0.5);
+		r.bottom = offset_y + int(r.bottom * scale + 0.5);
+		_Ctrls[i].SetRect(r);
+	}
+
+	Refresh();
 }
 
 bool Form::Generate(Font font)
@@ -90,6 +202,21 @@ bool Form::Generate(Font font)
 			c = b;
 		}
 
+		if ((*p)[i].Get("Type") == "StaticRect")
+		{
+			StaticRect *r = &_Ctrls.Create<StaticRect>((*p)[i].Get("Variable"));
+			r->Background(LoadFormColor((*p)[i], "StaticRect.Background", SColorFace()));
+			c = r;
+		}
+
+		if ((*p)[i].Get("Type") == "ImageCtrl")
+		{
+			ImageCtrl *img = &_Ctrls.Create<ImageCtrl>((*p)[i].Get("Variable"));
+			img->SetImage(LoadFormImage(_File,
+				(*p)[i].Get("ImageCtrl.Image.Path", (*p)[i].Get("Image.Path"))));
+			c = img;
+		}
+
 		if ((*p)[i].Get("Type") == "EditField")
 		{
 			EditField *e = &_Ctrls.Create<EditField>((*p)[i].Get("Variable"));
@@ -107,9 +234,13 @@ bool Form::Generate(Font font)
 		{
 			Label *e = &_Ctrls.Create<Label>((*p)[i].Get("Variable"));
 			e->SetFont(objFont);
-			Color fontColor = Black();
-			LoadFromString(fontColor, Decode64((*p)[i].Get("Font.Color",
-				StoreAsString(fontColor))));
+			Color fontColor = SColorText();
+			String font_color_text = (*p)[i].Get("Font.Color", StoreAsString(fontColor));
+			Color parsed_color = ColorFromText(font_color_text);
+			if(IsNull(parsed_color))
+				LoadFromString(fontColor, Decode64(font_color_text));
+			else
+				fontColor = parsed_color;
 			e->SetInk(fontColor);
 			String align = (*p)[i].Get("Text.Align");
 			if (align == "Center") e->SetAlign(ALIGN_CENTER);
@@ -257,9 +388,24 @@ bool Form::Generate(Font font)
 			(*p)[i].Get("Form.PathType") == "Relative"
 				? f->Load(::GetFileDirectory(_File) + "\\" + path)
 				: f->Load(path);
+			f->SetScaleMode(ParseScaleMode((*p)[i].Get("Form.ScaleMode")));
 			f->Layout((*p)[i].Get("Form.Layout"), objFont);
 			f->Script = Script;
 			c = f;
+		}
+
+		if(!c) {
+			String type = (*p)[i].Get("Type");
+			VectorMap<String, FormCtrlFactory>& factories = GetFormCtrlFactories();
+			int pos = factories.Find(type);
+			if(pos >= 0)
+				c = factories[pos](_Ctrls, (*p)[i].Get("Variable"));
+		}
+
+		if(c) {
+			c->SetTransitionMode(ParseTransitionMode((*p)[i].Get("Transition.Mode")));
+			c->SetTransitionCurve(ParseTransitionCurve((*p)[i].Get("Transition.Easing")));
+			c->SetTransitionDuration((*p)[i].GetNumber("Transition.Duration", 350));
 		}
 
 		if (!c)
@@ -337,6 +483,7 @@ bool Form::Generate(Font font)
 		Add(c);
 	}
 
+	Layout();
 	WhenGenerate();
 	
 	return true;
@@ -388,6 +535,7 @@ void Form::Clear(bool all)
 	_Acceptors.Clear();
 	_Ctrls.Clear();
 	Script.Clear();
+	_ScaleMode = SCALE_NONE;
 }
 
 int Form::HasLayout(const String& layout)

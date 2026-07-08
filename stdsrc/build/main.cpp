@@ -1166,6 +1166,8 @@ int main(int argc, char* argv[]) {
     
     string target_name = GetFileTitle(upp_path);
     ss << " " << target_name << " " << method.path;
+    // Debug bootstrap uses umk's -d here, which means "debug without symbols".
+    // That is intentional for this wrapper path; release builds use -rbsH1 instead.
     ss << " " << (opts.release ? "-rbsH1" : "-bsdH1");
     if (opts.clean) ss << "a";
     if (opts.jobs > 0) ss << " -H" << opts.jobs;

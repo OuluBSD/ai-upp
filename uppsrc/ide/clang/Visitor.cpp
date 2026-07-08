@@ -590,11 +590,22 @@ CXChildVisitResult clang_visitor(CXCursor cursor, CXCursor p, CXClientData clien
 	ClangVisitor *v = (ClangVisitor *)clientData;
 	bool bak_locals = v->locals;
 	String bak_parent_id = v->parent_id;
+
+	ClangNode* owner = v->scope.Top();
+	One<ClangNode> n;
+	n.Create();
+	v->scope.Add(&*n);
+
 	if(v->ProcessNode(cursor)) {
 		clang_visitChildren(cursor, clang_visitor, clientData);
 	}
+
+	if(n->kind >= 0)
+		owner->sub.Add(n.Detach());
+
 	if (!v->scope.IsEmpty())
 		v->scope.Pop();
+
 	v->locals = bak_locals;
 	v->parent_id = bak_parent_id;
 #ifdef DUMPTREE

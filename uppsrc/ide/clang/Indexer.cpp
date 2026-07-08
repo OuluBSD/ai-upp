@@ -1,9 +1,5 @@
-#include <ide/ide.h>
-
-#ifndef flagV1
-#include <AI/Core/Core.h>
-#include <ide/Vfs/Vfs.h>
-#endif
+#include "clang.h"
+#include <ide/Builders/BuilderComponents.h>
 
 #define LTIMING(x)   //RTIMING(x)
 #define LTIMESTOP(x) //RTIMESTOP(x)
@@ -55,7 +51,7 @@ const VectorMap<String, Time>& FindMasterSourceCached(PPInfo& ppi, const Workspa
                                                       VectorMap<String, MasterSourceCacheRecord>& cache)
 {
 	String header_file = NormalizePath(header_file_);
-	
+
 	if(cache.GetCount() > 2000) // 2000 cached headers is enough for everybody, right?
 		cache.Clear();
 
@@ -71,13 +67,13 @@ const VectorMap<String, Time>& FindMasterSourceCached(PPInfo& ppi, const Workspa
 			VectorMap<String, Time> deps;
 			ArrayMap<String, Index<String>> dics;
 			ppi.GatherDependencies(master, deps, dics, speculative, header_file, chain, found);
-			
+
 			MasterSourceCacheRecord& m = cache.GetAdd(header_file);
 			m.chain.Clear();
 			m.master = master;
 			for(const String& f : chain)
 				m.chain.Add(f, ppi.GetFileTime(f));
-			
+
 			if(found)
 				return m.chain;
 		}
@@ -229,8 +225,10 @@ bool                 Indexer::relaxed;
 
 void Indexer::BuildingPause()
 {
+#ifdef flagGUI
 	while(TheIde() && TheIde()->idestate == Ide::BUILDING)
 		Sleep(200);
+#endif
 }
 
 void Indexer::IndexerThread()
@@ -251,7 +249,7 @@ void Indexer::IndexerThread()
 				else
 					break;
 			}
-			
+
 			if(Thread::IsShutdownThreads())
 				break;
 
@@ -274,6 +272,10 @@ void Indexer::IndexerThread()
 
 			if(Thread::IsShutdownThreads())
 				break;
+
+			if(AssistDiagnostics && clang.tu) {
+				Diagnostics(clang.tu, Cout());
+			}
 
 			ClangVisitor v;
 
@@ -307,7 +309,7 @@ void Indexer::IndexerThread()
 
 			for(const auto& m : ~job.file_times) // in create entries even if there are no items to avoid recompiling
 				v.info.GetAdd(NormalizePath(m.key));
-			
+
 			int i = 0;
 			for(const auto& m : ~v.info) {
 				String path = NormalizePath(m.key);
@@ -322,10 +324,10 @@ void Indexer::IndexerThread()
 				SaveChangedFile(CachedAnnotationPath(path, f.defines, f.includes, f.master_file), StoreAsString(f), true);
 				GuiLock __;
 				CodeIndex().GetAdd(path) = pick(f);
-				#ifndef flagV1
+			#if !defined(flagV1) && defined(flagGUI)
 				if (i++ == 0)
 					Store(IdeMetaEnv(), job.includes, path, v.ast);
-				#endif
+			#endif
 			}
 
 			PutAssist(String() << job.path << " indexed in " << msecs() - tm << " ms");
@@ -358,6 +360,21 @@ void Indexer::Start(const String& main, const String& includes, const String& de
 		return;
 
 	ONCELOCK {
+		String path = CacheFile("fake_build_info") + "/" + "build_info.h";
+		RealizePath(path);
+		SaveChangedFile(path,
+			"#define bmYEAR   2026\n"
+			"#define bmMONTH  7\n"
+			"#define bmDAY    6\n"
+			"#define bmHOUR   15\n"
+			"#define bmMINUTE 0\n"
+			"#define bmSECOND 0\n"
+			"#define bmTIME   Time(2026, 7, 6, 15, 0, 0)\n"
+			"#define bmMACHINE \"ASSIST\"\n"
+			"#define bmUSER    \"assist\"\n"
+			"#define bmGIT_REVCOUNT \"0\"\n"
+		);
+
 		MemoryIgnoreNonMainLeaks();
 		MemoryIgnoreNonUppThreadsLeaks(); // clangs leaks static memory in threads
 		Thread::AtShutdown([] {
@@ -385,8 +402,11 @@ void Indexer::Start(const String& main, const String& includes, const String& de
 void Indexer::SchedulerThread()
 {
 	PPInfo ppi;
+	bool first = true;
 	while(!Thread::IsShutdownThreads()) {
-		scheduler.Wait();
+		if(!first)
+			scheduler.Wait();
+		first = false;
 
 		{
 			LTIMESTOP("Scheduler");
@@ -420,6 +440,7 @@ void Indexer::SchedulerThread()
 					LTIMESTOP("Load workspace");
 					Workspace wspc;
 					wspc.Scan(main);
+					Cout() << "Scheduler workspace count: " << wspc.GetCount() << "\n";
 
 					for(int pi : wspc.use_order) {
 						String pk_name = wspc[pi];
@@ -505,7 +526,7 @@ void Indexer::SchedulerThread()
 								CodeIndex().GetAdd(path) = pick(lf);
 							}
 						}
-						#ifndef flagV1
+						#if !defined(flagV1) && defined(flagGUI)
 						IdeMetaEnv().Load(includes, path);
 						#endif
 					}
@@ -535,7 +556,7 @@ void Indexer::SchedulerThread()
 					}
 					return job;
 				};
-				
+
 				LTIMESTOP("Create indexer jobs");
 				jobs.Clear();
 				jobi = 0;

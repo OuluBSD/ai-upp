@@ -90,6 +90,9 @@ String GetClangInternalIncludes()
 					MergeWith(includes, ";", NormalizePath(dir));
 			}
 		}
+		if(AssistDiagnostics) {
+			Cout() << "Clang internal includes: " << includes << "\n";
+		}
 		return includes;
 	}
 	return String();
@@ -188,6 +191,9 @@ bool Clang::Parse(const String& filename_, const String& content,
 	LOG(filename);
 	LOG(filename2);
 	LOG(cmdline);
+	if(AssistDiagnostics) {
+		Cout() << "Clang commandline: " << cmdline << "\n";
+	}
 	tu = clang_parseTranslationUnit(index, nullptr, argv, argv.GetCount(),
 	                                options & PARSE_FILE ? nullptr : ufile,
 	                                options & PARSE_FILE ? 0 : (filename2.GetCount() ? 2 : 1),

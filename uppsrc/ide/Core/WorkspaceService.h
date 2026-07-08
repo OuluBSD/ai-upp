@@ -9,6 +9,7 @@ public:
 	const String&    GetMainPackage() const { return main_package; }
 
 	Index<String> GetNests(bool refresh = false) const;
+	VectorMap<String, String> ScanAllNests();
 
 private:
 	String    main_package;

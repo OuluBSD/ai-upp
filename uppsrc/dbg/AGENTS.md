@@ -13,13 +13,13 @@ Current Commands
 - `--backend <name> run <program> [args...]`
 
 Backends Status
-- `vs`: Visual Studio backend (planned/supported on Windows; unsupported on POSIX/Linux).
+- `vs`: Visual Studio / PDB backend (supported on Windows; unsupported on POSIX/Linux).
 - `gdb`: GNU Debugger (fully supported on Linux/Windows).
 - `lldb`: LLVM Debugger (fully supported on Linux/Windows).
 
 Build
 - Linux: `python3 script/build.py -m GCC dbg` -> Binary: `bin/dbg`
-- Windows: `bin/build.exe -m MSVS26x64 -j12 dbg` -> Binary: `bin/dbg.exe`
+- Windows: `bin/build.exe -m MSVS22x64 -j12 dbg` -> Binary: `bin/dbg.exe`
 
 Local Debugger Toolchain Notes
 - Both GDB and LLDB adapters run targets in headless batch mode.

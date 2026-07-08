@@ -6,6 +6,7 @@ public:
 	IdeCoreConsoleHost();
 
 	int  Execute(const char *cmdline, String *output = NULL, const char *envptr = NULL, bool quiet = true);
+	int  Execute(const char *cmdline, Event<String> on_output, const char *envptr = NULL, bool quiet = true);
 	bool Run(const char *cmdline, const char *envptr = NULL);
 	bool IsRunning() const;
 	int  Wait(String *output = NULL);

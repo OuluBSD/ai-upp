@@ -3,6 +3,7 @@
 Ide::Ide()
 {
 	verbose = false;
+	assist_dump = false;
 }
 
 bool Ide::IsVerbose() const

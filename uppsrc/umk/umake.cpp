@@ -1,4 +1,71 @@
 #include "umake.h"
+#include <ide/clang/clang.h>
+
+namespace Upp {
+String (*GetCursorKindNamePtr)(int) = nullptr;
+}
+
+String LibClangCommandLine()
+{
+	return String();
+}
+
+String LibClangCommandLineC()
+{
+	return String();
+}
+
+#ifdef DYNAMIC_LIBCLANG
+bool TryLoadLibClang()
+{
+#ifdef PLATFORM_MACOS
+	if(LoadLibClang(TrimBoth(Sys("xcode-select -p")) + "/usr/lib"))
+		return true;
+	if(LoadLibClang("/Library/Developer/CommandLineTools/usr/lib"))
+		return true;
+	if(LoadLibClang("/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib"))
+		return true;
+#endif
+#ifdef FLATPAK
+	if(LoadLibClang("/app/lib"))
+		return true;
+#endif
+	// in Mint 21.1, clang installed is 14 but llvm defaults to 15
+	for(String s : Split(Sys("clang --version"), [](int c)->int { return !IsDigit(c); })) {
+		int n = Atoi(s);
+		if(n >= 5 && n < 5000) {
+			if(LoadLibClang("/usr/lib/llvm-" + AsString(n) + "/lib"))
+				return true;
+			if(LoadLibClang("/usr/lib/llvm/" + AsString(n) + "/lib64"))
+				return true;
+			if(LoadLibClang("/usr/lib/llvm/" + AsString(n) + "/lib32"))
+				return true;
+			break;
+		}
+	}
+
+	String libdir = TrimBoth(Sys("llvm-config --libdir"));
+	int q = FindIndex(CommandLine(), "--clangdir");
+	if(q >= 0 && q + 1 < CommandLine().GetCount()) {
+		libdir = CommandLine()[q + 1];
+	}
+	if(LoadLibClang(libdir))
+		return true;
+	if(LoadLibClang("/usr/lib64"))
+		return true;
+	if(LoadLibClang("/usr/lib"))
+		return true;
+	for(int i = 200; i >= 10; i--) {
+		if(LoadLibClang("/usr/lib/llvm-" + AsString(i) + "/lib"))
+			return true;
+		if(LoadLibClang("/usr/lib/llvm/" + AsString(i) + "/lib64"))
+			return true;
+		if(LoadLibClang("/usr/lib/llvm/" + AsString(i) + "/lib32"))
+			return true;
+	}
+	return false;
+}
+#endif
 
 #ifndef bmYEAR
 #include <build_info.h>
@@ -41,7 +108,7 @@ String Ide::GetDefaultMethod()
 String ReplaceMethodDir(String paths, const String& method_dir)
 {
 	constexpr const char* METHOD_DIR = "${METHOD_DIR}";
-	
+
 	if (paths.Find(METHOD_DIR) == -1) {
 		return paths;
 	}
@@ -53,7 +120,7 @@ VectorMap<String, String> Ide::GetMethodVars(const String& method)
 {
 	VectorMap<String, String> map;
 	LoadVarFile(GetMethodName(method), map);
-	
+
 	const String method_dir = GetFileFolder(method);
 	const Vector<String> categories_with_method_dir = {"PATH", "INCLUDE", "LIB" };
 	for (const auto& category : categories_with_method_dir) {
@@ -137,12 +204,16 @@ CONSOLE_APP_MAIN
 					SetExitCode(7);
 					return;
 				}
-				
+
 				hub_dir = args[++i];
 			}
 			else
 			if(ar == "hub-only") {
 				only_hub = true;
+			}
+			else
+			if(ar == "assist-dump") {
+				ide.assist_dump = true;
 			}
 			else {
 				Puts(String("Unrecognized parameter \"") + a + "\".");
@@ -173,6 +244,7 @@ CONSOLE_APP_MAIN
 				case 'j': ccfile = true; break;
 				case 'h': auto_hub = true; break;
 				case 'U': update_hub = true; break;
+				case 'A': ide.assist_dump = true; break;
 				case 'M': {
 					makefile = true;
 					if(s[1] == '=') {
@@ -348,6 +420,83 @@ CONSOLE_APP_MAIN
 			SetExitCode(0);
 		}
 		else
+		if(ide.assist_dump) {
+			using namespace Upp;
+			AssistDiagnostics = true;
+#ifdef DYNAMIC_LIBCLANG
+			TryLoadLibClang();
+#endif
+			if(!HasLibClang()) {
+				Puts("libclang is not available/enabled.\n");
+				SetExitCode(8);
+				return;
+			}
+
+			const Workspace& wspc = ide.IdeWorkspace();
+			Cout() << "Workspace package count: " << wspc.GetCount() << "\n";
+
+			String include_path = Join(GetUppDirs(), ";") + ';';
+			MergeWith(include_path, ";", GetVarsIncludes());
+			VectorMap<String, String> bm = ide.GetMethodVars(ide.method);
+			MergeWith(include_path, ";", bm.Get("INCLUDE", ""));
+			for(int i = 0; i < wspc.GetCount(); i++) {
+				MergeWith(include_path, ";", PackageDirectory(wspc[i]));
+				const Package& pkg = wspc.GetPackage(i);
+				for(int j = 0; j < pkg.include.GetCount(); j++)
+					MergeWith(include_path, ";", SourcePath(wspc[i], pkg.include[j].text));
+			}
+
+			Index<String> flags;
+			for(const String& s : SplitFlags(ide.mainconfigparam, false))
+				flags.FindAdd(s);
+			AddHostFlags(flags);
+			String defines_string;
+			for(String s : flags)
+				MergeWith(defines_string, ";", "flag" + s);
+			for(int i = 0; i < wspc.GetCount(); i++) {
+				const Package& pkg = wspc.GetPackage(i);
+				for(int j = 0; j < pkg.GetCount(); j++) {
+					if(pkg[j] == "main.conf") {
+						MergeWith(defines_string, ";", "MAIN_CONF");
+					}
+				}
+			}
+
+			Indexer::Start(ide.main, include_path, defines_string);
+			for(int i = 0; i < 100; i++) {
+				if(Indexer::IsSchedulerRunning())
+					break;
+				Sleep(10);
+			}
+			while(Indexer::IsRunning() || Indexer::IsSchedulerRunning()) {
+				Sleep(50);
+			}
+
+			struct JsonFileAnnotation : Moveable<JsonFileAnnotation> {
+				String path;
+				Vector<AnnotationItem> items;
+				Vector<ReferenceItem> refs;
+
+				void Jsonize(JsonIO& json) {
+					json("path", path)("items", items)("refs", refs);
+				}
+			};
+
+			Vector<JsonFileAnnotation> list;
+			for(int i = 0; i < CodeIndex().GetCount(); i++) {
+				const FileAnnotation& fa = CodeIndex()[i];
+				JsonFileAnnotation& jfa = list.Add();
+				jfa.path = CodeIndex().GetKey(i);
+				jfa.items <<= fa.items;
+				jfa.refs <<= fa.refs;
+			}
+
+			String json_str = StoreAsJson(list, true);
+			Cout() << json_str << "\n";
+			SetExitCode(0);
+			return;
+		}
+		else
 		if(ide.Build()) {
 			SetExitCode(0);
 			if(run) {
@@ -389,6 +538,7 @@ CONSOLE_APP_MAIN
 		     "    Additional options [-options for example -brU]:\n"
 		     "        a - rebuild all.\n"
 		     "        b - use BLITZ.\n"
+		     "        A - assist dump (libclang symbol extractor).\n"
 		     "        l - silent mode.\n"
 		     "        u - silent mode.\n"
 		     "        m - create a map file.\n"

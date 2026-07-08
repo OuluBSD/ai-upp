@@ -51,6 +51,14 @@ inline bool HasLibClang()
 
 #endif
 
+#ifndef flagGUI
+NAMESPACE_UPP
+struct GuiLock {
+	GuiLock() {}
+};
+END_UPP_NAMESPACE
+#endif
+
 using namespace Upp;
 
 class CoEvent {

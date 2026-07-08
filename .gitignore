@@ -24,6 +24,7 @@ vs**/x64/**
 *.trace
 **/Meta.bin
 task.txt
+task/
 TopGuitar/**
 TopGuitar
 sandbox
@@ -82,7 +83,9 @@ cookie.txt
 .tmp/
 .venv/
 .gemini/
+.claude/
 .ai-upp/
+VerseDesk/
 stdsrc/build/*.o
 stdsrc/build/build
 stdsrc/build/build.exe

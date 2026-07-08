@@ -1,10 +1,5 @@
 #include "clang.h"
 
-#ifndef flagV1
-#include <AI/Core/Core.h>
-#include <ide/Vfs/Vfs.h>
-#endif
-
 #define LLOG(x) // LOG(x)
 
 bool                                   current_file_parsing;
@@ -109,7 +104,9 @@ void DoAnnotations(CurrentFileClang& cfc, int64 serial) {
 		d.pos.y -= cfc.parsed_file.line_delta;
 		d.text = text;
 	});
+#ifdef flagGUI
 	Ctrl::Call([&] {
+#endif
 		if(cfc.parsed_file.filename == current_file.filename &&
 		   cfc.parsed_file.real_filename == current_file.real_filename &&
 		   cfc.parsed_file.includes == current_file.includes &&
@@ -124,11 +121,13 @@ void DoAnnotations(CurrentFileClang& cfc, int64 serial) {
 			fa.master_file = cfc.parsed_file.filename;
 			String path = NormalizePath(cfc.parsed_file.real_filename);
 			CodeIndex().GetAdd(path) = pick(fa);
-			#ifndef flagV1
+			#if !defined(flagV1) && defined(flagGUI)
 			Store(IdeMetaEnv(), fa.includes, path, v.ast);
 			#endif
 		}
+#ifdef flagGUI
 	});
+#endif
 };
 
 void CurrentFileThread()
@@ -246,10 +245,14 @@ void CurrentFileThread()
 							PutAssist(String() << cfc.parsed_file.filename << " autocomplete processed in " << msecs() - tm << " ms");
 						}
 					}
+#ifdef flagGUI
 					Ctrl::Call([&] {
+#endif
 						if(aserial == autocomplete_serial)
 							autocomplete_done(item);
+#ifdef flagGUI
 					});
+#endif
 					current_file_parsing = false;
 					GuiLock __;
 					do_autocomplete = false;

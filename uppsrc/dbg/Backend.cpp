@@ -7,13 +7,13 @@ Vector<DbgBackendInfo> GetPlannedDbgBackends()
 	Vector<DbgBackendInfo> backends;
 	DbgBackendInfo& vs = backends.Add();
 	vs.name = "vs";
-	vs.description = "Visual Studio backend (planned)";
+	vs.description = "Visual Studio / PDB backend";
 	DbgBackendInfo& gdb = backends.Add();
 	gdb.name = "gdb";
-	gdb.description = "GDB backend (planned)";
+	gdb.description = "GDB backend";
 	DbgBackendInfo& lldb = backends.Add();
 	lldb.name = "lldb";
-	lldb.description = "LLDB backend (planned)";
+	lldb.description = "LLDB backend";
 	DbgBackendInfo& java = backends.Add();
 	java.name = "java";
 	java.description = "Java backend";
@@ -51,12 +51,12 @@ static void PrintHelp()
 	       << "  --backends  List planned debugger backends.\n"
 	       << "  --help      Show this help text.\n"
 	       << "\n"
-	       << "Planned backends: " << GetPlannedDbgBackendList() << "\n";
+	       << "Backends: " << GetPlannedDbgBackendList() << "\n";
 }
 
 static void PrintBackends()
 {
-	Cout() << "Planned backends: " << GetPlannedDbgBackendList() << "\n";
+	Cout() << "Backends: " << GetPlannedDbgBackendList() << "\n";
 }
 
 static void PrintBackendHelp(const DbgBackendInfo& backend)
@@ -200,7 +200,15 @@ static int RunBackendCommand(const DbgBackendInfo& backend, const Vector<String>
 			Cout() << "  #" << i << " ";
 			if(!f.address.IsEmpty())
 				Cout() << f.address << " in ";
-			Cout() << f.function;
+			if(!f.module.IsEmpty()) {
+				Cout() << f.module;
+				if(!f.function.IsEmpty())
+					Cout() << '!';
+			}
+			if(!f.function.IsEmpty())
+				Cout() << f.function;
+			else if(f.module.IsEmpty() && !f.address.IsEmpty())
+				Cout() << f.address;
 			if(!f.source_file.IsEmpty()) {
 				Cout() << " at " << f.source_file;
 				if(!IsNull(f.line))

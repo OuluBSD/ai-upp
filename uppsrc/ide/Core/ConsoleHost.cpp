@@ -17,6 +17,34 @@ int IdeCoreConsoleHost::Execute(const char *cmdline, String *output, const char 
 	return code;
 }
 
+int IdeCoreConsoleHost::Execute(const char *cmdline, Event<String> on_output, const char *envptr, bool quiet)
+{
+	if(!Run(cmdline, envptr))
+		return -1;
+	while(IsRunning()) {
+		String s = process->Get();
+		if(!s.IsEmpty()) {
+			buffer << s;
+			on_output(s);
+			if(!quiet)
+				Cout() << s;
+		}
+		Sleep(10);
+	}
+	if(process) {
+		String s = process->Get();
+		if(!s.IsEmpty()) {
+			buffer << s;
+			on_output(s);
+			if(!quiet)
+				Cout() << s;
+		}
+		exit_code = process->GetExitCode();
+		process.Clear();
+	}
+	return exit_code;
+}
+
 bool IdeCoreConsoleHost::Run(const char *cmdline, const char *envptr)
 {
 	if(IsRunning())

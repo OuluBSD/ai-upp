@@ -943,6 +943,7 @@ Options ParseArgs(int argc, char* argv[]) {
         } else if (arg == "-cr" || arg == "--conf-release") {
             opts.conf_mode = "release";
         } else if (arg == "-cd" || arg == "--conf-debug") {
+            // This selects the debug mainconfig. It is not the umk -d flag, which disables debug symbols.
             opts.conf_mode = "debug";
         } else if (arg == "-M" || arg == "-mc" || arg == "--mainconfig") {
             if (++i < argc) opts.mainconf = argv[i];

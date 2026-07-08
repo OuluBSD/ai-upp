@@ -3,6 +3,23 @@
 
 NAMESPACE_UPP
 
+namespace {
+int ValidLocalPlayers(int value)
+{
+	return value >= 2 && value <= 10 ? value : 10;
+}
+
+int ValidLocalCash(int value)
+{
+	return value >= 1000 && value <= 1000000 ? value : 2000;
+}
+
+int ValidLocalSpeed(int value)
+{
+	return value >= 1 && value <= 11 ? value : 4;
+}
+}
+
 NewGameWindow::NewGameWindow()
 {
 	CtrlLayout(*this);
@@ -18,14 +35,9 @@ NewGameWindow::NewGameWindow()
 
 void NewGameWindow::Init(class ConfigFile& config)
 {
-	numPlayers.SetData(config.readConfigInt("LocalNumPlayers"));
-	if (numPlayers.GetData().IsNull()) numPlayers.SetData(10);
-	
-	startCash.SetData(config.readConfigInt("LocalStartCash"));
-	if (startCash.GetData().IsNull()) startCash.SetData(2000);
-	
-	gameSpeed.SetData(config.readConfigInt("LocalGameSpeed"));
-	if (gameSpeed.GetData().IsNull()) gameSpeed.SetData(4);
+	numPlayers.SetData(ValidLocalPlayers(config.readConfigInt("LocalNumPlayers")));
+	startCash.SetData(ValidLocalCash(config.readConfigInt("LocalStartCash")));
+	gameSpeed.SetData(ValidLocalSpeed(config.readConfigInt("LocalGameSpeed")));
 }
 
 void NewGameWindow::OnOK()

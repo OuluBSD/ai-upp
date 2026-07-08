@@ -54,7 +54,10 @@ GUI_APP_MAIN
 		Cout() << "Usage: CardEngine [options]\n"
 		       << "Options:\n"
 		       << "  --test-assets          Verify critical assets\n"
-		       << "  --dump-render-image    Dump a snapshot of the testing project to tmp/pokerth_screenshot.png\n"
+		       << "  --dump-render-image    Dump a snapshot of the testing project to tmp/texas_holdem_screenshot.png\n"
+		       << "  --dump-layout-rects    Print GameTable layout rectangles and exit\n"
+		       << "  --dump-new-game-defaults Print embedded setup defaults and exit\n"
+		       << "  --dump-embedded-start  Start embedded local game, print layout/game state, and exit\n"
 		       << "  --project <name>       Project name for --dump-render-image (default: testing)\n"
 		       << "  --out <path>           Output path for --dump-render-image\n"
 		       << "  --test-gameplay        Run a short gameplay simulation test\n"
@@ -88,7 +91,7 @@ GUI_APP_MAIN
 	if (args.GetCount() > 0 &&
 	    (args[0] == "--dump-render" || args[0] == "--dump-render-image" || args[0] == "--dump-render-normal")) {
 		bool image_mode = args[0] != "--dump-render-normal";
-		String out_path = AppendFileName(GetCurrentDirectory(), "tmp/pokerth_screenshot.png");
+		String out_path = AppendFileName(GetCurrentDirectory(), "tmp/texas_holdem_screenshot.png");
 		String project_name = "testing";
 		for (int i = 1; i < args.GetCount(); i++) {
 			if (args[i] == "--out" && i + 1 < args.GetCount()) {
@@ -131,6 +134,64 @@ GUI_APP_MAIN
 		Cout().Flush();
 		// Dump-render is a snapshot utility path; force immediate exit to avoid
 		// GUI teardown instability in X11 debug runs.
+		std::_Exit(0);
+	}
+
+	if (args.GetCount() > 0 && args[0] == "--dump-layout-rects") {
+		Size size(1024, 648);
+		for(int i = 1; i < args.GetCount(); i++) {
+			if(args[i] == "--size" && i + 1 < args.GetCount()) {
+				Vector<String> part = Split(args[++i], 'x');
+				if(part.GetCount() == 2)
+					size = Size(max(1, StrInt(part[0])), max(1, StrInt(part[1])));
+			}
+		}
+		GameTable table;
+		table.SetRect(0, 0, size.cx, size.cy);
+		table.RefreshLayoutDeep();
+		table.Layout();
+		table.RefreshLayoutDeep();
+		table.DumpLayoutRects(Cout());
+		Cout().Flush();
+		std::_Exit(0);
+	}
+
+	if (args.GetCount() > 0 && args[0] == "--dump-new-game-defaults") {
+		StartWindow start;
+		start.Init(config, engineLog);
+		start.ShowSetupForTest();
+		start.DumpSetupState(Cout());
+		Cout().Flush();
+		std::_Exit(0);
+	}
+
+	if (args.GetCount() > 0 && args[0] == "--dump-embedded-start") {
+		Size size(1024, 720);
+		int num_players = LOCAL_GAME_DEFAULT_NUM_PLAYERS;
+		int start_cash = LOCAL_GAME_DEFAULT_START_CASH;
+		int game_speed = LOCAL_GAME_DEFAULT_SPEED;
+		for(int i = 1; i < args.GetCount(); i++) {
+			if(args[i] == "--size" && i + 1 < args.GetCount()) {
+				Vector<String> part = Split(args[++i], 'x');
+				if(part.GetCount() == 2)
+					size = Size(max(1, StrInt(part[0])), max(1, StrInt(part[1])));
+			}
+			else if(args[i] == "--num-players" && i + 1 < args.GetCount())
+				num_players = StrInt(args[++i]);
+			else if(args[i] == "--start-cash" && i + 1 < args.GetCount())
+				start_cash = StrInt(args[++i]);
+			else if(args[i] == "--game-speed" && i + 1 < args.GetCount())
+				game_speed = StrInt(args[++i]);
+		}
+		StartWindow start;
+		start.Init(config, engineLog);
+		start.SetRect(0, 0, size.cx, size.cy);
+		start.Layout();
+		start.StartLocalGameForTest(num_players, start_cash, game_speed);
+		start.Layout();
+		Ctrl::ProcessEvents();
+		start.DumpEmbeddedGameState(Cout());
+		Cout().Flush();
 		std::_Exit(0);
 	}
 	

@@ -868,8 +868,13 @@ void FormEdit<T>::OpenLayoutProperties()
 	FormLayout* l = _View.GetCurrentLayout();
 	if (!l) { LastFontZoom(); return; }
 
+	dlg.ScaleMode.Add("None");
+	dlg.ScaleMode.Add("Fit");
+	dlg.ScaleMode.Add("Relative");
 	dlg.Width  <<= l->GetFormSize().cx;
 	dlg.Height <<= l->GetFormSize().cy;
+	String scale_mode = l->Get("Form.ScaleMode", "None");
+	dlg.ScaleMode <<= scale_mode.IsEmpty() ? String("None") : scale_mode;
 	dlg.MaximizeOption <<= l->GetBool("Form.MaximizeBox", false);
 	dlg.MinimizeOption <<= l->GetBool("Form.MinimizeBox", false);
 	dlg.SizeableOption <<= l->GetBool("Form.Sizeable", false);
@@ -883,6 +888,11 @@ void FormEdit<T>::OpenLayoutProperties()
 	}
 
 	_View.SetFormSize(Size(~dlg.Width, ~dlg.Height));
+	String selected_scale = AsString(~dlg.ScaleMode);
+	if(selected_scale == "None")
+		l->Remove("Form.ScaleMode");
+	else
+		l->Set("Form.ScaleMode", selected_scale);
 	l->SetBool("Form.MaximizeBox", dlg.MaximizeOption.Get());
 	l->SetBool("Form.MinimizeBox", dlg.MinimizeOption.Get());
 	l->SetBool("Form.ToolWindow", dlg.ToolOption.Get());

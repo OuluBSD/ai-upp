@@ -353,6 +353,7 @@
 			<properties>
 				<property name="Form.Width" value="1024"/>
 				<property name="Form.Height" value="648"/>
+				<property name="Form.ScaleMode" value="Relative"/>
 				<property name="Form.Name" value="GameTable"/>
 			</properties>
 		</item>

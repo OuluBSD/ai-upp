@@ -275,7 +275,7 @@ void PropertiesWindow::Generate(FormObject* pI, int index)
 		Property("Form.Path", t_("Path:"), "EditField", Array<String>() << pI->Get("Form.Path"));
 		Property("Form.Layout", t_("Layout:"), "EditField", Array<String>() << pI->Get("Form.Layout"));
 		Property("Form.ScaleMode", t_("Scale mode:"), "DropList",
-			Array<String>() << pI->Get("Form.ScaleMode") << "None" << "Fit");
+			Array<String>() << pI->Get("Form.ScaleMode") << "None" << "Fit" << "Relative");
 	}
 
 	if (type == "TabCtrl")

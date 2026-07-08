@@ -16,6 +16,7 @@ public:
 	enum ScaleMode {
 		SCALE_NONE,
 		SCALE_FIT,
+		SCALE_RELATIVE,
 	};
 
 	 Form();

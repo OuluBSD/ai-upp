@@ -207,6 +207,8 @@ public:
 	void RenderToImage(Draw& w);
 	void RenderNormalSnapshot(Draw& w);
 	bool DumpSnapshot(const String& path, bool image_mode);
+	void DumpLayoutRects(Stream& out) const;
+	void DumpGameState(Stream& out) const;
 	void LoadTheme(const String& themeName);
 	void SetProjectContext(const String& project_name, const String& platform_name = "texas-holdem");
 	void UpdateProbabilities();

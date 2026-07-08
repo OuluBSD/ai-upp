@@ -16,15 +16,26 @@ using namespace Upp;
 
 NAMESPACE_UPP
 
+void InitLocalGame(GameTable& table, int numPlayers, int startCash, int gameSpeed,
+                   class ConfigFile& config, EngineLog& engineLog);
+
 void RunLocalGame(int numPlayers, int startCash, int gameSpeed, class ConfigFile& config, EngineLog& engineLog)
+{
+	auto table = std::make_shared<GameTable>();
+	InitLocalGame(*table, numPlayers, startCash, gameSpeed, config, engineLog);
+	table->Run();
+}
+
+void InitLocalGame(GameTable& table, int numPlayers, int startCash, int gameSpeed,
+                   class ConfigFile& config, EngineLog& engineLog)
 {
 	PlayerDataList pdList;
 	String humanNick = config.readConfigString("Nick");
 	if (humanNick.IsEmpty()) humanNick = "Player";
-	
+
 	pdList.push_back(std::make_shared<PlayerData>(0, 0, PLAYER_TYPE_HUMAN, PLAYER_RIGHTS_ADMIN, true));
 	pdList.back()->SetName(humanNick);
-	
+
 	for (int i = 1; i < numPlayers; i++) {
 		pdList.push_back(std::make_shared<PlayerData>(i, i, PLAYER_TYPE_COMPUTER, PLAYER_RIGHTS_NORMAL, false));
 		pdList.back()->SetName(Format("Computer %d", i));
@@ -40,18 +51,15 @@ void RunLocalGame(int numPlayers, int startCash, int gameSpeed, class ConfigFile
 	sData.numberOfPlayers = numPlayers;
 	sData.startDealerPlayerId = 0;
 
-	auto table = std::make_shared<GameTable>();
 	auto factory = std::make_shared<LocalEngineFactory>();
-	
-	auto game = std::make_shared<Game>(table.get(), factory, pdList, gData, sData, 1, &engineLog, &config);
-	table->SetGame(game);
-	table->SetProjectContext("default", "texas-holdem");
-	table->SetScriptAutomationEnabled(false);
-	
+
+	auto game = std::make_shared<Game>(&table, factory, pdList, gData, sData, 1, &engineLog, &config);
+	table.SetGame(game);
+	table.SetProjectContext("default", "texas-holdem");
+	table.SetScriptAutomationEnabled(false);
+
 	game->initHand();
 	game->startHand();
-	
-	table->Run();
 }
 
 namespace {

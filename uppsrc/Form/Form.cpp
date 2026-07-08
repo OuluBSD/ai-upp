@@ -52,6 +52,8 @@ static Form::ScaleMode ParseScaleMode(const String& s)
 {
 	if (s == "Fit")
 		return Form::SCALE_FIT;
+	if (s == "Relative")
+		return Form::SCALE_RELATIVE;
 	return Form::SCALE_NONE;
 }
 
@@ -129,6 +131,9 @@ bool Form::Layout(const String& layout, Font font)
 		if (_Layouts[i].Get("Form.Name") == layout)
 		{
 			_Current = i;
+			String scale_mode = _Layouts[i].Get("Form.ScaleMode");
+			if(!scale_mode.IsEmpty())
+				SetScaleMode(ParseScaleMode(scale_mode));
 			return Generate(font);
 	}
 	return false;
@@ -139,10 +144,10 @@ void Form::Layout()
 	if(!IsLayout() || _Ctrls.IsEmpty())
 		return;
 
-	if(_ScaleMode != SCALE_FIT) {
+	if(_ScaleMode != SCALE_FIT && _ScaleMode != SCALE_RELATIVE) {
 		for(Ctrl& ctrl : _Ctrls)
 			if(Form* form = dynamic_cast<Form*>(&ctrl))
-				if(form->GetScaleMode() == SCALE_FIT)
+				if(form->GetScaleMode() == SCALE_FIT || form->GetScaleMode() == SCALE_RELATIVE)
 					form->Layout();
 		return;
 	}
@@ -152,6 +157,13 @@ void Form::Layout()
 	Size size = GetSize();
 	if(base.cx <= 0 || base.cy <= 0 || size.cx <= 0 || size.cy <= 0)
 		return;
+
+	if(_ScaleMode == SCALE_RELATIVE) {
+		for(Ctrl& ctrl : _Ctrls)
+			if(Form* form = dynamic_cast<Form*>(&ctrl))
+				form->Layout();
+		return;
+	}
 
 	double scale = min((double)size.cx / base.cx, (double)size.cy / base.cy);
 	int scaled_cx = max(1, int(base.cx * scale + 0.5));
@@ -180,7 +192,8 @@ bool Form::Generate(Font font)
 	Clear(false);
 
 	Size sz = _Layouts[_Current].GetFormSize();
-	SetRect( Rect(Point(0, 0), Size(HorzLayoutZoom(sz.cx), VertLayoutZoom(sz.cy))) );
+	if(!GetParent())
+		SetRect(Rect(Point(0, 0), Size(HorzLayoutZoom(sz.cx), VertLayoutZoom(sz.cy))));
 
 	Array<FormObject>* p = &_Layouts[_Current].GetObjects();
 
@@ -422,36 +435,42 @@ bool Form::Generate(Font font)
 		if(!anchor.IsEmpty())
 			ResolveAnchorLayout(obj_rect, h_align, v_align, anchor, sz);
 
-		switch(h_align)
-		{
-			case Ctrl::LEFT:
-				c.LeftPosZ(obj_rect.left, obj_rect.Width());
-				break;
-			case Ctrl::RIGHT:
-				c.RightPosZ(obj_rect.left, obj_rect.Width());
-				break;
-			case Ctrl::SIZE:
-				c.HSizePosZ(obj_rect.left, sz.cx - obj_rect.right);
-				break;
-			case Ctrl::CENTER:
-				c.HCenterPosZ(obj_rect.Width(), obj_rect.left);
-				break;
-		}
+		if(_ScaleMode == SCALE_RELATIVE && sz.cx > 0 && sz.cy > 0)
+			c.SizeRel((double)obj_rect.left / sz.cx, (double)obj_rect.top / sz.cy,
+			          (double)(sz.cx - obj_rect.right) / sz.cx,
+			          (double)(sz.cy - obj_rect.bottom) / sz.cy);
+		else {
+			switch(h_align)
+			{
+				case Ctrl::LEFT:
+					c.LeftPosZ(obj_rect.left, obj_rect.Width());
+					break;
+				case Ctrl::RIGHT:
+					c.RightPosZ(obj_rect.left, obj_rect.Width());
+					break;
+				case Ctrl::SIZE:
+					c.HSizePosZ(obj_rect.left, sz.cx - obj_rect.right);
+					break;
+				case Ctrl::CENTER:
+					c.HCenterPosZ(obj_rect.Width(), obj_rect.left);
+					break;
+			}
 
-		switch(v_align)
-		{
-			case Ctrl::TOP:
-				c.TopPosZ(obj_rect.top, obj_rect.Height());
-				break;
-			case Ctrl::BOTTOM:
-				c.BottomPosZ(obj_rect.top, obj_rect.Height());
-				break;
-			case Ctrl::SIZE:
-				c.VSizePosZ(obj_rect.top, sz.cy - obj_rect.bottom);
-				break;
-			case Ctrl::CENTER:
-				c.VCenterPosZ(obj_rect.Height(), obj_rect.top);
-				break;
+			switch(v_align)
+			{
+				case Ctrl::TOP:
+					c.TopPosZ(obj_rect.top, obj_rect.Height());
+					break;
+				case Ctrl::BOTTOM:
+					c.BottomPosZ(obj_rect.top, obj_rect.Height());
+					break;
+				case Ctrl::SIZE:
+					c.VSizePosZ(obj_rect.top, sz.cy - obj_rect.bottom);
+					break;
+				case Ctrl::CENTER:
+					c.VCenterPosZ(obj_rect.Height(), obj_rect.top);
+					break;
+			}
 		}
 
 		String frame = (*p)[i].Get("Frame");
@@ -477,6 +496,21 @@ bool Form::Generate(Font font)
 		if(!parent.IsEmpty()) {
 			if(Ctrl* parent_ctrl = GetCtrl(parent)) {
 				parent_ctrl->Add(c);
+				if(_ScaleMode == SCALE_RELATIVE) {
+					Size parent_size;
+					for(int j = 0; j < p->GetCount(); j++)
+						if((*p)[j].Get("Variable") == parent) {
+							parent_size = (*p)[j].GetRect().GetSize();
+							break;
+						}
+					if(parent_size.cx > 0 && parent_size.cy > 0) {
+						Rect child_rect = (*p)[i].GetRect();
+						c.SizeRel((double)child_rect.left / parent_size.cx,
+						          (double)child_rect.top / parent_size.cy,
+						          (double)(parent_size.cx - child_rect.right) / parent_size.cx,
+						          (double)(parent_size.cy - child_rect.bottom) / parent_size.cy);
+					}
+				}
 				continue;
 			}
 		}
@@ -530,12 +564,14 @@ String FormWindow::ExecuteForm()
 
 void Form::Clear(bool all)
 {
-	if (all) _Layouts.Clear();
+	if (all) {
+		_Layouts.Clear();
+		_ScaleMode = SCALE_NONE;
+	}
 	_Rejectors.Clear();
 	_Acceptors.Clear();
 	_Ctrls.Clear();
 	Script.Clear();
-	_ScaleMode = SCALE_NONE;
 }
 
 int Form::HasLayout(const String& layout)

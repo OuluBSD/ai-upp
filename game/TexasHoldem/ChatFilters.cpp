@@ -202,13 +202,13 @@ MessageFilter::Result MessageFilter::Check(unsigned gameId, unsigned playerId, c
 			}
 		} else if(action == KICK) {
 			res.action = "kick";
-			res.message = nick + " kicked! Please respect: https://chatrules.pokerth.net\n";
+			res.message = nick + " kicked! Please respect the table chat rules.\n";
 		} else if(action == KICKBAN) {
 			res.action = "kickban";
-			res.message = nick + " kicked and banned! Please respect: https://chatrules.pokerth.net\n";
+			res.message = nick + " kicked and banned! Please respect the table chat rules.\n";
 		} else if(action == MUTE) {
 			res.action = "mute";
-			res.message = nick + " muted! Please respect: https://chatrules.pokerth.net\n";
+			res.message = nick + " muted! Please respect the table chat rules.\n";
 		}
 	}
 	return res;

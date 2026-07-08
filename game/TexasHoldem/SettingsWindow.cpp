@@ -180,7 +180,7 @@ void SettingsWindow::Init(class ConfigFile& config)
 	SetConfigData(networkGamePage.useSctp, m_config, "UseSctp", 0);
 
 	// Internet
-	SetConfigData(internetGamePage.server.serverList, m_config, "ServerListAddress", "http://www.pokerth.net/serverlist.xml");
+	SetConfigData(internetGamePage.server.serverList, m_config, "ServerListAddress", "");
 	
 	// Nicks
 	SetConfigData(nicksPage.humanNick, m_config, "Nick", "Player");

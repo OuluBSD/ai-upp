@@ -338,13 +338,11 @@ GameTable::GameTable()
 
 	RegisterGameTableFormFactories();
 	Add(m_form.SizePos());
-	m_form.SetScaleMode(Form::SCALE_FIT);
 	String form_path = ResolveFormPath();
 	bool form_loaded = m_form.Load(form_path);
 	bool layout_ok = false;
-	if (form_loaded) {
+	if (form_loaded)
 		layout_ok = m_form.Layout("GameTable");
-	}
 	if (form_loaded && layout_ok)
 		BindFormControls();
 	else {
@@ -450,6 +448,7 @@ GameTable::~GameTable() {}
 void GameTable::Layout()
 {
 	TopWindow::Layout();
+	m_form.RefreshLayoutDeep();
 	Refresh();
 }
 
@@ -481,7 +480,7 @@ void GameTable::ViewMenu(Bar& bar)
 
 void GameTable::OnSaveScreenshot()
 {
-	String path = AppendFileName(GetCurrentDirectory(), "tmp/pokerth_screenshot.png");
+	String path = AppendFileName(GetCurrentDirectory(), "tmp/texas_holdem_screenshot.png");
 	if (DumpSnapshot(path, true))
 		AppendLog("Screenshot saved to " + path);
 }
@@ -495,6 +494,95 @@ bool GameTable::DumpSnapshot(const String& path, bool image_mode)
 		RenderNormalSnapshot(id);
 	Image img = id;
 	return SaveSnapshotPng(path, img);
+}
+
+void GameTable::DumpLayoutRects(Stream& out) const
+{
+	out << "window " << GetRect() << " size=" << GetSize() << "\n";
+	out << "form " << m_form.GetRect() << " size=" << m_form.GetSize()
+	    << " scale_mode=" << (int)m_form.GetScaleMode() << "\n";
+	out << "board " << Board().GetRect() << "\n";
+	for(int i = 0; i < 10; i++)
+		out << "player" << i << " " << players[i].GetRect() << " rel=" << players[i].IsRelPos() << "\n";
+	out << "pot_title " << LblPotTitle().GetRect() << "\n";
+	out << "pot_total " << LblPotTotal().GetRect() << "\n";
+	out << "pot_bets " << LblPotBets().GetRect() << "\n";
+	out << "turn_title " << LblTurnTitle().GetRect() << "\n";
+	out << "game_info " << LblGameInfo().GetRect() << "\n";
+	out << "hand_info " << LblHandInfo().GetRect() << "\n";
+	out << "tab_left " << TabLeft().GetRect() << "\n";
+	out << "tab_right " << TabRight().GetRect() << "\n";
+	out << "human_buttons " << HumanButtons().GetRect() << "\n";
+	out << "btn_all_in " << BtnAllIn().GetRect() << " rel=" << BtnAllIn().IsRelPos() << "\n";
+	out << "edit_bet " << EditBet().GetRect() << " rel=" << EditBet().IsRelPos() << "\n";
+	out << "slider_bet " << SliderBet().GetRect() << " rel=" << SliderBet().IsRelPos() << "\n";
+	out << "btn_bet_raise " << BtnBetRaise().GetRect() << " rel=" << BtnBetRaise().IsRelPos() << "\n";
+	out << "btn_check_call " << BtnCheckCall().GetRect() << " rel=" << BtnCheckCall().IsRelPos() << "\n";
+	out << "btn_fold " << BtnFold().GetRect() << " rel=" << BtnFold().IsRelPos() << "\n";
+	out << "speed_label " << LblSpeed().GetRect() << "\n";
+	out << "speed_slider " << SliderSpeed().GetRect() << "\n";
+	out << "pause_button " << BtnPause().GetRect() << "\n";
+	out.Flush();
+}
+
+void GameTable::DumpGameState(Stream& out) const
+{
+	out << "game_state has_game=" << (m_game ? 1 : 0)
+	    << " image_mode=" << (m_imageMode ? 1 : 0)
+	    << " table_shown=" << (IsShown() ? 1 : 0)
+	    << " size=" << GetSize() << "\n";
+	if (!m_game) {
+		out.Flush();
+		return;
+	}
+
+	auto hand = m_game->getCurrentHand();
+	auto bero = hand ? hand->getCurrentBeRo() : nullptr;
+	out << "game ids game=" << m_game->getMyGameID()
+	    << " hand=" << m_game->getCurrentHandID()
+	    << " over=" << (m_game->isGameOver() ? 1 : 0)
+	    << " players=" << m_game->getStartQuantityPlayers()
+	    << " has_hand=" << (hand ? 1 : 0)
+	    << " has_bero=" << (bero ? 1 : 0);
+	if (bero)
+		out << " turn_uid=" << bero->getCurrentPlayersTurnId();
+	out << "\n";
+
+	out << "board_cards";
+	for (int i = 0; i < 5; i++)
+		out << " " << boardCards[i];
+	out << "\n";
+	out << "labels pot_total_shown=" << (LblPotTotal().IsShown() ? 1 : 0)
+	    << " pot_bets_shown=" << (LblPotBets().IsShown() ? 1 : 0)
+	    << " turn_shown=" << (LblTurnTitle().IsShown() ? 1 : 0)
+	    << " game_shown=" << (LblGameInfo().IsShown() ? 1 : 0)
+	    << " hand_shown=" << (LblHandInfo().IsShown() ? 1 : 0) << "\n";
+	out << "human_buttons shown=" << (HumanButtons().IsShown() ? 1 : 0)
+	    << " rect=" << HumanButtons().GetRect() << "\n";
+
+	int player_count = min(10, m_game->getStartQuantityPlayers());
+	for (int i = 0; i < player_count; i++) {
+		auto player = m_game->getPlayerByNumber(i);
+		out << "player" << i << " exists=" << (player ? 1 : 0)
+		    << " ctrl_shown=" << (players[i].IsShown() ? 1 : 0)
+		    << " rect=" << players[i].GetRect();
+		if (player) {
+			int card1 = -2;
+			int card2 = -2;
+			player->getMyCards(card1, card2);
+			out << " uid=" << player->getMyUniqueID()
+			    << " active=" << (player->getMyActiveStatus() ? 1 : 0)
+			    << " cash=" << player->getMyCash()
+			    << " set=" << player->getMySet()
+			    << " action=" << (int)player->getMyAction()
+			    << " cards=" << card1 << "," << card2
+			    << " carda_shown=" << (players[i].pixmapLabel_carda.IsShown() ? 1 : 0)
+			    << " cardb_shown=" << (players[i].pixmapLabel_cardb.IsShown() ? 1 : 0)
+			    << " cards_shown=" << (players[i].pixmapLabel_cards.IsShown() ? 1 : 0);
+		}
+		out << "\n";
+	}
+	out.Flush();
 }
 
 void GameTable::OnViewNormal()

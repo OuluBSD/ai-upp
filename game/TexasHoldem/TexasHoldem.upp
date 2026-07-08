@@ -96,6 +96,7 @@ file
 	GameTable.h,
 	GameTable.cpp,
 	StartWindow.form,
+	NewGame.form,
 	StartWindow.h,
 	StartWindow.cpp,
 	LobbyWindow.lay,

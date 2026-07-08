@@ -1231,6 +1231,7 @@ public:
 	bool        InFrame() const                          { return inframe; }
 	bool        InView() const                           { return !inframe; }
 	LogPos      GetPos() const                           { return pos; }
+	bool        IsRelPos() const                         { return relpos; }
 
 	void        RefreshLayout()                          { SyncLayout(1); }
 	void        RefreshLayoutDeep()                      { SyncLayout(2); }

@@ -31,6 +31,26 @@ static LayoutBaseCoords GetCoords() {
 		c.hero_l = 790; c.hero_t = 694; c.hero_r = 1130; c.hero_b = 900;
 		c.other_t = 144; c.other_b = 296;
 	}
+	else if (p == "ps-6p" || p == "ps_6p" || p == "pokerstars-6p") {
+		c.table_l = 0; c.table_t = 0; c.table_r = 1920; c.table_b = 1080;
+		c.pot_l = 873; c.pot_t = 318; c.pot_r = 1057; c.pot_b = 347;
+		c.pot_tx = 873; c.pot_ty = 318;
+		c.round_tx = 875; c.round_ty = 530;
+		c.board_x = 641; c.board_y = 349; c.board_step = 131; c.board_w = 122; c.board_h = 143;
+		c.hero_l = 704; c.hero_t = 606; c.hero_r = 1162; c.hero_b = 849;
+		c.hero_c1_dx = 136; c.hero_c2_dx = 261; c.hero_c_dy = 55;
+		c.use_fixed_players = true;
+		const int pl[10] = {704, 31, 90, 750, 1141, 1215, 2, 4, 6, 8};
+		const int pt[10] = {606, 445, 112, 17, 105, 448, 2, 2, 2, 2};
+		const int pr[10] = {1162, 733, 783, 1278, 1842, 1902, 4, 6, 8, 10};
+		const int pb[10] = {876, 669, 413, 315, 412, 668, 4, 4, 4, 4};
+		for (int i = 0; i < 10; i++) {
+			c.player_l[i] = pl[i];
+			c.player_t[i] = pt[i];
+			c.player_r[i] = pr[i];
+			c.player_b[i] = pb[i];
+		}
+	}
 	else if (p == "texas-holdem-legacy-pokertable" || p == "legacy-pokertable") {
 		// Matches original PokerTable fixed 10-seat ring geometry (scaled to 1920x1080 base space).
 		c.table_l = 0; c.table_t = 0; c.table_r = 1920; c.table_b = 1080;
@@ -69,6 +89,7 @@ String TexasTableLayout::GetProfile() {
 Vector<String> TexasTableLayout::GetProfiles() {
 	Vector<String> v;
 	v.Add("texas-holdem-classic");
+	v.Add("ps-6p");
 	v.Add("pokerth-v13i");
 	v.Add("texas-holdem-legacy-pokertable");
 	return v;

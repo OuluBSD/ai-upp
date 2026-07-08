@@ -16,17 +16,26 @@ using namespace Upp;
 
 NAMESPACE_UPP
 
-void InitLocalGame(GameTable& table, int numPlayers, int startCash, int gameSpeed,
+namespace {
+bool IsPs6pProvider(const String& provider)
+{
+	String p = ToLower(TrimBoth(provider));
+	return p == "ps_6p" || p == "ps-6p" || p == "pokerstars-6p";
+}
+}
+
+void InitLocalGame(GameTable& table, int numPlayers, int startCash, int gameSpeed, const String& provider,
                    class ConfigFile& config, EngineLog& engineLog);
 
-void RunLocalGame(int numPlayers, int startCash, int gameSpeed, class ConfigFile& config, EngineLog& engineLog)
+void RunLocalGame(int numPlayers, int startCash, int gameSpeed, const String& provider,
+                  class ConfigFile& config, EngineLog& engineLog)
 {
-	auto table = std::make_shared<GameTable>();
-	InitLocalGame(*table, numPlayers, startCash, gameSpeed, config, engineLog);
+	auto table = std::make_shared<GameTable>(provider);
+	InitLocalGame(*table, numPlayers, startCash, gameSpeed, provider, config, engineLog);
 	table->Run();
 }
 
-void InitLocalGame(GameTable& table, int numPlayers, int startCash, int gameSpeed,
+void InitLocalGame(GameTable& table, int numPlayers, int startCash, int gameSpeed, const String& provider,
                    class ConfigFile& config, EngineLog& engineLog)
 {
 	PlayerDataList pdList;
@@ -55,7 +64,7 @@ void InitLocalGame(GameTable& table, int numPlayers, int startCash, int gameSpee
 
 	auto game = std::make_shared<Game>(&table, factory, pdList, gData, sData, 1, &engineLog, &config);
 	table.SetGame(game);
-	table.SetProjectContext("default", "texas-holdem");
+	table.SetProjectContext("default", IsPs6pProvider(provider) ? "ps-6p" : "texas-holdem");
 	table.SetScriptAutomationEnabled(false);
 
 	game->initHand();

@@ -41,17 +41,32 @@ static void RegisterGameTableFormFactories()
 	RegisterFormCtrlType<RichTextView>("RichTextView");
 }
 
-String GameTable::ResolveFormPath()
+String GameTable::ResolveFormPath(const String& provider)
 {
+	String form_name = "GameTable.form";
+	String p = ToLower(TrimBoth(provider));
+	if (p == "ps_6p" || p == "ps-6p" || p == "pokerstars-6p")
+		form_name = "GameTable_PS_6p.form";
 	Vector<String> candidates;
-	candidates.Add(AppendFileName(GetCurrentDirectory(), "game/TexasHoldem/GameTable.form"));
-	candidates.Add(AppendFileName(GetFileDirectory(GetExeFilePath()), "../game/TexasHoldem/GameTable.form"));
-	candidates.Add(ConfigFile("GameTable.form"));
+	candidates.Add(AppendFileName(GetCurrentDirectory(), "game/TexasHoldem/" + form_name));
+	candidates.Add(AppendFileName(GetFileDirectory(GetExeFilePath()), "../game/TexasHoldem/" + form_name));
+	candidates.Add(ConfigFile(form_name));
 	for (const String& candidate : candidates) {
-		if (FileExists(candidate))
+		if (FileExists(candidate)) {
+			Cout() << "[TexasHoldem] provider='" << provider << "' using form candidate: " << candidate << "\n";
 			return candidate;
+		}
 	}
-	return ConfigFile("GameTable.form");
+	Cout() << "[TexasHoldem] provider='" << provider << "' falling back to config form: " << form_name << "\n";
+	return ConfigFile(form_name);
+}
+
+String GameTable::ProviderToLayoutProfile(const String& provider)
+{
+	String p = ToLower(TrimBoth(provider));
+	if (p == "ps_6p" || p == "ps-6p" || p == "pokerstars-6p")
+		return "ps-6p";
+	return "texas-holdem-classic";
 }
 
 template <class T>
@@ -328,8 +343,9 @@ void PlayerCtrl::Layout()
 	label_Timeout.SetRect((int)(10 * fx), (int)(70 * fy), max(1, (int)(60 * fx)), max(1, (int)(5 * fy)));
 }
 
-GameTable::GameTable()
+GameTable::GameTable(const String& provider)
 {
+	Cout() << "[TexasHoldem] GameTable ctor provider='" << provider << "'\n";
 	players.Bind(this);
 	Sizeable().Zoomable();
 	Title(t_("PKR Game Table"));
@@ -338,11 +354,14 @@ GameTable::GameTable()
 
 	RegisterGameTableFormFactories();
 	Add(m_form.SizePos());
-	String form_path = ResolveFormPath();
+	String form_path = ResolveFormPath(provider);
 	bool form_loaded = m_form.Load(form_path);
 	bool layout_ok = false;
-	if (form_loaded)
+	Cout() << "[TexasHoldem] form load result path='" << form_path << "' loaded=" << (form_loaded ? 1 : 0) << "\n";
+	if (form_loaded) {
 		layout_ok = m_form.Layout("GameTable");
+		Cout() << "[TexasHoldem] layout result name='GameTable' ok=" << (layout_ok ? 1 : 0) << "\n";
+	}
 	if (form_loaded && layout_ok)
 		BindFormControls();
 	else {
@@ -409,6 +428,7 @@ GameTable::GameTable()
 		}
 	};
 	SetProjectContext("default", "texas-holdem");
+	TexasTableLayout::SetProfile(ProviderToLayoutProfile(provider));
 
 	SetTimeCallback(-500, [this] { Timer(); });
 
@@ -522,6 +542,8 @@ void GameTable::DumpLayoutRects(Stream& out) const
 	out << "speed_label " << LblSpeed().GetRect() << "\n";
 	out << "speed_slider " << SliderSpeed().GetRect() << "\n";
 	out << "pause_button " << BtnPause().GetRect() << "\n";
+	for (int i = 0; i < 5; i++)
+		out << "board_card" << i << " " << TexasTableLayout::BoardCardRect(Board().GetSize(), i) << "\n";
 	out.Flush();
 }
 

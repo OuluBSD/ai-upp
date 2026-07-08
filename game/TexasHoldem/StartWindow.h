@@ -18,6 +18,7 @@ public:
 		m_engineLog = engineLog;
 	}
 	void StartLocalGameForTest(int players, int cash, int speed);
+	void SelectProviderForTest(const String& provider);
 	void ShowSetupForTest();
 	void DumpSetupState(Stream& out) const;
 	void DumpEmbeddedGameState(Stream& out) const;
@@ -34,6 +35,7 @@ private:
 	void LoadSetupDefaults();
 	void StartLocalGameFromSetup();
 	void StartLocalGameWithValues(int players, int cash, int speed);
+	void EnsureTableForProvider();
 	void OnLocalGame();
 	void OnInternetGame();
 	void OnNetworkCreate();
@@ -50,6 +52,7 @@ private:
 	EditInt* startCash = nullptr;
 	EditInt* gameSpeed = nullptr;
 	std::unique_ptr<class GameTable> table;
+	String m_tableProvider;
 	class ConfigFile* m_config;
 	std::shared_ptr<class ServerManager> m_serverManager;
 	std::shared_ptr<class EngineLog> m_engineLog;

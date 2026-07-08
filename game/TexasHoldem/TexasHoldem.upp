@@ -92,6 +92,7 @@ file
 	TexasHoldem.t,
 	TexasHoldem_.icpp,
 	GameTable.form,
+	GameTable_PS_6p.form,
 	GameTable.lay,
 	GameTable.h,
 	GameTable.cpp,

@@ -165,7 +165,7 @@ public:
 class GameTable : public TopWindow, public GuiInterface {
 public:
 	typedef GameTable CLASSNAME;
-	GameTable();
+	GameTable(const String& provider = String());
 	virtual ~GameTable();
 
 	void SetGame(std::shared_ptr<class Game> game) override;
@@ -268,7 +268,8 @@ private:
 	void ApplyProjectThemeMetadata(const String& project_name, const String& platform_name);
 	void BuildThemeGameState(GameState& st) const;
 	void BindFormControls();
-	static String ResolveFormPath();
+	static String ResolveFormPath(const String& provider = String());
+	static String ProviderToLayoutProfile(const String& provider);
 	template <class T> T& CtrlAs(const String& name) const;
 
 	bool m_imageMode = false;

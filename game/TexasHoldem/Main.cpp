@@ -26,6 +26,12 @@ constexpr int LOCAL_GAME_DEFAULT_NUM_PLAYERS = 10;
 constexpr int LOCAL_GAME_DEFAULT_START_CASH = 2000;
 constexpr int LOCAL_GAME_DEFAULT_SPEED = 4;
 
+bool IsPs6pProvider(const String& provider)
+{
+	String p = ToLower(TrimBoth(provider));
+	return p == "ps_6p" || p == "ps-6p" || p == "pokerstars-6p";
+}
+
 static void TraceTexasHoldem(const String& line)
 {
 	FileAppend out(AppendFileName(GetCurrentDirectory(), "TexasHoldemMainTrace.txt"));
@@ -58,6 +64,7 @@ GUI_APP_MAIN
 		       << "  --dump-layout-rects    Print GameTable layout rectangles and exit\n"
 		       << "  --dump-new-game-defaults Print embedded setup defaults and exit\n"
 		       << "  --dump-embedded-start  Start embedded local game, print layout/game state, and exit\n"
+		       << "  --provider <name>      Select provider/theme such as PS_6p\n"
 		       << "  --project <name>       Project name for --dump-render-image (default: testing)\n"
 		       << "  --out <path>           Output path for --dump-render-image\n"
 		       << "  --test-gameplay        Run a short gameplay simulation test\n"
@@ -70,6 +77,12 @@ GUI_APP_MAIN
 	class ConfigFile config(nullptr, false);
 	AvatarManager avatarManager;
 	auto engineLog = std::make_shared<EngineLog>(&config);
+	String cli_provider;
+	for (int i = 0; i + 1 < args.GetCount(); ++i)
+		if (args[i] == "--provider") {
+			cli_provider = args[i + 1];
+			break;
+		}
 
 	if (args.GetCount() > 0 && args[0] == "--test-assets") {
 		String dataDir = Tools::GetDataDir();
@@ -139,14 +152,17 @@ GUI_APP_MAIN
 
 	if (args.GetCount() > 0 && args[0] == "--dump-layout-rects") {
 		Size size(1024, 648);
+		String provider = cli_provider;
 		for(int i = 1; i < args.GetCount(); i++) {
 			if(args[i] == "--size" && i + 1 < args.GetCount()) {
 				Vector<String> part = Split(args[++i], 'x');
 				if(part.GetCount() == 2)
 					size = Size(max(1, StrInt(part[0])), max(1, StrInt(part[1])));
 			}
+			else if(args[i] == "--provider" && i + 1 < args.GetCount())
+				provider = args[++i];
 		}
-		GameTable table;
+		GameTable table(provider);
 		table.SetRect(0, 0, size.cx, size.cy);
 		table.RefreshLayoutDeep();
 		table.Layout();
@@ -159,6 +175,8 @@ GUI_APP_MAIN
 	if (args.GetCount() > 0 && args[0] == "--dump-new-game-defaults") {
 		StartWindow start;
 		start.Init(config, engineLog);
+		if (!cli_provider.IsEmpty())
+			start.SelectProviderForTest(cli_provider);
 		start.ShowSetupForTest();
 		start.DumpSetupState(Cout());
 		Cout().Flush();
@@ -167,7 +185,8 @@ GUI_APP_MAIN
 
 	if (args.GetCount() > 0 && args[0] == "--dump-embedded-start") {
 		Size size(1024, 720);
-		int num_players = LOCAL_GAME_DEFAULT_NUM_PLAYERS;
+		String provider = cli_provider;
+		int num_players = IsPs6pProvider(provider) ? 6 : LOCAL_GAME_DEFAULT_NUM_PLAYERS;
 		int start_cash = LOCAL_GAME_DEFAULT_START_CASH;
 		int game_speed = LOCAL_GAME_DEFAULT_SPEED;
 		for(int i = 1; i < args.GetCount(); i++) {
@@ -182,11 +201,16 @@ GUI_APP_MAIN
 				start_cash = StrInt(args[++i]);
 			else if(args[i] == "--game-speed" && i + 1 < args.GetCount())
 				game_speed = StrInt(args[++i]);
+			else if(args[i] == "--provider" && i + 1 < args.GetCount())
+				provider = args[++i];
 		}
 		StartWindow start;
 		start.Init(config, engineLog);
 		start.SetRect(0, 0, size.cx, size.cy);
 		start.Layout();
+		if (!provider.IsEmpty())
+			start.SelectProviderForTest(provider);
+		Cout() << "[TexasHoldem] dump-embedded-start provider='" << provider << "' num_players=" << num_players << "\n";
 		start.StartLocalGameForTest(num_players, start_cash, game_speed);
 		start.Layout();
 		Ctrl::ProcessEvents();
@@ -277,7 +301,23 @@ GUI_APP_MAIN
 	}
 
 	if (args.GetCount() > 0 && args[0] == "--local-game") {
-		RunLocalGame(LOCAL_GAME_DEFAULT_NUM_PLAYERS, LOCAL_GAME_DEFAULT_START_CASH, LOCAL_GAME_DEFAULT_SPEED, config, *engineLog);
+		String provider = cli_provider;
+		int num_players = IsPs6pProvider(provider) ? 6 : LOCAL_GAME_DEFAULT_NUM_PLAYERS;
+		int start_cash = LOCAL_GAME_DEFAULT_START_CASH;
+		int game_speed = LOCAL_GAME_DEFAULT_SPEED;
+		for (int i = 1; i < args.GetCount(); ++i) {
+			if (args[i] == "--num-players" && i + 1 < args.GetCount())
+				num_players = max(2, StrInt(args[++i]));
+			else if (args[i] == "--start-cash" && i + 1 < args.GetCount())
+				start_cash = max(100, StrInt(args[++i]));
+			else if (args[i] == "--game-speed" && i + 1 < args.GetCount())
+				game_speed = max(1, StrInt(args[++i]));
+			else if (args[i] == "--provider" && i + 1 < args.GetCount())
+				provider = args[++i];
+		}
+		Cout() << "[TexasHoldem] local-game provider='" << provider << "' num_players=" << num_players
+		       << " start_cash=" << start_cash << " game_speed=" << game_speed << "\n";
+		RunLocalGame(num_players, start_cash, game_speed, provider, config, *engineLog);
 		return;
 	}
 	
@@ -345,7 +385,7 @@ GUI_APP_MAIN
 		StartWindow startWindow;
 		GameTable table;
 
-		MainGui() {}
+		MainGui(const String& provider = String()) : table(provider) {}
 
 		virtual void SetGame(std::shared_ptr<Game> game) override { m_game = game; table.SetGame(game); }
 		virtual bool isTestMode() const override { return false; }
@@ -389,7 +429,9 @@ GUI_APP_MAIN
 		virtual void SignalNetClientError(int errorId, int osErrorCode) override { table.SignalNetClientError(errorId, osErrorCode); }
 	};
 
-	MainGui mainGui;
+	MainGui mainGui(cli_provider);
+	if (!cli_provider.IsEmpty())
+		mainGui.startWindow.SelectProviderForTest(cli_provider);
 	RemoteClient remote;
 
 	for (int i = 0; i < args.GetCount(); i++) {

@@ -159,7 +159,10 @@ CONSOLE_APP_MAIN
 				case 'm': ide.release.createmap = ide.debug.createmap = true; break;
 				case 'b': ide.release.def.blitz = ide.debug.def.blitz = 1; break;
 				case 's': ide.debug.linkmode = ide.release.linkmode = 1; break;
-				case 'd': ide.debug.def.debug = 0; break;
+				case 'd':
+					// IMPORTANT: -d disables debug symbols. Without -d, umk builds debug with symbols (DEBUG_FULL).
+					ide.debug.def.debug = 0;
+					break;
 				case 'S': ide.debug.linkmode = ide.release.linkmode = 2; break;
 				case 'v': ide.console.verbosebuild = true; break;
 				case 'l': SilentMode = true; break;

@@ -1613,6 +1613,19 @@ void GameTable::turnAnimation1() {}
 void GameTable::riverAnimation1() {}
 void GameTable::postRiverAnimation1()
 {
+	if (m_scriptAutomationEnabled) {
+		// Automated/scripted driving (recorder --record-session/--step-actions,
+		// --local-game-script): resolve the pending next-hand transition
+		// synchronously and deterministically instead of scheduling it via
+		// SetTimeCallback, which races against real wall-clock time and the
+		// recorder's Ctrl::ProcessEvents() pump (non-deterministic across
+		// runs). Same precedent/pattern as GameTable::nextPlayerAnimation()
+		// above and GameTable::Timer() (GameTable.cpp:1290). Real interactive
+		// GUI play always has m_scriptAutomationEnabled == false and is
+		// unaffected below.
+		OnNextHand();
+		return;
+	}
 	if (m_isPaused) {
 		SetTimeCallback(500, callback(this, &GameTable::postRiverAnimation1));
 		return;
@@ -1626,7 +1639,19 @@ void GameTable::OnNextHand()
 {
 	if (m_game) {
 		if (m_game->isGameOver()) {
-			PromptOK(t_("Game Over!"));
+			// Under script automation (recorder --record-session/--step-actions,
+			// --local-game-script) this can now be reached synchronously, deep
+			// inside the same call stack as the step that triggered it (see
+			// postRiverAnimation1() above) -- e.g. if the recursive cascade of
+			// automated hands actually eliminates every player but one before
+			// the driving --frames budget is exhausted. PromptOK() is a modal,
+			// blocking dialog with no automated dismissal path; calling it here
+			// would hang a headless/automated session forever waiting for a
+			// user click that will never come. Real interactive GUI play
+			// (m_scriptAutomationEnabled == false) keeps the exact original
+			// behavior -- the player still sees the "Game Over!" dialog.
+			if (!m_scriptAutomationEnabled)
+				PromptOK(t_("Game Over!"));
 			return;
 		}
 		m_game->initHand();

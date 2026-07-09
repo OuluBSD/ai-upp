@@ -1393,6 +1393,18 @@ void GameTable::refreshSet()
 
 void GameTable::nextPlayerAnimation()
 {
+	if (m_scriptAutomationEnabled) {
+		// Automated/scripted driving (recorder --record-session/--step-actions,
+		// --local-game-script): resolve the pending turn-advance synchronously
+		// and deterministically instead of scheduling it via SetTimeCallback/
+		// PostCallback, which race against real wall-clock time and the
+		// recorder's Ctrl::ProcessEvents() pump (non-deterministic across
+		// runs). Precedent for gating on this flag: GameTable::Timer()
+		// (GameTable.cpp:1290). Real interactive GUI play always has
+		// m_scriptAutomationEnabled == false and is unaffected below.
+		OnNextPlayer();
+		return;
+	}
 	if (m_isPaused) {
 		SetTimeCallback(200, callback(this, &GameTable::nextPlayerAnimation));
 		return;

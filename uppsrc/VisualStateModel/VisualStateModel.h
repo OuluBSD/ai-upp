@@ -12,6 +12,7 @@ using namespace Upp;
 #include "Replay.h"
 #include "ImageBuffer.h"
 #include "PngFrame.h"
+#include "RegionOverlay.h"
 #include "SessionStorage.h"
 #include "SessionValidator.h"
 #include "CardGameConsistency.h"

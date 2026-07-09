@@ -1,6 +1,47 @@
 #include <VisualStateModel/VisualStateModel.h>
+#include <plugin/png/png.h>
 
 using namespace Upp;
+
+// ---------------------------------------------------------------------------
+// Headless overlay-PNG rendering (task 0105): renders a decoded M01/M02 frame
+// plus its detected changed-region rectangles into a PNG file, reusing the
+// exact same VsmDrawRegionOverlay drawing logic FrameCanvas uses in the GUI
+// Workbench (uppsrc/VisualStateModel/RegionOverlay.h) — no second copy of the
+// overlay-drawing code exists in this tool. Rendering itself is done with
+// SImageDraw (uppsrc/Draw/SDraw.h), which is part of the Draw package (not
+// CtrlCore's platform-native ImageDraw), so this stays headless-linkable.
+
+static bool VsmSaveOverlayPng(const VsmFrameImage& frame, const Vector<VsmChangedRect>& regions,
+                              const String& path)
+{
+	if(frame.IsEmpty())
+		return false;
+
+	int w = frame.width, h = frame.height;
+
+	// Raw RGBA -> ImageBuffer, one row at a time. Named .r/.g/.b/.a member
+	// access (not raw byte offsets) matches PngFrame.cpp's decode direction,
+	// so this stays correct regardless of RGBA's in-memory byte order.
+	ImageBuffer buf(w, h);
+	for(int y = 0; y < h; y++) {
+		RGBA* row = buf[y];
+		for(int x = 0; x < w; x++) {
+			byte r, g, b, a;
+			frame.GetPixel(x, y, r, g, b, a);
+			row[x].r = r; row[x].g = g; row[x].b = b; row[x].a = a;
+		}
+	}
+	Image frame_img(buf);
+
+	SImageDraw sw(w, h);
+	sw.DrawImage(0, 0, frame_img);
+	VsmDrawRegionOverlay(sw, regions, Point(0, 0)); // no selection concept headlessly
+	Image out = sw;
+
+	RealizeDirectory(GetFileFolder(path));
+	return PNGEncoder().SaveFile(path, out);
+}
 
 static bool Fail(const char* label)
 {
@@ -54,19 +95,25 @@ CONSOLE_APP_MAIN
 	int frame_start = -1; // sentinel: unset -> default to 0
 	int frame_end   = -1; // sentinel: unset -> default to frame_count - 1
 	String jsonl_out;
+	String overlay_out;
 
 	// Parse command-line arguments
 	for(int i = 0; i < args.GetCount(); i++) {
 		const String& arg = args[i];
 		if(arg == "--help") {
 			Cout() << "Usage: VisualStateRegionDump [<m01m02_session_dir>] "
-			          "[--frame-start N] [--frame-end M] [--jsonl-out <path>]\n"
+			          "[--frame-start N] [--frame-end M] [--jsonl-out <path>] "
+			          "[--overlay-out <dir>]\n"
 			          "  <m01m02_session_dir>  M01/M02 session directory (metadata.json +\n"
 			          "                        groundtruth.jsonl + frames/%08d.png), e.g.\n"
 			          "                        var/vsm_fixtures/texas_ps6p_sample\n"
 			          "  --frame-start N       restrict to transitions ending at frame >= N (default 0)\n"
 			          "  --frame-end M         restrict to transitions ending at frame <= M (default last frame)\n"
 			          "  --jsonl-out <path>    write one JSON region record per line to <path>\n"
+			          "  --overlay-out <dir>   write one overlay PNG per transition that has >=1\n"
+			          "                        detected changed region (frame pixels + region\n"
+			          "                        rectangles drawn via the shared VsmDrawRegionOverlay\n"
+			          "                        helper), named overlay_<prev>_<curr>.png\n"
 			          "  (no session dir)      run the synthetic self-test path instead\n";
 			SetExitCode(0);
 			return;
@@ -82,6 +129,10 @@ CONSOLE_APP_MAIN
 		else if(arg == "--jsonl-out") {
 			if(i + 1 >= args.GetCount()) { Fail("--jsonl-out requires a value"); return; }
 			jsonl_out = args[++i];
+		}
+		else if(arg == "--overlay-out") {
+			if(i + 1 >= args.GetCount()) { Fail("--overlay-out requires a value"); return; }
+			overlay_out = args[++i];
 		}
 		else {
 			session_dir = arg;
@@ -379,6 +430,17 @@ CONSOLE_APP_MAIN
 				Cout() << "\n";
 			}
 			Cout() << "\n";
+
+			if(!overlay_out.IsEmpty() && changes.GetCount() > 0) {
+				String out_path = AppendFileName(overlay_out,
+				    Format("overlay_%04d_%04d.png", fid - 1, fid));
+				if(VsmSaveOverlayPng(curr_frame, changes, out_path))
+					Cout() << "Wrote overlay PNG: " << out_path << "\n\n";
+				else {
+					Fail(Format("Failed to write overlay PNG: %s", out_path));
+					return;
+				}
+			}
 
 			// Copy curr_frame data to prev_frame for next iteration (VsmFrameImage
 			// wraps a non-assignable Buffer<byte>, so copy the raw bytes instead).

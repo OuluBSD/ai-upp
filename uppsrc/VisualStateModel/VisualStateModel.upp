@@ -3,6 +3,7 @@ description "VisualStateModel — headless change detection and replay\377";
 uses
 	Core,
 	Draw,
+	Painter,
 	plugin/png;
 
 file
@@ -21,6 +22,8 @@ file
 	ImageBuffer.cpp,
 	PngFrame.h,
 	PngFrame.cpp,
+	RegionOverlay.h,
+	RegionOverlay.cpp,
 	SessionStorage.h,
 	SessionStorage.cpp,
 	SessionValidator.h,

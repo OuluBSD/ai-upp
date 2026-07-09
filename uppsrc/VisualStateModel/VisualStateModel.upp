@@ -1,7 +1,9 @@
 description "VisualStateModel — headless change detection and replay\377";
 
 uses
-	Core;
+	Core,
+	Draw,
+	plugin/png;
 
 file
 	VisualStateModel.h options(PCH),
@@ -17,6 +19,8 @@ file
 	Replay.cpp,
 	ImageBuffer.h,
 	ImageBuffer.cpp,
+	PngFrame.h,
+	PngFrame.cpp,
 	SessionStorage.h,
 	SessionStorage.cpp,
 	SessionValidator.h,

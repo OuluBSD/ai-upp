@@ -60,8 +60,10 @@ struct VsmImageSequenceImportResult : Moveable<VsmImageSequenceImportResult> {
 // Scans a directory for .vsm files, sorts them in natural/numeric order,
 // and imports them as a new VisualStateModel session.
 //
-// Only .vsm (VSM1 binary) files are supported headlessly.
-// JPEG/PNG import requires Draw/GUI (deferred).
+// Only .vsm (VSM1 binary) files are supported by this sequence importer.
+// PNG/JPEG decode is available headlessly via PngFrame.h's VsmLoadPngFrame
+// (Draw-gated, not GUI-gated — VisualStateModel.upp depends on Draw only,
+// no CtrlCore/CtrlLib); it is not yet wired into this importer's file scan.
 
 class VsmImageSequenceImporter {
 public:

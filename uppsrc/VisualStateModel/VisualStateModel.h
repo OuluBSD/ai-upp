@@ -11,6 +11,7 @@ using namespace Upp;
 #include "GroundTruth.h"
 #include "Replay.h"
 #include "ImageBuffer.h"
+#include "PngFrame.h"
 #include "SessionStorage.h"
 #include "SessionValidator.h"
 #include "CardGameConsistency.h"

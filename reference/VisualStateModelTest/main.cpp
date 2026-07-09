@@ -2040,6 +2040,80 @@ static void TestDeterministicReplay()
 }
 
 // ---------------------------------------------------------------------------
+// Test: PNG frame decode (task 0103 — headless Draw-gated bridge into
+// VsmFrameImage) against the persistent M03 fixture session, if present.
+
+static void TestPngFrameDecode()
+{
+	Cout() << "\n=== PNG frame decode (M03 bridge) ===\n";
+
+	String fixture_root = "var/vsm_fixtures/texas_ps6p_sample";
+	String frame_path = AppendFileName(AppendFileName(fixture_root, "frames"), "00000000.png");
+
+	if(!FileExists(frame_path)) {
+		Cout() << "SKIP: fixture not found at " << frame_path
+		       << " (regenerate with the M03 fixture command in "
+		          "docs/VisualStateModel/TEXAS_HOLDEM_SOURCE_CONTRACT.md)\n";
+		return;
+	}
+
+	VsmFrameImage img;
+	if(!VsmLoadPngFrame(frame_path, img)) {
+		Fail("VsmLoadPngFrame: decode failed");
+		return;
+	}
+	Cout() << "VsmLoadPngFrame: " << frame_path << " -> "
+	       << img.width << "x" << img.height << "\n";
+	if(img.IsEmpty()) { Fail("VsmLoadPngFrame: empty result"); return; }
+	byte r, g, b, a;
+	img.GetPixel(0, 0, r, g, b, a); // sanity: must not crash / read garbage pointer
+	img.GetPixel(img.width - 1, img.height - 1, r, g, b, a);
+	Cout() << "VsmLoadPngFrame: non-empty RGBA data OK\n";
+
+	VsmM01M02SessionInfo info;
+	if(!VsmReadM01M02SessionInfo(fixture_root, info)) {
+		Fail("VsmReadM01M02SessionInfo: failed to read metadata.json");
+		return;
+	}
+	Cout() << "Session info: provider=" << info.provider
+	       << " size=" << info.table_width << "x" << info.table_height
+	       << " frame_count=" << info.frame_count << "\n";
+
+	// NOTE: the decoded PNG's pixel height does not necessarily equal
+	// metadata.json's table_height. This is a pre-existing, previously
+	// documented quirk of GameTable's M02 recorder (task 0099 observed
+	// "window [0, 0] - [1024, 648] : (1024, 648) size=(1024, 625)" —
+	// GameTable::DumpSnapshot() rasterizes GetSize() *after* Layout(),
+	// which can differ from the SetRect() size recorded as table_height/
+	// table_width in metadata.json). It is not a defect in this PNG bridge
+	// and is out of scope for task 0103 to fix (game/TexasHoldem is not
+	// touched by this task). Width matching is still asserted since it has
+	// been observed stable; height is reported, not asserted.
+	if(img.width != info.table_width) {
+		Fail("VsmLoadPngFrame: decoded width does not match session metadata");
+		return;
+	}
+	if(img.height != info.table_height) {
+		Cout() << "NOTE: decoded height (" << img.height << ") != metadata table_height ("
+		       << info.table_height << ") — known GameTable recorder quirk, not a bridge defect\n";
+	}
+	else {
+		Cout() << "Decoded size matches session metadata: OK\n";
+	}
+
+	VsmFrameImage img2;
+	if(!VsmLoadM01M02SessionFrame(fixture_root, 0, img2)) {
+		Fail("VsmLoadM01M02SessionFrame: failed for frame 0");
+		return;
+	}
+	if(img2.width != img.width || img2.height != img.height) {
+		Fail("VsmLoadM01M02SessionFrame: dimensions differ from direct decode");
+		return;
+	}
+	Cout() << "VsmLoadM01M02SessionFrame(frame 0): " << img2.width << "x" << img2.height << " OK\n";
+}
+
+// ---------------------------------------------------------------------------
 
 CONSOLE_APP_MAIN
 {
@@ -2068,6 +2142,7 @@ CONSOLE_APP_MAIN
 	TestCanonicalJsonCompare();
 	TestCardGameConsistency();
 	TestDeterministicReplay();
+	TestPngFrameDecode();
 
 	if(GetExitCode() == 0)
 		Cout() << "\nAll VisualStateModel checks passed.\n";

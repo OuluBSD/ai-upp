@@ -168,6 +168,35 @@ diagnostics. Ground truth is captured after the step from the live game state.
 - Required M01 fields must remain present until a schema version bump.
 - `PS_6p` means the `GameTable_PS_6p.form` provider and `ps-6p` layout profile.
 
+## M03 Persistent Fixture Session
+
+Starting with Milestone 03, a canonical sample session is maintained in a
+gitignored, persistent directory: `var/vsm_fixtures/texas_ps6p_sample/`
+
+This fixture is regenerable on demand (never committed to the repo) and serves
+as a stable reference for regression testing the changed-region pipeline and
+later analysis milestones.
+
+**Regeneration Command:**
+
+```sh
+bin\TexasHoldem.exe --record-session --provider PS_6p --frames 8 --step-actions --out var\vsm_fixtures\texas_ps6p_sample --seed 1 --fastcrash
+```
+
+**Details:**
+- **Provider:** `PS_6p` (fixed)
+- **Seed:** `1` (fixed for reproducibility)
+- **Frames:** `8` (fixed frame count)
+- **Mode:** `--step-actions` (captures state progression with one action per frame after frame 0)
+- **Output:** `var/vsm_fixtures/texas_ps6p_sample/` containing:
+  - `metadata.json` (session-level metadata)
+  - `groundtruth.jsonl` (per-frame ground truth, one JSON object per line)
+  - `frames/00000000.png` through `frames/00000007.png` (8 rendered table states)
+
+The directory is gitignored (never committed) and is always deleted before
+regeneration to ensure fresh output. The deterministic seed guarantees
+byte-identical output on every run with these exact parameters.
+
 ## Future Work
 
 - Store layout identity and form file version/hash when provider artifacts

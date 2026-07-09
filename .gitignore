@@ -48,6 +48,9 @@ tmp/
 out/
 
 _out/
+
+# VisualStateModel fixture sessions (persistent, gitignored, regenerable on demand)
+var/vsm_fixtures/
 __pycache__/
 
 build.log

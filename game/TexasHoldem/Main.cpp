@@ -277,6 +277,12 @@ static int M01Int(ValueMap map, const char *key, int fallback = Null)
 	return IsNull(value) ? fallback : (int)value;
 }
 
+static int64 M01Int64(ValueMap map, const char *key, int64 fallback = Null)
+{
+	Value value = map.Get(key, fallback);
+	return IsNull(value) ? fallback : (int64)value;
+}
+
 static String M01String(ValueMap map, const char *key)
 {
 	return map.Get(key, String()).ToString();
@@ -381,7 +387,8 @@ static int ValidateM01SourceContractSample(const String& root)
 	return 0;
 }
 
-static int ReplayM02Session(const String& root)
+static int ReplayM02Session(const String& root, const String& expected_provider,
+                            Size expected_size, int expected_frame_ms)
 {
 	int rc = ValidateM01SourceContractSample(root);
 	if (rc != 0)
@@ -394,6 +401,16 @@ static int ReplayM02Session(const String& root)
 	int table_width = M01Int(metadata, "table_width");
 	int table_height = M01Int(metadata, "table_height");
 	int frame_count = M01Int(metadata, "frame_count");
+	if (!expected_provider.IsEmpty() && provider != expected_provider) {
+		Cerr() << "ERROR: provider mismatch expected=" << expected_provider << " actual=" << provider << "\n";
+		return 1;
+	}
+	if (expected_size.cx > 0 && expected_size.cy > 0 &&
+	    (table_width != expected_size.cx || table_height != expected_size.cy)) {
+		Cerr() << "ERROR: table-size mismatch expected=(" << expected_size.cx << ", " << expected_size.cy
+		       << ") actual=(" << table_width << ", " << table_height << ")\n";
+		return 1;
+	}
 
 	Cout() << "M02 replay START\n";
 	Cout() << "session_id=" << session_id << " provider=" << provider
@@ -401,6 +418,7 @@ static int ReplayM02Session(const String& root)
 
 	Vector<String> rows = Split(LoadFile(AppendFileName(root, "groundtruth.jsonl")), '\n', false);
 	int replayed = 0;
+	int64 previous_timestamp_ms = Null;
 	for (String row : rows) {
 		row = TrimBoth(row);
 		if (row.IsEmpty())
@@ -409,7 +427,20 @@ static int ReplayM02Session(const String& root)
 		ValueMap gt = row_value;
 		int frame_id = M01Int(gt, "frame_id");
 		int render_step = M01Int(gt, "render_step");
-		int64 timestamp_ms = (int64)M01Int(gt, "timestamp_ms");
+		int64 timestamp_ms = M01Int64(gt, "timestamp_ms");
+		if (!IsNull(previous_timestamp_ms)) {
+			if (timestamp_ms < previous_timestamp_ms) {
+				Cerr() << "ERROR: timestamp moved backwards at frame " << frame_id
+				       << " previous=" << previous_timestamp_ms << " actual=" << timestamp_ms << "\n";
+				return 1;
+			}
+			if (expected_frame_ms > 0 && timestamp_ms - previous_timestamp_ms != expected_frame_ms) {
+				Cerr() << "ERROR: timing drift at frame " << frame_id
+				       << " expected_delta_ms=" << expected_frame_ms
+				       << " actual_delta_ms=" << (timestamp_ms - previous_timestamp_ms) << "\n";
+				return 1;
+			}
+		}
 		int game_id = M01Int(gt, "game_id");
 		int hand_id = M01Int(gt, "hand_id");
 		int street = M01Int(gt, "street", -1);
@@ -427,6 +458,7 @@ static int ReplayM02Session(const String& root)
 		       << " pot=" << pot
 		       << " players=" << players
 		       << " image=" << AppendFileName("frames", M01FrameName(frame_id)) << "\n";
+		previous_timestamp_ms = timestamp_ms;
 		replayed++;
 	}
 
@@ -464,6 +496,9 @@ GUI_APP_MAIN
 		       << "  --validate-source-contract-sample <dir> Validate M01 sample session\n"
 		       << "  --record-session       Write M02 record session using the TexasHoldem source contract\n"
 		       << "  --replay-session <dir> Validate and print deterministic M02 replay summary\n"
+		       << "  --expect-provider <name> Expected provider for --replay-session\n"
+		       << "  --expect-size <WxH>    Expected table size for --replay-session\n"
+		       << "  --expect-frame-ms <n>  Expected timestamp delta for --replay-session\n"
 		       << "  --provider <name>      Select provider/theme such as PS_6p\n"
 		       << "  --project <name>       Project name for --dump-render-image (default: testing)\n"
 		       << "  --out <path>           Output path for --dump-render-image\n"
@@ -627,7 +662,21 @@ GUI_APP_MAIN
 
 	if (args.GetCount() > 0 && args[0] == "--replay-session") {
 		String session_dir = args.GetCount() > 1 ? args[1] : AppendFileName(GetCurrentDirectory(), "tmp/texas_m02_session");
-		int rc = ReplayM02Session(session_dir);
+		String expected_provider;
+		Size expected_size(0, 0);
+		int expected_frame_ms = 0;
+		for (int i = 2; i < args.GetCount(); i++) {
+			if (args[i] == "--expect-provider" && i + 1 < args.GetCount())
+				expected_provider = args[++i];
+			else if (args[i] == "--expect-size" && i + 1 < args.GetCount()) {
+				Vector<String> part = Split(args[++i], 'x');
+				if (part.GetCount() == 2)
+					expected_size = Size(max(1, StrInt(part[0])), max(1, StrInt(part[1])));
+			}
+			else if (args[i] == "--expect-frame-ms" && i + 1 < args.GetCount())
+				expected_frame_ms = max(1, StrInt(args[++i]));
+		}
+		int rc = ReplayM02Session(session_dir, expected_provider, expected_size, expected_frame_ms);
 		std::_Exit(rc);
 	}
 

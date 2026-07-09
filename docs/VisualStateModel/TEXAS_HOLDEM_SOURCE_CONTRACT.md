@@ -132,14 +132,16 @@ names for the record/replay loop:
 
 ```sh
 bin\TexasHoldem.exe --record-session --provider PS_6p --frames 8 --out tmp\texas_m02_session --seed 1 --fastcrash
-bin\TexasHoldem.exe --replay-session tmp\texas_m02_session --fastcrash
+bin\TexasHoldem.exe --replay-session tmp\texas_m02_session --expect-provider PS_6p --expect-size 1024x648 --expect-frame-ms 100 --fastcrash
 ```
 
 `--record-session` writes the same `metadata.json`, `groundtruth.jsonl`, and
 `frames/%08d.png` layout as the M01 proof command. `--replay-session` validates
 the session and prints a deterministic per-frame summary containing frame
 identity, render step, timestamp, game/hand identifiers, street, pot, player
-count, and image path.
+count, and image path. Optional replay expectations fail with concise `ERROR:`
+diagnostics for provider mismatch, table-size mismatch, backwards timestamps,
+or timestamp deltas that differ from `--expect-frame-ms`.
 
 ## Compatibility Rules
 

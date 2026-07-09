@@ -2,7 +2,7 @@
 // forward one logical step at a time via VsmSteppedFrameSource, on top of the
 // CardGameDocumentHost + VsmCardGameStateExport plumbing from task 0068.
 //
-// See docs/VisualStateModel/CARD_GAME_ADAPTER.md ("VsmHeartsSource" section)
+// See Manager/2-plan/ai-upp/root/VisualStateModel/docs/CARD_GAME_ADAPTER.md ("VsmHeartsSource" section)
 // for the full step-granularity writeup, the two set_timeout gotchas this
 // class works around, and how it differs from the 0069 plan's assumptions.
 

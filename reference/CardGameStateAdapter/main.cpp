@@ -7,14 +7,14 @@ using namespace Upp;
 //      CardGameDocumentHost and runs it synchronously (ExecuteSync()).
 //   2. Exports one card_play, one trick, and one round tier state_json.
 //   3. Self-checks each against VsmCanonicalJsonEqual() and asserts the
-//      emitted field set matches docs/VisualStateModel/CARD_GAME_STATE_SCHEMA.md
+//      emitted field set matches Manager/2-plan/ai-upp/root/VisualStateModel/docs/CARD_GAME_STATE_SCHEMA.md
 //      exactly (no missing/extra required fields).
 //
 // CardGameDocumentHost derives from Ctrl, so this needs GUI_APP_MAIN (like
 // ScriptIDE's own --headless mode, uppsrc/ScriptIDE/Main.cpp) even though no
 // window is ever shown -- CaptureRecordFrame()/ExecuteSync() both run through
 // the offscreen SImageDraw path with no X11/display-server dependency
-// (confirmed working in this environment by docs/VisualStateModel/HEARTS_SOURCE_INVESTIGATION.md's
+// (confirmed working in this environment by Manager/2-plan/ai-upp/root/VisualStateModel/docs/HEARTS_SOURCE_INVESTIGATION.md's
 // 2026-07-04 addendum).
 
 static void AssertFieldsExact(const String& json, const char* tier, std::initializer_list<const char*> expected_fields)
@@ -118,7 +118,7 @@ GUI_APP_MAIN
 		// Left on, it also applies to every ai_step()/refresh_ui() call this
 		// driver makes -- and CardGameDocumentHost's own internal
 		// CheckExpectedSpriteCounts() sprite-bookkeeping self-check (unrelated
-		// to game logic; see docs/VisualStateModel/CARD_GAME_ADAPTER.md's
+		// to game logic; see Manager/2-plan/ai-upp/root/VisualStateModel/docs/CARD_GAME_ADAPTER.md's
 		// "VsmHeartsSource" section) re-logs its *entire* accumulated game_log
 		// on every mismatch, which compounds across dozens of Step() calls into
         // an unusably large log. Turn it off before driving; it does not affect
@@ -187,7 +187,7 @@ GUI_APP_MAIN
 		// itself internally reconcile (trick winners vs round-score
 		// deltas, no duplicate cards, correct card count, correct round
 		// total/shoot-the-moon handling) before this ground truth would be
-		// fed into a pipeline test. See docs/VisualStateModel/HEARTS_SOURCE_INVESTIGATION.md
+		// fed into a pipeline test. See Manager/2-plan/ai-upp/root/VisualStateModel/docs/HEARTS_SOURCE_INVESTIGATION.md
 		// gap #6 and uppsrc/VisualStateModel/CardGameConsistency.h.
 		Cout() << "\n--- VsmCheckCardGameConsistency: self-consistency check on the real round ---\n";
 		VsmValidationResult consistency = VsmCheckCardGameConsistency(all_events);
@@ -202,9 +202,9 @@ GUI_APP_MAIN
 	// -----------------------------------------------------------------
 	// Task 0073: wire VsmHeartsSource through the real OCR/divergence
 	// pipeline (VsmOcrExecutor + VsmModelRuntime), closing gap #5 of
-	// docs/VisualStateModel/HEARTS_SOURCE_INVESTIGATION.md -- the final step
+	// Manager/2-plan/ai-upp/root/VisualStateModel/docs/HEARTS_SOURCE_INVESTIGATION.md -- the final step
 	// of the Hearts controlled-source chain (tasks 0055-0073). See
-	// docs/VisualStateModel/CARD_GAME_ADAPTER.md's "VsmHeartsOcrPipeline"
+	// Manager/2-plan/ai-upp/root/VisualStateModel/docs/CARD_GAME_ADAPTER.md's "VsmHeartsOcrPipeline"
 	// section and VsmHeartsOcrPipeline.h for the full design writeup.
 	//
 	// Two scenarios, each driving a fresh full round from scratch:

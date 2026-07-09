@@ -1,6 +1,6 @@
 // Adapter: CardGameDocumentHost's live Python `GameState` -> VSM state_json.
-// Field sets must match docs/VisualStateModel/CARD_GAME_STATE_SCHEMA.md exactly
-// (card_play / trick / round tiers). See docs/VisualStateModel/CARD_GAME_ADAPTER.md
+// Field sets must match Manager/2-plan/ai-upp/root/VisualStateModel/docs/CARD_GAME_STATE_SCHEMA.md exactly
+// (card_play / trick / round tiers). See Manager/2-plan/ai-upp/root/VisualStateModel/docs/CARD_GAME_ADAPTER.md
 // for the field-mapping notes and known limitations.
 
 class VsmCardGameStateExport {

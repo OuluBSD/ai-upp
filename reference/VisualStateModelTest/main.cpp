@@ -2053,7 +2053,7 @@ static void TestPngFrameDecode()
 	if(!FileExists(frame_path)) {
 		Cout() << "SKIP: fixture not found at " << frame_path
 		       << " (regenerate with the M03 fixture command in "
-		          "docs/VisualStateModel/TEXAS_HOLDEM_SOURCE_CONTRACT.md)\n";
+		          "Manager/2-plan/ai-upp/root/VisualStateModel/docs/TEXAS_HOLDEM_SOURCE_CONTRACT.md)\n";
 		return;
 	}
 

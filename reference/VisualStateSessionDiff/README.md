@@ -15,4 +15,4 @@ bin/build.exe -m 7 -j12 VisualStateSessionDiff
 bin\VisualStateSessionDiff.exe
 ```
 
-See `docs/VisualStateModel/SESSION_DIFF.md` for design notes and API reference.
+See `Manager/2-plan/ai-upp/root/VisualStateModel/docs/SESSION_DIFF.md` for design notes and API reference.

@@ -16,4 +16,4 @@ bin/build.exe -m 7 -j12 VisualStateAnnotationValidate
 bin\VisualStateAnnotationValidate.exe
 ```
 
-See `docs/VisualStateModel/ANNOTATION_VALIDATOR.md` for design notes and API reference.
+See `Manager/2-plan/ai-upp/root/VisualStateModel/docs/ANNOTATION_VALIDATOR.md` for design notes and API reference.

@@ -1,10 +1,10 @@
 // VsmHeartsOcrPipeline (task 0073): wires VsmHeartsSource's live frames through
 // VisualStateModel's real OCR/divergence machinery (VsmOcrExecutor +
-// VsmModelRuntime), closing docs/VisualStateModel/HEARTS_SOURCE_INVESTIGATION.md's
+// VsmModelRuntime), closing Manager/2-plan/ai-upp/root/VisualStateModel/docs/HEARTS_SOURCE_INVESTIGATION.md's
 // gap #5 -- the last step of the Hearts-as-controlled-source investigation
 // (tasks 0055-0073).
 //
-// See docs/VisualStateModel/CARD_GAME_ADAPTER.md ("VsmHeartsOcrPipeline"
+// See Manager/2-plan/ai-upp/root/VisualStateModel/docs/CARD_GAME_ADAPTER.md ("VsmHeartsOcrPipeline"
 // section, task 0073) for the full design writeup: why three
 // VSM_EXPECT_CONTAINS-mode dynamic OCR rules per player label zone (not one
 // exact-match rule against the whole HUD label), the OcrLayer.h `dynamic`

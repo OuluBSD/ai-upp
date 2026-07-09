@@ -28,4 +28,4 @@ bin/build.exe -m 7 -j12 VisualStateCacheStats
 bin\VisualStateCacheStats.exe
 ```
 
-See `docs/VisualStateModel/CACHE.md` for cache design and architecture.
+See `Manager/2-plan/ai-upp/root/VisualStateModel/docs/CACHE.md` for cache design and architecture.

@@ -16,4 +16,4 @@ bin/build.exe -m 7 -j12 VisualStateRecordSession
 bin/VisualStateRecordSession.exe
 ```
 
-See `docs/VisualStateModel/CAPTURE_SINK.md` for the capture sink design notes.
+See `Manager/2-plan/ai-upp/root/VisualStateModel/docs/CAPTURE_SINK.md` for the capture sink design notes.

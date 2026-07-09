@@ -3,10 +3,10 @@
 Thin C++ adapter that converts a live `CardGameDocumentHost` (ScriptIDE's
 embedded card-game Python runtime, `uppsrc/ScriptIDE/CardGamePlugin.h`) into
 `VisualStateModel`'s `state_json` schema for card-play/trick/round tiers
-(`docs/VisualStateModel/CARD_GAME_STATE_SCHEMA.md`).
+(`Manager/2-plan/ai-upp/root/VisualStateModel/docs/CARD_GAME_STATE_SCHEMA.md`).
 
 Built from `plan/VisualStateModel/0068_cardgame_state_adapter.md`; see
-`docs/VisualStateModel/CARD_GAME_ADAPTER.md` for what it exposes and the
+`Manager/2-plan/ai-upp/root/VisualStateModel/docs/CARD_GAME_ADAPTER.md` for what it exposes and the
 field-mapping/derivation notes (in particular: why `trick_number` is
 adapter-derived, and why the live Python `state` object is read via
 `sys.modules[<entry module>]`, not `PyVM::GetGlobals()` directly).

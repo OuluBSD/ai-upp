@@ -24,4 +24,4 @@ bin/build.exe -m 7 -j12 VisualStateSessionValidate
 bin/VisualStateSessionValidate.exe
 ```
 
-See `docs/VisualStateModel/SESSION_VALIDATOR.md` for the session validator design notes.
+See `Manager/2-plan/ai-upp/root/VisualStateModel/docs/SESSION_VALIDATOR.md` for the session validator design notes.

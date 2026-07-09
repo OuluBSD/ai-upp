@@ -14,4 +14,4 @@ bin/build.exe -m 7 -j12 VisualStateBatchReport
 bin\VisualStateBatchReport.exe
 ```
 
-See `docs/VisualStateModel/BATCH_REPORT.md` for design notes and API reference.
+See `Manager/2-plan/ai-upp/root/VisualStateModel/docs/BATCH_REPORT.md` for design notes and API reference.

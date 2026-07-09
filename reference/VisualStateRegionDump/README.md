@@ -40,7 +40,7 @@ Frame N regions:
 
 ## Design Context
 
-See `docs/VisualStateModel/ARCHITECTURE.md` for the full "Region identity" concept.
+See `Manager/2-plan/ai-upp/root/VisualStateModel/docs/ARCHITECTURE.md` for the full "Region identity" concept.
 The key principle is:
 
 > "Stable identity must not be equivalent to screen position."
@@ -59,7 +59,7 @@ bin\VisualStateRegionDump.exe
 Passing a session directory runs the same `VsmDetectChanges`/`VsmRegionMemory`
 pipeline over a real M01/M02 TexasHoldem session (`metadata.json` +
 `groundtruth.jsonl` + `frames/%08d.png`, see
-`docs/VisualStateModel/TEXAS_HOLDEM_SOURCE_CONTRACT.md`), decoding frames via
+`Manager/2-plan/ai-upp/root/VisualStateModel/docs/TEXAS_HOLDEM_SOURCE_CONTRACT.md`), decoding frames via
 `VsmLoadM01M02SessionFrame` (the PNG bridge added in task 0103):
 
 ```sh

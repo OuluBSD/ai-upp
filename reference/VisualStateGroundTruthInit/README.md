@@ -14,4 +14,4 @@ bin/build.exe -m 7 -j12 VisualStateGroundTruthInit
 bin\VisualStateGroundTruthInit.exe
 ```
 
-See `docs/VisualStateModel/GROUND_TRUTH_TEMPLATE.md` for design notes and API reference.
+See `Manager/2-plan/ai-upp/root/VisualStateModel/docs/GROUND_TRUTH_TEMPLATE.md` for design notes and API reference.

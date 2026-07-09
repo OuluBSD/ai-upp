@@ -21,7 +21,7 @@ bool VsmLoadPngFrame(const String& path, VsmFrameImage& out);
 // does not depend on game/TexasHoldem/TexasHoldemSessionContract — VSM is a
 // lower-layer, headless package and must not depend upward on game code; the
 // frame filename pattern ("%08d.png") is a stable, documented part of the
-// contract (docs/VisualStateModel/TEXAS_HOLDEM_SOURCE_CONTRACT.md) and is
+// contract (Manager/2-plan/ai-upp/root/VisualStateModel/docs/TEXAS_HOLDEM_SOURCE_CONTRACT.md) and is
 // duplicated here as a small literal, not a re-implementation of the format.
 
 struct VsmM01M02SessionInfo : Moveable<VsmM01M02SessionInfo> {

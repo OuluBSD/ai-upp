@@ -90,7 +90,7 @@ VsmValidationResult VsmCheckCardGameConsistency(const Vector<VsmCardGameEvent>& 
 				AddIssue("info", Format(
 					"event[%d] (card_play): position-based trick number (%d) differs from this event's own "
 					"trick_number field (%d) -- known limitation, trick_number undercounts by one once the "
-					"same player has won two consecutive tricks (see docs/VisualStateModel/CARD_GAME_ADAPTER.md); "
+					"same player has won two consecutive tricks (see Manager/2-plan/ai-upp/root/VisualStateModel/docs/CARD_GAME_ADAPTER.md); "
 					"not flagged as an error",
 					i, expected_trick_number, field_trick_number));
 		}
@@ -112,7 +112,7 @@ VsmValidationResult VsmCheckCardGameConsistency(const Vector<VsmCardGameEvent>& 
 				AddIssue("info", Format(
 					"event[%d] (trick): position-based trick number (%d) differs from this event's own "
 					"trick_number field (%d) -- known limitation, trick_number undercounts by one when "
-					"the same player wins two consecutive tricks (see docs/VisualStateModel/CARD_GAME_ADAPTER.md); "
+					"the same player wins two consecutive tricks (see Manager/2-plan/ai-upp/root/VisualStateModel/docs/CARD_GAME_ADAPTER.md); "
 					"validated by position, not flagged as an error",
 					i, trick_position, field_trick_number));
 

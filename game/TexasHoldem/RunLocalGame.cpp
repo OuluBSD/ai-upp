@@ -63,80 +63,13 @@ static std::shared_ptr<BeroInterface> GetCurrentBero(const std::shared_ptr<Game>
 	return hand->getCurrentBeRo();
 }
 
-static std::shared_ptr<PlayerInterface> GetHumanOnTurn(const std::shared_ptr<Game>& game,
-                                                       const std::shared_ptr<BeroInterface>& bero) {
-	if (!game || !bero)
-		return nullptr;
-	int turn_id = (int)bero->getCurrentPlayersTurnId();
-	if (turn_id < 0)
-		return nullptr;
-	std::shared_ptr<PlayerInterface> p = game->getPlayerByUniqueId((unsigned)turn_id);
-	if (!p || p->getMyType() != PLAYER_TYPE_HUMAN)
-		return nullptr;
-	return p;
-}
-
-static void ApplyHumanFold(const std::shared_ptr<Game>& game,
-                           const std::shared_ptr<BeroInterface>& bero) {
-	std::shared_ptr<PlayerInterface> p = GetHumanOnTurn(game, bero);
-	if (!p)
-		return;
-	auto hand = game->getCurrentHand();
-	if (hand)
-		hand->setPreviousPlayerID(p->getMyID());
-	p->setMyAction(PLAYER_ACTION_FOLD, true);
-}
-
-static void ApplyHumanCheckCall(const std::shared_ptr<Game>& game,
-                                const std::shared_ptr<BeroInterface>& bero) {
-	std::shared_ptr<PlayerInterface> p = GetHumanOnTurn(game, bero);
-	if (!p)
-		return;
-	const int highest = bero->getHighestSet();
-	const int my_set_before = p->getMySet();
-	int call_value = highest - my_set_before;
-	if (call_value > p->getMyCash()) call_value = p->getMyCash();
-	if (call_value < 0) call_value = 0;
-	p->setMySet(call_value);
-	auto hand = game->getCurrentHand();
-	if (hand)
-		hand->setPreviousPlayerID(p->getMyID());
-	p->setMyAction(highest > my_set_before ? PLAYER_ACTION_CALL : PLAYER_ACTION_CHECK, true);
-}
-
-static void ApplyHumanRaiseTo(const std::shared_ptr<Game>& game,
-                              const std::shared_ptr<BeroInterface>& bero, int target_total) {
-	std::shared_ptr<PlayerInterface> p = GetHumanOnTurn(game, bero);
-	if (!p)
-		return;
-	const int highest = bero->getHighestSet();
-	const int current_total = p->getMySet();
-	const int current_cash = p->getMyCash();
-	const int max_total = current_total + current_cash;
-	target_total = minmax(target_total, current_total, max_total);
-	if (target_total <= current_total)
-		return;
-	p->setMySet(target_total - current_total);
-	if (p->getMySet() > highest)
-		bero->setHighestSet(p->getMySet());
-	auto hand = game->getCurrentHand();
-	if (hand)
-		hand->setPreviousPlayerID(p->getMyID());
-	if (target_total <= highest)
-		p->setMyAction(target_total == highest ? PLAYER_ACTION_CALL : PLAYER_ACTION_CHECK, true);
-	else if (p->getMyCash() == 0)
-		p->setMyAction(PLAYER_ACTION_ALLIN, true);
-	else
-		p->setMyAction(PLAYER_ACTION_RAISE, true);
-}
-
-static void ApplyHumanAllIn(const std::shared_ptr<Game>& game,
-                            const std::shared_ptr<BeroInterface>& bero) {
-	std::shared_ptr<PlayerInterface> p = GetHumanOnTurn(game, bero);
-	if (!p)
-		return;
-	ApplyHumanRaiseTo(game, bero, p->getMySet() + p->getMyCash());
-}
+// NOTE: GetHumanOnTurn/ApplyHumanFold/ApplyHumanCheckCall/ApplyHumanRaiseTo/
+// ApplyHumanAllIn used to be defined here as file-local statics. They have
+// been moved to TexasHoldemLocalGame.cpp (as TexasHoldemGetHumanOnTurn/
+// TexasHoldemApplyHuman*) so StepTexasHoldemLocalGameAction's automated
+// `--step-actions` driver can share the exact same proven check/call math
+// instead of reimplementing it. See task 0106. All call sites below now use
+// the TexasHoldem-prefixed shared versions.
 
 static PyValue builtin_log(const Vector<PyValue>& args, void*) {
 	if (g_loop_ctx && g_loop_ctx->verbose && args.GetCount() > 0)
@@ -237,13 +170,13 @@ static PyValue builtin_set_human_action(const Vector<PyValue>& args, void*) {
 	if (!bero)
 		return PyValue::None();
 	int action_id = (int)args[0].AsInt();
-	if (action_id == 0) ApplyHumanFold(g_loop_ctx->game, bero);
-	else if (action_id == 1) ApplyHumanCheckCall(g_loop_ctx->game, bero);
+	if (action_id == 0) TexasHoldemApplyHumanFold(g_loop_ctx->game, bero);
+	else if (action_id == 1) TexasHoldemApplyHumanCheckCall(g_loop_ctx->game, bero);
 	else if (action_id == 2) {
 		int target_total = bero->getHighestSet() + max(bero->getMinimumRaise(), 1);
-		ApplyHumanRaiseTo(g_loop_ctx->game, bero, target_total);
+		TexasHoldemApplyHumanRaiseTo(g_loop_ctx->game, bero, target_total);
 	}
-	else if (action_id == 3) ApplyHumanAllIn(g_loop_ctx->game, bero);
+	else if (action_id == 3) TexasHoldemApplyHumanAllIn(g_loop_ctx->game, bero);
 	return PyValue::None();
 }
 
@@ -254,7 +187,7 @@ static PyValue builtin_set_human_bet(const Vector<PyValue>& args, void*) {
 	if (!bero)
 		return PyValue::None();
 	int target_total = (int)args[0].AsInt();
-	ApplyHumanRaiseTo(g_loop_ctx->game, bero, target_total);
+	TexasHoldemApplyHumanRaiseTo(g_loop_ctx->game, bero, target_total);
 	return PyValue::None();
 }
 

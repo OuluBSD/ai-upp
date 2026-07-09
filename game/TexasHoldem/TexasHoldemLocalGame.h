@@ -9,9 +9,32 @@ NAMESPACE_UPP
 class EngineLog;
 class Game;
 class GameTable;
+class BeroInterface;
+class PlayerInterface;
 
 bool TexasHoldemIsPs6pProvider(const String& provider);
 String TexasHoldemProviderLayoutProfile(const String& provider);
+
+// Shared human auto-act helpers. Originally implemented as file-local statics
+// in RunLocalGame.cpp for the `--local-game-script --auto-human` path; moved
+// here (per AGENTS.md's Headless/GUI Dual-Purpose Rule for this module) so
+// StepTexasHoldemLocalGameAction (the `--step-actions`/`--record-session`
+// automated driver) can reuse the exact same proven check/call math instead
+// of reimplementing it. RunLocalGame.cpp now calls these instead of its own
+// copies. See task 0106.
+std::shared_ptr<PlayerInterface> TexasHoldemGetHumanOnTurn(const std::shared_ptr<Game>& game,
+                                                           const std::shared_ptr<BeroInterface>& bero);
+void TexasHoldemApplyHumanFold(const std::shared_ptr<Game>& game, const std::shared_ptr<BeroInterface>& bero);
+void TexasHoldemApplyHumanCheckCall(const std::shared_ptr<Game>& game, const std::shared_ptr<BeroInterface>& bero);
+void TexasHoldemApplyHumanRaiseTo(const std::shared_ptr<Game>& game, const std::shared_ptr<BeroInterface>& bero,
+                                  int target_total);
+void TexasHoldemApplyHumanAllIn(const std::shared_ptr<Game>& game, const std::shared_ptr<BeroInterface>& bero);
+
+// True iff the current turn belongs to a human player who still needs to act
+// (mirrors LocalBero::nextPlayer()'s human-wait predicate at LocalBero.cpp:267-268,
+// computed here via the same public PlayerInterface/BeroInterface accessors,
+// without touching LocalBero itself).
+bool TexasHoldemHumanNeedsAutoAct(const std::shared_ptr<Game>& game, const std::shared_ptr<BeroInterface>& bero);
 
 struct TexasHoldemLocalGameOptions : Moveable<TexasHoldemLocalGameOptions> {
 	int num_players = 10;

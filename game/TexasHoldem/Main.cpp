@@ -6,6 +6,7 @@
 #include <EditorCommon/ConfigFile.h>
 #include <EditorCommon/Tools.h>
 #include "GameTable.h"
+#include "TexasHoldemSessionContract.h"
 #include <Poker/LocalEngineFactory.h>
 #include <GameRules/Game.h>
 #include <GameRules/PlayerData.h>
@@ -34,104 +35,7 @@ bool IsPs6pProvider(const String& provider)
 	return p == "ps_6p" || p == "ps-6p" || p == "pokerstars-6p";
 }
 
-struct M01PlayerSnapshot : Moveable<M01PlayerSnapshot> {
-	int seat = -1;
-	int uid = 0;
-	String name;
-	bool hero = false;
-	bool active = false;
-	int stack = 0;
-	int bet = 0;
-	int action = 0;
-	int button = 0;
-	Vector<int> hole_cards;
-
-	void Jsonize(JsonIO& jio) {
-		jio("seat", seat)
-		   ("uid", uid)
-		   ("name", name)
-		   ("hero", hero)
-		   ("active", active)
-		   ("stack", stack)
-		   ("bet", bet)
-		   ("action", action)
-		   ("button", button)
-		   ("hole_cards", hole_cards);
-	}
-};
-
-struct M01GroundTruthRecord : Moveable<M01GroundTruthRecord> {
-	int schema = 1;
-	String session_id;
-	int frame_id = 0;
-	int render_step = 0;
-	int64 timestamp_ms = 0;
-	String provider;
-	int table_width = 0;
-	int table_height = 0;
-	int seed = -1;
-	int game_id = 0;
-	int hand_id = 0;
-	int street = -1;
-	int turn_uid = -1;
-	int pot = 0;
-	Vector<int> board_cards;
-	Vector<M01PlayerSnapshot> players;
-
-	void Jsonize(JsonIO& jio) {
-		jio("schema", schema)
-		   ("session_id", session_id)
-		   ("frame_id", frame_id)
-		   ("render_step", render_step)
-		   ("timestamp_ms", timestamp_ms)
-		   ("provider", provider)
-		   ("table_width", table_width)
-		   ("table_height", table_height)
-		   ("seed", seed)
-		   ("game_id", game_id)
-		   ("hand_id", hand_id)
-		   ("street", street)
-		   ("turn_uid", turn_uid)
-		   ("pot", pot)
-		   ("board_cards", board_cards)
-		   ("players", players);
-	}
-};
-
-struct M01SessionMetadata : Moveable<M01SessionMetadata> {
-	int schema = 1;
-	String kind = "texas_holdem_source_contract_sample";
-	String session_id;
-	String provider;
-	int table_width = 0;
-	int table_height = 0;
-	int seed = -1;
-	int frame_count = 1;
-	String frame_format = "png";
-	String frame_pattern = "frames/00000000.png";
-	String ground_truth = "groundtruth.jsonl";
-
-	void Jsonize(JsonIO& jio) {
-		jio("schema", schema)
-		   ("kind", kind)
-		   ("session_id", session_id)
-		   ("provider", provider)
-		   ("table_width", table_width)
-		   ("table_height", table_height)
-		   ("seed", seed)
-		   ("frame_count", frame_count)
-		   ("frame_format", frame_format)
-		   ("frame_pattern", frame_pattern)
-		   ("ground_truth", ground_truth);
-	}
-};
-
-static String M01FrameName(int frame_id)
-{
-	return Format("%08d.png", frame_id);
-}
-
-static void CaptureM01GroundTruth(M01GroundTruthRecord& record, const std::shared_ptr<Game>& game)
+static void CaptureM01GroundTruth(TexasHoldemGroundTruthRecord& record, const std::shared_ptr<Game>& game)
 {
 	if (!game)
 		return;
@@ -156,7 +60,7 @@ static void CaptureM01GroundTruth(M01GroundTruthRecord& record, const std::share
 		std::shared_ptr<PlayerInterface> player = game->getPlayerByNumber(i);
 		if (!player)
 			continue;
-		M01PlayerSnapshot& ps = record.players.Add();
+		TexasHoldemPlayerSnapshot& ps = record.players.Add();
 		ps.seat = i;
 		ps.uid = (int)player->getMyUniqueID();
 		ps.name = player->getMyName();
@@ -225,13 +129,13 @@ static int DumpM01SourceContractSample(const String& out_dir, const String& prov
 		Ctrl::ProcessEvents();
 		table.RefreshLayoutDeep();
 		table.Layout();
-		String frame_path = AppendFileName(frames_dir, M01FrameName(frame_id));
+		String frame_path = AppendFileName(frames_dir, TexasHoldemFrameName(frame_id));
 		if (!table.DumpSnapshot(frame_path, true)) {
 			Cerr() << "ERROR: failed to write frame: " << frame_path << "\n";
 			return 2;
 		}
 
-		M01GroundTruthRecord gt;
+		TexasHoldemGroundTruthRecord gt;
 		gt.session_id = sample_session;
 		gt.frame_id = frame_id;
 		gt.render_step = frame_id;
@@ -245,7 +149,7 @@ static int DumpM01SourceContractSample(const String& out_dir, const String& prov
 	}
 	SaveFile(AppendFileName(root, "groundtruth.jsonl"), gt_jsonl);
 
-	M01SessionMetadata meta;
+	TexasHoldemSessionMetadata meta;
 	meta.session_id = sample_session;
 	meta.provider = sample_provider;
 	meta.table_width = table_size.cx;
@@ -258,211 +162,10 @@ static int DumpM01SourceContractSample(const String& out_dir, const String& prov
 	Cout() << "metadata=" << AppendFileName(root, "metadata.json") << "\n";
 	Cout() << "groundtruth=" << AppendFileName(root, "groundtruth.jsonl") << "\n";
 	Cout() << "frames=" << frames_dir << " count=" << frame_count << "\n";
-	Cout() << "first_frame=" << AppendFileName(frames_dir, M01FrameName(0)) << "\n";
-	Cout() << "last_frame=" << AppendFileName(frames_dir, M01FrameName(frame_count - 1)) << "\n";
+	Cout() << "first_frame=" << AppendFileName(frames_dir, TexasHoldemFrameName(0)) << "\n";
+	Cout() << "last_frame=" << AppendFileName(frames_dir, TexasHoldemFrameName(frame_count - 1)) << "\n";
 	Cout() << "frame_id=0.." << (frame_count - 1) << " render_step=0.." << (frame_count - 1)
 	       << " provider=" << sample_provider << " size=" << table_size << " seed=" << seed << "\n";
-	Cout().Flush();
-	return 0;
-}
-
-static bool M01HasKey(const ValueMap& map, const char *key)
-{
-	return map.Find(key) >= 0;
-}
-
-static int M01Int(ValueMap map, const char *key, int fallback = Null)
-{
-	Value value = map.Get(key, fallback);
-	return IsNull(value) ? fallback : (int)value;
-}
-
-static int64 M01Int64(ValueMap map, const char *key, int64 fallback = Null)
-{
-	Value value = map.Get(key, fallback);
-	return IsNull(value) ? fallback : (int64)value;
-}
-
-static String M01String(ValueMap map, const char *key)
-{
-	return map.Get(key, String()).ToString();
-}
-
-static int ValidateM01SourceContractSample(const String& root)
-{
-	if (!DirectoryExists(root)) {
-		Cerr() << "ERROR: sample directory not found: " << root << "\n";
-		return 1;
-	}
-	String metadata_path = AppendFileName(root, "metadata.json");
-	String gt_path = AppendFileName(root, "groundtruth.jsonl");
-	if (!FileExists(metadata_path)) {
-		Cerr() << "ERROR: missing metadata.json\n";
-		return 1;
-	}
-	if (!FileExists(gt_path)) {
-		Cerr() << "ERROR: missing groundtruth.jsonl\n";
-		return 1;
-	}
-
-	Value metadata_value;
-	try {
-		metadata_value = ParseJSON(LoadFile(metadata_path));
-	}
-	catch (...) {
-		Cerr() << "ERROR: metadata.json parse failed\n";
-		return 1;
-	}
-	if (!metadata_value.Is<ValueMap>()) {
-		Cerr() << "ERROR: metadata.json is not an object\n";
-		return 1;
-	}
-	ValueMap metadata = metadata_value;
-	String session_id = M01String(metadata, "session_id");
-	String provider = M01String(metadata, "provider");
-	int table_width = M01Int(metadata, "table_width");
-	int table_height = M01Int(metadata, "table_height");
-	int frame_count = M01Int(metadata, "frame_count");
-	if (session_id.IsEmpty() || provider.IsEmpty() || table_width <= 0 || table_height <= 0 || frame_count <= 0) {
-		Cerr() << "ERROR: metadata.json has invalid required fields\n";
-		return 1;
-	}
-
-	Vector<String> rows = Split(LoadFile(gt_path), '\n', false);
-	int checked = 0;
-	int previous_frame = -1;
-	for (String row : rows) {
-		row = TrimBoth(row);
-		if (row.IsEmpty())
-			continue;
-		Value row_value;
-		try {
-			row_value = ParseJSON(row);
-		}
-		catch (...) {
-			Cerr() << "ERROR: groundtruth.jsonl parse failed at row " << checked << "\n";
-			return 1;
-		}
-		if (!row_value.Is<ValueMap>()) {
-			Cerr() << "ERROR: groundtruth row is not an object at row " << checked << "\n";
-			return 1;
-		}
-		ValueMap gt = row_value;
-		const char *required[] = {
-			"session_id", "frame_id", "render_step", "timestamp_ms", "provider",
-			"table_width", "table_height", "seed", "game_id", "hand_id", "players"
-		};
-		for (const char *key : required) {
-			if (!M01HasKey(gt, key)) {
-				Cerr() << "ERROR: groundtruth missing key '" << key << "' at row " << checked << "\n";
-				return 1;
-			}
-		}
-		int frame_id = M01Int(gt, "frame_id");
-		if (frame_id != checked || frame_id <= previous_frame) {
-			Cerr() << "ERROR: non-monotonic frame_id at row " << checked << "\n";
-			return 1;
-		}
-		if (M01String(gt, "session_id") != session_id || M01String(gt, "provider") != provider ||
-		    M01Int(gt, "table_width") != table_width || M01Int(gt, "table_height") != table_height) {
-			Cerr() << "ERROR: groundtruth identity mismatch at frame " << frame_id << "\n";
-			return 1;
-		}
-		String frame_path = AppendFileName(AppendFileName(root, "frames"), M01FrameName(frame_id));
-		if (!FileExists(frame_path)) {
-			Cerr() << "ERROR: missing frame file: " << frame_path << "\n";
-			return 1;
-		}
-		previous_frame = frame_id;
-		checked++;
-	}
-	if (checked != frame_count) {
-		Cerr() << "ERROR: frame_count mismatch metadata=" << frame_count << " groundtruth=" << checked << "\n";
-		return 1;
-	}
-	Cout() << "M01 validation PASS\n";
-	Cout() << "session_id=" << session_id << " provider=" << provider
-	       << " size=(" << table_width << ", " << table_height << ") frames=" << checked << "\n";
-	Cout().Flush();
-	return 0;
-}
-
-static int ReplayM02Session(const String& root, const String& expected_provider,
-                            Size expected_size, int expected_frame_ms)
-{
-	int rc = ValidateM01SourceContractSample(root);
-	if (rc != 0)
-		return rc;
-
-	Value metadata_value = ParseJSON(LoadFile(AppendFileName(root, "metadata.json")));
-	ValueMap metadata = metadata_value;
-	String session_id = M01String(metadata, "session_id");
-	String provider = M01String(metadata, "provider");
-	int table_width = M01Int(metadata, "table_width");
-	int table_height = M01Int(metadata, "table_height");
-	int frame_count = M01Int(metadata, "frame_count");
-	if (!expected_provider.IsEmpty() && provider != expected_provider) {
-		Cerr() << "ERROR: provider mismatch expected=" << expected_provider << " actual=" << provider << "\n";
-		return 1;
-	}
-	if (expected_size.cx > 0 && expected_size.cy > 0 &&
-	    (table_width != expected_size.cx || table_height != expected_size.cy)) {
-		Cerr() << "ERROR: table-size mismatch expected=(" << expected_size.cx << ", " << expected_size.cy
-		       << ") actual=(" << table_width << ", " << table_height << ")\n";
-		return 1;
-	}
-
-	Cout() << "M02 replay START\n";
-	Cout() << "session_id=" << session_id << " provider=" << provider
-	       << " size=(" << table_width << ", " << table_height << ") frames=" << frame_count << "\n";
-
-	Vector<String> rows = Split(LoadFile(AppendFileName(root, "groundtruth.jsonl")), '\n', false);
-	int replayed = 0;
-	int64 previous_timestamp_ms = Null;
-	for (String row : rows) {
-		row = TrimBoth(row);
-		if (row.IsEmpty())
-			continue;
-		Value row_value = ParseJSON(row);
-		ValueMap gt = row_value;
-		int frame_id = M01Int(gt, "frame_id");
-		int render_step = M01Int(gt, "render_step");
-		int64 timestamp_ms = M01Int64(gt, "timestamp_ms");
-		if (!IsNull(previous_timestamp_ms)) {
-			if (timestamp_ms < previous_timestamp_ms) {
-				Cerr() << "ERROR: timestamp moved backwards at frame " << frame_id
-				       << " previous=" << previous_timestamp_ms << " actual=" << timestamp_ms << "\n";
-				return 1;
-			}
-			if (expected_frame_ms > 0 && timestamp_ms - previous_timestamp_ms != expected_frame_ms) {
-				Cerr() << "ERROR: timing drift at frame " << frame_id
-				       << " expected_delta_ms=" << expected_frame_ms
-				       << " actual_delta_ms=" << (timestamp_ms - previous_timestamp_ms) << "\n";
-				return 1;
-			}
-		}
-		int game_id = M01Int(gt, "game_id");
-		int hand_id = M01Int(gt, "hand_id");
-		int street = M01Int(gt, "street", -1);
-		int pot = M01Int(gt, "pot", 0);
-		int players = 0;
-		Value players_value = gt.Get("players", ValueArray());
-		if (players_value.Is<ValueArray>())
-			players = ValueArray(players_value).GetCount();
-		Cout() << "frame=" << frame_id
-		       << " render_step=" << render_step
-		       << " timestamp_ms=" << timestamp_ms
-		       << " game_id=" << game_id
-		       << " hand_id=" << hand_id
-		       << " street=" << street
-		       << " pot=" << pot
-		       << " players=" << players
-		       << " image=" << AppendFileName("frames", M01FrameName(frame_id)) << "\n";
-		previous_timestamp_ms = timestamp_ms;
-		replayed++;
-	}
-
-	Cout() << "M02 replay PASS frames=" << replayed << "\n";
 	Cout().Flush();
 	return 0;
 }
@@ -656,7 +359,7 @@ GUI_APP_MAIN
 
 	if (args.GetCount() > 0 && args[0] == "--validate-source-contract-sample") {
 		String sample_dir = args.GetCount() > 1 ? args[1] : AppendFileName(GetCurrentDirectory(), "tmp/texas_m01_sample");
-		int rc = ValidateM01SourceContractSample(sample_dir);
+		int rc = ValidateTexasHoldemSourceSession(sample_dir);
 		std::_Exit(rc);
 	}
 
@@ -676,7 +379,7 @@ GUI_APP_MAIN
 			else if (args[i] == "--expect-frame-ms" && i + 1 < args.GetCount())
 				expected_frame_ms = max(1, StrInt(args[++i]));
 		}
-		int rc = ReplayM02Session(session_dir, expected_provider, expected_size, expected_frame_ms);
+		int rc = ReplayTexasHoldemSession(session_dir, expected_provider, expected_size, expected_frame_ms);
 		std::_Exit(rc);
 	}
 

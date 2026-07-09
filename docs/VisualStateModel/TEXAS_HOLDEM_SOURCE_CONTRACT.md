@@ -143,6 +143,11 @@ count, and image path. Optional replay expectations fail with concise `ERROR:`
 diagnostics for provider mismatch, table-size mismatch, backwards timestamps,
 or timestamp deltas that differ from `--expect-frame-ms`.
 
+The reusable contract implementation lives in
+`game/TexasHoldem/TexasHoldemSessionContract.*`. CLI code should route through
+that helper rather than duplicating metadata parsing, ground-truth validation,
+frame naming, or replay diagnostics.
+
 ## Compatibility Rules
 
 - Readers must reject mismatched `session_id`, `provider`, or table size between

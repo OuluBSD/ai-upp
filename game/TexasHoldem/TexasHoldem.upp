@@ -84,6 +84,8 @@ file
 	ServerManager.h,
 	ServerManager.cpp,
 	ScreenGameState.h,
+	TexasHoldemSessionContract.h,
+	TexasHoldemSessionContract.cpp,
 	RemoteClient.h,
 	RemoteClient.cpp,
 	RunLocalGame.h,

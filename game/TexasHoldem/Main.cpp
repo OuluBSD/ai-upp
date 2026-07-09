@@ -6,6 +6,7 @@
 #include <EditorCommon/ConfigFile.h>
 #include <EditorCommon/Tools.h>
 #include "GameTable.h"
+#include "TexasHoldemLocalGame.h"
 #include "TexasHoldemSessionContract.h"
 #include <Poker/LocalEngineFactory.h>
 #include <GameRules/Game.h>
@@ -28,12 +29,6 @@ constexpr int LOCAL_GAME_DEFAULT_START_CASH = 2000;
 constexpr int LOCAL_GAME_DEFAULT_SPEED = 4;
 constexpr int M01_DEFAULT_WIDTH = 1024;
 constexpr int M01_DEFAULT_HEIGHT = 648;
-
-bool IsPs6pProvider(const String& provider)
-{
-	String p = ToLower(TrimBoth(provider));
-	return p == "ps_6p" || p == "ps-6p" || p == "pokerstars-6p";
-}
 
 static void CaptureM01GroundTruth(TexasHoldemGroundTruthRecord& record, const std::shared_ptr<Game>& game)
 {
@@ -77,7 +72,7 @@ static void CaptureM01GroundTruth(TexasHoldemGroundTruthRecord& record, const st
 static int DumpM01SourceContractSample(const String& out_dir, const String& provider,
                                        Size table_size, int num_players, int start_cash,
                                        int game_speed, int seed, const String& session_id, int frame_count,
-                                       class ConfigFile& config, EngineLog& engineLog)
+                                       bool step_actions, class ConfigFile& config, EngineLog& engineLog)
 {
 	String sample_provider = provider.IsEmpty() ? "PS_6p" : provider;
 	String sample_session = session_id.IsEmpty() ? "texas-m01-ps6p-sample" : session_id;
@@ -86,46 +81,35 @@ static int DumpM01SourceContractSample(const String& out_dir, const String& prov
 	RealizeDirectory(frames_dir);
 	frame_count = max(1, frame_count);
 
-	PlayerDataList players;
-	String humanNick = config.readConfigString("Nick");
-	if (humanNick.IsEmpty())
-		humanNick = "Player";
-	players.push_back(std::make_shared<PlayerData>(0, 0, PLAYER_TYPE_HUMAN, PLAYER_RIGHTS_ADMIN, true));
-	players.back()->SetName(humanNick);
-	for (int i = 1; i < num_players; i++) {
-		players.push_back(std::make_shared<PlayerData>(i, i, PLAYER_TYPE_COMPUTER, PLAYER_RIGHTS_NORMAL, false));
-		players.back()->SetName(Format("Computer %d", i));
-	}
-
-	GameData game_data;
-	game_data.maxNumberOfPlayers = num_players;
-	game_data.startMoney = start_cash;
-	game_data.firstSmallBlind = 10;
-	game_data.guiSpeed = game_speed;
-	StartData start_data;
-	start_data.numberOfPlayers = num_players;
-	start_data.startDealerPlayerId = 0;
-
 	GameTable table(sample_provider);
 	table.SetRect(0, 0, table_size.cx, table_size.cy);
 	table.Layout();
 	table.RefreshLayoutDeep();
-	table.SetProjectContext("default", IsPs6pProvider(sample_provider) ? "ps-6p" : "texas-holdem");
-	table.SetScriptAutomationEnabled(true);
-
-	auto factory = std::make_shared<LocalEngineFactory>();
-	auto game = std::make_shared<Game>(&table, factory, players, game_data, start_data, 1, &engineLog, &config);
-	if (seed >= 0)
-		game->SetBaseSeed(seed);
-	table.SetGame(game);
-	game->initHand();
-	game->startHand();
+	TexasHoldemLocalGameOptions options;
+	options.num_players = num_players;
+	options.start_cash = start_cash;
+	options.game_speed = game_speed;
+	options.seed = seed;
+	options.provider = sample_provider;
+	options.project_name = "default";
+	options.script_automation = true;
+	auto game = StartTexasHoldemLocalGame(table, options, config, engineLog);
 	Ctrl::ProcessEvents();
 	table.RefreshLayoutDeep();
 	table.Layout();
 
 	String gt_jsonl;
 	for (int frame_id = 0; frame_id < frame_count; frame_id++) {
+		if (step_actions && frame_id > 0) {
+			int before_turn_uid = TexasHoldemCurrentTurnUid(game);
+			bool stepped = StepTexasHoldemLocalGameAction(game);
+			int after_turn_uid = TexasHoldemCurrentTurnUid(game);
+			Cout() << "record_step=" << frame_id
+			       << " action=next_player"
+			       << " stepped=" << (stepped ? 1 : 0)
+			       << " turn_uid_before=" << before_turn_uid
+			       << " turn_uid_after=" << after_turn_uid << "\n";
+		}
 		Ctrl::ProcessEvents();
 		table.RefreshLayoutDeep();
 		table.Layout();
@@ -134,6 +118,7 @@ static int DumpM01SourceContractSample(const String& out_dir, const String& prov
 			Cerr() << "ERROR: failed to write frame: " << frame_path << "\n";
 			return 2;
 		}
+		Cout() << "record_frame=" << frame_id << " path=" << frame_path << "\n";
 
 		TexasHoldemGroundTruthRecord gt;
 		gt.session_id = sample_session;
@@ -165,7 +150,8 @@ static int DumpM01SourceContractSample(const String& out_dir, const String& prov
 	Cout() << "first_frame=" << AppendFileName(frames_dir, TexasHoldemFrameName(0)) << "\n";
 	Cout() << "last_frame=" << AppendFileName(frames_dir, TexasHoldemFrameName(frame_count - 1)) << "\n";
 	Cout() << "frame_id=0.." << (frame_count - 1) << " render_step=0.." << (frame_count - 1)
-	       << " provider=" << sample_provider << " size=" << table_size << " seed=" << seed << "\n";
+	       << " provider=" << sample_provider << " size=" << table_size
+	       << " num_players=" << num_players << " seed=" << seed << "\n";
 	Cout().Flush();
 	return 0;
 }
@@ -198,6 +184,7 @@ GUI_APP_MAIN
 		       << "  --dump-source-contract-sample Write M01 frame + groundtruth sample session\n"
 		       << "  --validate-source-contract-sample <dir> Validate M01 sample session\n"
 		       << "  --record-session       Write M02 record session using the TexasHoldem source contract\n"
+		       << "  --step-actions         Advance one shared game action before each recorded frame after frame 0\n"
 		       << "  --replay-session <dir> Validate and print deterministic M02 replay summary\n"
 		       << "  --expect-provider <name> Expected provider for --replay-session\n"
 		       << "  --expect-size <WxH>    Expected table size for --replay-session\n"
@@ -324,7 +311,7 @@ GUI_APP_MAIN
 	if (args.GetCount() > 0 && args[0] == "--dump-embedded-start") {
 		Size size(1024, 720);
 		String provider = cli_provider;
-		int num_players = IsPs6pProvider(provider) ? 6 : LOCAL_GAME_DEFAULT_NUM_PLAYERS;
+		int num_players = TexasHoldemIsPs6pProvider(provider) ? 6 : LOCAL_GAME_DEFAULT_NUM_PLAYERS;
 		int start_cash = LOCAL_GAME_DEFAULT_START_CASH;
 		int game_speed = LOCAL_GAME_DEFAULT_SPEED;
 		for(int i = 1; i < args.GetCount(); i++) {
@@ -389,17 +376,18 @@ GUI_APP_MAIN
 		String provider = cli_provider.IsEmpty() ? "PS_6p" : cli_provider;
 		String session_id = m02_record ? "texas-m02-ps6p-recording" : "texas-m01-ps6p-sample";
 		Size table_size(M01_DEFAULT_WIDTH, M01_DEFAULT_HEIGHT);
-		int num_players = IsPs6pProvider(provider) ? 6 : LOCAL_GAME_DEFAULT_NUM_PLAYERS;
+		int num_players = TexasHoldemIsPs6pProvider(provider) ? 6 : LOCAL_GAME_DEFAULT_NUM_PLAYERS;
 		int start_cash = LOCAL_GAME_DEFAULT_START_CASH;
 		int game_speed = LOCAL_GAME_DEFAULT_SPEED;
 		int seed = 1;
 		int frame_count = 8;
+		bool step_actions = false;
 		for (int i = 1; i < args.GetCount(); i++) {
 			if (args[i] == "--out" && i + 1 < args.GetCount())
 				out_dir = args[++i];
 			else if (args[i] == "--provider" && i + 1 < args.GetCount()) {
 				provider = args[++i];
-				if (IsPs6pProvider(provider))
+				if (TexasHoldemIsPs6pProvider(provider))
 					num_players = 6;
 			}
 			else if (args[i] == "--session-id" && i + 1 < args.GetCount())
@@ -419,9 +407,11 @@ GUI_APP_MAIN
 				seed = max(0, StrInt(args[++i]));
 			else if (args[i] == "--frames" && i + 1 < args.GetCount())
 				frame_count = max(1, StrInt(args[++i]));
+			else if (args[i] == "--step-actions")
+				step_actions = true;
 		}
 		int rc = DumpM01SourceContractSample(out_dir, provider, table_size, num_players,
-		                                     start_cash, game_speed, seed, session_id, frame_count,
+		                                     start_cash, game_speed, seed, session_id, frame_count, step_actions,
 		                                     config, *engineLog);
 		std::_Exit(rc);
 	}
@@ -509,7 +499,7 @@ GUI_APP_MAIN
 
 	if (args.GetCount() > 0 && args[0] == "--local-game") {
 		String provider = cli_provider;
-		int num_players = IsPs6pProvider(provider) ? 6 : LOCAL_GAME_DEFAULT_NUM_PLAYERS;
+		int num_players = TexasHoldemIsPs6pProvider(provider) ? 6 : LOCAL_GAME_DEFAULT_NUM_PLAYERS;
 		int start_cash = LOCAL_GAME_DEFAULT_START_CASH;
 		int game_speed = LOCAL_GAME_DEFAULT_SPEED;
 		for (int i = 1; i < args.GetCount(); ++i) {

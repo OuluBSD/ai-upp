@@ -148,6 +148,17 @@ The reusable contract implementation lives in
 that helper rather than duplicating metadata parsing, ground-truth validation,
 frame naming, or replay diagnostics.
 
+For real per-frame state progression, add `--step-actions` to the record
+command:
+
+```sh
+bin\TexasHoldem.exe --record-session --provider PS_6p --frames 5 --step-actions --out tmp\texas_m02_steps --seed 1 --fastcrash
+```
+
+The first stepped mode advances one shared game/model operation before each
+frame after frame 0 and prints `record_step=... action=next_player ...`
+diagnostics. Ground truth is captured after the step from the live game state.
+
 ## Compatibility Rules
 
 - Readers must reject mismatched `session_id`, `provider`, or table size between

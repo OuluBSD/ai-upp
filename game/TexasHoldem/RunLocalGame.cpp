@@ -1,4 +1,5 @@
 #include "GameTable.h"
+#include "TexasHoldemLocalGame.h"
 #include <EditorCommon/EditorCommon.h>
 #include <Poker/LocalEngineFactory.h>
 #include <GameRules/Game.h>
@@ -16,14 +17,6 @@ using namespace Upp;
 
 NAMESPACE_UPP
 
-namespace {
-bool IsPs6pProvider(const String& provider)
-{
-	String p = ToLower(TrimBoth(provider));
-	return p == "ps_6p" || p == "ps-6p" || p == "pokerstars-6p";
-}
-}
-
 void InitLocalGame(GameTable& table, int numPlayers, int startCash, int gameSpeed, const String& provider,
                    class ConfigFile& config, EngineLog& engineLog);
 
@@ -38,37 +31,14 @@ void RunLocalGame(int numPlayers, int startCash, int gameSpeed, const String& pr
 void InitLocalGame(GameTable& table, int numPlayers, int startCash, int gameSpeed, const String& provider,
                    class ConfigFile& config, EngineLog& engineLog)
 {
-	PlayerDataList pdList;
-	String humanNick = config.readConfigString("Nick");
-	if (humanNick.IsEmpty()) humanNick = "Player";
-
-	pdList.push_back(std::make_shared<PlayerData>(0, 0, PLAYER_TYPE_HUMAN, PLAYER_RIGHTS_ADMIN, true));
-	pdList.back()->SetName(humanNick);
-
-	for (int i = 1; i < numPlayers; i++) {
-		pdList.push_back(std::make_shared<PlayerData>(i, i, PLAYER_TYPE_COMPUTER, PLAYER_RIGHTS_NORMAL, false));
-		pdList.back()->SetName(Format("Computer %d", i));
-	}
-
-	GameData gData;
-	gData.maxNumberOfPlayers = numPlayers;
-	gData.startMoney = startCash;
-	gData.firstSmallBlind = 10;
-	gData.guiSpeed = gameSpeed;
-
-	StartData sData;
-	sData.numberOfPlayers = numPlayers;
-	sData.startDealerPlayerId = 0;
-
-	auto factory = std::make_shared<LocalEngineFactory>();
-
-	auto game = std::make_shared<Game>(&table, factory, pdList, gData, sData, 1, &engineLog, &config);
-	table.SetGame(game);
-	table.SetProjectContext("default", IsPs6pProvider(provider) ? "ps-6p" : "texas-holdem");
-	table.SetScriptAutomationEnabled(false);
-
-	game->initHand();
-	game->startHand();
+	TexasHoldemLocalGameOptions options;
+	options.num_players = numPlayers;
+	options.start_cash = startCash;
+	options.game_speed = gameSpeed;
+	options.provider = provider;
+	options.project_name = "default";
+	options.script_automation = false;
+	StartTexasHoldemLocalGame(table, options, config, engineLog);
 }
 
 namespace {

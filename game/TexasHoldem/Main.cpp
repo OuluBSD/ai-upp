@@ -25,6 +25,8 @@ namespace {
 constexpr int LOCAL_GAME_DEFAULT_NUM_PLAYERS = 10;
 constexpr int LOCAL_GAME_DEFAULT_START_CASH = 2000;
 constexpr int LOCAL_GAME_DEFAULT_SPEED = 4;
+constexpr int M01_DEFAULT_WIDTH = 1024;
+constexpr int M01_DEFAULT_HEIGHT = 648;
 
 bool IsPs6pProvider(const String& provider)
 {
@@ -32,11 +34,351 @@ bool IsPs6pProvider(const String& provider)
 	return p == "ps_6p" || p == "ps-6p" || p == "pokerstars-6p";
 }
 
-static void TraceTexasHoldem(const String& line)
+struct M01PlayerSnapshot : Moveable<M01PlayerSnapshot> {
+	int seat = -1;
+	int uid = 0;
+	String name;
+	bool hero = false;
+	bool active = false;
+	int stack = 0;
+	int bet = 0;
+	int action = 0;
+	int button = 0;
+	Vector<int> hole_cards;
+
+	void Jsonize(JsonIO& jio) {
+		jio("seat", seat)
+		   ("uid", uid)
+		   ("name", name)
+		   ("hero", hero)
+		   ("active", active)
+		   ("stack", stack)
+		   ("bet", bet)
+		   ("action", action)
+		   ("button", button)
+		   ("hole_cards", hole_cards);
+	}
+};
+
+struct M01GroundTruthRecord : Moveable<M01GroundTruthRecord> {
+	int schema = 1;
+	String session_id;
+	int frame_id = 0;
+	int render_step = 0;
+	int64 timestamp_ms = 0;
+	String provider;
+	int table_width = 0;
+	int table_height = 0;
+	int seed = -1;
+	int game_id = 0;
+	int hand_id = 0;
+	int street = -1;
+	int turn_uid = -1;
+	int pot = 0;
+	Vector<int> board_cards;
+	Vector<M01PlayerSnapshot> players;
+
+	void Jsonize(JsonIO& jio) {
+		jio("schema", schema)
+		   ("session_id", session_id)
+		   ("frame_id", frame_id)
+		   ("render_step", render_step)
+		   ("timestamp_ms", timestamp_ms)
+		   ("provider", provider)
+		   ("table_width", table_width)
+		   ("table_height", table_height)
+		   ("seed", seed)
+		   ("game_id", game_id)
+		   ("hand_id", hand_id)
+		   ("street", street)
+		   ("turn_uid", turn_uid)
+		   ("pot", pot)
+		   ("board_cards", board_cards)
+		   ("players", players);
+	}
+};
+
+struct M01SessionMetadata : Moveable<M01SessionMetadata> {
+	int schema = 1;
+	String kind = "texas_holdem_source_contract_sample";
+	String session_id;
+	String provider;
+	int table_width = 0;
+	int table_height = 0;
+	int seed = -1;
+	int frame_count = 1;
+	String frame_format = "png";
+	String frame_pattern = "frames/00000000.png";
+	String ground_truth = "groundtruth.jsonl";
+
+	void Jsonize(JsonIO& jio) {
+		jio("schema", schema)
+		   ("kind", kind)
+		   ("session_id", session_id)
+		   ("provider", provider)
+		   ("table_width", table_width)
+		   ("table_height", table_height)
+		   ("seed", seed)
+		   ("frame_count", frame_count)
+		   ("frame_format", frame_format)
+		   ("frame_pattern", frame_pattern)
+		   ("ground_truth", ground_truth);
+	}
+};
+
+static String M01FrameName(int frame_id)
 {
-	FileAppend out(AppendFileName(GetCurrentDirectory(), "TexasHoldemMainTrace.txt"));
-	out.Put(line + "\n");
-	out.Flush();
+	return Format("%08d.png", frame_id);
+}
+
+static void CaptureM01GroundTruth(M01GroundTruthRecord& record, const std::shared_ptr<Game>& game)
+{
+	if (!game)
+		return;
+	record.game_id = game->getMyGameID();
+	record.hand_id = game->getCurrentHandID();
+	std::shared_ptr<HandInterface> hand = game->getCurrentHand();
+	std::shared_ptr<BeroInterface> bero = hand ? hand->getCurrentBeRo() : nullptr;
+	if (hand) {
+		record.street = (int)hand->getCurrentRound();
+		std::shared_ptr<BoardInterface> board = hand->getBoard();
+		if (board) {
+			const int *cards = board->getMyCards();
+			for (int i = 0; i < 5; i++)
+				record.board_cards.Add(cards ? cards[i] : -1);
+			record.pot = board->getPot();
+		}
+	}
+	if (bero)
+		record.turn_uid = (int)bero->getCurrentPlayersTurnId();
+	int player_count = min(10, game->getStartQuantityPlayers());
+	for (int i = 0; i < player_count; i++) {
+		std::shared_ptr<PlayerInterface> player = game->getPlayerByNumber(i);
+		if (!player)
+			continue;
+		M01PlayerSnapshot& ps = record.players.Add();
+		ps.seat = i;
+		ps.uid = (int)player->getMyUniqueID();
+		ps.name = player->getMyName();
+		ps.hero = i == 0;
+		ps.active = player->getMyActiveStatus();
+		ps.stack = player->getMyCash();
+		ps.bet = player->getMySet();
+		ps.action = (int)player->getMyAction();
+		ps.button = player->getMyButton();
+		ps.hole_cards <<= player->getMyCards();
+	}
+}
+
+static int DumpM01SourceContractSample(const String& out_dir, const String& provider,
+                                       Size table_size, int num_players, int start_cash,
+                                       int game_speed, int seed, const String& session_id, int frame_count,
+                                       class ConfigFile& config, EngineLog& engineLog)
+{
+	String sample_provider = provider.IsEmpty() ? "PS_6p" : provider;
+	String sample_session = session_id.IsEmpty() ? "texas-m01-ps6p-sample" : session_id;
+	String root = out_dir.IsEmpty() ? AppendFileName(GetCurrentDirectory(), "tmp/texas_m01_sample") : out_dir;
+	String frames_dir = AppendFileName(root, "frames");
+	RealizeDirectory(frames_dir);
+	frame_count = max(1, frame_count);
+
+	PlayerDataList players;
+	String humanNick = config.readConfigString("Nick");
+	if (humanNick.IsEmpty())
+		humanNick = "Player";
+	players.push_back(std::make_shared<PlayerData>(0, 0, PLAYER_TYPE_HUMAN, PLAYER_RIGHTS_ADMIN, true));
+	players.back()->SetName(humanNick);
+	for (int i = 1; i < num_players; i++) {
+		players.push_back(std::make_shared<PlayerData>(i, i, PLAYER_TYPE_COMPUTER, PLAYER_RIGHTS_NORMAL, false));
+		players.back()->SetName(Format("Computer %d", i));
+	}
+
+	GameData game_data;
+	game_data.maxNumberOfPlayers = num_players;
+	game_data.startMoney = start_cash;
+	game_data.firstSmallBlind = 10;
+	game_data.guiSpeed = game_speed;
+	StartData start_data;
+	start_data.numberOfPlayers = num_players;
+	start_data.startDealerPlayerId = 0;
+
+	GameTable table(sample_provider);
+	table.SetRect(0, 0, table_size.cx, table_size.cy);
+	table.Layout();
+	table.RefreshLayoutDeep();
+	table.SetProjectContext("default", IsPs6pProvider(sample_provider) ? "ps-6p" : "texas-holdem");
+	table.SetScriptAutomationEnabled(true);
+
+	auto factory = std::make_shared<LocalEngineFactory>();
+	auto game = std::make_shared<Game>(&table, factory, players, game_data, start_data, 1, &engineLog, &config);
+	if (seed >= 0)
+		game->SetBaseSeed(seed);
+	table.SetGame(game);
+	game->initHand();
+	game->startHand();
+	Ctrl::ProcessEvents();
+	table.RefreshLayoutDeep();
+	table.Layout();
+
+	String gt_jsonl;
+	for (int frame_id = 0; frame_id < frame_count; frame_id++) {
+		Ctrl::ProcessEvents();
+		table.RefreshLayoutDeep();
+		table.Layout();
+		String frame_path = AppendFileName(frames_dir, M01FrameName(frame_id));
+		if (!table.DumpSnapshot(frame_path, true)) {
+			Cerr() << "ERROR: failed to write frame: " << frame_path << "\n";
+			return 2;
+		}
+
+		M01GroundTruthRecord gt;
+		gt.session_id = sample_session;
+		gt.frame_id = frame_id;
+		gt.render_step = frame_id;
+		gt.timestamp_ms = (int64)frame_id * 100;
+		gt.provider = sample_provider;
+		gt.table_width = table_size.cx;
+		gt.table_height = table_size.cy;
+		gt.seed = seed;
+		CaptureM01GroundTruth(gt, game);
+		gt_jsonl << StoreAsJson(gt) << "\n";
+	}
+	SaveFile(AppendFileName(root, "groundtruth.jsonl"), gt_jsonl);
+
+	M01SessionMetadata meta;
+	meta.session_id = sample_session;
+	meta.provider = sample_provider;
+	meta.table_width = table_size.cx;
+	meta.table_height = table_size.cy;
+	meta.seed = seed;
+	meta.frame_count = frame_count;
+	SaveFile(AppendFileName(root, "metadata.json"), StoreAsJson(meta));
+
+	Cout() << "source_contract_sample=" << root << "\n";
+	Cout() << "metadata=" << AppendFileName(root, "metadata.json") << "\n";
+	Cout() << "groundtruth=" << AppendFileName(root, "groundtruth.jsonl") << "\n";
+	Cout() << "frames=" << frames_dir << " count=" << frame_count << "\n";
+	Cout() << "first_frame=" << AppendFileName(frames_dir, M01FrameName(0)) << "\n";
+	Cout() << "last_frame=" << AppendFileName(frames_dir, M01FrameName(frame_count - 1)) << "\n";
+	Cout() << "frame_id=0.." << (frame_count - 1) << " render_step=0.." << (frame_count - 1)
+	       << " provider=" << sample_provider << " size=" << table_size << " seed=" << seed << "\n";
+	Cout().Flush();
+	return 0;
+}
+
+static bool M01HasKey(const ValueMap& map, const char *key)
+{
+	return map.Find(key) >= 0;
+}
+
+static int M01Int(ValueMap map, const char *key, int fallback = Null)
+{
+	Value value = map.Get(key, fallback);
+	return IsNull(value) ? fallback : (int)value;
+}
+
+static String M01String(ValueMap map, const char *key)
+{
+	return map.Get(key, String()).ToString();
+}
+
+static int ValidateM01SourceContractSample(const String& root)
+{
+	if (!DirectoryExists(root)) {
+		Cerr() << "ERROR: sample directory not found: " << root << "\n";
+		return 1;
+	}
+	String metadata_path = AppendFileName(root, "metadata.json");
+	String gt_path = AppendFileName(root, "groundtruth.jsonl");
+	if (!FileExists(metadata_path)) {
+		Cerr() << "ERROR: missing metadata.json\n";
+		return 1;
+	}
+	if (!FileExists(gt_path)) {
+		Cerr() << "ERROR: missing groundtruth.jsonl\n";
+		return 1;
+	}
+
+	Value metadata_value;
+	try {
+		metadata_value = ParseJSON(LoadFile(metadata_path));
+	}
+	catch (...) {
+		Cerr() << "ERROR: metadata.json parse failed\n";
+		return 1;
+	}
+	if (!metadata_value.Is<ValueMap>()) {
+		Cerr() << "ERROR: metadata.json is not an object\n";
+		return 1;
+	}
+	ValueMap metadata = metadata_value;
+	String session_id = M01String(metadata, "session_id");
+	String provider = M01String(metadata, "provider");
+	int table_width = M01Int(metadata, "table_width");
+	int table_height = M01Int(metadata, "table_height");
+	int frame_count = M01Int(metadata, "frame_count");
+	if (session_id.IsEmpty() || provider.IsEmpty() || table_width <= 0 || table_height <= 0 || frame_count <= 0) {
+		Cerr() << "ERROR: metadata.json has invalid required fields\n";
+		return 1;
+	}
+
+	Vector<String> rows = Split(LoadFile(gt_path), '\n', false);
+	int checked = 0;
+	int previous_frame = -1;
+	for (String row : rows) {
+		row = TrimBoth(row);
+		if (row.IsEmpty())
+			continue;
+		Value row_value;
+		try {
+			row_value = ParseJSON(row);
+		}
+		catch (...) {
+			Cerr() << "ERROR: groundtruth.jsonl parse failed at row " << checked << "\n";
+			return 1;
+		}
+		if (!row_value.Is<ValueMap>()) {
+			Cerr() << "ERROR: groundtruth row is not an object at row " << checked << "\n";
+			return 1;
+		}
+		ValueMap gt = row_value;
+		const char *required[] = {
+			"session_id", "frame_id", "render_step", "timestamp_ms", "provider",
+			"table_width", "table_height", "seed", "game_id", "hand_id", "players"
+		};
+		for (const char *key : required) {
+			if (!M01HasKey(gt, key)) {
+				Cerr() << "ERROR: groundtruth missing key '" << key << "' at row " << checked << "\n";
+				return 1;
+			}
+		}
+		int frame_id = M01Int(gt, "frame_id");
+		if (frame_id != checked || frame_id <= previous_frame) {
+			Cerr() << "ERROR: non-monotonic frame_id at row " << checked << "\n";
+			return 1;
+		}
+		if (M01String(gt, "session_id") != session_id || M01String(gt, "provider") != provider ||
+		    M01Int(gt, "table_width") != table_width || M01Int(gt, "table_height") != table_height) {
+			Cerr() << "ERROR: groundtruth identity mismatch at frame " << frame_id << "\n";
+			return 1;
+		}
+		String frame_path = AppendFileName(AppendFileName(root, "frames"), M01FrameName(frame_id));
+		if (!FileExists(frame_path)) {
+			Cerr() << "ERROR: missing frame file: " << frame_path << "\n";
+			return 1;
+		}
+		previous_frame = frame_id;
+		checked++;
+	}
+	if (checked != frame_count) {
+		Cerr() << "ERROR: frame_count mismatch metadata=" << frame_count << " groundtruth=" << checked << "\n";
+		return 1;
+	}
+	Cout() << "M01 validation PASS\n";
+	Cout() << "session_id=" << session_id << " provider=" << provider
+	       << " size=(" << table_width << ", " << table_height << ") frames=" << checked << "\n";
+	Cout().Flush();
+	return 0;
 }
 }
 
@@ -64,6 +406,8 @@ GUI_APP_MAIN
 		       << "  --dump-layout-rects    Print GameTable layout rectangles and exit\n"
 		       << "  --dump-new-game-defaults Print embedded setup defaults and exit\n"
 		       << "  --dump-embedded-start  Start embedded local game, print layout/game state, and exit\n"
+		       << "  --dump-source-contract-sample Write M01 frame + groundtruth sample session\n"
+		       << "  --validate-source-contract-sample <dir> Validate M01 sample session\n"
 		       << "  --provider <name>      Select provider/theme such as PS_6p\n"
 		       << "  --project <name>       Project name for --dump-render-image (default: testing)\n"
 		       << "  --out <path>           Output path for --dump-render-image\n"
@@ -218,7 +562,55 @@ GUI_APP_MAIN
 		Cout().Flush();
 		std::_Exit(0);
 	}
-	
+
+	if (args.GetCount() > 0 && args[0] == "--validate-source-contract-sample") {
+		String sample_dir = args.GetCount() > 1 ? args[1] : AppendFileName(GetCurrentDirectory(), "tmp/texas_m01_sample");
+		int rc = ValidateM01SourceContractSample(sample_dir);
+		std::_Exit(rc);
+	}
+
+	if (args.GetCount() > 0 && args[0] == "--dump-source-contract-sample") {
+		String out_dir = AppendFileName(GetCurrentDirectory(), "tmp/texas_m01_sample");
+		String provider = cli_provider.IsEmpty() ? "PS_6p" : cli_provider;
+		String session_id = "texas-m01-ps6p-sample";
+		Size table_size(M01_DEFAULT_WIDTH, M01_DEFAULT_HEIGHT);
+		int num_players = IsPs6pProvider(provider) ? 6 : LOCAL_GAME_DEFAULT_NUM_PLAYERS;
+		int start_cash = LOCAL_GAME_DEFAULT_START_CASH;
+		int game_speed = LOCAL_GAME_DEFAULT_SPEED;
+		int seed = 1;
+		int frame_count = 8;
+		for (int i = 1; i < args.GetCount(); i++) {
+			if (args[i] == "--out" && i + 1 < args.GetCount())
+				out_dir = args[++i];
+			else if (args[i] == "--provider" && i + 1 < args.GetCount()) {
+				provider = args[++i];
+				if (IsPs6pProvider(provider))
+					num_players = 6;
+			}
+			else if (args[i] == "--session-id" && i + 1 < args.GetCount())
+				session_id = args[++i];
+			else if (args[i] == "--size" && i + 1 < args.GetCount()) {
+				Vector<String> part = Split(args[++i], 'x');
+				if (part.GetCount() == 2)
+					table_size = Size(max(1, StrInt(part[0])), max(1, StrInt(part[1])));
+			}
+			else if (args[i] == "--num-players" && i + 1 < args.GetCount())
+				num_players = max(2, StrInt(args[++i]));
+			else if (args[i] == "--start-cash" && i + 1 < args.GetCount())
+				start_cash = max(100, StrInt(args[++i]));
+			else if (args[i] == "--game-speed" && i + 1 < args.GetCount())
+				game_speed = max(1, StrInt(args[++i]));
+			else if (args[i] == "--seed" && i + 1 < args.GetCount())
+				seed = max(0, StrInt(args[++i]));
+			else if (args[i] == "--frames" && i + 1 < args.GetCount())
+				frame_count = max(1, StrInt(args[++i]));
+		}
+		int rc = DumpM01SourceContractSample(out_dir, provider, table_size, num_players,
+		                                     start_cash, game_speed, seed, session_id, frame_count,
+		                                     config, *engineLog);
+		std::_Exit(rc);
+	}
+
 	if (args.GetCount() > 0 && args[0] == "--test-gameplay") {
 		FileAppend testLog("test_gameplay.txt");
 		struct StdoutGui : public GuiInterface {
@@ -447,11 +839,8 @@ GUI_APP_MAIN
 	}
 
 	if (!mainGui.table.IsOpen()) {
-		TraceTexasHoldem("before-startwindow-init");
 		mainGui.startWindow.Init(config, engineLog);
-		TraceTexasHoldem("before-startwindow-run");
 		mainGui.startWindow.Run();
-		TraceTexasHoldem("after-startwindow-run");
 	} else {
 		Ctrl::EventLoop();
 	}

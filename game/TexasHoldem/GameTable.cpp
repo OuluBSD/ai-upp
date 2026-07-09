@@ -52,12 +52,9 @@ String GameTable::ResolveFormPath(const String& provider)
 	candidates.Add(AppendFileName(GetFileDirectory(GetExeFilePath()), "../game/TexasHoldem/" + form_name));
 	candidates.Add(ConfigFile(form_name));
 	for (const String& candidate : candidates) {
-		if (FileExists(candidate)) {
-			Cout() << "[TexasHoldem] provider='" << provider << "' using form candidate: " << candidate << "\n";
+		if (FileExists(candidate))
 			return candidate;
-		}
 	}
-	Cout() << "[TexasHoldem] provider='" << provider << "' falling back to config form: " << form_name << "\n";
 	return ConfigFile(form_name);
 }
 
@@ -345,7 +342,6 @@ void PlayerCtrl::Layout()
 
 GameTable::GameTable(const String& provider)
 {
-	Cout() << "[TexasHoldem] GameTable ctor provider='" << provider << "'\n";
 	players.Bind(this);
 	Sizeable().Zoomable();
 	Title(t_("PKR Game Table"));
@@ -357,11 +353,8 @@ GameTable::GameTable(const String& provider)
 	String form_path = ResolveFormPath(provider);
 	bool form_loaded = m_form.Load(form_path);
 	bool layout_ok = false;
-	Cout() << "[TexasHoldem] form load result path='" << form_path << "' loaded=" << (form_loaded ? 1 : 0) << "\n";
-	if (form_loaded) {
+	if (form_loaded)
 		layout_ok = m_form.Layout("GameTable");
-		Cout() << "[TexasHoldem] layout result name='GameTable' ok=" << (layout_ok ? 1 : 0) << "\n";
-	}
 	if (form_loaded && layout_ok)
 		BindFormControls();
 	else {

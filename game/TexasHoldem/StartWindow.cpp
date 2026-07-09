@@ -17,23 +17,23 @@ constexpr int DEFAULT_LOCAL_PLAYERS = 10;
 constexpr int DEFAULT_LOCAL_CASH = 2000;
 constexpr int DEFAULT_LOCAL_SPEED = 4;
 
-bool IsPs6pProvider(const String& provider)
+bool StartWindowIsPs6pProvider(const String& provider)
 {
 	String p = ToLower(TrimBoth(provider));
 	return p == "ps_6p" || p == "ps-6p" || p == "pokerstars-6p";
 }
 
-int ValidLocalPlayers(int value)
+int StartWindowValidLocalPlayers(int value)
 {
 	return value >= 2 && value <= 10 ? value : DEFAULT_LOCAL_PLAYERS;
 }
 
-int ValidLocalCash(int value)
+int StartWindowValidLocalCash(int value)
 {
 	return value >= 1000 && value <= 1000000 ? value : DEFAULT_LOCAL_CASH;
 }
 
-int ValidLocalSpeed(int value)
+int StartWindowValidLocalSpeed(int value)
 {
 	return value >= 1 && value <= 11 ? value : DEFAULT_LOCAL_SPEED;
 }
@@ -113,7 +113,6 @@ StartWindow::~StartWindow() {}
 void StartWindow::FillProviders()
 {
 	ASSERT(providerChoice);
-	Cout() << "[TexasHoldem] StartWindow::FillProviders selecting PS_6p by default\n";
 	providerChoice->Clear();
 	providerChoice->Add("Original", t_("Original"));
 	providerChoice->Add("PS_6p", t_("PS 6-player"));
@@ -207,8 +206,7 @@ void StartWindow::ShowGameScreen()
 
 void StartWindow::LoadSetupDefaults()
 {
-	bool ps6p = IsPs6pProvider(SelectedProvider());
-	Cout() << "[TexasHoldem] LoadSetupDefaults provider='" << SelectedProvider() << "' ps6p=" << (ps6p ? 1 : 0) << "\n";
+	bool ps6p = StartWindowIsPs6pProvider(SelectedProvider());
 	if (!m_config) {
 		numPlayers->SetData(ps6p ? 6 : DEFAULT_LOCAL_PLAYERS);
 		startCash->SetData(DEFAULT_LOCAL_CASH);
@@ -219,10 +217,10 @@ void StartWindow::LoadSetupDefaults()
 		numPlayers->SetData(6);
 	else {
 		int stored_players = m_config->readConfigInt("LocalNumPlayers");
-		numPlayers->SetData(ValidLocalPlayers(stored_players > 0 ? stored_players : DEFAULT_LOCAL_PLAYERS));
+		numPlayers->SetData(StartWindowValidLocalPlayers(stored_players > 0 ? stored_players : DEFAULT_LOCAL_PLAYERS));
 	}
-	startCash->SetData(ValidLocalCash(m_config->readConfigInt("LocalStartCash")));
-	gameSpeed->SetData(ValidLocalSpeed(m_config->readConfigInt("LocalGameSpeed")));
+	startCash->SetData(StartWindowValidLocalCash(m_config->readConfigInt("LocalStartCash")));
+	gameSpeed->SetData(StartWindowValidLocalSpeed(m_config->readConfigInt("LocalGameSpeed")));
 }
 
 void StartWindow::StartLocalGameFromSetup()
@@ -254,11 +252,9 @@ void StartWindow::StartLocalGameWithValues(int players, int cash, int speed)
 {
 	if (!m_engineLog || !m_config)
 		return;
-	players = ValidLocalPlayers(players);
-	cash = ValidLocalCash(cash);
-	speed = ValidLocalSpeed(speed);
-	Cout() << "[TexasHoldem] StartLocalGameWithValues provider='" << SelectedProvider() << "' players=" << players
-	       << " cash=" << cash << " speed=" << speed << "\n";
+	players = StartWindowValidLocalPlayers(players);
+	cash = StartWindowValidLocalCash(cash);
+	speed = StartWindowValidLocalSpeed(speed);
 	ShowGameScreen();
 	InitLocalGame(*table, players, cash, speed, SelectedProvider(), *m_config, *m_engineLog);
 	table->RefreshLayoutDeep();

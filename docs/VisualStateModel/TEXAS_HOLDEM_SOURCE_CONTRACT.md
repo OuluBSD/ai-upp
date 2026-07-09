@@ -125,6 +125,22 @@ The validator checks metadata/ground-truth identity, monotonic frame IDs, row
 count, and frame-file presence. Milestone 02 extends the same contract to
 record/replay CLI tooling with real frame progression.
 
+## M02 Record and Replay
+
+Milestone 02 keeps the same session contract and adds agent-friendly command
+names for the record/replay loop:
+
+```sh
+bin\TexasHoldem.exe --record-session --provider PS_6p --frames 8 --out tmp\texas_m02_session --seed 1 --fastcrash
+bin\TexasHoldem.exe --replay-session tmp\texas_m02_session --fastcrash
+```
+
+`--record-session` writes the same `metadata.json`, `groundtruth.jsonl`, and
+`frames/%08d.png` layout as the M01 proof command. `--replay-session` validates
+the session and prints a deterministic per-frame summary containing frame
+identity, render step, timestamp, game/hand identifiers, street, pot, player
+count, and image path.
+
 ## Compatibility Rules
 
 - Readers must reject mismatched `session_id`, `provider`, or table size between

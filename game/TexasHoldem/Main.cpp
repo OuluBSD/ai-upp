@@ -380,6 +380,60 @@ static int ValidateM01SourceContractSample(const String& root)
 	Cout().Flush();
 	return 0;
 }
+
+static int ReplayM02Session(const String& root)
+{
+	int rc = ValidateM01SourceContractSample(root);
+	if (rc != 0)
+		return rc;
+
+	Value metadata_value = ParseJSON(LoadFile(AppendFileName(root, "metadata.json")));
+	ValueMap metadata = metadata_value;
+	String session_id = M01String(metadata, "session_id");
+	String provider = M01String(metadata, "provider");
+	int table_width = M01Int(metadata, "table_width");
+	int table_height = M01Int(metadata, "table_height");
+	int frame_count = M01Int(metadata, "frame_count");
+
+	Cout() << "M02 replay START\n";
+	Cout() << "session_id=" << session_id << " provider=" << provider
+	       << " size=(" << table_width << ", " << table_height << ") frames=" << frame_count << "\n";
+
+	Vector<String> rows = Split(LoadFile(AppendFileName(root, "groundtruth.jsonl")), '\n', false);
+	int replayed = 0;
+	for (String row : rows) {
+		row = TrimBoth(row);
+		if (row.IsEmpty())
+			continue;
+		Value row_value = ParseJSON(row);
+		ValueMap gt = row_value;
+		int frame_id = M01Int(gt, "frame_id");
+		int render_step = M01Int(gt, "render_step");
+		int64 timestamp_ms = (int64)M01Int(gt, "timestamp_ms");
+		int game_id = M01Int(gt, "game_id");
+		int hand_id = M01Int(gt, "hand_id");
+		int street = M01Int(gt, "street", -1);
+		int pot = M01Int(gt, "pot", 0);
+		int players = 0;
+		Value players_value = gt.Get("players", ValueArray());
+		if (players_value.Is<ValueArray>())
+			players = ValueArray(players_value).GetCount();
+		Cout() << "frame=" << frame_id
+		       << " render_step=" << render_step
+		       << " timestamp_ms=" << timestamp_ms
+		       << " game_id=" << game_id
+		       << " hand_id=" << hand_id
+		       << " street=" << street
+		       << " pot=" << pot
+		       << " players=" << players
+		       << " image=" << AppendFileName("frames", M01FrameName(frame_id)) << "\n";
+		replayed++;
+	}
+
+	Cout() << "M02 replay PASS frames=" << replayed << "\n";
+	Cout().Flush();
+	return 0;
+}
 }
 
 END_UPP_NAMESPACE
@@ -408,6 +462,8 @@ GUI_APP_MAIN
 		       << "  --dump-embedded-start  Start embedded local game, print layout/game state, and exit\n"
 		       << "  --dump-source-contract-sample Write M01 frame + groundtruth sample session\n"
 		       << "  --validate-source-contract-sample <dir> Validate M01 sample session\n"
+		       << "  --record-session       Write M02 record session using the TexasHoldem source contract\n"
+		       << "  --replay-session <dir> Validate and print deterministic M02 replay summary\n"
 		       << "  --provider <name>      Select provider/theme such as PS_6p\n"
 		       << "  --project <name>       Project name for --dump-render-image (default: testing)\n"
 		       << "  --out <path>           Output path for --dump-render-image\n"
@@ -569,10 +625,17 @@ GUI_APP_MAIN
 		std::_Exit(rc);
 	}
 
-	if (args.GetCount() > 0 && args[0] == "--dump-source-contract-sample") {
-		String out_dir = AppendFileName(GetCurrentDirectory(), "tmp/texas_m01_sample");
+	if (args.GetCount() > 0 && args[0] == "--replay-session") {
+		String session_dir = args.GetCount() > 1 ? args[1] : AppendFileName(GetCurrentDirectory(), "tmp/texas_m02_session");
+		int rc = ReplayM02Session(session_dir);
+		std::_Exit(rc);
+	}
+
+	if (args.GetCount() > 0 && (args[0] == "--dump-source-contract-sample" || args[0] == "--record-session")) {
+		bool m02_record = args[0] == "--record-session";
+		String out_dir = AppendFileName(GetCurrentDirectory(), m02_record ? "tmp/texas_m02_session" : "tmp/texas_m01_sample");
 		String provider = cli_provider.IsEmpty() ? "PS_6p" : cli_provider;
-		String session_id = "texas-m01-ps6p-sample";
+		String session_id = m02_record ? "texas-m02-ps6p-recording" : "texas-m01-ps6p-sample";
 		Size table_size(M01_DEFAULT_WIDTH, M01_DEFAULT_HEIGHT);
 		int num_players = IsPs6pProvider(provider) ? 6 : LOCAL_GAME_DEFAULT_NUM_PLAYERS;
 		int start_cash = LOCAL_GAME_DEFAULT_START_CASH;

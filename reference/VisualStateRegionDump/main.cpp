@@ -12,17 +12,15 @@ using namespace Upp;
 // SImageDraw (uppsrc/Draw/SDraw.h), which is part of the Draw package (not
 // CtrlCore's platform-native ImageDraw), so this stays headless-linkable.
 
-static bool VsmSaveOverlayPng(const VsmFrameImage& frame, const Vector<VsmChangedRect>& regions,
-                              const String& path)
+// Raw RGBA -> ImageBuffer -> Image, one row at a time. Named .r/.g/.b/.a
+// member access (not raw byte offsets) matches PngFrame.cpp's decode
+// direction, so this stays correct regardless of RGBA's in-memory byte
+// order. Factored out of VsmSaveOverlayPng (task 0105) so the task 0110
+// debug-crop renderer below can build the same Image without duplicating
+// the conversion.
+static Image VsmFrameImageToImage(const VsmFrameImage& frame)
 {
-	if(frame.IsEmpty())
-		return false;
-
 	int w = frame.width, h = frame.height;
-
-	// Raw RGBA -> ImageBuffer, one row at a time. Named .r/.g/.b/.a member
-	// access (not raw byte offsets) matches PngFrame.cpp's decode direction,
-	// so this stays correct regardless of RGBA's in-memory byte order.
 	ImageBuffer buf(w, h);
 	for(int y = 0; y < h; y++) {
 		RGBA* row = buf[y];
@@ -32,12 +30,49 @@ static bool VsmSaveOverlayPng(const VsmFrameImage& frame, const Vector<VsmChange
 			row[x].r = r; row[x].g = g; row[x].b = b; row[x].a = a;
 		}
 	}
-	Image frame_img(buf);
+	return Image(buf);
+}
+
+static bool VsmSaveOverlayPng(const VsmFrameImage& frame, const Vector<VsmChangedRect>& regions,
+                              const String& path)
+{
+	if(frame.IsEmpty())
+		return false;
+
+	int w = frame.width, h = frame.height;
+	Image frame_img = VsmFrameImageToImage(frame);
 
 	SImageDraw sw(w, h);
 	sw.DrawImage(0, 0, frame_img);
 	VsmDrawRegionOverlay(sw, regions, Point(0, 0)); // no selection concept headlessly
 	Image out = sw;
+
+	RealizeDirectory(GetFileFolder(path));
+	return PNGEncoder().SaveFile(path, out);
+}
+
+// Debug crop image (task 0110): just the changed-region rectangle plus a
+// small fixed padding margin for surrounding context — NOT the whole frame
+// (that's what VsmSaveOverlayPng/--overlay-out already produces). Padding is
+// clamped to the frame bounds so regions near an edge still crop cleanly.
+static const int kCropPadding = 12;
+
+static bool VsmSaveRegionCropPng(const VsmFrameImage& frame, const VsmChangedRect& region,
+                                 const String& path)
+{
+	if(frame.IsEmpty())
+		return false;
+
+	Image frame_img = VsmFrameImageToImage(frame);
+
+	int x0 = max(0, region.x - kCropPadding);
+	int y0 = max(0, region.y - kCropPadding);
+	int x1 = min(frame.width,  region.x + region.w + kCropPadding);
+	int y1 = min(frame.height, region.y + region.h + kCropPadding);
+	int cw = max(1, x1 - x0);
+	int ch = max(1, y1 - y0);
+
+	Image out = Crop(frame_img, x0, y0, cw, ch);
 
 	RealizeDirectory(GetFileFolder(path));
 	return PNGEncoder().SaveFile(path, out);
@@ -96,6 +131,7 @@ CONSOLE_APP_MAIN
 	int frame_end   = -1; // sentinel: unset -> default to frame_count - 1
 	String jsonl_out;
 	String overlay_out;
+	String crop_report_out;
 
 	// Parse command-line arguments
 	for(int i = 0; i < args.GetCount(); i++) {
@@ -103,7 +139,7 @@ CONSOLE_APP_MAIN
 		if(arg == "--help") {
 			Cout() << "Usage: VisualStateRegionDump [<m01m02_session_dir>] "
 			          "[--frame-start N] [--frame-end M] [--jsonl-out <path>] "
-			          "[--overlay-out <dir>]\n"
+			          "[--overlay-out <dir>] [--crop-report-out <dir>]\n"
 			          "  <m01m02_session_dir>  M01/M02 session directory (metadata.json +\n"
 			          "                        groundtruth.jsonl + frames/%08d.png), e.g.\n"
 			          "                        var/vsm_fixtures/texas_ps6p_sample\n"
@@ -114,6 +150,13 @@ CONSOLE_APP_MAIN
 			          "                        detected changed region (frame pixels + region\n"
 			          "                        rectangles drawn via the shared VsmDrawRegionOverlay\n"
 			          "                        helper), named overlay_<prev>_<curr>.png\n"
+			          "  --crop-report-out <dir>  for each transition with >=1 changed region,\n"
+			          "                        write one small cropped PNG per region\n"
+			          "                        (crop_<prev>_<curr>_<idx>.png, just the region rect\n"
+			          "                        + padding, not the whole frame) plus one markdown\n"
+			          "                        file (report_<prev>_<curr>.md) embedding the crop(s)\n"
+			          "                        and a data table (region_id, x, y, w, h, score,\n"
+			          "                        frame_prev, frame). Composable with --overlay-out.\n"
 			          "  (no session dir)      run the synthetic self-test path instead\n";
 			SetExitCode(0);
 			return;
@@ -133,6 +176,10 @@ CONSOLE_APP_MAIN
 		else if(arg == "--overlay-out") {
 			if(i + 1 >= args.GetCount()) { Fail("--overlay-out requires a value"); return; }
 			overlay_out = args[++i];
+		}
+		else if(arg == "--crop-report-out") {
+			if(i + 1 >= args.GetCount()) { Fail("--crop-report-out requires a value"); return; }
+			crop_report_out = args[++i];
 		}
 		else {
 			session_dir = arg;
@@ -395,6 +442,11 @@ CONSOLE_APP_MAIN
 			Cout() << "Frame " << (fid - 1) << "->" << fid
 			       << ": detected " << changes.GetCount() << " changed region(s)\n";
 
+			// This transition's records only (same fields/order as `changes`),
+			// used below to build the --crop-report-out markdown table without
+			// re-deriving region_id/score from `records` (the whole-run vector).
+			Vector<VsmRegionRecordOut> transition_records;
+
 			for(const VsmChangedRect& cr : changes) {
 				VsmFingerprint32 fp;
 				if(!VsmRegionMemory::ExtractFingerprint(curr_frame, cr.x, cr.y, cr.w, cr.h, fp)) {
@@ -419,6 +471,7 @@ CONSOLE_APP_MAIN
 				rec.score      = cr.score;
 				rec.region_id  = rid;
 				records.Add(rec);
+				transition_records.Add(rec);
 
 				Cout() << "  Frame " << fid << ": region_id=" << rid
 				       << " rect=(" << cr.x << "," << cr.y << "," << cr.w << "x" << cr.h << ")"
@@ -440,6 +493,53 @@ CONSOLE_APP_MAIN
 					Fail(Format("Failed to write overlay PNG: %s", out_path));
 					return;
 				}
+			}
+
+			// --crop-report-out (task 0110): per changed-region debug crop PNGs
+			// + one markdown file per transition embedding them and a data table
+			// mirroring the --jsonl-out record fields. Independent of and
+			// composable with --overlay-out (full-frame) above.
+			if(!crop_report_out.IsEmpty() && changes.GetCount() > 0) {
+				Vector<String> crop_names;
+				for(int i = 0; i < changes.GetCount(); i++) {
+					String crop_name = Format("crop_%04d_%04d_%02d.png", fid - 1, fid, i);
+					String crop_path = AppendFileName(crop_report_out, crop_name);
+					if(!VsmSaveRegionCropPng(curr_frame, changes[i], crop_path)) {
+						Fail(Format("Failed to write crop PNG: %s", crop_path));
+						return;
+					}
+					crop_names.Add(crop_name);
+				}
+
+				String md;
+				md << "# Frame transition " << Format("%04d", fid - 1)
+				   << " -> " << Format("%04d", fid) << "\n\n";
+				md << changes.GetCount() << " changed region(s) detected.\n\n";
+				for(int i = 0; i < changes.GetCount(); i++) {
+					const VsmRegionRecordOut& r = transition_records[i];
+					md << "## Region " << r.region_id << "\n\n";
+					md << "![" << r.region_id << "](" << crop_names[i] << ")\n\n";
+				}
+				md << "## Region Data\n\n";
+				md << "| region_id | x | y | w | h | score | frame_prev | frame |\n";
+				md << "| --- | --- | --- | --- | --- | --- | --- | --- |\n";
+				for(int i = 0; i < changes.GetCount(); i++) {
+					const VsmRegionRecordOut& r = transition_records[i];
+					md << "| " << r.region_id
+					   << " | " << r.x << " | " << r.y << " | " << r.w << " | " << r.h
+					   << " | " << DblStr(r.score)
+					   << " | " << r.frame_prev << " | " << r.frame << " |\n";
+				}
+
+				String md_path = AppendFileName(crop_report_out,
+				    Format("report_%04d_%04d.md", fid - 1, fid));
+				RealizeDirectory(GetFileFolder(md_path));
+				if(!SaveFile(md_path, md)) {
+					Fail(Format("Failed to write --crop-report-out markdown file: %s", md_path));
+					return;
+				}
+				Cout() << "Wrote crop report: " << md_path
+				       << " (" << changes.GetCount() << " crop PNG(s))\n\n";
 			}
 
 			// Copy curr_frame data to prev_frame for next iteration (VsmFrameImage

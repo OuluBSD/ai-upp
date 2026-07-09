@@ -66,6 +66,7 @@ pipeline over a real M01/M02 TexasHoldem session (`metadata.json` +
 bin\VisualStateRegionDump.exe var\vsm_fixtures\texas_ps6p_sample
 bin\VisualStateRegionDump.exe var\vsm_fixtures\texas_ps6p_sample --frame-start 1 --frame-end 1
 bin\VisualStateRegionDump.exe var\vsm_fixtures\texas_ps6p_sample --jsonl-out out.jsonl
+bin\VisualStateRegionDump.exe var\vsm_fixtures\texas_ps6p_sample --overlay-out out\overlay --crop-report-out out\crop
 ```
 
 - `--frame-start N` / `--frame-end M` restrict processing to transitions ending
@@ -76,6 +77,34 @@ bin\VisualStateRegionDump.exe var\vsm_fixtures\texas_ps6p_sample --jsonl-out out
   `region_id`) to `<path>`, one record per line — deterministic and
   regression-diffable for a fixed input session. Without `--jsonl-out`, the
   same JSONL lines print to stdout instead.
+- `--crop-report-out <dir>` (task 0110) writes, for each frame transition
+  with >=1 changed region: one small cropped PNG per changed region
+  (`crop_<prev4>_<curr4>_<idx2>.png`, e.g. `crop_0000_0001_00.png` — just the
+  region's rect plus a fixed 12px padding margin, via `Draw/ImageOp.h`'s
+  `Crop()` — NOT the whole frame; distinct from `--overlay-out`'s full-frame
+  images) plus one markdown file (`report_<prev4>_<curr4>.md`) embedding the
+  crop(s) and a data table with the same fields as the `--jsonl-out` record.
+  Independent of and composable with `--jsonl-out`/`--overlay-out` — request
+  any combination. Example `report_0000_0001.md` shape:
+
+  ```markdown
+  # Frame transition 0000 -> 0001
+
+  7 changed region(s) detected.
+
+  ## Region rgn-0001
+
+  ![rgn-0001](crop_0000_0001_00.png)
+
+  ...
+
+  ## Region Data
+
+  | region_id | x | y | w | h | score | frame_prev | frame |
+  | --- | --- | --- | --- | --- | --- | --- | --- |
+  | rgn-0001 | 416 | 120 | 32 | 16 | 0.236328125 | 0 | 1 |
+  ...
+  ```
 
 This mode **supersedes** the OLD real-session path that used to read
 `VsmSessionStoreSource`/`.vsm` binary sessions (task 0104) — that format is

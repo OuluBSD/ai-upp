@@ -197,7 +197,42 @@ The directory is gitignored (never committed) and is always deleted before
 regeneration to ensure fresh output. The deterministic seed guarantees
 byte-identical output on every run with these exact parameters.
 
+## M03 Changed-Region CLI
+
+`reference/VisualStateRegionDump` runs the existing `VsmDetectChanges` +
+`VsmRegionMemory` pipeline (`uppsrc/VisualStateModel`) directly over an
+M01/M02 session directory, decoding frames via the PNG bridge
+(`VsmLoadM01M02SessionFrame`, `uppsrc/VisualStateModel/PngFrame.h`):
+
+```sh
+bin\VisualStateRegionDump.exe var\vsm_fixtures\texas_ps6p_sample
+bin\VisualStateRegionDump.exe var\vsm_fixtures\texas_ps6p_sample --frame-start 1 --frame-end 1 --jsonl-out out.jsonl
+```
+
+It emits one deterministic JSON record per changed region per frame
+transition (`frame_prev`, `frame`, `x`, `y`, `w`, `h`, `score`, `region_id`),
+either to stdout or to a file via `--jsonl-out`, and supports `--frame-start`/
+`--frame-end` for focused reruns on a frame range. This mode supersedes the
+tool's older real-session path (which read the incompatible OLD
+`VsmSessionStoreSource`/`.vsm` format); the tool's synthetic-session path
+(no session directory argument) is unchanged and still serves as the
+`ChangeDetect`/`RegionMemory` reuse smoke test. See
+`reference/VisualStateRegionDump/README.md` for full usage.
+
+Note: for the persistent `texas_ps6p_sample` fixture, ground truth
+(`groundtruth.jsonl`) is only actually distinct for frames 0, 1, and 2 —
+`turn_uid` and player `action` fields are byte-identical from frame 2 through
+frame 7 (the `--step-actions` stepped recorder stalls after two steps for
+this seed/provider). The changed-region CLI faithfully reports zero regions
+for those later transitions; this is a property of the current recorder, not
+a defect in the region-detection pipeline, and is a candidate for a future
+`game/TexasHoldem` investigation.
+
 ## Future Work
 
 - Store layout identity and form file version/hash when provider artifacts
   stabilize.
+- Investigate why `--step-actions` recording stops advancing `turn_uid`/player
+  `action` state after frame 2 for the `PS_6p` seed=1 fixture (see "M03
+  Changed-Region CLI" above) — affects the number of real transitions
+  available for changed-region regression testing.

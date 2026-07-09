@@ -51,14 +51,39 @@ CONSOLE_APP_MAIN
 
 	const Vector<String>& args = CommandLine();
 	String session_dir;
+	int frame_start = -1; // sentinel: unset -> default to 0
+	int frame_end   = -1; // sentinel: unset -> default to frame_count - 1
+	String jsonl_out;
 
 	// Parse command-line arguments
-	for(const String& arg : args) {
+	for(int i = 0; i < args.GetCount(); i++) {
+		const String& arg = args[i];
 		if(arg == "--help") {
-			Cout() << "Usage: VisualStateRegionDump [<session_dir>]\n";
+			Cout() << "Usage: VisualStateRegionDump [<m01m02_session_dir>] "
+			          "[--frame-start N] [--frame-end M] [--jsonl-out <path>]\n"
+			          "  <m01m02_session_dir>  M01/M02 session directory (metadata.json +\n"
+			          "                        groundtruth.jsonl + frames/%08d.png), e.g.\n"
+			          "                        var/vsm_fixtures/texas_ps6p_sample\n"
+			          "  --frame-start N       restrict to transitions ending at frame >= N (default 0)\n"
+			          "  --frame-end M         restrict to transitions ending at frame <= M (default last frame)\n"
+			          "  --jsonl-out <path>    write one JSON region record per line to <path>\n"
+			          "  (no session dir)      run the synthetic self-test path instead\n";
 			SetExitCode(0);
 			return;
-		} else {
+		}
+		else if(arg == "--frame-start") {
+			if(i + 1 >= args.GetCount()) { Fail("--frame-start requires a value"); return; }
+			frame_start = ScanInt(args[++i]);
+		}
+		else if(arg == "--frame-end") {
+			if(i + 1 >= args.GetCount()) { Fail("--frame-end requires a value"); return; }
+			frame_end = ScanInt(args[++i]);
+		}
+		else if(arg == "--jsonl-out") {
+			if(i + 1 >= args.GetCount()) { Fail("--jsonl-out requires a value"); return; }
+			jsonl_out = args[++i];
+		}
+		else {
 			session_dir = arg;
 		}
 	}
@@ -222,24 +247,53 @@ CONSOLE_APP_MAIN
 		Cout() << "\nRegion memory final count: " << mem.GetCount() << "\n";
 
 	} else {
-		// ========== REAL SESSION PATH ==========
-		Cout() << "Loading session from: " << session_dir << "\n";
+		// ========== M01/M02 SESSION PATH ==========
+		// Supersedes the old VsmSessionStoreSource/.vsm real-session path (task 0104):
+		// M01/M02 sessions (game/TexasHoldem/TexasHoldemSessionContract) are
+		// metadata.json + groundtruth.jsonl + frames/%08d.png, not the OLD
+		// VsmSessionStore .vsm binary format. Loaded via the 0103 PNG bridge
+		// (VsmReadM01M02SessionInfo / VsmLoadM01M02SessionFrame).
+		Cout() << "Loading M01/M02 session from: " << session_dir << "\n";
 
 		if(!DirectoryExists(session_dir)) {
 			Fail(Format("Session directory not found: %s", session_dir));
 			return;
 		}
 
-		VsmSessionStoreSource src;
-		src.SetLog(&log);
-		if(!src.Open(session_dir)) {
-			Fail(Format("Failed to open session: %s", session_dir));
+		VsmM01M02SessionInfo info;
+		if(!VsmReadM01M02SessionInfo(session_dir, info)) {
+			Fail(Format("Failed to read M01/M02 session metadata.json under: %s", session_dir));
 			return;
 		}
 
-		Cout() << "Session dimensions: " << src.GetWidth() << "x" << src.GetHeight() << "\n\n";
+		Cout() << "Session: provider=" << info.provider
+		       << " session_id=" << info.session_id
+		       << " size=" << info.table_width << "x" << info.table_height
+		       << " frame_count=" << info.frame_count << "\n\n";
 
-		// Configure change detection
+		if(info.frame_count < 2) {
+			Fail("Session has fewer than 2 frames — no transitions to detect");
+			return;
+		}
+
+		// Resolve --frame-start/--frame-end against the session's frame count.
+		// frame_start/frame_end restrict which *target* frame ids (the "curr"
+		// side of a prev->curr transition) are processed, supporting
+		// MILESTONE_03's "focused reruns" on a frame range.
+		int fs = frame_start >= 0 ? frame_start : 0;
+		int fe = frame_end   >= 0 ? frame_end   : info.frame_count - 1;
+		if(fs < 1) fs = 1; // frame 0 has no predecessor; first possible transition target is 1
+		if(fe > info.frame_count - 1) fe = info.frame_count - 1;
+		if(fs > fe) {
+			Fail(Format("Invalid frame range: --frame-start resolves to %d > --frame-end %d", fs, fe));
+			return;
+		}
+		int load_start = fs - 1;
+
+		Cout() << "Frame range: transitions " << load_start << "->" << fs
+		       << " .. " << (fe - 1) << "->" << fe << "\n\n";
+
+		// Configure change detection (same parameters as the synthetic path)
 		VsmChangeDetectParams params;
 		params.pixel_threshold = 30;
 		params.block_size = 8;
@@ -253,47 +307,47 @@ CONSOLE_APP_MAIN
 		VsmRegionMemory mem;
 		mem.SetLog(&log);
 
-		struct RegionInfo : Moveable<RegionInfo> {
+		// Deterministic per-region-per-transition output record.
+		struct VsmRegionRecordOut : Moveable<VsmRegionRecordOut> {
+			int    frame_prev = -1;
+			int    frame      = -1;
+			int    x = 0, y = 0, w = 0, h = 0;
+			double score      = 0.0;
 			String region_id;
-			int frame;
-			VsmChangedRect rect;
-			VsmFingerprint32 fingerprint;
+
+			void Jsonize(JsonIO& json)
+			{
+				json("frame_prev", frame_prev)
+				    ("frame",      frame)
+				    ("x", x)("y", y)("w", w)("h", h)
+				    ("score",      score)
+				    ("region_id",  region_id);
+			}
 		};
-		Vector<RegionInfo> region_log;
+		Vector<VsmRegionRecordOut> records;
+		int rgn_counter = 0;
 
-		// Process frame sequence
-		VsmImageBuffer buf;
-		int64 ts = 0;
-		int frame_count = 0;
-
-		// Read first frame
-		if(!src.ReadFrame(buf, ts)) {
-			Fail("No frames found in session");
+		VsmFrameImage prev_frame;
+		if(!VsmLoadM01M02SessionFrame(session_dir, load_start, prev_frame)) {
+			Fail(Format("Failed to decode frame %d", load_start));
 			return;
 		}
 
-		VsmFrameImage prev_frame;
-		prev_frame.Set(src.GetWidth(), src.GetHeight(), nullptr);
-		memcpy(prev_frame.data, buf.pixels.Begin(), buf.pixels.GetCount());
-		frame_count = 1;
-
-		// Process remaining frames
-		int frame_idx = 1;
-		while(src.ReadFrame(buf, ts)) {
-			frame_idx++;
+		for(int fid = fs; fid <= fe; fid++) {
 			VsmFrameImage curr_frame;
-			curr_frame.Set(src.GetWidth(), src.GetHeight(), nullptr);
-			memcpy(curr_frame.data, buf.pixels.Begin(), buf.pixels.GetCount());
+			if(!VsmLoadM01M02SessionFrame(session_dir, fid, curr_frame)) {
+				Fail(Format("Failed to decode frame %d", fid));
+				return;
+			}
 
 			Vector<VsmChangedRect> changes = VsmDetectChanges(prev_frame, curr_frame, params);
-			Cout() << "Frame " << (frame_idx - 1) << "->" << frame_idx
+			Cout() << "Frame " << (fid - 1) << "->" << fid
 			       << ": detected " << changes.GetCount() << " changed region(s)\n";
 
-			Cout() << "\nFrame " << frame_idx << " regions:\n";
 			for(const VsmChangedRect& cr : changes) {
 				VsmFingerprint32 fp;
 				if(!VsmRegionMemory::ExtractFingerprint(curr_frame, cr.x, cr.y, cr.w, cr.h, fp)) {
-					Fail(Format("ExtractFingerprint frame %d", frame_idx));
+					Fail(Format("ExtractFingerprint frame %d", fid));
 					return;
 				}
 
@@ -303,19 +357,21 @@ CONSOLE_APP_MAIN
 				if(!match.region_id.IsEmpty()) {
 					rid = match.region_id;
 				} else {
-					rid = Format("rgn-%04d", region_log.GetCount() + 1);
+					rid = Format("rgn-%04d", ++rgn_counter);
 					mem.Add(rid, fp);
 				}
 
-				RegionInfo info;
-				info.region_id = rid;
-				info.frame = frame_idx;
-				info.rect = cr;
-				info.fingerprint = fp;
-				region_log.Add(info);
+				VsmRegionRecordOut rec;
+				rec.frame_prev = fid - 1;
+				rec.frame      = fid;
+				rec.x = cr.x; rec.y = cr.y; rec.w = cr.w; rec.h = cr.h;
+				rec.score      = cr.score;
+				rec.region_id  = rid;
+				records.Add(rec);
 
-				Cout() << "  Frame " << frame_idx << ": region_id=" << rid
+				Cout() << "  Frame " << fid << ": region_id=" << rid
 				       << " rect=(" << cr.x << "," << cr.y << "," << cr.w << "x" << cr.h << ")"
+				       << " score=" << DblStr(cr.score)
 				       << " hash=" << ShortHash(fp);
 				if(!match.region_id.IsEmpty()) {
 					Cout() << " [matched, distance=" << DblStr(match.distance) << "]";
@@ -324,24 +380,37 @@ CONSOLE_APP_MAIN
 			}
 			Cout() << "\n";
 
-			// Copy curr_frame data to prev_frame for next iteration
-			// We can't assign directly, so we copy the data
+			// Copy curr_frame data to prev_frame for next iteration (VsmFrameImage
+			// wraps a non-assignable Buffer<byte>, so copy the raw bytes instead).
 			if(prev_frame.width != curr_frame.width || prev_frame.height != curr_frame.height) {
 				prev_frame.Set(curr_frame.width, curr_frame.height, nullptr);
 			}
-			memcpy(prev_frame.data, curr_frame.data, curr_frame.width * curr_frame.height * 4);
+			memcpy(prev_frame.data, curr_frame.data, (size_t)curr_frame.width * curr_frame.height * 4);
 		}
 
 		Cout() << "\n=== Region Detection Summary ===\n";
-		Cout() << "Total regions detected: " << mem.GetCount() << "\n";
-		Cout() << "Total frames processed: " << frame_idx << "\n";
+		Cout() << "Total distinct regions: " << mem.GetCount() << "\n";
+		Cout() << "Total region records: " << records.GetCount() << "\n";
+		Cout() << "Transitions processed: " << load_start << "->" << fs
+		       << " .. " << (fe - 1) << "->" << fe << "\n";
 
-		Cout() << "\n=== Full Region Log ===\n";
-		for(const RegionInfo& info : region_log) {
-			Cout() << "Frame " << info.frame << ": " << info.region_id
-			       << " @ (" << info.rect.x << "," << info.rect.y
-			       << ") " << info.rect.w << "x" << info.rect.h
-			       << " hash=" << ShortHash(info.fingerprint) << "\n";
+		// Emit deterministic JSON/JSONL region records: one JSON object per
+		// changed region per frame transition (frame id, rect, score, stable
+		// region id), suitable for regression diffing.
+		if(!jsonl_out.IsEmpty()) {
+			String jsonl;
+			for(const VsmRegionRecordOut& r : records)
+				jsonl << StoreAsJson(r) << "\n";
+			if(!SaveFile(jsonl_out, jsonl)) {
+				Fail(Format("Failed to write --jsonl-out file: %s", jsonl_out));
+				return;
+			}
+			Cout() << "\nWrote " << records.GetCount() << " region record(s) to " << jsonl_out << "\n";
+		}
+		else {
+			Cout() << "\n=== JSONL region records (stdout; use --jsonl-out <path> to save) ===\n";
+			for(const VsmRegionRecordOut& r : records)
+				Cout() << StoreAsJson(r) << "\n";
 		}
 	}
 }

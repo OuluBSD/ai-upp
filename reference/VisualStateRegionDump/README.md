@@ -53,3 +53,32 @@ Run:
 bin/build.exe -m 7 -j12 VisualStateRegionDump
 bin\VisualStateRegionDump.exe
 ```
+
+## M01/M02 Session Mode (Milestone 03)
+
+Passing a session directory runs the same `VsmDetectChanges`/`VsmRegionMemory`
+pipeline over a real M01/M02 TexasHoldem session (`metadata.json` +
+`groundtruth.jsonl` + `frames/%08d.png`, see
+`docs/VisualStateModel/TEXAS_HOLDEM_SOURCE_CONTRACT.md`), decoding frames via
+`VsmLoadM01M02SessionFrame` (the PNG bridge added in task 0103):
+
+```sh
+bin\VisualStateRegionDump.exe var\vsm_fixtures\texas_ps6p_sample
+bin\VisualStateRegionDump.exe var\vsm_fixtures\texas_ps6p_sample --frame-start 1 --frame-end 1
+bin\VisualStateRegionDump.exe var\vsm_fixtures\texas_ps6p_sample --jsonl-out out.jsonl
+```
+
+- `--frame-start N` / `--frame-end M` restrict processing to transitions ending
+  in `[N..M]` (MILESTONE_03's "focused reruns" on a frame range). Frame 0 has
+  no predecessor, so the earliest possible transition target is frame 1.
+- `--jsonl-out <path>` writes one compact JSON object per changed region per
+  frame transition (`frame_prev`, `frame`, `x`, `y`, `w`, `h`, `score`,
+  `region_id`) to `<path>`, one record per line — deterministic and
+  regression-diffable for a fixed input session. Without `--jsonl-out`, the
+  same JSONL lines print to stdout instead.
+
+This mode **supersedes** the OLD real-session path that used to read
+`VsmSessionStoreSource`/`.vsm` binary sessions (task 0104) — that format is
+incompatible with M01/M02's PNG-based contract and is no longer reachable from
+this tool. The synthetic path above is unchanged and continues to serve as the
+reuse smoke test for `ChangeDetect`/`RegionMemory` themselves.

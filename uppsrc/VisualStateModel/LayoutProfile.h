@@ -59,6 +59,24 @@ namespace Upp {
 //                     role that fits this sub-slot, and the task file's own
 //                     wording ("e.g.") frames that list as illustrative, not
 //                     closed).
+//   name_action     - a top-level, `.form`-declared element representing a
+//                     MERGED player-name + action-text control (as opposed
+//                     to real PlayerCtrl's two SEPARATE opaque C++ children,
+//                     `player_name`/`action_icon` — those roles keep their
+//                     existing separate-control meaning; this role is only
+//                     for the merged case). Task 0124's ADDITION to the
+//                     vocabulary, exercising a synthetic, test-only fixture
+//                     (`upptst/VisualStateModelTests/testdata/
+//                     GameTable_MergedNameAction.form`) whose "PlayerCtrlMerged"
+//                     seat type declares this control as a real, `.form`-
+//                     nested `Label` element (classified by a `Variable`
+//                     prefix pattern, "nameaction<N>") rather than via the
+//                     per-type `VsmFormSubSlot` synthetic sub-slot table real
+//                     `PlayerCtrl` needs — confirmed `VsmGetSubSlots
+//                     ("PlayerCtrlMerged")` returns an empty vector (no row
+//                     was added there for this type; FormLayout.{h,cpp}
+//                     needed no change at all for this task — see task
+//                     0124's evidence section).
 //   speed_control   - the playback-speed label + slider (paired, one role)
 //   pause_button    - the single Pause button
 //   chat_pane       - the poker chat control

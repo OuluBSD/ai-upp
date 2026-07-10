@@ -76,6 +76,25 @@ static String VsmClassifyByVariable(const String& variable)
 	// (container + its content).
 	if(variable == "handsImgPane" || variable == "handsImg")
 		return "hands_pane";
+	// M05-06 (task 0124): the merged name+action control on the synthetic
+	// "PlayerCtrlMerged" seat type (upptst/VisualStateModelTests/testdata/
+	// GameTable_MergedNameAction.form) — a real, `.form`-declared, Parent-
+	// nested `Label` element (Type alone is ambiguous, same reason every
+	// other Label-typed variable above is keyed by Variable, not Type), keyed
+	// off a `Variable` PREFIX (StartsWith, not exact-match, since this must
+	// work for "nameaction0"/"nameaction1"/"nameaction2"/... any seat index —
+	// mirrors VsmParseSeatIndex's own prefix-based approach below) rather than
+	// a fixed exact string, so this rule generalizes to any seat count.
+	if(variable.StartsWith("nameaction"))
+		return "name_action";
+	// M05-06 (task 0124): the stack/chip-count sibling child on the same
+	// synthetic fixture — reuses the EXISTING "stack_text" role (same meaning
+	// as real PlayerCtrl's `textLabel_Cash` sub-slot: a per-seat chip-count
+	// display), not a new near-duplicate role, since the meaning is identical
+	// even though this fixture reaches it via a top-level `.form` element
+	// rather than a `VsmFormSubSlot` table entry.
+	if(variable.StartsWith("stacktext"))
+		return "stack_text";
 	return String();
 }
 
@@ -91,6 +110,18 @@ String VsmClassifyElementRole(const VsmFormElement& element)
 	// seat block. Seat index itself is derived separately, from `variable`
 	// (see VsmParseSeatIndex), not here.
 	if(element.type == "PlayerCtrl")
+		return "seat";
+	// M05-06 (task 0124): "PlayerCtrlMerged" — the synthetic, test-only seat
+	// type used by upptst/VisualStateModelTests/testdata/
+	// GameTable_MergedNameAction.form (a hypothetical platform where the
+	// player-name and action-text controls are merged into one). It IS a
+	// seat, just a differently-composed one than real PlayerCtrl — same role,
+	// seat_index parsed the same `VsmParseSeatIndex` way below (confirmed
+	// unchanged: that parser keys off the `Variable` "player<N>" pattern
+	// only, never `Type`). Added as its own rule rather than folded into the
+	// "PlayerCtrl" check above, per this file's "add rows, don't rewrite
+	// dispatch logic" guardrail.
+	if(element.type == "PlayerCtrlMerged")
 		return "seat";
 	// GameTable_PS_6p.form:11 (Board, Type="BoardCtrl") — whole board area.
 	if(element.type == "BoardCtrl")

@@ -1,0 +1,100 @@
+<?xml version='1.0' encoding='utf-8'?>
+<form>
+	<layouts>
+		<item>
+			<content>
+				<item x="50" y="50" cx="200" cy="150" align="1" valign="1">
+					<name>Player0</name>
+					<properties>
+						<property name="Variable" value="player0" />
+						<property name="Frame" value="Null frame" />
+						<property name="Type" value="PlayerCtrlMerged" />
+					</properties>
+				</item>
+				<item x="10" y="100" cx="180" cy="20" align="1" valign="1">
+					<name>NameAction0</name>
+					<properties>
+						<property name="Variable" value="nameaction0" />
+						<property name="Frame" value="Default frame" />
+						<property name="Type" value="Label" />
+						<property name="Label" value="" />
+						<property name="Parent" value="player0" />
+					</properties>
+				</item>
+				<item x="10" y="125" cx="180" cy="20" align="1" valign="1">
+					<name>StackText0</name>
+					<properties>
+						<property name="Variable" value="stacktext0" />
+						<property name="Frame" value="Default frame" />
+						<property name="Type" value="Label" />
+						<property name="Label" value="" />
+						<property name="Parent" value="player0" />
+					</properties>
+				</item>
+				<item x="300" y="50" cx="200" cy="150" align="1" valign="1">
+					<name>Player1</name>
+					<properties>
+						<property name="Variable" value="player1" />
+						<property name="Frame" value="Null frame" />
+						<property name="Type" value="PlayerCtrlMerged" />
+					</properties>
+				</item>
+				<item x="10" y="100" cx="180" cy="20" align="1" valign="1">
+					<name>NameAction1</name>
+					<properties>
+						<property name="Variable" value="nameaction1" />
+						<property name="Frame" value="Default frame" />
+						<property name="Type" value="Label" />
+						<property name="Label" value="" />
+						<property name="Parent" value="player1" />
+					</properties>
+				</item>
+				<item x="10" y="125" cx="180" cy="20" align="1" valign="1">
+					<name>StackText1</name>
+					<properties>
+						<property name="Variable" value="stacktext1" />
+						<property name="Frame" value="Default frame" />
+						<property name="Type" value="Label" />
+						<property name="Label" value="" />
+						<property name="Parent" value="player1" />
+					</properties>
+				</item>
+				<item x="550" y="50" cx="200" cy="150" align="1" valign="1">
+					<name>Player2</name>
+					<properties>
+						<property name="Variable" value="player2" />
+						<property name="Frame" value="Null frame" />
+						<property name="Type" value="PlayerCtrlMerged" />
+					</properties>
+				</item>
+				<item x="10" y="100" cx="180" cy="20" align="1" valign="1">
+					<name>NameAction2</name>
+					<properties>
+						<property name="Variable" value="nameaction2" />
+						<property name="Frame" value="Default frame" />
+						<property name="Type" value="Label" />
+						<property name="Label" value="" />
+						<property name="Parent" value="player2" />
+					</properties>
+				</item>
+				<item x="10" y="125" cx="180" cy="20" align="1" valign="1">
+					<name>StackText2</name>
+					<properties>
+						<property name="Variable" value="stacktext2" />
+						<property name="Frame" value="Default frame" />
+						<property name="Type" value="Label" />
+						<property name="Label" value="" />
+						<property name="Parent" value="player2" />
+					</properties>
+				</item>
+			</content>
+			<name>GameTableMerged</name>
+			<properties>
+				<property name="Form.Width" value="800" />
+				<property name="Form.Height" value="500" />
+				<property name="Form.ScaleMode" value="Relative" />
+				<property name="Form.Name" value="GameTableMerged" />
+			</properties>
+		</item>
+	</layouts>
+</form>

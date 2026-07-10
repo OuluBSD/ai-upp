@@ -183,6 +183,154 @@ static void RunRegionAssignmentChecks(const VsmLayoutProfile& profile)
 	      "VsmMatchRegion's overlap is 0.0 for the unassigned case");
 }
 
+// ---------------------------------------------------------------------------
+// M05-06 (task 0124): second, structurally-divergent `.form` fixture — a
+// synthetic "PlayerCtrlMerged" seat type whose player-name and action-text
+// controls are MERGED into one `.form`-declared child element (as opposed to
+// real PlayerCtrl's two SEPARATE opaque C++-only children, `label_PlayerName`/
+// `actionPic`), stress-testing whether the M04 "no fixed schema" architecture
+// (FormLayout/LayoutProfile/RegionAssign) actually generalizes to a
+// DIFFERENT widget composition, not just a different rect layout of the SAME
+// PlayerCtrl vocabulary (both existing forms, GameTable.form and
+// GameTable_PS_6p.form, declare the identical 38-element vocabulary — see
+// this task's own evidence section for the full rationale). This fixture
+// also has NO BoardCtrl and no action-button/human-input elements at all — a
+// further stress case for "profile-building must not assume there is always
+// a Board".
+static void RunMergedNameActionFixtureChecks()
+{
+	String path = "upptst/VisualStateModelTests/testdata/GameTable_MergedNameAction.form";
+	Vector<VsmFormLayout> layouts = VsmParseFormFile(path);
+	CHECK(layouts.GetCount() >= 1,
+	      "GameTable_MergedNameAction.form: VsmParseFormFile returns >= 1 layout");
+	if(layouts.IsEmpty())
+		return;
+
+	const VsmFormLayout& layout = layouts[0];
+	CHECK(layout.elements.GetCount() == 9,
+	      "GameTable_MergedNameAction.form: VsmParseFormFile yields exactly 9 elements "
+	      "(3 PlayerCtrlMerged seats + 3 nameaction children + 3 stacktext children) "
+	      "[task 0124 fixture design]");
+
+	// --- Central architectural point: VsmGetSubSlots("PlayerCtrlMerged") is
+	// EMPTY -- this fixture's name/action + stack children are handled
+	// ENTIRELY by the flat-element-list + Parent-nesting mechanism
+	// (GetAbsoluteRect()'s parent-walk), NOT the per-type VsmFormSubSlot
+	// synthetic sub-slot table real PlayerCtrl needs. ---
+	Vector<VsmFormSubSlot> merged_subslots = VsmGetSubSlots("PlayerCtrlMerged");
+	CHECK(merged_subslots.IsEmpty(),
+	      "VsmGetSubSlots(\"PlayerCtrlMerged\") returns an EMPTY vector -- confirms this fixture's "
+	      "merged name/action and stack children are real, .form-declared, Parent-nested top-level "
+	      "elements resolved via the SAME generic GetAbsoluteRect() parent-walk every other nested "
+	      "element (e.g. HumanButtons/BtnFold) already uses, not a new per-type VsmFormSubSlot table "
+	      "entry [task 0124's central architectural point]");
+
+	VsmLayoutProfile profile = VsmBuildLayoutProfile(layout);
+	CHECK(profile.elements.GetCount() == 9,
+	      "VsmBuildLayoutProfile(MergedNameAction): exactly 9 elements");
+	CHECK(profile.subslots.IsEmpty(),
+	      "VsmBuildLayoutProfile(MergedNameAction): subslots is EMPTY for every element of this "
+	      "profile -- confirms no accidental fallback/inheritance from the real \"PlayerCtrl\" "
+	      "sub-slot table [task 0124]");
+
+	// --- 3 seats: role=="seat", correct seat_index, correct own rect ---
+	struct SeatExpect { const char* elem_name; int seat_index; int x, y, w, h; };
+	static const SeatExpect seats[] = {
+		{ "Player0", 0, 50,  50, 200, 150 },
+		{ "Player1", 1, 300, 50, 200, 150 },
+		{ "Player2", 2, 550, 50, 200, 150 },
+	};
+	for(const SeatExpect& se : seats) {
+		const VsmLayoutElementInfo* seat = FindElementInfo(profile, se.elem_name);
+		CHECK(seat != NULL, Format("MergedNameAction: %s element found", se.elem_name));
+		if(!seat)
+			continue;
+		CHECK(seat->role == "seat",
+		      Format("MergedNameAction: %s -> role \"seat\" [task 0124 Objective 1]", se.elem_name));
+		CHECK(seat->seat_index == se.seat_index,
+		      Format("MergedNameAction: %s -> seat_index==%d (VsmParseSeatIndex unchanged, "
+		             "Variable-pattern-based not Type-based -- confirmed, not assumed) [task 0124]",
+		             se.elem_name, se.seat_index));
+		CHECK(RectEq(seat->GetRect(), se.x, se.y, se.w, se.h),
+		      Format("MergedNameAction: %s's own rect == (%d,%d,%d,%d)",
+		             se.elem_name, se.x, se.y, se.w, se.h));
+	}
+
+	// --- Each seat's 2 Parent-nested children: the merged name/action child
+	// classifies to the NEW "name_action" role (not "unknown", not
+	// accidentally "player_name"/"action_icon" -- those roles' existing
+	// meaning is specifically for the SEPARATE-control case and must not
+	// leak here); the stack child reuses the EXISTING "stack_text" role. ---
+	struct ChildExpect { const char* name; const char* expect_role; int x, y, w, h; };
+	static const ChildExpect children[] = {
+		{ "NameAction0", "name_action", 60,  150, 180, 20 },
+		{ "StackText0",  "stack_text",  60,  175, 180, 20 },
+		{ "NameAction1", "name_action", 310, 150, 180, 20 },
+		{ "StackText1",  "stack_text",  310, 175, 180, 20 },
+		{ "NameAction2", "name_action", 560, 150, 180, 20 },
+		{ "StackText2",  "stack_text",  560, 175, 180, 20 },
+	};
+	for(const ChildExpect& ce : children) {
+		const VsmLayoutElementInfo* el = FindElementInfo(profile, ce.name);
+		CHECK(el != NULL, Format("MergedNameAction: %s element found", ce.name));
+		if(!el)
+			continue;
+		CHECK(el->role == ce.expect_role,
+		      Format("MergedNameAction: %s -> role \"%s\" (not \"unknown\", not \"player_name\"/"
+		             "\"action_icon\") [task 0124 Objective 1]", ce.name, ce.expect_role));
+		CHECK(RectEq(el->GetRect(), ce.x, ce.y, ce.w, ce.h),
+		      Format("MergedNameAction: %s's absolute (Parent-resolved) rect == (%d,%d,%d,%d)",
+		             ce.name, ce.x, ce.y, ce.w, ce.h));
+	}
+
+	// --- Region-match test via the shared RegionAssign.h logic (task 0117's
+	// extraction), scale 1:1 (design space treated directly as "frame" space
+	// here -- there is no recorded session for this synthetic fixture). ---
+	Vector<VsmLayoutCandidate> candidates = VsmBuildCandidates(profile, 1.0, 1.0);
+
+	// Region matching seat0's name/action child rect CLOSELY (its real,
+	// computed absolute rect -- via GetAbsoluteRect/the profile above, not a
+	// hand-guessed number) -- expect it to resolve to that element
+	// specifically, kind=="element" (there are no "subslot"-kind candidates
+	// at all for this fixture, since VsmGetSubSlots("PlayerCtrlMerged") is
+	// empty), not fall through to the whole seat.
+	const VsmLayoutElementInfo* na0 = FindElementInfo(profile, "NameAction0");
+	CHECK(na0 != NULL, "MergedNameAction: NameAction0 found for region-match test");
+	if(na0) {
+		Rect region_rect = na0->GetRect();
+		VsmMatchResult m = VsmMatchRegion(region_rect, candidates);
+		CHECK(m.best != NULL,
+		      "MergedNameAction: region matching NameAction0's exact rect resolves to something");
+		if(m.best) {
+			CHECK(m.best->label == "NameAction0",
+			      Format("MergedNameAction: region matching NameAction0's rect resolves to "
+			             "\"NameAction0\" specifically, not the whole seat (got \"%s\")",
+			             ~m.best->label));
+			CHECK(m.best->kind == "element",
+			      Format("MergedNameAction: NameAction0's match kind == \"element\" (got \"%s\") -- "
+			             "there are no subslot-kind candidates for this fixture", ~m.best->kind));
+		}
+	}
+
+	// Region matching seat1's WHOLE seat rect but neither child's rect --
+	// expect it to resolve to the seat element itself (neither child's rect
+	// clears kOverlapThreshold against this much-larger region: NameAction1/
+	// StackText1 are each 180x20=3600 vs. Player1's 200x150=30000, an overlap
+	// ratio of 0.12, well under 0.5).
+	const VsmLayoutElementInfo* player1 = FindElementInfo(profile, "Player1");
+	CHECK(player1 != NULL, "MergedNameAction: Player1 found for region-match test");
+	if(player1) {
+		Rect region_rect = player1->GetRect();
+		VsmMatchResult m = VsmMatchRegion(region_rect, candidates);
+		CHECK(m.best != NULL,
+		      "MergedNameAction: region matching Player1's whole rect resolves to something");
+		if(m.best)
+			CHECK(m.best->label == "Player1",
+			      Format("MergedNameAction: region matching Player1's whole rect resolves to "
+			             "\"Player1\" itself, not one of its children (got \"%s\")", ~m.best->label));
+	}
+}
+
 CONSOLE_APP_MAIN
 {
 	StdLogSetup(LOG_COUT);
@@ -341,6 +489,10 @@ CONSOLE_APP_MAIN
 				      "[task 0117 Objective]");
 		}
 	}
+
+	// --- M05-06 (task 0124): second, structurally-divergent .form fixture
+	// (synthetic "PlayerCtrlMerged" seat type, merged name+action control) ---
+	RunMergedNameActionFixtureChecks();
 
 	// --- Error path: nonexistent .form path ---
 	{

@@ -17,10 +17,44 @@
 // 0115's evidence section, Manager repo
 // VisualStateModel/0115_m04_region_element_assignment.md) for the full
 // rationale behind:
-//   - the overlap-scoring formula (intersection-area / REGION-area, not
-//     plain IoU — chosen so a small region fully inside a much larger
-//     candidate still scores 1.0, since IoU would systematically starve
-//     that "small region inside a bigger owning element" case).
+//   - the overlap-scoring formula. ORIGINALLY (tasks 0115-0117) this was
+//     intersection-area / REGION-area, not plain IoU — chosen so a small
+//     region fully inside a much larger candidate still scores 1.0, since
+//     IoU would systematically starve that "small region inside a bigger
+//     owning element" case. Task 0125 (M05-07) generalized the denominator
+//     from `region_area` to `min(region_area, candidate_area)` — a SYMMETRIC
+//     "containment fraction": intersection / min(region, candidate) == 1.0
+//     exactly when one rect fully contains the other, in EITHER direction
+//     (small-region-in-big-candidate, the original case, OR small-candidate-
+//     in-big-region, the region-merge dilution case where an
+//     indiscriminately-merged detected region swallows a tiny sub-slot like
+//     button_puck and the old formula diluted its score to ~3%, below
+//     kOverlapThreshold, so it never competed). This is a strict, monotonic
+//     generalization, NOT a behavior change for the original case: when
+//     region_area <= candidate_area, min(...) == region_area and the score
+//     is bit-for-bit identical to the old formula; when candidate_area <
+//     region_area the denominator only shrinks, so the score can only rise —
+//     any (region,candidate) pair that cleared kOverlapThreshold before still
+//     clears it. Task 0125 also made VsmMatchTier's tie-break DIRECTION-AWARE
+//     to go with the symmetric denominator: on an equal-score tie it now
+//     prefers a candidate that fully CONTAINS the region (region ⊆ candidate)
+//     before falling back to the older smaller-area rule. This restores the
+//     original "tightest container wins" behavior exactly for the case the
+//     old formula was built for, and stops a small candidate that merely sits
+//     inside a big merged region from stealing the match on geometry alone
+//     when a legitimate containing candidate also ties (a false-positive class
+//     the bare denominator change would otherwise open up — see the
+//     RegionAssign.cpp comment for the worked SpeedSlider-vs-Board example). A
+//     contained candidate still wins when it scores strictly higher or when no
+//     containing candidate clears the threshold — i.e. the dilution fix (a
+//     tiny button_puck inside a big merged region) is preserved.
+//     (Residual risk documented in task 0125: because merged
+//     regions are axis-aligned bounding boxes of possibly-disjoint dirty
+//     blocks, a candidate geometrically inside a merged box's "dead space"
+//     that never changed a pixel could in principle now score highly on
+//     geometry alone; a purely geometric matcher cannot rule this out without
+//     also inspecting the candidate's own pixel content — out of that task's
+//     scope, empirically not observed in its fixture corpus.)
 //   - the two-tier (sub-slot-first, element-fallback) selection strategy —
 //     a flat global argmax over all candidates was tried first and found
 //     (empirically, not just by inspection) to match 100% of regions to

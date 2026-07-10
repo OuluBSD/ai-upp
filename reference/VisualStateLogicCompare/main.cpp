@@ -224,6 +224,183 @@ static bool VsmScorePuckRoles(const Image& frame_img, const Rect& candidate_rect
 }
 
 // ---------------------------------------------------------------------------
+// M05-04 (task 0122): scale/position-tolerant template rescue for
+// button_puck observations that VsmDetectChanges's region-merge dilutes away
+// entirely (see this task's Manager task file, root-caused there: a small
+// per-seat button_puck pixel change gets folded into a much larger,
+// spatially-adjacent changed rect - e.g. a board-reset region at a hand
+// boundary - and VsmMatchTier's overlap formula, intersection-area /
+// MERGED-REGION-area, never clears kOverlapThreshold for the puck's ~5%
+// true contribution, so the seat's own dealer_button-role observation is
+// never produced by the normal VsmDetectChanges -> VsmBuildCandidates ->
+// VsmMatchRegion pipeline at all - not misassigned, simply absent).
+//
+// This is an ADDITIVE second pass over the exact same per-transition
+// `changes` list that pipeline already produced (task guardrail: that
+// pipeline, and 0121's VsmScorePuckRoles/VsmMeanAbsPixelDiff/
+// ApplyDealerButtonObservations/DeriveDealerSeatPerFrame, are not modified -
+// this only calls VsmScorePuckRoles with MORE candidate rects than the exact
+// theoretical one, and only emits brand-new observations feeding into the
+// same downstream path 0121 already wired up).
+//
+// Trigger condition (stays change-region-driven, never a per-frame scan):
+// for each seat's theoretical button_puck candidate rect (from the same
+// VsmBuildCandidates list), inflate it by kPuckRecoveryPadding and check
+// whether it has ANY non-empty intersection with ANY of this transition's
+// raw VsmDetectChanges rects, regardless of what VsmMatchRegion assigned
+// that rect to. This is deliberately looser than VsmMatchTier's "%50 of the
+// region's own area" rule (precisely the rule that fails for this dilution
+// case - the puck's true contribution is ~5% of the merged region) while
+// still requiring a REAL detected change nearby - a seat with no changed
+// rect anywhere near it is skipped entirely, never probed.
+//
+//   kPuckRecoveryPadding = 24px. Measured button_puck candidate rects in
+//   var/vsm_fixtures/texas_ps6p_puck_check (this session's frame-space,
+//   sx=1/sy~0.969) range from Player1's ~32x32 to Player4's ~63x41 (see this
+//   task's evidence section for the exact VsmBuildCandidates-derived
+//   numbers) - 24px is roughly 40-80% of one such dimension: enough to
+//   tolerate a real capture's "not pixel-perfect" alignment (premise 1 in
+//   the task file) without approaching a whole-frame/whole-element scan.
+//   The SAME padding also bounds the position-offset search below (one
+//   padding concept, not two unrelated constants).
+//
+// Multi-scale template search: for each triggered (transition, seat) pair,
+// scale the candidate rect by each of kPuckRecoveryScaleSteps (real-world
+// zoom tolerance, premise 2) and try each of kPuckRecoveryOffsetFractions *
+// kPuckRecoveryPadding as a center-offset in each axis (real-world position
+// tolerance, and premise 3 - tolerating the detected region's own size/
+// position noise too, since this doesn't anchor to the changed rect's own
+// rect at all, only to the theoretical candidate). Every resulting rect is
+// scored with the EXISTING VsmScorePuckRoles helper (0121's mean-absolute-
+// per-pixel-RGB-diff metric against the 3 known puck references) -
+// reasoning restated briefly per the task's guardrail: these are still
+// small, low-noise, deterministic images (procedurally drawn discs/labels or
+// a themed PNG), so plain pixel-difference stays the right level of
+// complexity even when searched over more candidate rects; no NCC/SIFT/
+// OpenCV dependency is introduced.
+//
+//   kPuckRecoveryScaleSteps = {0.8, 0.9, 1.0, 1.1, 1.2, 1.3} - exactly the
+//   task's suggested "roughly 0.8x-1.3x" span, 6 fixed steps including the
+//   nominal 1.0.
+//   kPuckRecoveryOffsetFractions = {-1.0, -0.5, 0.0, 0.5, 1.0} (both axes,
+//   5x5=25 combos per scale) - a small, bounded position search within the
+//   same padded window the trigger check uses.
+//
+// The single best (lowest-score) (scale, offset, role) combination found
+// across all of the above is kept. It's only turned into a recovered
+// dealer_button-role observation if its winning role is DEALER (index 0)
+// AND its score clears kPuckRecoveryMatchThreshold - see this task's
+// evidence section for the real scores this threshold was picked against.
+static const int    kPuckRecoveryPadding = 24;
+static const double kPuckRecoveryScaleSteps[] = { 0.8, 0.9, 1.0, 1.1, 1.2, 1.3 };
+static const int    kPuckRecoveryScaleStepCount =
+	(int)(sizeof(kPuckRecoveryScaleSteps) / sizeof(kPuckRecoveryScaleSteps[0]));
+static const double kPuckRecoveryOffsetFractions[] = { -1.0, -0.5, 0.0, 0.5, 1.0 };
+static const int    kPuckRecoveryOffsetFractionCount =
+	(int)(sizeof(kPuckRecoveryOffsetFractions) / sizeof(kPuckRecoveryOffsetFractions[0]));
+// See this task's evidence section for the real fixture scores this was
+// picked against: the two genuine dealer-winner cases found in
+// texas_ps6p_puck_check score 26.2 (clean, no occlusion) and 49.5 (the
+// target rotation, moderately affected by an adjacent seat's overlapping
+// PlayerCtrl rect but still recoverable); every non-dealer-winner
+// observation's OWN dealer score in that same fixture is >= 81 (i.e. far
+// above this threshold, so raising it to comfortably clear 49.5 does not
+// risk admitting any of those). 70.0 sits with real margin above the
+// highest genuine case (49.5) and real margin below the lowest false case
+// this fixture set exhibits when the argmin isn't already dealer.
+static const double kPuckRecoveryMatchThreshold = 70.0;
+
+// One (transition, seat) recovery probe, kept for the evidence table this
+// tool prints (mirrors 0121's disambiguation table, same rationale: show the
+// real scores, not just the final verdict).
+struct VsmPuckRecoveryAttempt : Moveable<VsmPuckRecoveryAttempt> {
+	int    frame = -1;
+	int    seat  = -1;
+	bool   found = false;   // at least one in-bounds (scale,offset) rect was scored
+	double scale = 0.0;
+	int    dx = 0, dy = 0;
+	double score_dealer = -1, score_sb = -1, score_bb = -1;
+	int    winner = -1;     // argmin(dealer,sb,bb) of each role's OWN best score
+	bool   recovered = false;
+};
+
+// Runs the multi-scale/position search described above for one seat's
+// candidate rect within one already-triggered transition (the caller is
+// responsible for the trigger/proximity check - this function always
+// searches, it doesn't itself decide whether to).
+//
+// IMPORTANT design point (found empirically while building this task's
+// evidence - see the concrete example there): this searches EACH of the 3
+// puck references' own best (lowest-score) position INDEPENDENTLY across
+// the whole scale/offset grid, rather than taking one single global argmin
+// across all (scale, offset, role) triples. A single global argmin lets an
+// unrelated patch elsewhere in the search window "accidentally" out-score
+// the true puck's own best-aligned match for the CORRECT role (e.g. a
+// slightly-shifted crop that happens to look a bit more red/blue-ish can
+// numerically beat the correctly-centered dealer match at ITS best
+// position), which would silently discard a real, visually-confirmed match.
+// Giving each of the 3 references a fair, independent search for its own
+// best fit and comparing only those 3 best-of-search scores at the end
+// avoids that.
+static void VsmSearchPuckRecovery(const Image& frame_img, const Rect& candidate_rect,
+                                    VsmPuckRecoveryAttempt& attempt)
+{
+	int base_w = candidate_rect.Width(), base_h = candidate_rect.Height();
+	int ccx = candidate_rect.left + base_w / 2;
+	int ccy = candidate_rect.top  + base_h / 2;
+
+	double best_score[3]   = { DBL_MAX, DBL_MAX, DBL_MAX };
+	double best_scale_r[3] = { 0.0, 0.0, 0.0 };
+	int    best_dx_r[3]    = { 0, 0, 0 };
+	int    best_dy_r[3]    = { 0, 0, 0 };
+	bool found = false;
+
+	for(int si = 0; si < kPuckRecoveryScaleStepCount; si++) {
+		double scale = kPuckRecoveryScaleSteps[si];
+		int w = (int)(base_w * scale + 0.5);
+		int h = (int)(base_h * scale + 0.5);
+		if(w <= 0 || h <= 0)
+			continue;
+		for(int yi = 0; yi < kPuckRecoveryOffsetFractionCount; yi++) {
+			int dy = (int)(kPuckRecoveryOffsetFractions[yi] * kPuckRecoveryPadding
+			               + (kPuckRecoveryOffsetFractions[yi] >= 0 ? 0.5 : -0.5));
+			for(int xi = 0; xi < kPuckRecoveryOffsetFractionCount; xi++) {
+				int dx = (int)(kPuckRecoveryOffsetFractions[xi] * kPuckRecoveryPadding
+				               + (kPuckRecoveryOffsetFractions[xi] >= 0 ? 0.5 : -0.5));
+				int left = ccx - w / 2 + dx, top = ccy - h / 2 + dy;
+				Rect r(left, top, left + w, top + h);
+				double scores[3];
+				if(!VsmScorePuckRoles(frame_img, r, scores))
+					continue;
+				found = true;
+				for(int role = 0; role < 3; role++) {
+					if(scores[role] < best_score[role]) {
+						best_score[role]  = scores[role];
+						best_scale_r[role] = scale;
+						best_dx_r[role] = dx; best_dy_r[role] = dy;
+					}
+				}
+			}
+		}
+	}
+
+	attempt.found = found;
+	if(found) {
+		attempt.score_dealer = best_score[0];
+		attempt.score_sb     = best_score[1];
+		attempt.score_bb     = best_score[2];
+		int winner = 0;
+		for(int r = 1; r < 3; r++)
+			if(best_score[r] < best_score[winner])
+				winner = r;
+		attempt.winner    = winner;
+		attempt.scale = best_scale_r[winner];
+		attempt.dx = best_dx_r[winner]; attempt.dy = best_dy_r[winner];
+		attempt.recovered = (winner == 0) && (best_score[0] <= kPuckRecoveryMatchThreshold);
+	}
+}
+
+// ---------------------------------------------------------------------------
 // Core derivation logic, factored out so --self-test can exercise the exact
 // same code with synthetic input (no frames/fixtures needed) as the real run
 // does with actually-detected observations. Applies every dealer_button-role
@@ -479,6 +656,15 @@ GUI_APP_MAIN
 	       << "(" << profile.elements.GetCount() << " element(s) + "
 	       << profile.subslots.GetCount() << " sub-slot(s))\n\n";
 
+	// M05-04 (task 0122): the per-seat button_puck sub-slot candidates the
+	// recovery pass probes - built once here (candidates/rects don't change
+	// per-frame), same list the normal VsmMatchRegion path above already
+	// matches against.
+	Vector<const VsmLayoutCandidate*> puck_candidates;
+	for(const VsmLayoutCandidate& c : candidates)
+		if(c.kind == "subslot" && c.role == "dealer_button")
+			puck_candidates.Add(&c);
+
 	// --- Region detection across every transition, same params as
 	// reference/VisualStateLayoutAssign. ---
 	VsmChangeDetectParams params;
@@ -495,6 +681,14 @@ GUI_APP_MAIN
 	int rgn_counter = 0;
 
 	Vector<VsmLayoutObservationOut> observations;
+
+	// M05-04 (task 0122): recovery-pass state, filled in during the
+	// transition loop below, printed/merged after it (mirrors how the
+	// existing `observations` vector is built during the loop and processed
+	// after it).
+	Vector<VsmPuckRecoveryAttempt>  recovery_attempts;
+	Vector<VsmLayoutObservationOut> recovered_observations;
+	int rescue_counter = 0;
 
 	VsmFrameImage prev_frame;
 	prev_frame.Set(probe_frame.width, probe_frame.height, nullptr);
@@ -578,6 +772,69 @@ GUI_APP_MAIN
 			observations.Add(obs);
 		}
 
+		// M05-04 (task 0122): additive recovery pass for THIS transition,
+		// using the exact same `changes` list above (trigger condition
+		// only - no new detection). See the file-header comment above
+		// VsmSearchPuckRecovery for the full design rationale.
+		for(const VsmLayoutCandidate* pc : puck_candidates) {
+			Rect padded = pc->rect.Inflated(kPuckRecoveryPadding);
+			bool close_enough = false;
+			for(const VsmChangedRect& cr : changes) {
+				if(!(padded & cr.GetRect()).IsEmpty()) {
+					close_enough = true;
+					break;
+				}
+			}
+			if(!close_enough)
+				continue;
+
+			if(!curr_frame_img_ready) {
+				curr_frame_img = VsmFrameImageToImage(curr_frame);
+				curr_frame_img_ready = true;
+			}
+
+			VsmPuckRecoveryAttempt attempt;
+			attempt.frame = fid;
+			attempt.seat  = pc->seat_index;
+			VsmSearchPuckRecovery(curr_frame_img, pc->rect, attempt);
+			recovery_attempts.Add(attempt);
+
+			if(attempt.found && attempt.recovered) {
+				int base_w = pc->rect.Width(), base_h = pc->rect.Height();
+				int ccx = pc->rect.left + base_w / 2;
+				int ccy = pc->rect.top  + base_h / 2;
+				int w = (int)(base_w * attempt.scale + 0.5);
+				int h = (int)(base_h * attempt.scale + 0.5);
+
+				VsmLayoutObservationOut obs;
+				obs.frame_prev = fid - 1;
+				obs.frame      = fid;
+				obs.x = ccx - w / 2 + attempt.dx;
+				obs.y = ccy - h / 2 + attempt.dy;
+				obs.w = w; obs.h = h;
+				obs.score     = attempt.score_dealer;
+				obs.region_id = Format("puck-rescue-%04d", ++rescue_counter);
+				obs.assigned  = pc->label;
+				obs.kind      = "subslot";
+				obs.role      = "dealer_button";
+				obs.seat_index = pc->seat_index;
+				obs.card_index  = pc->card_index;
+				obs.overlap     = 1.0; // n/a for a recovered observation; sentinel
+
+				// Already scored/disambiguated by construction (only
+				// recovered when the dealer reference wins) - flows into
+				// the SAME ApplyDealerButtonObservations path 0121 wired
+				// up, unchanged, via the disambiguation loop below.
+				obs.puck_scored       = true;
+				obs.puck_score_dealer = attempt.score_dealer;
+				obs.puck_score_sb     = attempt.score_sb;
+				obs.puck_score_bb     = attempt.score_bb;
+				obs.puck_role_winner  = 0;
+
+				recovered_observations.Add(obs);
+			}
+		}
+
 		if(prev_frame.width != curr_frame.width || prev_frame.height != curr_frame.height)
 			prev_frame.Set(curr_frame.width, curr_frame.height, nullptr);
 		memcpy(prev_frame.data, curr_frame.data, (size_t)curr_frame.width * curr_frame.height * 4);
@@ -629,8 +886,36 @@ GUI_APP_MAIN
 		       << " kept=" << (dealer_button_obs - puck_discarded)
 		       << " discarded=" << puck_discarded << "\n\n";
 
+	// M05-04 (task 0122): print the recovery-pass probe table (mirrors
+	// 0121's disambiguation table above - real scores, not just the
+	// verdict), then merge every recovered observation into
+	// dealer_move_observations (additively - nothing produced by the normal
+	// pipeline above is removed or altered by this).
+	if(!recovery_attempts.IsEmpty()) {
+		Cout() << "=== Scale/position-tolerant puck template rescue (task 0122) ===\n";
+		Cout() << Format("%-6s %-6s %-7s %-5s %-5s %-9s %-9s %-9s %-8s %-10s\n",
+			"frame", "seat", "scale", "dx", "dy", "dealer", "sb", "bb", "winner", "recovered?");
+		static const char* role_names[3] = { "dealer", "sb", "bb" };
+		for(const VsmPuckRecoveryAttempt& a : recovery_attempts) {
+			Cout() << Format("%-6d %-6d %-7s %-5d %-5d %-9s %-9s %-9s %-8s %-10s\n",
+				a.frame, a.seat,
+				a.found ? DblStr(a.scale) : String("n/a"),
+				a.dx, a.dy,
+				a.found ? DblStr(a.score_dealer) : String("n/a"),
+				a.found ? DblStr(a.score_sb)     : String("n/a"),
+				a.found ? DblStr(a.score_bb)     : String("n/a"),
+				a.found ? String(role_names[a.winner]) : String("n/a"),
+				a.recovered ? "recovered" : "no");
+		}
+		Cout() << "Recovery-pass triggers: " << recovery_attempts.GetCount()
+		       << " recovered=" << recovered_observations.GetCount() << "\n\n";
+	}
+	for(const VsmLayoutObservationOut& o : recovered_observations)
+		dealer_move_observations.Add(o);
+
 	// --- Derive per-frame dealer seat from dealer_button observations
-	// (input now pre-filtered to only genuine dealer-seat moves, above). ---
+	// (input now pre-filtered to only genuine dealer-seat moves, above, PLUS
+	// any task-0122 recovered observations merged in immediately above). ---
 	VectorMap<int, int> dealer_seat_by_frame;
 	ApplyDealerButtonObservations(dealer_move_observations, dealer_seat_by_frame);
 

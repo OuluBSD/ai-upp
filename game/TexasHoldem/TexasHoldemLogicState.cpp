@@ -1,4 +1,5 @@
 #include "TexasHoldemLogicState.h"
+#include <EditorCommon/Tools.h>
 
 NAMESPACE_UPP
 
@@ -39,6 +40,69 @@ void TexasHoldemLogicState::Jsonize(JsonIO& jio)
 		("players_known", players_known)("players", players)
 		("dealer_seat_known", dealer_seat_known)("dealer_seat", dealer_seat)
 	;
+}
+
+// ---------------------------------------------------------------------------
+// M05-03 (task 0121): see TexasHoldemLogicState.h for the full doc comment.
+// Body is a verbatim merge of GameTable::LoadTheme's puckDealer/SB/BB themed-
+// file-load tier, refreshGroupbox's legacy gfx/dealer.png-style fallback
+// tier, and GameTable::GetPuckImage's procedural-fallback tier (all three in
+// game/TexasHoldem/GameTable.cpp) - kept byte-for-byte identical to the
+// drawing code so GameTable::GetPuckImage (which now just forwards to this
+// function + applies its existing per-instance cache) renders pixel-
+// identical output to before this extraction.
+Image TexasHoldemGetPuckReferenceImage(int role, const String& theme)
+{
+	String dataDir = Tools::GetDataDir();
+
+	static const char* themedNames[3] = { "dealerPuck.png", "smallblindPuck.png", "bigblindPuck.png" };
+	static const char* legacyNames[3]  = { "gfx/dealer.png", "gfx/small_blind.png", "gfx/big_blind.png" };
+
+	Image img;
+	if(role >= 0 && role < 3) {
+		// Tier 1: themed dir (GameTable::LoadTheme's puckDealer/puckSB/puckBB).
+		String themedDir = AppendFileName(dataDir, "gfx/gui/table/" + theme);
+		img = StreamRaster::LoadFileAny(AppendFileName(themedDir, themedNames[role]));
+		if(img.IsEmpty()) {
+			// Tier 2: legacy hardcoded path (GameTable::refreshGroupbox's
+			// gfx/dealer.png / gfx/small_blind.png / gfx/big_blind.png).
+			img = StreamRaster::LoadFileAny(AppendFileName(dataDir, legacyNames[role]));
+		}
+	}
+	if(!img.IsEmpty())
+		return img;
+
+	// Tier 3: procedural fallback (GameTable::GetPuckImage's drawing, task
+	// 0120). Enlarged to 40x40 relative to textLabel_Button's 32x32 base rect
+	// (PlayerCtrl::Layout()) for legibility of the two-letter SB/BB labels --
+	// ScaledImageCtrl centers/letterboxes it inside the actual rect at any
+	// real on-screen scale.
+	const int sz = 40;
+	ImageDraw iw(sz, sz);
+	iw.Alpha().DrawRect(0, 0, sz, sz, RGBAZero());
+
+	Color fill, ink;
+	String label;
+	switch(role) {
+	case 0: fill = Color(250, 240, 210); ink = Black(); label = "D";  break; // dealer: white/cream
+	case 1: fill = Color(120, 190, 250); ink = Black(); label = "SB"; break; // small blind: light blue
+	case 2: fill = Color(150, 20, 30);   ink = White(); label = "BB"; break; // big blind: darker red
+	default: fill = White();             ink = Black(); label = "";  break;
+	}
+	// Mark the disc's area opaque on the SEPARATE alpha plane first -- see
+	// GameTable::DrawChipDiscs's comment for why this is required in this
+	// codebase's Win32 ImageDraw backend (RGB-only draws never implicitly
+	// touch the alpha plane; skipping this leaves the whole image at
+	// alpha==0, i.e. invisible, despite correct-looking RGB content).
+	iw.Alpha().DrawEllipse(0, 0, sz, sz, White(), 2, White());
+	iw.DrawEllipse(0, 0, sz, sz, fill, 2, Black());
+	if(!label.IsEmpty()) {
+		Font f = SansSerif(label.GetCount() > 1 ? 13 : 16).Bold();
+		Size tsz = GetTextSize(label, f);
+		iw.DrawText((sz - tsz.cx) / 2, (sz - tsz.cy) / 2, label, f, ink);
+	}
+
+	return Image(iw);
 }
 
 END_UPP_NAMESPACE

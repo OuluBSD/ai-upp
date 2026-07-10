@@ -1,6 +1,7 @@
 #include "GameTable.h"
 #include "ClientThread.h"
 #include "NetPacket.h"
+#include "TexasHoldemLogicState.h"
 #include <Poker/CardsValue.h>
 #include <EditorCommon/Tools.h>
 #include <EditorCommon/EditorCommon.h>
@@ -401,38 +402,15 @@ Image GameTable::GetPuckImage(int role)
 	int idx = cache.Find(role);
 	if (idx >= 0) return cache[idx];
 
-	// Procedural fallback tier -- only reached from refreshGroupbox() when
-	// BOTH real-asset load attempts (themed dir puckDealer/SB/BB, then the
-	// hardcoded gfx/<name>.png) come back empty. Enlarged to 40x40 relative
-	// to textLabel_Button's 32x32 base rect (PlayerCtrl::Layout()) for
-	// legibility of the two-letter SB/BB labels -- ScaledImageCtrl centers/
-	// letterboxes it inside the actual rect at any real on-screen scale.
-	const int sz = 40;
-	ImageDraw iw(sz, sz);
-	iw.Alpha().DrawRect(0, 0, sz, sz, RGBAZero());
-
-	Color fill, ink;
-	String label;
-	switch (role) {
-	case 0: fill = Color(250, 240, 210); ink = Black(); label = "D";  break; // dealer: white/cream
-	case 1: fill = Color(120, 190, 250); ink = Black(); label = "SB"; break; // small blind: light blue
-	case 2: fill = Color(150, 20, 30);   ink = White(); label = "BB"; break; // big blind: darker red
-	default: fill = White();             ink = Black(); label = "";  break;
-	}
-	// Mark the disc's area opaque on the SEPARATE alpha plane first -- see
-	// the comment in DrawChipDiscs for why this is required in this
-	// codebase's Win32 ImageDraw backend (RGB-only draws never implicitly
-	// touch the alpha plane; skipping this leaves the whole image at
-	// alpha==0, i.e. invisible, despite correct-looking RGB content).
-	iw.Alpha().DrawEllipse(0, 0, sz, sz, White(), 2, White());
-	iw.DrawEllipse(0, 0, sz, sz, fill, 2, Black());
-	if (!label.IsEmpty()) {
-		Font f = SansSerif(label.GetCount() > 1 ? 13 : 16).Bold();
-		Size tsz = GetTextSize(label, f);
-		iw.DrawText((sz - tsz.cx) / 2, (sz - tsz.cy) / 2, label, f, ink);
-	}
-
-	Image img = iw;
+	// M05-03 (task 0121): the full "what image represents puck role N under
+	// theme T" logic (themed-file-load tiers + procedural fallback) now
+	// lives in TexasHoldemGetPuckReferenceImage (game/TexasHoldem/
+	// TexasHoldemLogicState.h/.cpp), callable without a live GameTable
+	// instance so reference/VisualStateLogicCompare can compute the exact
+	// same reference images. This method keeps only its existing per-
+	// instance cache; rendered output is unchanged (verified byte-for-byte
+	// against a recorded frame - see task 0121's evidence).
+	Image img = TexasHoldemGetPuckReferenceImage(role, currentTableTheme);
 	cache.Add(role, img);
 	return img;
 }

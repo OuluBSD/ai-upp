@@ -87,6 +87,15 @@ struct VsmLayoutObservationOut : Moveable<VsmLayoutObservationOut> {
 	int    card_index = -1;
 	double overlap    = 0.0;
 
+	// M05-03 (task 0121): template-match disambiguation scores, filled in
+	// only for role=="dealer_button" observations (see VsmScorePuckRoles).
+	// puck_role_winner is the argmin index (0=dealer,1=SB,2=BB); the
+	// observation is only treated as a genuine dealer-seat move when this is
+	// 0 (see the filtering loop in GUI_APP_MAIN below).
+	bool   puck_scored = false;
+	double puck_score_dealer = -1, puck_score_sb = -1, puck_score_bb = -1;
+	int    puck_role_winner = -1;
+
 	void Jsonize(JsonIO& json)
 	{
 		json
@@ -135,6 +144,83 @@ static bool Fail(const char* label)
 	Cout() << "FAIL: " << label << "\n";
 	SetExitCode(1);
 	return false;
+}
+
+// ---------------------------------------------------------------------------
+// M05-03 (task 0121): template-match disambiguation for dealer_button-role
+// observations.
+//
+// Problem (see this file's header comment + task 0119/0120 for the full
+// story): the "dealer_button" sub-slot role fires for the dealer's puck AND
+// for the small-blind/big-blind pucks (all three sit on the same per-seat
+// sub-slot kind), so a full dealer rotation (all three pucks move in one
+// frame transition) produces 3 same-role observations in that transition,
+// and the old "last one wins" tie-break has no way to know which of the 3 is
+// actually the dealer's.
+//
+// Fix: task 0120 gave the three pucks fixed, visually distinct procedural
+// graphics (dealer=cream/"D", SB=light-blue/"SB", BB=dark-red/"BB") for
+// exactly this purpose. TexasHoldemGetPuckReferenceImage (game/TexasHoldem/
+// TexasHoldemLogicState.h, this task's objective 1) returns "whatever image
+// currently represents puck role N under theme T" - the same themed-file-
+// load-first + procedural-fallback resolution GameTable itself uses. Since
+// all three images are small, deterministic, non-photographic (procedurally
+// drawn discs+labels, or later a themed PNG - never noisy camera input),
+// plain mean absolute per-pixel RGB difference against each of the 3 is
+// sufficient to tell them apart - there is no need for a general template-
+// matching/NCC/SIFT pipeline for a fixed set of 3 known small images, and
+// building one would be over-engineering for this narrow, bounded problem
+// (see this task's guardrails).
+//
+// Theme is hardcoded to "default" (kPuckReferenceTheme below): GameTable.cpp
+// constructs with `LoadTheme("default")` and no CLI flag exists yet to record
+// a session under a different theme, but the constant is named/isolated so a
+// future theme-aware recording setup only has to change this one spot.
+static const char* kPuckReferenceTheme = "default";
+
+// Mean absolute per-pixel RGB difference between two same-size images.
+// Returns DBL_MAX if the sizes mismatch or either image is empty (so it can
+// never spuriously "win" a role comparison).
+static double VsmMeanAbsPixelDiff(const Image& a, const Image& b)
+{
+	Size sz = a.GetSize();
+	if(sz.cx <= 0 || sz.cy <= 0 || sz != b.GetSize())
+		return DBL_MAX;
+	int64 sum = 0;
+	for(int y = 0; y < sz.cy; y++) {
+		const RGBA* pa = a[y];
+		const RGBA* pb = b[y];
+		for(int x = 0; x < sz.cx; x++) {
+			sum += abs((int)pa[x].r - (int)pb[x].r);
+			sum += abs((int)pa[x].g - (int)pb[x].g);
+			sum += abs((int)pa[x].b - (int)pb[x].b);
+		}
+	}
+	return (double)sum / ((double)sz.cx * sz.cy * 3.0);
+}
+
+// Crops `candidate_rect` out of `frame_img`, scales the 3 puck reference
+// images (dealer=0, SB=1, BB=2) to that rect's actual on-screen size, and
+// returns the mean-abs-diff score for each role in `scores_out[0..2]`.
+// Returns false (and leaves scores_out untouched) if the candidate rect is
+// degenerate/out of bounds.
+static bool VsmScorePuckRoles(const Image& frame_img, const Rect& candidate_rect,
+                                double scores_out[3])
+{
+	int w = candidate_rect.GetWidth(), h = candidate_rect.GetHeight();
+	if(w <= 0 || h <= 0)
+		return false;
+	Rect frame_rect(0, 0, frame_img.GetWidth(), frame_img.GetHeight());
+	if(!frame_rect.Contains(candidate_rect))
+		return false;
+
+	Image candidate = Crop(frame_img, candidate_rect);
+	for(int role = 0; role < 3; role++) {
+		Image ref = TexasHoldemGetPuckReferenceImage(role, kPuckReferenceTheme);
+		Image ref_scaled = (ref.GetSize() == Size(w, h)) ? ref : Rescale(ref, w, h);
+		scores_out[role] = VsmMeanAbsPixelDiff(candidate, ref_scaled);
+	}
+	return true;
 }
 
 // ---------------------------------------------------------------------------
@@ -422,6 +508,11 @@ GUI_APP_MAIN
 		}
 
 		Vector<VsmChangedRect> changes = VsmDetectChanges(prev_frame, curr_frame, params);
+		// Lazily converted only if this frame's transition has at least one
+		// dealer_button-role candidate (avoids the RGBA->Image conversion
+		// cost on every frame for a signal that's rare in practice).
+		Image curr_frame_img;
+		bool curr_frame_img_ready = false;
 		for(const VsmChangedRect& cr : changes) {
 			VsmFingerprint32 fp;
 			if(!VsmRegionMemory::ExtractFingerprint(curr_frame, cr.x, cr.y, cr.w, cr.h, fp)) {
@@ -460,6 +551,30 @@ GUI_APP_MAIN
 				obs.role     = "unassigned";
 				obs.overlap  = 0.0;
 			}
+
+			// M05-03 (task 0121): template-match disambiguation. Only
+			// dealer_button-role candidates need scoring (that's the only
+			// role ambiguous between dealer/SB/BB - see this file's header
+			// comment).
+			if(obs.role == "dealer_button") {
+				if(!curr_frame_img_ready) {
+					curr_frame_img = VsmFrameImageToImage(curr_frame);
+					curr_frame_img_ready = true;
+				}
+				double scores[3];
+				if(VsmScorePuckRoles(curr_frame_img, region_rect, scores)) {
+					obs.puck_scored       = true;
+					obs.puck_score_dealer = scores[0];
+					obs.puck_score_sb     = scores[1];
+					obs.puck_score_bb     = scores[2];
+					int winner = 0;
+					for(int r = 1; r < 3; r++)
+						if(scores[r] < scores[winner])
+							winner = r;
+					obs.puck_role_winner = winner;
+				}
+			}
+
 			observations.Add(obs);
 		}
 
@@ -475,9 +590,49 @@ GUI_APP_MAIN
 	Cout() << "Total region observations: " << observations.GetCount()
 	       << " (of which dealer_button-role: " << dealer_button_obs << ")\n\n";
 
-	// --- Derive per-frame dealer seat from dealer_button observations. ---
+	// --- M05-03 (task 0121): template-match disambiguation. For every
+	// dealer_button-role observation, only keep it as a genuine dealer-seat
+	// move if the DEALER reference (role 0) scored best among the 3 puck
+	// references - observations where SB or BB scored best are the SAME
+	// sub-slot firing for the wrong seat in a multi-seat rotation, and are
+	// discarded here rather than fed into ApplyDealerButtonObservations's
+	// "sticky" per-frame accumulation (that function's own logic is
+	// otherwise unchanged from task 0119 - only its input is filtered now).
+	if(dealer_button_obs > 0) {
+		Cout() << "=== Template-match disambiguation (dealer_button-role observations) ===\n";
+		Cout() << Format("%-6s %-10s %-9s %-9s %-9s %-8s %-10s\n",
+			"frame", "seat", "dealer", "sb", "bb", "winner", "kept?");
+	}
+	Vector<VsmLayoutObservationOut> dealer_move_observations;
+	int puck_discarded = 0;
+	for(const VsmLayoutObservationOut& o : observations) {
+		if(o.role != "dealer_button") {
+			dealer_move_observations.Add(o);
+			continue;
+		}
+		bool keep = o.puck_scored && o.puck_role_winner == 0;
+		if(keep)
+			dealer_move_observations.Add(o);
+		else
+			puck_discarded++;
+		static const char* role_names[3] = { "dealer", "sb", "bb" };
+		Cout() << Format("%-6d %-10d %-9s %-9s %-9s %-8s %-10s\n",
+			o.frame, o.seat_index,
+			o.puck_scored ? DblStr(o.puck_score_dealer) : String("n/a"),
+			o.puck_scored ? DblStr(o.puck_score_sb)     : String("n/a"),
+			o.puck_scored ? DblStr(o.puck_score_bb)     : String("n/a"),
+			o.puck_scored ? String(role_names[o.puck_role_winner]) : String("n/a"),
+			keep ? "kept" : "discarded");
+	}
+	if(dealer_button_obs > 0)
+		Cout() << "dealer_button-role observations: " << dealer_button_obs
+		       << " kept=" << (dealer_button_obs - puck_discarded)
+		       << " discarded=" << puck_discarded << "\n\n";
+
+	// --- Derive per-frame dealer seat from dealer_button observations
+	// (input now pre-filtered to only genuine dealer-seat moves, above). ---
 	VectorMap<int, int> dealer_seat_by_frame;
-	ApplyDealerButtonObservations(observations, dealer_seat_by_frame);
+	ApplyDealerButtonObservations(dealer_move_observations, dealer_seat_by_frame);
 
 	Vector<bool> derived_known;
 	Vector<int>  derived_seat;

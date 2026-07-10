@@ -2,6 +2,7 @@
 #define _CardEngine_TexasHoldemLogicState_h_
 
 #include <Core/Core.h>
+#include <CtrlLib/CtrlLib.h>
 
 NAMESPACE_UPP
 
@@ -137,6 +138,35 @@ struct TexasHoldemLogicState : Moveable<TexasHoldemLogicState> {
 
 	void Jsonize(JsonIO& jio);
 };
+
+// ---------------------------------------------------------------------------
+// M05-03 (task 0121): the "what image currently represents puck role N under
+// theme T" logic, extracted out of GameTable::GetPuckImage (game/TexasHoldem/
+// GameTable.cpp, task 0120) into a free function that needs no live GameTable
+// instance, so reference/VisualStateLogicCompare can compute the exact same
+// reference images GameTable would render for a puck without constructing a
+// full GameTable/Ctrl tree.
+//
+// role: 0 = dealer, 1 = small blind, 2 = big blind (matches
+// GBUTTON_DEALER/SMALL_BLIND/BIG_BLIND ordering, game/GameRules/GameDefs.h).
+// theme: table theme name, e.g. "default" (GameTable.cpp:538's constructor-
+// time `LoadTheme("default")` call is the only theme recorded sessions ever
+// use today - no CLI flag for choosing a theme exists yet, so callers should
+// pass a clearly-named "default" constant/literal rather than inferring it).
+//
+// Resolution order mirrors GameTable's existing three tiers exactly (see
+// GameTable::LoadTheme + GameTable::refreshGroupbox's inline fallback chain,
+// both game/TexasHoldem/GameTable.cpp), so that if a real themed puck PNG is
+// ever dropped in under gfx/gui/table/<theme>/{dealerPuck,smallblindPuck,
+// bigblindPuck}.png, this function (and any comparator built on it) picks it
+// up automatically without further changes:
+//   1. themed dir:  <dataDir>/gfx/gui/table/<theme>/{dealerPuck,
+//      smallblindPuck,bigblindPuck}.png
+//   2. legacy dir:  <dataDir>/gfx/{dealer,small_blind,big_blind}.png
+//   3. procedural fallback: a filled/outlined disc with a "D"/"SB"/"BB"
+//      label, fixed colors (dealer=cream, SB=light-blue, BB=dark-red) - the
+//      same drawing GameTable::GetPuckImage has produced since task 0120.
+Image TexasHoldemGetPuckReferenceImage(int role, const String& theme);
 
 END_UPP_NAMESPACE
 

@@ -1,0 +1,10 @@
+description "VisualStateModel M04 automated regression test suite (task 0117)\377";
+
+uses
+	VisualStateModel;
+
+file
+	main.cpp;
+
+mainconfig
+	"" = "";

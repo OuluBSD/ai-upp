@@ -34,5 +34,6 @@ using namespace Upp;
 #include "TestFixtures.h"
 #include "FormLayout.h"
 #include "LayoutProfile.h"
+#include "RegionAssign.h"
 
 #endif

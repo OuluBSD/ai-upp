@@ -65,4 +65,6 @@ file
 	FormLayout.h,
 	FormLayout.cpp,
 	LayoutProfile.h,
-	LayoutProfile.cpp;
+	LayoutProfile.cpp,
+	RegionAssign.h,
+	RegionAssign.cpp;

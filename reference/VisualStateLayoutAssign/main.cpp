@@ -33,151 +33,16 @@ using namespace Upp;
 // Sx()/Sy() helpers, so this reproduces that codebase's existing scaling
 // convention rather than inventing a new one.
 
-// One scaled-to-frame-space layout candidate a region can be matched
-// against: either a top-level element or a resolved sub-slot from
-// VsmLayoutProfile, flattened into one list so both compete on equal
-// footing for the best overlap.
-struct VsmLayoutCandidate : Moveable<VsmLayoutCandidate> {
-	String label;       // "Player0" (element) or "Player0.hole_card_0" (sub-slot)
-	String kind;         // "element" or "subslot"
-	String role;
-	int    seat_index = -1;
-	int    card_index = -1;
-	Rect   rect;          // scaled to actual frame pixel space
-
-	int Area() const { return max(0, rect.Width()) * max(0, rect.Height()); }
-};
-
-// Scales a design-space rect to frame pixel space, matching
-// game/Poker/TableLayoutProfile.cpp's Sx()/Sy() convention: left/top/
-// right/bottom are each scaled and truncated to int SEPARATELY (not
-// width/height scaled and added to an untouched origin) so results are
-// consistent with the rest of this codebase's scaling behavior.
-static Rect VsmScaleRect(const Rect& r, double sx, double sy)
-{
-	return Rect((int)(r.left * sx), (int)(r.top * sy),
-	            (int)(r.right * sx), (int)(r.bottom * sy));
-}
-
-// Builds the flattened, frame-space-scaled candidate list from one
-// VsmLayoutProfile.
-static Vector<VsmLayoutCandidate> VsmBuildCandidates(const VsmLayoutProfile& profile,
-                                                      double sx, double sy)
-{
-	Vector<VsmLayoutCandidate> out;
-	for(const VsmLayoutElementInfo& e : profile.elements) {
-		VsmLayoutCandidate c;
-		c.label = e.name;
-		c.kind = "element";
-		c.role = e.role;
-		c.seat_index = e.seat_index;
-		c.rect = VsmScaleRect(e.GetRect(), sx, sy);
-		out.Add(c);
-	}
-	for(const VsmLayoutSubSlotInfo& s : profile.subslots) {
-		VsmLayoutCandidate c;
-		c.label = s.owner_name + "." + s.slot_name;
-		c.kind = "subslot";
-		c.role = s.role;
-		c.seat_index = s.seat_index;
-		c.card_index = s.card_index;
-		c.rect = VsmScaleRect(s.GetRect(), sx, sy);
-		out.Add(c);
-	}
-	return out;
-}
-
 // ---------------------------------------------------------------------------
-// Overlap-matching algorithm choice (documented here + in this task's
-// evidence section):
-//
-// Plain IoU (intersection-area / union-area) was tried conceptually first,
-// but rejected: many detected regions are SMALL partial-content updates
-// (e.g. a stack/bet text repaint, a card-back flip) that occupy only a
-// fraction of their owning element's/sub-slot's full rect, while several
-// layout candidates (whole seats, tab panes, the board) are large. A small
-// region against a large candidate it is fully contained in scores a tiny
-// IoU (union dominated by the large candidate's area) even though the
-// region is a perfect semantic match — IoU would systematically starve
-// exactly the "small region inside a bigger owning element" case this tool
-// most needs to handle well.
-//
-// Instead this tool scores intersection-area / REGION-area (how much of
-// the DETECTED region falls inside the candidate) — a region entirely
-// contained in a candidate scores 1.0 regardless of the candidate's own
-// size. Threshold: 0.5 (a strict majority of the region's pixels must fall
-// inside the candidate).
-//
-// Selection is deliberately NOT "highest overlap wins across all
-// candidates": because every sub-slot's rect is a geometric SUBSET of its
-// owning element's rect, any region that scores highly against a sub-slot
-// (e.g. `hole_card_0`) ALSO scores at least as highly against that
-// sub-slot's owning element (the whole seat) — and often the coarse seat
-// reaches a clean 1.0 (whole region inside the seat's bounding box) even
-// when the region is really "about" one specific sub-slot within it. A
-// global argmax over overlap would then almost always report the coarse
-// container and never the specific sub-slot, which defeats the purpose of
-// having sub-slots as match targets at all (verified empirically: an
-// earlier version of this tool that DID do a flat global argmax matched
-// 100% of this fixture's regions to top-level seat/board elements and 0%
-// to any sub-slot — see this task's evidence section).
-//
-// Instead this tool matches in two specificity TIERS, most-specific first:
-//   1. sub-slots (hole cards, player name/stack/bet text, action icon,
-//      dealer button, timeout bar, board cards) — the highest-overlap
-//      sub-slot clearing the threshold wins, if any does.
-//   2. top-level elements — tried ONLY if no sub-slot cleared the
-//      threshold (this is also the only tier for element types that have
-//      no sub-slots at all, e.g. PotTitle/ActionButton/TabCtrl — those are
-//      correctly matched at the element level since there is nothing more
-//      specific to offer for them).
-// This directly encodes "prefer the most specific true match" without an
-// area-based heuristic that could let an incidentally-tiny but poorly
-// overlapping candidate outrank a well-matched larger one.
-static const double kOverlapThreshold = 0.5;
-
-struct VsmMatchResult {
-	const VsmLayoutCandidate* best = NULL;
-	double overlap = 0.0;
-};
-
-// Finds the highest-overlap candidate of one specificity tier (kind ==
-// "subslot" or "element") that clears kOverlapThreshold; ties broken by
-// preferring the smaller-area candidate (deterministic, and mildly prefers
-// the more specific of two equally-good same-tier matches).
-static VsmMatchResult VsmMatchTier(const Rect& region_rect, double region_area,
-                                    const Vector<VsmLayoutCandidate>& candidates,
-                                    const char* tier_kind)
-{
-	VsmMatchResult result;
-	for(const VsmLayoutCandidate& c : candidates) {
-		if(c.kind != tier_kind)
-			continue;
-		Rect inter = region_rect & c.rect;
-		if(inter.IsEmpty())
-			continue;
-		double overlap = ((double)inter.Width() * inter.Height()) / region_area;
-		if(overlap < kOverlapThreshold)
-			continue;
-		if(!result.best || overlap > result.overlap + 1e-9 ||
-		   (fabs(overlap - result.overlap) <= 1e-9 && c.Area() < result.best->Area())) {
-			result.best = &c;
-			result.overlap = overlap;
-		}
-	}
-	return result;
-}
-
-static VsmMatchResult VsmMatchRegion(const Rect& region_rect,
-                                      const Vector<VsmLayoutCandidate>& candidates)
-{
-	double region_area = (double)max(1, region_rect.Width()) * max(1, region_rect.Height());
-
-	VsmMatchResult subslot_match = VsmMatchTier(region_rect, region_area, candidates, "subslot");
-	if(subslot_match.best)
-		return subslot_match;
-	return VsmMatchTier(region_rect, region_area, candidates, "element");
-}
+// Region-to-element overlap-matching logic (`VsmLayoutCandidate`,
+// `VsmScaleRect`, `VsmBuildCandidates`, `kOverlapThreshold`, `VsmMatchResult`,
+// `VsmMatchTier`, `VsmMatchRegion`) used to live here as file-local `static`
+// functions. Extracted (task 0117) into the shared
+// `uppsrc/VisualStateModel/RegionAssign.h/.cpp` — see that header for the
+// full overlap-scoring-formula and two-tier-selection rationale (unchanged,
+// this was a pure extraction, no logic changes) — so
+// `upptst/VisualStateModelTests` can call into the exact same matching code
+// this CLI uses, without duplicating it.
 
 // ---------------------------------------------------------------------------
 // One layout-observation output record: the original region geometry (for

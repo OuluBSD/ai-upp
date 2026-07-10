@@ -103,6 +103,7 @@ public:
 	ScaledImageCtrl pixmapLabel_cardb;
 	ScaledImageCtrl pixmapLabel_cards;
 	ScaledImageCtrl textLabel_Button;
+	ScaledImageCtrl chipStack_Bet;
 	ScaledImageCtrl actionPic;
 	StaticRect label_Timeout;
 
@@ -325,10 +326,15 @@ private:
 	Image cardHolderFlop, cardHolderTurn, cardHolderRiver;
 	Image actionPics[10];
 	String currentCardTheme;
-	
+	String currentTableTheme;
+	int m_potTotalAmount = 0;
+
 	Image GetCardImage(int card);
 	Image GetTransparentCard(int card, int alpha);
 	Image ApplyInterlacedTransparency(const Image& img);
+	Image GetPuckImage(int role);
+	Image GetChipStackImage(int amount);
+	static void DrawChipDiscs(Draw& w, int cx, int baseY, int amount, Draw* alphaW = nullptr);
 
 public:
 	BoardCtrl& Board() const;

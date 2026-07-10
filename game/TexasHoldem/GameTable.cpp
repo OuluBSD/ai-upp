@@ -290,6 +290,153 @@ Image GameTable::GetTransparentCard(int card, int alpha)
 	return ApplyInterlacedTransparency(GetCardImage(card));
 }
 
+// Chip-color/disc-count logic shared by the cached per-player bet-stack
+// Image (GetChipStackImage, below) and the direct pot-stack Draw call
+// (RenderToImage) -- factored out so both paths agree exactly on what an
+// amount looks like. Standard poker chip color tiers, picked by the highest
+// denomination that "fits" the amount (white < 5, red < 25, green < 100,
+// black < 500, purple >= 500); disc count mirrors the tier index (1-4),
+// capped at 4 regardless of amount so the stack never grows unboundedly.
+void GameTable::DrawChipDiscs(Draw& w, int cx, int baseY, int amount, Draw* alphaW)
+{
+	if (amount <= 0) return;
+
+	struct ChipTier { int minAmount; Color fill; Color rim; };
+	static const ChipTier tiers[] = {
+		{ 0,   Color(245, 245, 245), Color(110, 110, 110) }, // white  ( < 5 )
+		{ 5,   Color(210, 30, 30),   Color(255, 255, 255) }, // red    ( 5-24 )
+		{ 25,  Color(30, 190, 90),   Color(255, 255, 255) }, // green  ( 25-99 ) -- kept clearly
+		                                                      // brighter/cooler than the board felt
+		                                                      // fallback fill (Color(0,100,0),
+		                                                      // PaintBoard) so it doesn't blend in.
+		{ 100, Color(20, 20, 20),    Color(220, 220, 220) }, // black  ( 100-499 )
+		{ 500, Color(150, 30, 190),  Color(255, 215, 0) },   // purple ( >= 500 )
+	};
+	const int tierCount = (int)(sizeof(tiers) / sizeof(tiers[0]));
+	int tierIdx = 0;
+	for (int i = 0; i < tierCount; i++)
+		if (amount >= tiers[i].minAmount)
+			tierIdx = i;
+	int discCount = min(tierIdx + 1, 4);
+	Color fill = tiers[tierIdx].fill;
+	Color rim = tiers[tierIdx].rim;
+
+	const int discW = 20, discH = 8, discStep = 6;
+	for (int i = 0; i < discCount; i++) {
+		int y = baseY - discH - i * discStep;
+		int x = cx - discW / 2;
+		// When rendering into a cached ImageDraw (GetChipStackImage), the RGB
+		// and alpha planes are two entirely separate off-screen bitmaps in
+		// this codebase's Win32 ImageDraw backend (uppsrc/CtrlCore/ImageWin32.cpp:
+		// ImageDraw::Get() copies the final alpha strictly from the alpha
+		// plane's own drawing, never implicitly from whatever the RGB plane
+		// painted) -- so the disc must be explicitly stamped as opaque on the
+		// alpha plane too, matching this same geometry, or it silently
+		// composites as 100% transparent (invisible) despite correct RGB
+		// content. Not needed when drawing directly onto a live screen Draw&
+		// (the pot stack, no separate alpha plane involved) -- alphaW is null
+		// there.
+		if (alphaW)
+			alphaW->DrawEllipse(x, y, discW, discH, White(), 2, White());
+		w.DrawEllipse(x, y, discW, discH, fill, 2, Black());
+		// Thin edge-stripe pattern: a couple of short contrasting rects
+		// around the rim, standing in for the sculpted edge-spots on real
+		// poker chips (simple, not photorealistic per the task spec).
+		w.DrawRect(x + 2, y + discH / 2 - 1, 4, 2, rim);
+		w.DrawRect(x + discW - 6, y + discH / 2 - 1, 4, 2, rim);
+	}
+}
+
+Image GameTable::GetChipStackImage(int amount)
+{
+	if (amount <= 0) return Image();
+
+	static String cachedTheme;
+	static VectorMap<int, Image> cache;
+	if (cachedTheme != currentTableTheme) {
+		cache.Clear();
+		cachedTheme = currentTableTheme;
+	}
+
+	// The rendered visual (color + disc count) depends only on which
+	// denomination tier the amount falls into -- the same bucketing
+	// DrawChipDiscs uses -- so cache by tier index (0..4), not by the exact
+	// bet amount, keeping the cache bounded regardless of how many distinct
+	// bet sizes a long session sees (mirrors GetCardImage/GetPuckImage's
+	// small-finite-key-space caching idiom).
+	static const int tierThresholds[] = { 0, 5, 25, 100, 500 };
+	int tierIdx = 0;
+	for (int i = 0; i < 5; i++)
+		if (amount >= tierThresholds[i])
+			tierIdx = i;
+
+	int idx = cache.Find(tierIdx);
+	if (idx >= 0) return cache[idx];
+
+	// Themed-load-first: try <dataDir>/gfx/gui/table/<theme>/chip_<N>.png for
+	// the tier's representative denomination (chip_1/5/25/100/500.png).
+	String dataDir = Tools::GetDataDir();
+	String dir = AppendFileName(dataDir, "gfx/gui/table/" + currentTableTheme);
+	int filenameDenom = tierThresholds[tierIdx] == 0 ? 1 : tierThresholds[tierIdx];
+	Image img = StreamRaster::LoadFileAny(AppendFileName(dir, Format("chip_%d.png", filenameDenom)));
+	if (img.IsEmpty()) {
+		const int cw = 28, ch = 34;
+		ImageDraw iw(cw, ch);
+		iw.Alpha().DrawRect(0, 0, cw, ch, RGBAZero());
+		DrawChipDiscs(iw, cw / 2, ch - 4, amount, &iw.Alpha());
+		img = iw;
+	}
+	cache.Add(tierIdx, img);
+	return img;
+}
+
+Image GameTable::GetPuckImage(int role)
+{
+	static String cachedTheme;
+	static VectorMap<int, Image> cache;
+	if (cachedTheme != currentTableTheme) {
+		cache.Clear();
+		cachedTheme = currentTableTheme;
+	}
+	int idx = cache.Find(role);
+	if (idx >= 0) return cache[idx];
+
+	// Procedural fallback tier -- only reached from refreshGroupbox() when
+	// BOTH real-asset load attempts (themed dir puckDealer/SB/BB, then the
+	// hardcoded gfx/<name>.png) come back empty. Enlarged to 40x40 relative
+	// to textLabel_Button's 32x32 base rect (PlayerCtrl::Layout()) for
+	// legibility of the two-letter SB/BB labels -- ScaledImageCtrl centers/
+	// letterboxes it inside the actual rect at any real on-screen scale.
+	const int sz = 40;
+	ImageDraw iw(sz, sz);
+	iw.Alpha().DrawRect(0, 0, sz, sz, RGBAZero());
+
+	Color fill, ink;
+	String label;
+	switch (role) {
+	case 0: fill = Color(250, 240, 210); ink = Black(); label = "D";  break; // dealer: white/cream
+	case 1: fill = Color(120, 190, 250); ink = Black(); label = "SB"; break; // small blind: light blue
+	case 2: fill = Color(150, 20, 30);   ink = White(); label = "BB"; break; // big blind: darker red
+	default: fill = White();             ink = Black(); label = "";  break;
+	}
+	// Mark the disc's area opaque on the SEPARATE alpha plane first -- see
+	// the comment in DrawChipDiscs for why this is required in this
+	// codebase's Win32 ImageDraw backend (RGB-only draws never implicitly
+	// touch the alpha plane; skipping this leaves the whole image at
+	// alpha==0, i.e. invisible, despite correct-looking RGB content).
+	iw.Alpha().DrawEllipse(0, 0, sz, sz, White(), 2, White());
+	iw.DrawEllipse(0, 0, sz, sz, fill, 2, Black());
+	if (!label.IsEmpty()) {
+		Font f = SansSerif(label.GetCount() > 1 ? 13 : 16).Bold();
+		Size tsz = GetTextSize(label, f);
+		iw.DrawText((sz - tsz.cx) / 2, (sz - tsz.cy) / 2, label, f, ink);
+	}
+
+	Image img = iw;
+	cache.Add(role, img);
+	return img;
+}
+
 PlayerCtrl::PlayerCtrl()
 {
 	Transparent();
@@ -301,6 +448,7 @@ PlayerCtrl::PlayerCtrl()
 	Add(label_PlayerName);
 	Add(textLabel_Cash);
 	Add(textLabel_Set);
+	Add(chipStack_Bet);
 	Add(textLabel_Button);
 	Add(actionPic);
 	Add(label_Timeout);
@@ -334,8 +482,14 @@ void PlayerCtrl::Layout()
 	pixmapLabel_cards.SetRect((int)(80 * fx), (int)(10 * fy), max(1, (int)(78 * fx)), max(1, (int)(60 * fy)));
 	
 	textLabel_Button.SetRect((int)(140 * fx), (int)(75 * fy), max(1, (int)(32 * fx)), max(1, (int)(32 * fy)));
-	textLabel_Set.SetRect((int)(10 * fx), (int)(105 * fy), max(1, (int)(170 * fx)), max(1, (int)(15 * fy)));
-	
+	// bet-amount text ("$N") keeps its existing rect but narrowed a bit so the
+	// new chip-stack graphic can sit beside it, in the small free strip to the
+	// right (x=150..180) that was previously unused in this 190x142 base grid
+	// (below the dealer/blind puck at x=140..172,y=75..107, above actionPic
+	// at y=120..140) -- additive, textLabel_Set itself is unchanged otherwise.
+	textLabel_Set.SetRect((int)(10 * fx), (int)(105 * fy), max(1, (int)(128 * fx)), max(1, (int)(15 * fy)));
+	chipStack_Bet.SetRect((int)(140 * fx), (int)(108 * fy), max(1, (int)(40 * fx)), max(1, (int)(12 * fy)));
+
 	actionPic.SetRect((int)(10 * fx), (int)(120 * fy), max(1, (int)(170 * fx)), max(1, (int)(20 * fy)));
 	label_Timeout.SetRect((int)(10 * fx), (int)(70 * fy), max(1, (int)(60 * fx)), max(1, (int)(5 * fy)));
 }
@@ -1046,6 +1200,7 @@ void GameTable::OnPot100() {
 
 void GameTable::LoadTheme(const String& themeName)
 {
+	currentTableTheme = themeName;
 	String dataDir = Tools::GetDataDir();
 	String dir = AppendFileName(dataDir, "gfx/gui/table/" + themeName);
 	Image img = StreamRaster::LoadFileAny(AppendFileName(dir, "table.png"));
@@ -1203,13 +1358,31 @@ void GameTable::RenderToImage(Draw& w)
 		DrawChild(p.label_PlayerName);
 		DrawChild(p.textLabel_Cash, Yellow());
 		DrawChild(p.textLabel_Set, Yellow());
+		DrawChild(p.chipStack_Bet);
 		DrawChild(p.pixmapLabel_carda);
 		DrawChild(p.pixmapLabel_cardb);
 		DrawChild(p.pixmapLabel_cards);
 		DrawChild(p.textLabel_Button, Yellow());
 		DrawChild(p.actionPic);
 	}
-	
+
+	// 3b. Objective C: pot chip stack -- a direct procedural Draw call (no
+	// new Ctrl, no .form change; m_lblPotTotal is .form-resolved and .form
+	// files are not touched/depended-on structurally here), reusing the
+	// exact same DrawChipDiscs tier/disc-count logic as the per-player bet
+	// stack (B), positioned just above the pot total label's actual rect.
+	// Drawn AFTER the player loop (not alongside the other pot labels in
+	// step 2 above) because in this table's actual layout (GameTable_PS_6p
+	// .form) one seat's PlayerCtrl rect visually overlaps the screen area
+	// directly above the pot label -- drawing the chip stack before the
+	// player loop let that seat's opaque background paint over and hide it;
+	// drawing it last guarantees it stays on top, matching how the seat's
+	// own children already draw on top of that seat's own background.
+	if (m_potTotalAmount > 0) {
+		Rect potRect = lblPotTotal.GetRect();
+		DrawChipDiscs(w, potRect.left + potRect.GetWidth() / 2, potRect.top - 6, m_potTotalAmount);
+	}
+
 	// 4. Draw Game Log (12 lines)
 	Font logFont = StdFont(12).Bold();
 	int logY = sz.cy - 12 * (logFont.GetLineHeight() + 2) - 10;
@@ -1318,6 +1491,7 @@ void GameTable::nextRoundCleanGui()
 	board.Refresh();
 	for (int i = 0; i < 10; i++) {
 		players[i].textLabel_Set.SetLabel("");
+		players[i].chipStack_Bet.SetImage(Null);
 		players[i].actionPic.SetImage(Null);
 	}
 }
@@ -1365,6 +1539,7 @@ void GameTable::refreshPot()
 			total += max(0, p->getMyRoundStartCash() - p->getMyCash());
 			round += max(0, p->getMySet());
 		}
+		m_potTotalAmount = total;
 		lblPotTotal.SetLabel(Format(t_("Total: $%d"), total));
 		lblPotBets.SetLabel(Format(t_("Round: $%d"), round));
 		String phase = "Pre-Flop";
@@ -1487,10 +1662,13 @@ void GameTable::refreshGroupbox(int playerID, int type)
 			players[playerID].textLabel_Cash.SetLabel(Format("$%d", player->getMyCash()));
 			
 			int pSet = player->getMySet();
-			if (pSet > 0)
+			if (pSet > 0) {
 				players[playerID].textLabel_Set.SetLabel(Format("$%d", pSet));
-			else
+				players[playerID].chipStack_Bet.SetImage(GetChipStackImage(pSet));
+			} else {
 				players[playerID].textLabel_Set.SetLabel("");
+				players[playerID].chipStack_Bet.SetImage(Null);
+			}
 			
 			PlayerAction act = player->getMyAction();
 			
@@ -1568,14 +1746,20 @@ void GameTable::refreshGroupbox(int playerID, int type)
 			
 			String dataDir = Tools::GetDataDir();
 			if (player->getMyButton() == GBUTTON_DEALER) {
-				if (!puckDealer.IsEmpty()) players[playerID].textLabel_Button.SetImage(puckDealer);
-				else players[playerID].textLabel_Button.SetImage(StreamRaster::LoadFileAny(AppendFileName(dataDir, "gfx/dealer.png")));
+				Image img = puckDealer;
+				if (img.IsEmpty()) img = StreamRaster::LoadFileAny(AppendFileName(dataDir, "gfx/dealer.png"));
+				if (img.IsEmpty()) img = GetPuckImage(0); // procedural fallback tier (Objective A)
+				players[playerID].textLabel_Button.SetImage(img);
 			} else if (player->getMyButton() == GBUTTON_SMALL_BLIND) {
-				if (!puckSB.IsEmpty()) players[playerID].textLabel_Button.SetImage(puckSB);
-				else players[playerID].textLabel_Button.SetImage(StreamRaster::LoadFileAny(AppendFileName(dataDir, "gfx/small_blind.png")));
+				Image img = puckSB;
+				if (img.IsEmpty()) img = StreamRaster::LoadFileAny(AppendFileName(dataDir, "gfx/small_blind.png"));
+				if (img.IsEmpty()) img = GetPuckImage(1);
+				players[playerID].textLabel_Button.SetImage(img);
 			} else if (player->getMyButton() == GBUTTON_BIG_BLIND) {
-				if (!puckBB.IsEmpty()) players[playerID].textLabel_Button.SetImage(puckBB);
-				else players[playerID].textLabel_Button.SetImage(StreamRaster::LoadFileAny(AppendFileName(dataDir, "gfx/big_blind.png")));
+				Image img = puckBB;
+				if (img.IsEmpty()) img = StreamRaster::LoadFileAny(AppendFileName(dataDir, "gfx/big_blind.png"));
+				if (img.IsEmpty()) img = GetPuckImage(2);
+				players[playerID].textLabel_Button.SetImage(img);
 			} else {
 				players[playerID].textLabel_Button.SetImage(Null);
 			}
@@ -1584,6 +1768,7 @@ void GameTable::refreshGroupbox(int playerID, int type)
 			players[playerID].label_PlayerName.SetLabel("");
 			players[playerID].textLabel_Cash.SetLabel("");
 			players[playerID].textLabel_Set.SetLabel("");
+			players[playerID].chipStack_Bet.SetImage(Null);
 			players[playerID].label_PlayerName.Hide();
 			players[playerID].textLabel_Cash.Hide();
 			players[playerID].textLabel_Set.Hide();
@@ -1759,6 +1944,7 @@ void GameTable::SetRemoteState(const ScreenGameState& state)
 {
 	if (!state.found) return;
 	
+	m_potTotalAmount = state.pot;
 	lblPotTotal.SetLabel(Format(t_("Total: $%d"), state.pot));
 	
 	for (int i = 0; i < 10; i++) {

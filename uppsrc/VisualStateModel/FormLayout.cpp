@@ -136,4 +136,97 @@ Vector<VsmFormLayout> VsmParseFormFile(const String& path)
 	return VsmParseFormLayouts(root);
 }
 
+// ---------------------------------------------------------------------------
+// M04-02 (task 0113) sub-slot data table.
+//
+// PlayerCtrl rows: transcribed VERBATIM from `PlayerCtrl::Layout()`,
+// game/TexasHoldem/GameTable.cpp:321-341 — that function computes
+// `fx = sz.cx/190.0`, `fy = sz.cy/142.0` (own PlayerCtrl size against a
+// 190x142 reference), then:
+//   pixmapLabel_carda.SetRect((int)(80*fx), (int)(10*fy), max(1,(int)(48*fx)), max(1,(int)(60*fy)));   // :332
+//   pixmapLabel_cardb.SetRect((int)(110*fx),(int)(10*fy), max(1,(int)(48*fx)), max(1,(int)(60*fy)));   // :333
+//   textLabel_Button.SetRect((int)(140*fx),(int)(75*fy), max(1,(int)(32*fx)), max(1,(int)(32*fy)));    // :336
+// which is already a clean ratio-of-own-rect formula, so the fractions
+// below (num/190 or num/142) are exactly those same numbers, just
+// pre-divided. `button_puck`'s image (dealer/SB/BB) is chosen at
+// GameTable.cpp:1570-1581 based on GBUTTON_DEALER/GBUTTON_SMALL_BLIND/
+// GBUTTON_BIG_BLIND, but its RECT (this table's concern) is the single
+// `textLabel_Button` rect above regardless of which puck image is shown.
+//
+// BoardCtrl rows: transcribed from the legacy "ps-6p" profile branch,
+// game/Poker/TableLayoutProfile.cpp:43-61 (`board_x=641, board_y=349,
+// board_step=131, board_w=122, board_h=143`), against the profile's
+// `TexasTableLayout::BaseSize()` == 1920x1080 (TableLayoutProfile.cpp:115-
+// 117), as used by `BoardCardRect()` (TableLayoutProfile.cpp:147-155):
+// `x = (int)(board_x*Sx(sz)) + i*(int)(board_step*Sx(sz))`,
+// `y = (int)(board_y*Sy(sz))`, `cw = (int)(board_w*Sx(sz))`,
+// `ch = (int)(board_h*Sy(sz))`, where `Sx(sz)=sz.cx/1920`, `Sy(sz)=sz.cy/1080`.
+// Note the base offset and the `i*step` term are each truncated to int
+// SEPARATELY before being summed — this is why `fx` below holds only the
+// base term and `fstep_x`/`index` hold the step term (see VsmFormSubSlot's
+// comment): a first attempt that pre-combined `(board_x + i*board_step)`
+// into one fraction before truncating was off by 1-4px per index (verified,
+// then corrected, in task 0113's evidence section) because
+// `(int)(a)+(int)(b) != (int)(a+b)` in general. With base/step kept
+// separate, this reproduces `BoardCardRect`'s rects EXACTLY (bit-for-bit),
+// verified across 8 board sizes (640x400 up to 3840x2160) x 5 indices = 40
+// cases, not merely approximately. This is a PS_6p-specific transcription
+// (same scope as the legacy profile it came from) — a future platform
+// whose `.form`-driven board rendering differs would need its own
+// BoardCtrl sub-slot data, same limitation the legacy per-platform
+// `LayoutBaseCoords` struct already had, just relocated from C++ code to a
+// data row.
+Vector<VsmFormSubSlot> VsmGetSubSlots(const String& element_type)
+{
+	Vector<VsmFormSubSlot> out;
+	if(element_type == "PlayerCtrl") {
+		VsmFormSubSlot s;
+		s.type = "PlayerCtrl";
+		s.name = "hole_card_0";   // pixmapLabel_carda, GameTable.cpp:332
+		s.fx = 80.0/190.0;  s.fy = 10.0/142.0;  s.fcx = 48.0/190.0;  s.fcy = 60.0/142.0;
+		out.Add(s);
+
+		s.name = "hole_card_1";   // pixmapLabel_cardb, GameTable.cpp:333
+		s.fx = 110.0/190.0; s.fy = 10.0/142.0;  s.fcx = 48.0/190.0;  s.fcy = 60.0/142.0;
+		out.Add(s);
+
+		s.name = "button_puck";   // textLabel_Button, GameTable.cpp:336
+		s.fx = 140.0/190.0; s.fy = 75.0/142.0;  s.fcx = 32.0/190.0;  s.fcy = 32.0/142.0;
+		out.Add(s);
+	}
+	else if(element_type == "BoardCtrl") {
+		const double board_x = 641.0, board_y = 349.0, board_step = 131.0;
+		const double board_w = 122.0, board_h = 143.0;
+		const double base_cx = 1920.0, base_cy = 1080.0;
+		for(int i = 0; i < 5; i++) {
+			VsmFormSubSlot s;
+			s.type = "BoardCtrl";
+			s.name = "board_card_" + AsString(i);
+			s.fx  = board_x / base_cx;   // BASE only (index==0 position) — see step fields below
+			s.fy  = board_y / base_cy;
+			s.fcx = board_w / base_cx;
+			s.fcy = board_h / base_cy;
+			s.index = i;
+			s.fstep_x = board_step / base_cx;
+			out.Add(s);
+		}
+	}
+	return out;
+}
+
+Rect VsmResolveSubSlot(const VsmFormSubSlot& slot, const Rect& owner_rect)
+{
+	int ow = owner_rect.GetWidth();
+	int oh = owner_rect.GetHeight();
+	// Base and step truncated SEPARATELY, then summed — matches the legacy
+	// `(int)(board_x*Sx) + i*(int)(board_step*Sx)` order exactly (see
+	// VsmFormSubSlot::index's comment for why this matters).
+	int lx  = (int)(slot.fx * ow) + slot.index * (int)(slot.fstep_x * ow);
+	int ly  = (int)(slot.fy * oh) + slot.index * (int)(slot.fstep_y * oh);
+	int lcx = max(1, (int)(slot.fcx * ow));
+	int lcy = max(1, (int)(slot.fcy * oh));
+	return Rect(owner_rect.left + lx, owner_rect.top + ly,
+	            owner_rect.left + lx + lcx, owner_rect.top + ly + lcy);
+}
+
 } // namespace Upp

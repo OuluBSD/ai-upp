@@ -146,6 +146,66 @@ Vector<VsmFormLayout> VsmParseFormLayouts(const XmlNode& form_root);
 // Returns an empty vector if the file can't be read/parsed as XML.
 Vector<VsmFormLayout> VsmParseFormFile(const String& path);
 
+// ---------------------------------------------------------------------------
+// M04-02 (task 0113): generic per-Type sub-slot geometry.
+//
+// `.form` files only give COARSE element rects: `BoardCtrl` = the whole
+// board area, `PlayerCtrl` = one player's whole block. The individual
+// board-card slots (5), hole-card slots (2 per player), and the
+// dealer/small-blind/big-blind puck position are not separate `.form`
+// items — at render time they are computed as fixed FRACTIONS of the
+// owning element's own rect (see GameTable.cpp:321-341's `PlayerCtrl::
+// Layout()` for hole cards/puck, and TableLayoutProfile.cpp's
+// `TexasTableLayout::BoardCardRect` for board cards). This struct captures
+// that same fraction-of-own-rect relationship as DATA, keyed by the owning
+// element's `type`, rather than new hardcoded C++ per platform — see
+// VsmGetSubSlots() below for the concrete PS_6p-derived table and task
+// 0113's evidence section (Manager repo,
+// VisualStateModel/0113_m04_subslot_geometry_decision.md) for the full
+// derivation/verification.
+struct VsmFormSubSlot : Moveable<VsmFormSubSlot> {
+	String type;   // owning element's Type this sub-slot applies to, e.g. "PlayerCtrl", "BoardCtrl"
+	String name;   // this sub-slot's own name, e.g. "hole_card_0", "board_card_2", "button_puck"
+	double fx = 0, fy = 0, fcx = 0, fcy = 0;  // fraction of the OWNING element's own rect (its cx/cy)
+
+	// Optional repeated-slot step, for a family of slots laid out as
+	// `base + index*step` along an axis (BoardCtrl's 5 board-card slots).
+	// The legacy renderer (TableLayoutProfile.cpp's BoardCardRect) truncates
+	// the base offset and the `index*step` term to integer pixels
+	// SEPARATELY before summing (`(int)(board_x*Sx) + i*(int)(board_step*Sx)`),
+	// NOT the combined `(base+index*step)` truncated once — the two give
+	// different (off-by-a-few-pixels) results at most sizes. To reproduce
+	// the legacy rects exactly, `fx`/`fy` above hold ONLY the base (index==0)
+	// fraction here, and `fstep_x`/`fstep_y` hold the per-index step
+	// fraction; VsmResolveSubSlot() truncates base and step separately and
+	// sums, exactly mirroring the legacy order. Slots with no stepping
+	// (index always 0, e.g. every PlayerCtrl sub-slot) leave these at 0,
+	// which is a no-op — see task 0113's evidence section for the numeric
+	// verification that this exact-truncation-order approach is required
+	// (an earlier, simpler single-fraction-per-slot attempt was off by up
+	// to several pixels and was corrected before this was checked in).
+	int index = 0;
+	double fstep_x = 0, fstep_y = 0;
+};
+
+// Returns every known sub-slot declared for `element_type` (empty if none
+// known for that type — callers must not assume every type has sub-slots).
+// See FormLayout.cpp for the concrete data table and its file:line
+// provenance for every number.
+Vector<VsmFormSubSlot> VsmGetSubSlots(const String& element_type);
+
+// Resolves `slot` to an absolute rect given the owning element's own
+// absolute rect `owner_rect` (e.g. a top-level element's own design-space
+// rect, or the result of VsmFormLayout::GetAbsoluteRect() for a nested
+// element). Mirrors both the integer-truncation pattern AND its ORDER
+// (base and `index*step` truncated separately, then summed — see
+// VsmFormSubSlot::index's comment above) used by the live renderer
+// (GameTable.cpp:321-341, TableLayoutProfile.cpp:147-155), so results
+// reproduce the live numbers exactly rather than merely approximately
+// (verified numerically across 8 board sizes in task 0113's evidence
+// section).
+Rect VsmResolveSubSlot(const VsmFormSubSlot& slot, const Rect& owner_rect);
+
 } // namespace Upp
 
 #endif

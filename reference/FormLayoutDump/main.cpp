@@ -46,6 +46,21 @@ CONSOLE_APP_MAIN
 				Cout() << " abs_rect=(" << ar.left << "," << ar.top << "," << ar.Width() << "x" << ar.Height() << ")";
 			}
 			Cout() << "\n";
+
+			// M04-02 (task 0113) demonstration: if this element's Type has
+			// known sub-slots (VsmFormSubSlot, VisualStateModel/FormLayout.h),
+			// dump each sub-slot's resolved absolute rect too. This is only a
+			// demonstration/test harness for the resolver, same spirit as the
+			// rest of this CLI (task 0112).
+			Vector<VsmFormSubSlot> subslots = VsmGetSubSlots(el.type);
+			if(!subslots.IsEmpty()) {
+				Rect owner_abs = layout.GetAbsoluteRect(el);
+				for(const VsmFormSubSlot& s : subslots) {
+					Rect sr = VsmResolveSubSlot(s, owner_abs);
+					Cout() << "    subslot " << s.name
+					       << " rect=(" << sr.left << "," << sr.top << "," << sr.Width() << "x" << sr.Height() << ")\n";
+				}
+			}
 		}
 	}
 

@@ -32,5 +32,6 @@ using namespace Upp;
 #include "PipelineCache.h"
 #include "TestFixtures.h"
 #include "FormLayout.h"
+#include "LayoutProfile.h"
 
 #endif

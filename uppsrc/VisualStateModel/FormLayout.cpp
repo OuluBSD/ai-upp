@@ -137,21 +137,51 @@ Vector<VsmFormLayout> VsmParseFormFile(const String& path)
 }
 
 // ---------------------------------------------------------------------------
-// M04-02 (task 0113) sub-slot data table.
+// M04-02 (task 0113) / M04-03 (task 0114) sub-slot data table.
 //
 // PlayerCtrl rows: transcribed VERBATIM from `PlayerCtrl::Layout()`,
 // game/TexasHoldem/GameTable.cpp:321-341 — that function computes
 // `fx = sz.cx/190.0`, `fy = sz.cy/142.0` (own PlayerCtrl size against a
 // 190x142 reference), then:
+//   label_Avatar.SetRect((int)(10*fx), (int)(10*fy), max(1,(int)(60*fx)), max(1,(int)(60*fy)));        // :328
+//   label_PlayerName.SetRect((int)(10*fx),(int)(75*fy), max(1,(int)(170*fx)), max(1,(int)(15*fy)));    // :329
+//   textLabel_Cash.SetRect((int)(10*fx),(int)(90*fy), max(1,(int)(170*fx)), max(1,(int)(15*fy)));      // :330
 //   pixmapLabel_carda.SetRect((int)(80*fx), (int)(10*fy), max(1,(int)(48*fx)), max(1,(int)(60*fy)));   // :332
 //   pixmapLabel_cardb.SetRect((int)(110*fx),(int)(10*fy), max(1,(int)(48*fx)), max(1,(int)(60*fy)));   // :333
 //   textLabel_Button.SetRect((int)(140*fx),(int)(75*fy), max(1,(int)(32*fx)), max(1,(int)(32*fy)));    // :336
+//   textLabel_Set.SetRect((int)(10*fx),(int)(105*fy), max(1,(int)(170*fx)), max(1,(int)(15*fy)));      // :337
+//   actionPic.SetRect((int)(10*fx),(int)(120*fy), max(1,(int)(170*fx)), max(1,(int)(20*fy)));          // :339
+//   label_Timeout.SetRect((int)(10*fx),(int)(70*fy), max(1,(int)(60*fx)), max(1,(int)(5*fy)));         // :340
 // which is already a clean ratio-of-own-rect formula, so the fractions
 // below (num/190 or num/142) are exactly those same numbers, just
 // pre-divided. `button_puck`'s image (dealer/SB/BB) is chosen at
 // GameTable.cpp:1570-1581 based on GBUTTON_DEALER/GBUTTON_SMALL_BLIND/
 // GBUTTON_BIG_BLIND, but its RECT (this table's concern) is the single
 // `textLabel_Button` rect above regardless of which puck image is shown.
+//
+// Task 0114 re-read the FULL `PlayerCtrl` constructor (GameTable.cpp:293-319)
+// and `Layout()` (GameTable.cpp:321-341) to confirm this list is complete.
+// Every child `Add()`ed in the constructor (:296-306: `bg`, `label_Avatar`,
+// `pixmapLabel_carda`, `pixmapLabel_cardb`, `pixmapLabel_cards`,
+// `label_PlayerName`, `textLabel_Cash`, `textLabel_Set`, `textLabel_Button`,
+// `actionPic`, `label_Timeout` — 11 total) has a corresponding `SetRect()` in
+// `Layout()` — none are left to parent/anchor-only auto-sizing. Two of the
+// 11 are DELIBERATELY not added as sub-slots here, judgment calls made and
+// documented in task 0114's evidence section rather than silently omitted:
+//   - `bg` (:327, `SetRect(0,0,sz.cx,sz.cy)`) — identical to the owning
+//     PlayerCtrl's own rect (fraction 1,1 of itself), so it carries no
+//     information beyond what the top-level `PlayerCtrl` element's own
+//     resolved rect already gives; adding it as a sub-slot would be a
+//     no-op duplicate.
+//   - `pixmapLabel_cards` (:334, `SetRect((int)(80*fx),(int)(10*fy),
+//     max(1,(int)(78*fx)),max(1,(int)(60*fy)))`) — the combined face-down
+//     card-back image shown INSTEAD of `pixmapLabel_carda`/`cardb` when a
+//     hand is hidden (GameTable.cpp:1526-1552 toggles `.Show()`/`.Hide()`
+//     between this and the two individual card labels). Its rect is exactly
+//     the union of `hole_card_0`'s and `hole_card_1`'s rects (80..158 wide,
+//     matching 80+78=158 = 110+48), so it introduces no NEW geometry beyond
+//     those two slots — it is a rendering-state detail (which image is drawn
+//     into the same on-screen area), not a distinct region.
 //
 // BoardCtrl rows: transcribed from the legacy "ps-6p" profile branch,
 // game/Poker/TableLayoutProfile.cpp:43-61 (`board_x=641, board_y=349,
@@ -192,6 +222,33 @@ Vector<VsmFormSubSlot> VsmGetSubSlots(const String& element_type)
 
 		s.name = "button_puck";   // textLabel_Button, GameTable.cpp:336
 		s.fx = 140.0/190.0; s.fy = 75.0/142.0;  s.fcx = 32.0/190.0;  s.fcy = 32.0/142.0;
+		out.Add(s);
+
+		// --- task 0114 additions (see the header comment above for the
+		// full-constructor re-verification these come from) ---
+
+		s.name = "avatar";        // label_Avatar, GameTable.cpp:328
+		s.fx = 10.0/190.0;  s.fy = 10.0/142.0;  s.fcx = 60.0/190.0;  s.fcy = 60.0/142.0;
+		out.Add(s);
+
+		s.name = "player_name";   // label_PlayerName, GameTable.cpp:329
+		s.fx = 10.0/190.0;  s.fy = 75.0/142.0;  s.fcx = 170.0/190.0; s.fcy = 15.0/142.0;
+		out.Add(s);
+
+		s.name = "stack_text";    // textLabel_Cash, GameTable.cpp:330
+		s.fx = 10.0/190.0;  s.fy = 90.0/142.0;  s.fcx = 170.0/190.0; s.fcy = 15.0/142.0;
+		out.Add(s);
+
+		s.name = "bet_text";      // textLabel_Set, GameTable.cpp:337
+		s.fx = 10.0/190.0;  s.fy = 105.0/142.0; s.fcx = 170.0/190.0; s.fcy = 15.0/142.0;
+		out.Add(s);
+
+		s.name = "action_icon";   // actionPic, GameTable.cpp:339
+		s.fx = 10.0/190.0;  s.fy = 120.0/142.0; s.fcx = 170.0/190.0; s.fcy = 20.0/142.0;
+		out.Add(s);
+
+		s.name = "timeout";       // label_Timeout, GameTable.cpp:340
+		s.fx = 10.0/190.0;  s.fy = 70.0/142.0;  s.fcx = 60.0/190.0;  s.fcy = 5.0/142.0;
 		out.Add(s);
 	}
 	else if(element_type == "BoardCtrl") {

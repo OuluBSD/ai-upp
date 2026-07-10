@@ -61,4 +61,6 @@ file
 	TestFixtures.h,
 	TestFixtures.cpp,
 	FormLayout.h,
-	FormLayout.cpp;
+	FormLayout.cpp,
+	LayoutProfile.h,
+	LayoutProfile.cpp;

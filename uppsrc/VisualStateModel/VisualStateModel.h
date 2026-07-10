@@ -31,5 +31,6 @@ using namespace Upp;
 #include "PipelineRunner.h"
 #include "PipelineCache.h"
 #include "TestFixtures.h"
+#include "FormLayout.h"
 
 #endif

@@ -59,4 +59,6 @@ file
 	PipelineCache.h,
 	PipelineCache.cpp,
 	TestFixtures.h,
-	TestFixtures.cpp;
+	TestFixtures.cpp,
+	FormLayout.h,
+	FormLayout.cpp;

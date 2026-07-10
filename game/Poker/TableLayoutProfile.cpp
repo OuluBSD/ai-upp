@@ -4,6 +4,15 @@ namespace Upp {
 
 static String s_profile_name = "texas-holdem-classic";
 
+// Legacy hardcoded-profile approach: this is a manual, per-profile coordinate
+// transcription (e.g. the "ps-6p" numbers below were hand-copied and scaled
+// from game/TexasHoldem/GameTable_PS_6p.form's Player0 rect), superseded, for
+// VisualStateModel/layout-model purposes, by parsing the platform's actual
+// `.form` file (see MILESTONE_04_layout_model_ps6p.md and task
+// 0112_m04_form_driven_layout_element_model.md in the Manager repo, plus
+// uppsrc/VisualStateModel/FormLayout.h). Keep this working for its existing
+// renderer/theme callers, but do not add new profile structs for new
+// platforms here — give them a `.form` file instead.
 struct LayoutBaseCoords {
 	int table_l = 100, table_t = 100, table_r = 1820, table_b = 980;
 	int pot_l = 840, pot_t = 337, pot_r = 1080, pot_b = 405;
@@ -75,6 +84,14 @@ static LayoutBaseCoords GetCoords() {
 	return c;
 }
 
+// Legacy hardcoded-profile entry point — superseded, for
+// VisualStateModel/layout-model purposes, by `.form`-file parsing (see
+// MILESTONE_04_layout_model_ps6p.md and task
+// 0112_m04_form_driven_layout_element_model.md in the Manager repo, plus
+// uppsrc/VisualStateModel/FormLayout.h). Still required for its existing
+// renderer/theme callers (GameTable.cpp, TexasRenderer.cpp,
+// GameThemeRender.cpp); do not extend with new profile names for new
+// platforms — add a `.form` file instead.
 void TexasTableLayout::SetProfile(const String& profile_name) {
 	String p = TrimBoth(profile_name);
 	if (p.IsEmpty())

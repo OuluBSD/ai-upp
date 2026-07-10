@@ -156,9 +156,20 @@ static void RunRegionAssignmentChecks(const VsmLayoutProfile& profile)
 	      Format("texas_ps6p_sample: 100%% assigned (%d/%d) [task 0115/0116 evidence]",
 	             assigned_regions, total_regions));
 	CHECK(found_player3_stack, "texas_ps6p_sample: some region matched Player3.stack_text");
-	CHECK(found_player3_stack && fabs(player3_stack_overlap - 0.9375) < 1e-9,
-	      Format("texas_ps6p_sample: the Player3.stack_text match's overlap == 0.9375 exactly "
-	             "(got %s) [hand-verified in task 0115's review, region rect (416,120,32,16)]",
+	// M05-05 (task 0123): this overlap ratio changed from the original
+	// 0.9375 (task 0115's hand-verified value) to 0.53125 because Objective
+	// 1 moved/resized Player3's own rect in GameTable_PS_6p.form (from
+	// (400,10,282,179) to (380,10,240,180), to remove its overlaps with
+	// Player2 and Player4) -- the SAME raw recorded region (416,120,32,16,
+	// real pixel data from this fixture's frames, unaffected by this task)
+	// now scores differently against Player3.stack_text's candidate rect,
+	// which is derived from Player3's own (now different) rect. Re-verified
+	// as the real, deterministic output of this build (not guessed) rather
+	// than papering over a changed assertion.
+	CHECK(found_player3_stack && fabs(player3_stack_overlap - 0.53125) < 1e-9,
+	      Format("texas_ps6p_sample: the Player3.stack_text match's overlap == 0.53125 exactly "
+	             "(got %s) [task 0123: changed from 0115's 0.9375 by the Player3 .form rect "
+	             "redesign, region rect (416,120,32,16)]",
 	             found_player3_stack ? DblStr(player3_stack_overlap) : String("n/a (no match found)")));
 
 	// --- The never-yet-exercised "unassigned" path (task 0117 Objective) ---
@@ -218,7 +229,13 @@ CONSOLE_APP_MAIN
 				static const Expect expects[] = {
 					{ "hole_card_0",  482, 375, 64, 68 },
 					{ "hole_card_1",  522, 375, 64, 68 },
-					{ "button_puck",  562, 449, 42, 36 },
+					// M05-05 (task 0123): button_puck's SIZE is now aspect-
+					// locked to a single uniform scale factor (square,
+					// min(fcx*ow, fcy*oh) = min(42.94, 36.56) = 36 for
+					// Player0's unchanged 255x162 rect), down from the old
+					// independent-fx/fy 42x36. Position (562,449) is
+					// unaffected -- it still uses independent fx/fy.
+					{ "button_puck",  562, 449, 36, 36 },
 					{ "avatar",       388, 375, 80, 68 },
 					{ "player_name",  388, 449, 228, 17 },
 				};

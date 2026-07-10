@@ -186,6 +186,27 @@ struct VsmFormSubSlot : Moveable<VsmFormSubSlot> {
 	// to several pixels and was corrected before this was checked in).
 	int index = 0;
 	double fstep_x = 0, fstep_y = 0;
+
+	// M05-05 (task 0123): true for a sub-slot whose SIZE (not position) is
+	// locked to a single uniform scale factor of the owning element's own
+	// rect, mirroring GameTable.cpp's `PlayerCtrl::Layout()` change to
+	// `textLabel_Button` (`button_puck`): `f_puck = fmin(fx, fy)`, both
+	// SetRect() size args using that same single factor, rather than each
+	// axis independently scaling by its own fx/fy. `fcx`/`fcy` are NOT
+	// reinterpreted or given new meaning for this case -- they still hold
+	// exactly the same per-axis fractions they always would (32/190, 32/142
+	// for button_puck, transcribed straight from the two independent
+	// SetRect() size args as if unlocked). VsmResolveSubSlot() derives the
+	// locked size from those SAME two fractions at resolution time
+	// (`min(fcx*ow, fcy*oh)`, applied to both axes), which is arithmetically
+	// identical to `GameTable.cpp`'s `(int)(32 * fmin(fx, fy))` -- see
+	// VsmResolveSubSlot()'s own comment for the equivalence proof. This
+	// keeps VsmFormSubSlot's existing fraction-of-own-rect representation
+	// unchanged for the position fields and every non-aspect-locked slot;
+	// only resolution gets a small, explicit accommodation for this one
+	// case, rather than inventing a new "uniform scale fraction" field that
+	// would duplicate fcx/fcy's information.
+	bool aspect_lock = false;
 };
 
 // Returns every known sub-slot declared for `element_type` (empty if none
@@ -204,6 +225,10 @@ Vector<VsmFormSubSlot> VsmGetSubSlots(const String& element_type);
 // reproduce the live numbers exactly rather than merely approximately
 // (verified numerically across 8 board sizes in task 0113's evidence
 // section).
+// Note (task 0123): if `slot.aspect_lock` is set, BOTH resulting axes' size
+// use `min(fcx*ow, fcy*oh)` (see VsmFormSubSlot::aspect_lock's comment) --
+// the "base and step truncated separately" note above still applies
+// independently to each axis's position term, unaffected by aspect_lock.
 Rect VsmResolveSubSlot(const VsmFormSubSlot& slot, const Rect& owner_rect);
 
 } // namespace Upp

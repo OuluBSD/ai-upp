@@ -72,21 +72,48 @@ public:
 
 class ScaledImageCtrl : public Ctrl {
 public:
+	// M05-05 (task 0123), Objective 3: FIT (default, today's only behavior)
+	// uniform-scales by min(sz/isz) on each axis, centered, letterboxed
+	// (whole image always visible, empty space on the shorter axis). ZOOM/
+	// cover instead uniform-scales by max(sz/isz), centered, and is CLIPPED
+	// to the control's own bounds (slot filled edge-to-edge on both axes,
+	// the image's edges may be cropped, never letterboxed). Every EXISTING
+	// caller keeps the default FIT mode -- only an explicit SetMode(ZOOM)
+	// call opts a control into the new behavior.
+	enum Mode { FIT, ZOOM };
+
 	Image img;
+	Mode mode = FIT;
 	ScaledImageCtrl() { Transparent(); }
 	void SetImage(const Image& i) { img = i; Refresh(); }
+	void SetMode(Mode m) { mode = m; Refresh(); }
 	virtual void Paint(Draw& w) override {
 		Size sz = GetSize();
 		if (!img.IsEmpty()) {
 			Size isz = img.GetSize();
 			if (isz.cx > 0 && isz.cy > 0) {
-				double r = fmin((double)sz.cx / isz.cx, (double)sz.cy / isz.cy);
+				double r = mode == ZOOM
+					? fmax((double)sz.cx / isz.cx, (double)sz.cy / isz.cy)
+					: fmin((double)sz.cx / isz.cx, (double)sz.cy / isz.cy);
 				int w1 = (int)(isz.cx * r);
 				int h1 = (int)(isz.cy * r);
+				bool clip = mode == ZOOM && (w1 > sz.cx || h1 > sz.cy);
+				if (clip) {
+					// Clip(), not Clipoff() -- Clipoff() also re-bases the
+					// draw origin to the clip rect's own top-left (see
+					// GameTable.cpp's RenderToImage DrawChild lambda for the
+					// concrete bug that bit -- harmless here only because
+					// this rect already starts at (0,0), but Clip() is the
+					// semantically correct call: intersect, don't re-offset).
+					w.Begin();
+					w.Clip(0, 0, sz.cx, sz.cy);
+				}
 				if (w1 == isz.cx && h1 == isz.cy)
 					w.DrawImage((sz.cx - w1) / 2, (sz.cy - h1) / 2, img);
 				else
 					w.DrawImage((sz.cx - w1) / 2, (sz.cy - h1) / 2, Rescale(img, w1, h1));
+				if (clip)
+					w.End();
 			}
 		}
 	}

@@ -20,7 +20,7 @@
 						<property name="Type" value="PlayerCtrl" />
 					</properties>
 				</item>
-				<item x="16" y="267" cx="373" cy="135" align="1" valign="1">
+				<item x="10" y="270" cx="330" cy="125" align="1" valign="1">
 					<name>Player1</name>
 					<properties>
 						<property name="Variable" value="player1" />
@@ -28,7 +28,7 @@
 						<property name="Type" value="PlayerCtrl" />
 					</properties>
 				</item>
-				<item x="48" y="67" cx="370" cy="181" align="1" valign="1">
+				<item x="20" y="40" cx="330" cy="200" align="1" valign="1">
 					<name>Player2</name>
 					<properties>
 						<property name="Variable" value="player2" />
@@ -36,7 +36,7 @@
 						<property name="Type" value="PlayerCtrl" />
 					</properties>
 				</item>
-				<item x="400" y="10" cx="282" cy="179" align="1" valign="1">
+				<item x="380" y="10" cx="240" cy="180" align="1" valign="1">
 					<name>Player3</name>
 					<properties>
 						<property name="Variable" value="player3" />
@@ -44,7 +44,7 @@
 						<property name="Type" value="PlayerCtrl" />
 					</properties>
 				</item>
-				<item x="608" y="63" cx="374" cy="184" align="1" valign="1">
+				<item x="650" y="40" cx="330" cy="200" align="1" valign="1">
 					<name>Player4</name>
 					<properties>
 						<property name="Variable" value="player4" />
@@ -52,7 +52,7 @@
 						<property name="Type" value="PlayerCtrl" />
 					</properties>
 				</item>
-				<item x="648" y="269" cx="367" cy="132" align="1" valign="1">
+				<item x="680" y="270" cx="330" cy="125" align="1" valign="1">
 					<name>Player5</name>
 					<properties>
 						<property name="Variable" value="player5" />

@@ -442,6 +442,20 @@ PlayerCtrl::PlayerCtrl()
 	textLabel_Cash.SetInk(Yellow());
 	textLabel_Set.SetInk(Yellow());
 	label_Timeout.Color(SColorFace());
+
+	// M05-05 (task 0123), Objective 3: chipStack_Bet's slot is a short, wide
+	// strip (40x12 in the 190x142 reference grid) while GetChipStackImage's
+	// procedural chip-stack graphic is a tall, narrow image (28x34) -- the
+	// opposite aspect ratio. The default "fit"/letterbox mode scales that
+	// image down to the SHORTER available dimension, so it renders as a tiny
+	// ~10px-wide sliver with large empty margins on both sides. "zoom"/cover
+	// mode instead fills the slot's width edge-to-edge (cropping the top/
+	// bottom of the chip-stack image, itself just a repeated vertical stack
+	// of discs, so a cropped view still reads as "a stack of chips") -- a
+	// concretely better fit for this specific graphic. Every other
+	// ScaledImageCtrl in this class (avatar, hole cards, puck) keeps the
+	// default "fit" mode unchanged.
+	chipStack_Bet.SetMode(ScaledImageCtrl::ZOOM);
 }
 
 void PlayerCtrl::Layout()
@@ -459,7 +473,13 @@ void PlayerCtrl::Layout()
 	pixmapLabel_cardb.SetRect((int)(110 * fx), (int)(10 * fy), max(1, (int)(48 * fx)), max(1, (int)(60 * fy)));
 	pixmapLabel_cards.SetRect((int)(80 * fx), (int)(10 * fy), max(1, (int)(78 * fx)), max(1, (int)(60 * fy)));
 	
-	textLabel_Button.SetRect((int)(140 * fx), (int)(75 * fy), max(1, (int)(32 * fx)), max(1, (int)(32 * fy)));
+	// M05-05 (task 0123): SIZE is locked to a single uniform scale factor
+	// (fmin(fx,fy)) so the puck rect is always square regardless of the
+	// owning PlayerCtrl box's own aspect ratio -- defense-in-depth, holds
+	// even if a future form redesign reintroduces non-190:142-proportioned
+	// boxes. POSITION keeps using the independent fx/fy (unaffected).
+	double f_puck = fmin(fx, fy);
+	textLabel_Button.SetRect((int)(140 * fx), (int)(75 * fy), max(1, (int)(32 * f_puck)), max(1, (int)(32 * f_puck)));
 	// bet-amount text ("$N") keeps its existing rect but narrowed a bit so the
 	// new chip-stack graphic can sit beside it, in the small free strip to the
 	// right (x=150..180) that was previously unused in this 190x142 base grid
@@ -1324,11 +1344,38 @@ void GameTable::RenderToImage(Draw& w)
 				ScaledImageCtrl& si = (ScaledImageCtrl&)c;
 				if (!si.img.IsEmpty()) {
 					Size isz = si.img.GetSize();
-					double r = fmin((double)cr.GetWidth() / isz.cx, (double)cr.GetHeight() / isz.cy);
+					// M05-05 (task 0123): this is a SEPARATE, hand-rolled
+					// re-implementation of ScaledImageCtrl::Paint()'s scaling
+					// (GameTable.h) used only by this offscreen/image-mode
+					// renderer (RenderToImage, used by --record-session and
+					// --dump-render-image -- i.e. every recorded/dumped PNG
+					// this whole M05 pipeline inspects) -- it does NOT go
+					// through ScaledImageCtrl::Paint() at all, so it must
+					// mirror `si.mode` explicitly here too, or SetMode(ZOOM)
+					// would be silently dead for every offscreen render even
+					// though it works for the live interactive window.
+					double r = si.mode == ScaledImageCtrl::ZOOM
+						? fmax((double)cr.GetWidth() / isz.cx, (double)cr.GetHeight() / isz.cy)
+						: fmin((double)cr.GetWidth() / isz.cx, (double)cr.GetHeight() / isz.cy);
 					int w1 = (int)(isz.cx * r);
 					int h1 = (int)(isz.cy * r);
 					Image out = (w1 == isz.cx && h1 == isz.cy) ? si.img : Rescale(si.img, w1, h1);
-					w.DrawImage(abs_cr.left + (cr.GetWidth() - w1) / 2, abs_cr.top + (cr.GetHeight() - h1) / 2, out);
+					int dx = abs_cr.left + (cr.GetWidth() - w1) / 2;
+					int dy = abs_cr.top + (cr.GetHeight() - h1) / 2;
+					bool clip = si.mode == ScaledImageCtrl::ZOOM && (w1 > cr.GetWidth() || h1 > cr.GetHeight());
+					if (clip) {
+						// Clip() (NOT Clipoff() -- Clipoff() ALSO re-bases the
+						// draw origin to the clip rect's own top-left, per
+						// SDraw::ClipoffOp/DrawOpWin32.cpp, which would make
+						// the subsequent DrawImage()'s already-ABSOLUTE dx/dy
+						// draw miles outside the (now relocated) origin) just
+						// intersects the clip region, leaving coordinates as-is.
+						w.Begin();
+						w.Clip(abs_cr);
+					}
+					w.DrawImage(dx, dy, out);
+					if (clip)
+						w.End();
 				}
 			}
 		};

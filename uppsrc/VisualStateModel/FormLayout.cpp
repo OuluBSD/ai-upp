@@ -221,8 +221,26 @@ Vector<VsmFormSubSlot> VsmGetSubSlots(const String& element_type)
 		out.Add(s);
 
 		s.name = "button_puck";   // textLabel_Button, GameTable.cpp:336
+		// M05-05 (task 0123): GameTable.cpp's PlayerCtrl::Layout() now locks
+		// this SIZE to a single uniform scale factor (`f_puck = fmin(fx,
+		// fy)`, both SetRect() size args using it) instead of independent
+		// fx/fy, so the rect is always square regardless of the owning
+		// PlayerCtrl box's own aspect ratio. fcx/fcy below are UNCHANGED
+		// (still the verbatim 32/190, 32/142 transcription) -- aspect_lock
+		// tells VsmResolveSubSlot() to derive the locked size from them at
+		// resolution time (see VsmFormSubSlot::aspect_lock's comment in
+		// FormLayout.h) rather than giving fcx/fcy new meaning here.
 		s.fx = 140.0/190.0; s.fy = 75.0/142.0;  s.fcx = 32.0/190.0;  s.fcy = 32.0/142.0;
+		s.aspect_lock = true;
 		out.Add(s);
+		// `s` is reused (not reset) between rows below (same pattern this
+		// table already relied on for `index`/`fstep_x`/`fstep_y` staying
+		// at their zero defaults) -- `aspect_lock` MUST be explicitly reset
+		// to false here, or every row after button_puck would silently
+		// inherit its aspect-locked SIZE resolution too (caught by
+		// VisualStateModelTests: Player0.avatar/player_name would otherwise
+		// resolve to the wrong, unintentionally-square-clamped size).
+		s.aspect_lock = false;
 
 		// --- task 0114 additions (see the header comment above for the
 		// full-constructor re-verification these come from) ---
@@ -280,8 +298,27 @@ Rect VsmResolveSubSlot(const VsmFormSubSlot& slot, const Rect& owner_rect)
 	// VsmFormSubSlot::index's comment for why this matters).
 	int lx  = (int)(slot.fx * ow) + slot.index * (int)(slot.fstep_x * ow);
 	int ly  = (int)(slot.fy * oh) + slot.index * (int)(slot.fstep_y * oh);
-	int lcx = max(1, (int)(slot.fcx * ow));
-	int lcy = max(1, (int)(slot.fcy * oh));
+	int lcx, lcy;
+	if (slot.aspect_lock) {
+		// Mirrors GameTable.cpp's `f_puck = fmin(fx, fy); ... (int)(32 *
+		// f_puck)` for both axes. `slot.fcx*ow == 32*fx` and
+		// `slot.fcy*oh == 32*fy` exactly (fcx==32/190, fx==ow/190, so
+		// fcx*ow == 32*(ow/190) == 32*fx; symmetrically for fy/oh), so
+		// `min(slot.fcx*ow, slot.fcy*oh) == min(32*fx, 32*fy) ==
+		// 32*fmin(fx,fy)` exactly (min picks the smaller of two already-
+		// computed values -- no reordering of any truncation happens here,
+		// unlike the base/step case above). A single shared int truncation
+		// of that one value, applied to both axes, is therefore bit-for-bit
+		// identical to GameTable.cpp's single `(int)(32*f_puck)` (which uses
+		// std::fmin over doubles; U++'s min() template gives the same
+		// result for this comparison).
+		int l = max(1, (int)min(slot.fcx * ow, slot.fcy * oh));
+		lcx = lcy = l;
+	}
+	else {
+		lcx = max(1, (int)(slot.fcx * ow));
+		lcy = max(1, (int)(slot.fcy * oh));
+	}
 	return Rect(owner_rect.left + lx, owner_rect.top + ly,
 	            owner_rect.left + lx + lcx, owner_rect.top + ly + lcy);
 }

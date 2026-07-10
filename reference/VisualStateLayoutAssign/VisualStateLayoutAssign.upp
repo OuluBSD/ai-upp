@@ -1,0 +1,10 @@
+description "VisualStateModel region-to-layout-element assignment CLI\377";
+
+uses
+	VisualStateModel;
+
+file
+	main.cpp;
+
+mainconfig
+	"" = "";

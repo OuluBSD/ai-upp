@@ -13,6 +13,7 @@ using namespace Upp;
 #include "ImageBuffer.h"
 #include "PngFrame.h"
 #include "RegionOverlay.h"
+#include "FrameCrop.h"
 #include "SessionStorage.h"
 #include "SessionValidator.h"
 #include "CardGameConsistency.h"

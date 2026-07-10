@@ -24,6 +24,8 @@ file
 	PngFrame.cpp,
 	RegionOverlay.h,
 	RegionOverlay.cpp,
+	FrameCrop.h,
+	FrameCrop.cpp,
 	SessionStorage.h,
 	SessionStorage.cpp,
 	SessionValidator.h,

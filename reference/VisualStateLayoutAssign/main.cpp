@@ -228,13 +228,15 @@ CONSOLE_APP_MAIN
 	int frame_start = -1;
 	int frame_end   = -1;
 	String jsonl_out;
+	String crop_report_out;
 
 	Vector<String> positional;
 	for(int i = 0; i < args.GetCount(); i++) {
 		const String& arg = args[i];
 		if(arg == "--help") {
 			Cout() << "Usage: VisualStateLayoutAssign <m01m02_session_dir> <path-to-.form> "
-			          "[--frame-start N] [--frame-end M] [--jsonl-out <path>]\n"
+			          "[--frame-start N] [--frame-end M] [--jsonl-out <path>] "
+			          "[--crop-report-out <dir>]\n"
 			          "  <m01m02_session_dir>  M01/M02 session directory (metadata.json +\n"
 			          "                        groundtruth.jsonl + frames/%08d.png), e.g.\n"
 			          "                        var/vsm_fixtures/texas_ps6p_sample\n"
@@ -242,7 +244,17 @@ CONSOLE_APP_MAIN
 			          "                        game/TexasHoldem/GameTable_PS_6p.form\n"
 			          "  --frame-start N       restrict to transitions ending at frame >= N (default 0)\n"
 			          "  --frame-end M         restrict to transitions ending at frame <= M (default last frame)\n"
-			          "  --jsonl-out <path>    write one JSON layout-observation record per line to <path>\n";
+			          "  --jsonl-out <path>    write one JSON layout-observation record per line to <path>\n"
+			          "  --crop-report-out <dir>  for each transition with >=1 changed region,\n"
+			          "                        write one small cropped PNG per region\n"
+			          "                        (crop_<prev>_<curr>_<idx>.png, same shared crop\n"
+			          "                        helper VisualStateRegionDump uses) plus one markdown\n"
+			          "                        file (report_<prev>_<curr>.md) embedding the crop(s)\n"
+			          "                        and a data table (region_id, x, y, w, h, score,\n"
+			          "                        frame_prev, frame, assigned, role, overlap), plus a\n"
+			          "                        final summary.md listing assigned/unassigned counts\n"
+			          "                        and every unassigned region. Composable with\n"
+			          "                        --jsonl-out.\n";
 			SetExitCode(0);
 			return;
 		}
@@ -258,6 +270,10 @@ CONSOLE_APP_MAIN
 			if(i + 1 >= args.GetCount()) { Fail("--jsonl-out requires a value"); return; }
 			jsonl_out = args[++i];
 		}
+		else if(arg == "--crop-report-out") {
+			if(i + 1 >= args.GetCount()) { Fail("--crop-report-out requires a value"); return; }
+			crop_report_out = args[++i];
+		}
 		else {
 			positional.Add(arg);
 		}
@@ -265,7 +281,8 @@ CONSOLE_APP_MAIN
 
 	if(positional.GetCount() < 2) {
 		Cout() << "Usage: VisualStateLayoutAssign <m01m02_session_dir> <path-to-.form> "
-		          "[--frame-start N] [--frame-end M] [--jsonl-out <path>]\n"
+		          "[--frame-start N] [--frame-end M] [--jsonl-out <path>] "
+		          "[--crop-report-out <dir>]\n"
 		          "(pass --help for details)\n";
 		SetExitCode(1);
 		return;
@@ -379,6 +396,12 @@ CONSOLE_APP_MAIN
 
 		Vector<VsmChangedRect> changes = VsmDetectChanges(prev_frame, curr_frame, params);
 
+		// This transition's observations only (same order as `changes`), used
+		// below to build the --crop-report-out markdown table without
+		// re-deriving them from `observations` (the whole-run vector) — same
+		// pattern reference/VisualStateRegionDump's --crop-report-out uses.
+		Vector<VsmLayoutObservationOut> transition_obs;
+
 		for(const VsmChangedRect& cr : changes) {
 			VsmFingerprint32 fp;
 			if(!VsmRegionMemory::ExtractFingerprint(curr_frame, cr.x, cr.y, cr.w, cr.h, fp)) {
@@ -418,6 +441,65 @@ CONSOLE_APP_MAIN
 				obs.overlap  = 0.0;
 			}
 			observations.Add(obs);
+			transition_obs.Add(obs);
+		}
+
+		// --crop-report-out (task 0116): mirrors reference/VisualStateRegionDump's
+		// task-0110 --crop-report-out (per-region debug crop PNGs + one markdown
+		// file per transition), extended with the assigned/role/overlap columns
+		// this tool already computed above. Uses the shared crop helper
+		// (uppsrc/VisualStateModel/FrameCrop.h) so the crop PNG rendering itself
+		// is byte-for-byte the same code VisualStateRegionDump uses, not a
+		// second copy of it.
+		if(!crop_report_out.IsEmpty() && changes.GetCount() > 0) {
+			Vector<String> crop_names;
+			for(int i = 0; i < changes.GetCount(); i++) {
+				String crop_name = Format("crop_%04d_%04d_%02d.png", fid - 1, fid, i);
+				String crop_path = AppendFileName(crop_report_out, crop_name);
+				if(!VsmSaveRegionCropPng(curr_frame, changes[i], crop_path)) {
+					Fail(Format("Failed to write crop PNG: %s", crop_path));
+					return;
+				}
+				crop_names.Add(crop_name);
+			}
+
+			String md;
+			md << "# Frame transition " << Format("%04d", fid - 1)
+			   << " -> " << Format("%04d", fid) << "\n\n";
+			md << changes.GetCount() << " changed region(s) detected.\n\n";
+			for(int i = 0; i < changes.GetCount(); i++) {
+				const VsmLayoutObservationOut& o = transition_obs[i];
+				md << "## Region " << o.region_id << "\n\n";
+				md << "![" << o.region_id << "](" << crop_names[i] << ")\n\n";
+			}
+			md << "## Region Data\n\n";
+			md << "| region_id | x | y | w | h | score | frame_prev | frame "
+			      "| assigned | role | overlap |\n";
+			md << "| --- | --- | --- | --- | --- | --- | --- | --- "
+			      "| --- | --- | --- |\n";
+			for(int i = 0; i < changes.GetCount(); i++) {
+				const VsmLayoutObservationOut& o = transition_obs[i];
+				bool is_unassigned = (o.kind == "unassigned");
+				String assigned_cell = is_unassigned ? "**UNASSIGNED**" : o.assigned;
+				String overlap_cell  = is_unassigned ? "-" : DblStr(o.overlap * 100.0) + "%";
+				md << "| " << o.region_id
+				   << " | " << o.x << " | " << o.y << " | " << o.w << " | " << o.h
+				   << " | " << DblStr(o.score)
+				   << " | " << o.frame_prev << " | " << o.frame
+				   << " | " << assigned_cell
+				   << " | " << o.role
+				   << " | " << overlap_cell << " |\n";
+			}
+
+			String md_path = AppendFileName(crop_report_out,
+			    Format("report_%04d_%04d.md", fid - 1, fid));
+			RealizeDirectory(GetFileFolder(md_path));
+			if(!SaveFile(md_path, md)) {
+				Fail(Format("Failed to write --crop-report-out markdown file: %s", md_path));
+				return;
+			}
+			Cout() << "Wrote crop report: " << md_path
+			       << " (" << changes.GetCount() << " crop PNG(s))\n\n";
 		}
 
 		if(prev_frame.width != curr_frame.width || prev_frame.height != curr_frame.height)
@@ -437,6 +519,54 @@ CONSOLE_APP_MAIN
 	Cout() << "Assigned: " << assigned_count << " (" << DblStr(rate * 100.0) << "%)\n";
 	Cout() << "Unassigned: " << (total - assigned_count)
 	       << " (" << DblStr((1.0 - rate) * 100.0) << "%)\n\n";
+
+	// --crop-report-out (task 0116): session-level summary.md, separate from
+	// the per-transition report_<prev>_<curr>.md files above so a human (or
+	// script) always finds it at one fixed path rather than having to scan
+	// for "whichever transition file was written last" — lists the same
+	// assigned/unassigned counts already printed to stdout, plus the full
+	// list of unassigned regions (Done Criterion #2: "distinguish raw
+	// changed regions from assigned table elements").
+	if(!crop_report_out.IsEmpty()) {
+		String md;
+		md << "# Layout Assignment Summary\n\n";
+		md << "| metric | value |\n";
+		md << "| --- | --- |\n";
+		md << "| Total region observations | " << total << " |\n";
+		md << "| Assigned | " << assigned_count << " (" << DblStr(rate * 100.0) << "%) |\n";
+		md << "| Unassigned | " << (total - assigned_count)
+		   << " (" << DblStr((1.0 - rate) * 100.0) << "%) |\n\n";
+
+		int unassigned_total = total - assigned_count;
+		if(unassigned_total > 0) {
+			md << "## Unassigned Regions\n\n";
+			md << "These are raw detected changed regions with no matching layout "
+			      "element/sub-slot at overlap >= " << DblStr(kOverlapThreshold)
+			   << " — layout-model gaps to investigate.\n\n";
+			md << "| region_id | frame_prev | frame | x | y | w | h | score |\n";
+			md << "| --- | --- | --- | --- | --- | --- | --- | --- |\n";
+			for(const VsmLayoutObservationOut& o : observations) {
+				if(o.kind != "unassigned")
+					continue;
+				md << "| " << o.region_id
+				   << " | " << o.frame_prev << " | " << o.frame
+				   << " | " << o.x << " | " << o.y << " | " << o.w << " | " << o.h
+				   << " | " << DblStr(o.score) << " |\n";
+			}
+		}
+		else {
+			md << "No unassigned regions — every detected changed region matched a "
+			      "layout element or sub-slot.\n";
+		}
+
+		String summary_path = AppendFileName(crop_report_out, "summary.md");
+		RealizeDirectory(GetFileFolder(summary_path));
+		if(!SaveFile(summary_path, md)) {
+			Fail(Format("Failed to write --crop-report-out summary file: %s", summary_path));
+			return;
+		}
+		Cout() << "Wrote crop report summary: " << summary_path << "\n\n";
+	}
 
 	if(!jsonl_out.IsEmpty()) {
 		String jsonl;

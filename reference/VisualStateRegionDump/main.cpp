@@ -12,26 +12,10 @@ using namespace Upp;
 // SImageDraw (uppsrc/Draw/SDraw.h), which is part of the Draw package (not
 // CtrlCore's platform-native ImageDraw), so this stays headless-linkable.
 
-// Raw RGBA -> ImageBuffer -> Image, one row at a time. Named .r/.g/.b/.a
-// member access (not raw byte offsets) matches PngFrame.cpp's decode
-// direction, so this stays correct regardless of RGBA's in-memory byte
-// order. Factored out of VsmSaveOverlayPng (task 0105) so the task 0110
-// debug-crop renderer below can build the same Image without duplicating
-// the conversion.
-static Image VsmFrameImageToImage(const VsmFrameImage& frame)
-{
-	int w = frame.width, h = frame.height;
-	ImageBuffer buf(w, h);
-	for(int y = 0; y < h; y++) {
-		RGBA* row = buf[y];
-		for(int x = 0; x < w; x++) {
-			byte r, g, b, a;
-			frame.GetPixel(x, y, r, g, b, a);
-			row[x].r = r; row[x].g = g; row[x].b = b; row[x].a = a;
-		}
-	}
-	return Image(buf);
-}
+// VsmFrameImageToImage()/kCropPadding/VsmSaveRegionCropPng() (task 0110) were
+// extracted into uppsrc/VisualStateModel/FrameCrop.h/.cpp as of task 0116 so
+// VisualStateLayoutAssign can reuse them too — see that header for the RGBA
+// -> Image conversion and crop/pad geometry, both unchanged by the move.
 
 static bool VsmSaveOverlayPng(const VsmFrameImage& frame, const Vector<VsmChangedRect>& regions,
                               const String& path)
@@ -46,33 +30,6 @@ static bool VsmSaveOverlayPng(const VsmFrameImage& frame, const Vector<VsmChange
 	sw.DrawImage(0, 0, frame_img);
 	VsmDrawRegionOverlay(sw, regions, Point(0, 0)); // no selection concept headlessly
 	Image out = sw;
-
-	RealizeDirectory(GetFileFolder(path));
-	return PNGEncoder().SaveFile(path, out);
-}
-
-// Debug crop image (task 0110): just the changed-region rectangle plus a
-// small fixed padding margin for surrounding context — NOT the whole frame
-// (that's what VsmSaveOverlayPng/--overlay-out already produces). Padding is
-// clamped to the frame bounds so regions near an edge still crop cleanly.
-static const int kCropPadding = 12;
-
-static bool VsmSaveRegionCropPng(const VsmFrameImage& frame, const VsmChangedRect& region,
-                                 const String& path)
-{
-	if(frame.IsEmpty())
-		return false;
-
-	Image frame_img = VsmFrameImageToImage(frame);
-
-	int x0 = max(0, region.x - kCropPadding);
-	int y0 = max(0, region.y - kCropPadding);
-	int x1 = min(frame.width,  region.x + region.w + kCropPadding);
-	int y1 = min(frame.height, region.y + region.h + kCropPadding);
-	int cw = max(1, x1 - x0);
-	int ch = max(1, y1 - y0);
-
-	Image out = Crop(frame_img, x0, y0, cw, ch);
 
 	RealizeDirectory(GetFileFolder(path));
 	return PNGEncoder().SaveFile(path, out);

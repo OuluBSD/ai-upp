@@ -1,0 +1,11 @@
+description "VisualStateModel M05-01 logic-state schema + dealer-button ground-truth comparator CLI\377";
+
+uses
+	TexasHoldem,
+	VisualStateModel;
+
+file
+	main.cpp;
+
+mainconfig
+	"" = "GUI";

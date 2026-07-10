@@ -88,6 +88,8 @@ file
 	TexasHoldemLocalGame.cpp,
 	TexasHoldemSessionContract.h,
 	TexasHoldemSessionContract.cpp,
+	TexasHoldemLogicState.h,
+	TexasHoldemLogicState.cpp,
 	RemoteClient.h,
 	RemoteClient.cpp,
 	RunLocalGame.h,

@@ -119,6 +119,18 @@ struct VsmLayoutObservationOut : Moveable<VsmLayoutObservationOut> {
 	int    action_icon_winner = -2;
 	double action_icon_score_best = -1, action_icon_score_runnerup = -1;
 
+	// M05-10 (task 0128): template-match scores, filled in only for
+	// role=="hole_card" observations (see VsmScoreHoleCardSlot).
+	// hole_card_winner is the argmin index over the 53-way vocabulary: 0..51
+	// == recognized card, kHoleCardBackVocabIndex(52) == the card-BACK
+	// reference (the "hidden/face-down" member - see VsmScoreHoleCardSlot's
+	// doc comment for why this vocabulary's shape mirrors 0126's board-card
+	// 53-way vocabulary almost exactly, just with "back" playing the
+	// "holder" role).
+	bool   hole_card_scored = false;
+	int    hole_card_winner = -2;
+	double hole_card_score_best = -1, hole_card_score_runnerup = -1;
+
 	void Jsonize(JsonIO& json)
 	{
 		json
@@ -204,6 +216,45 @@ struct VsmLogicCompareRecordOut : Moveable<VsmLogicCompareRecordOut> {
 	int    action_icon_winner_seats = 0, action_icon_unscored_seats = 0;
 	String action_icons_verdict;
 
+	// M05-10 (task 0128): per-seat hole-card comparison, mirroring
+	// board_cards_verdict's per-frame aggregate shape (task 0126) - a seat's
+	// two independent hole_card_0/hole_card_1 sticky tracks (see
+	// DeriveHoleCardsPerFrame) fill `logic_state.players[i].hole_cards`/
+	// `hole_cards_known` (existing fields, task 0119), and are compared
+	// against ground truth's OWN `hole_cards` (game/TexasHoldem/Main.cpp:68,
+	// omniscient - see this task's Manager task file for why that's fine for
+	// SCORING even though it must never be an input to recognition) only for
+	// slots vision recognized as a REAL card (excluding -1/"back", exactly
+	// the same "only compare positively-recognized concrete states"
+	// philosophy 0126 used for -1/"not yet dealt" board slots).
+	//   hole_cards_match_seats    - >=1 of a seat's 2 slots recognized as a
+	//                               real card this frame, and every
+	//                               recognized-as-real slot for that seat
+	//                               agrees with ground truth's hole_cards at
+	//                               the same index.
+	//   hole_cards_mismatch_seats - >=1 recognized-as-real slot for that seat
+	//                               disagrees.
+	//   hole_cards_hidden_seats   - hole_cards_known true for that seat, but
+	//                               BOTH slots are still -1 ("back"/hidden) -
+	//                               nothing recognized as real yet, nothing
+	//                               to compare (mirrors board_cards_verdict's
+	//                               "pending" case).
+	//   hole_cards_unknown_seats  - hole_cards_known false for that seat (not
+	//                               both of its 2 slots observed yet since
+	//                               the last reset).
+	// hole_cards_verdict (frame-level, SAME priority rule as
+	// action_icons_verdict): "mismatch" if any seat mismatches, else "match"
+	// if any seat matches, else "unscored" (nothing to compare yet this
+	// frame - covers hidden/unknown alike, deliberately not split into two
+	// frame-level buckets the way board_cards_verdict's frame-level verdict
+	// does, since a single frame here can straightforwardly mix hidden and
+	// unknown seats simultaneously in a way a single 5-slot board vector
+	// cannot - the finer-grained per-seat counts below are what carries that
+	// detail instead).
+	int    hole_cards_match_seats = 0, hole_cards_mismatch_seats = 0;
+	int    hole_cards_hidden_seats = 0, hole_cards_unknown_seats = 0;
+	String hole_cards_verdict;
+
 	TexasHoldemLogicState logic_state;
 
 	void Jsonize(JsonIO& json)
@@ -225,6 +276,11 @@ struct VsmLogicCompareRecordOut : Moveable<VsmLogicCompareRecordOut> {
 			("action_icon_winner_seats", action_icon_winner_seats)
 			("action_icon_unscored_seats", action_icon_unscored_seats)
 			("action_icons_verdict", action_icons_verdict)
+			("hole_cards_match_seats", hole_cards_match_seats)
+			("hole_cards_mismatch_seats", hole_cards_mismatch_seats)
+			("hole_cards_hidden_seats", hole_cards_hidden_seats)
+			("hole_cards_unknown_seats", hole_cards_unknown_seats)
+			("hole_cards_verdict", hole_cards_verdict)
 			("logic_state", logic_state)
 		;
 	}
@@ -1184,6 +1240,332 @@ static bool RunActionIconSelfTest()
 }
 
 // ---------------------------------------------------------------------------
+// M05-10 (task 0128): per-player, per-slot hole-card template-match
+// recognition.
+//
+// See this task's Manager task file for the full framing. In short: unlike
+// action icons (task 0127, no positive "empty" asset), hole cards have the
+// SAME closed, 53-way "real card vs. one alternative" vocabulary shape 0126
+// already solved for board cards - here "back" (GameTable::GetCardImage's
+// `card<0` branch, `back9.png`) plays the role 0126's board-holder reference
+// played. This section is a NEW, sibling implementation (not a reuse/
+// refactor of VsmScoreCardSlot/VsmEmpiricalBoardCardRect/
+// DeriveBoardCardsPerFrame - see this task's own guardrail against silently
+// changing 0126's board-card behavior) because hole cards have a materially
+// different geometry-correction story than board cards (see below) even
+// though the 53-way argmin SHAPE is the same.
+//
+// GEOMETRY FINDING (task's own required check, mirroring 0126 Section 2 /
+// 0127 Section 2 - real instrumentation, not assumed): temporary Cout()
+// diagnostics were added to GameTable::RenderToImage's per-player loop
+// (printing the REAL absolute pixmapLabel_carda/cardb rect and the owning
+// PlayerCtrl's own real top, since removed - see this task's evidence
+// section for the full before/after) and compared against the
+// VsmBuildCandidates-derived hole_card_0/hole_card_1 candidate rect for the
+// SAME real `--record-session` fixture. Unlike 0126's board_card_N finding
+// (a large, systematic ~20px mismatch from an unrelated legacy 1920x1080
+// profile), hole_card_0/1's candidate rect is CORRECT to within +/-1px of
+// the real on-screen rect for every one of the 6 real PS_6p seats (matching
+// the task's own prediction: hole_card's fx/fy fractions were transcribed
+// directly from PlayerCtrl::Layout(), the SAME source button_puck/
+// action_icon already used successfully in 0122/0123/0127) - two seats
+// (2, 4) matched EXACTLY; the other four (0, 1, 3, 5) differed by exactly
+// 1px in either the rect's top or its height (never its left or width),
+// the SAME category of small independent-rounding drift 0127 Section 3
+// found for its row-parity offset, just directly on the candidate rect
+// itself here rather than on a derived quantity. This is NOT the same
+// severity as 0126's bug (a real recognition-breaking mismatch) - a 1px
+// crop-boundary difference does not itself defeat a mean-abs-pixel-diff
+// comparison the way it defeats a period-2 striped pattern - so no
+// hardcoded per-seat rect correction table is used here (unlike
+// VsmEmpiricalBoardCardRect); the candidate rect is used AS-IS. See real
+// measured recognition-quality numbers in this task's evidence section
+// confirming this was the right call.
+//
+// The 1px drift DOES matter for one thing this task borrows from 0127: the
+// letterbox background behind a fitted card/back image is the SAME
+// deterministic striped pattern 0127 found GameTable::RenderToImage draws
+// unconditionally for the whole PlayerCtrl rect BEFORE any child (including
+// pixmapLabel_carda/cardb) is drawn - `ScaledImageCtrl`'s own FIT-mode
+// scaling (the mode pixmapLabel_carda/cardb both use; confirmed no
+// SetMode(ZOOM) call for either, game/TexasHoldem/GameTable.cpp) preserves
+// the card's native 48x76 aspect ratio inside a differently-shaped slot
+// rect, so real hole-card renders show visible letterbox gaps on one axis
+// for every one of the 6 real seats (measured: the width gap alone ranges
+// from ~0px (seat 2/4, near-native aspect slot) up to ~51px of a ~83px-wide
+// slot for seats 1/5 - more than HALF the slot's own width is background,
+// not card content, for those two seats). A period-2 striped pattern is
+// exactly as parity-sensitive here as it was for 0127's action_icon
+// background, so this reuses TexasHoldemGetActionIconEmptyReferenceImage
+// AS-IS (not modified - allowed, unlike modifying it, per this task's
+// guardrails) for the striped-background tile, but derives its
+// `row_parity_offset` argument differently than 0127 did, specifically to
+// avoid 0127's own documented pitfall (Section 3: combining two
+// INDEPENDENTLY-rounded candidate-list quantities can silently flip parity)
+// - see VsmHoleCardRowParityOffset's own comment immediately below.
+static const int kHoleCardVocabSize = 53;
+static const int kHoleCardBackVocabIndex = 52;
+
+// Real, measured PlayerCtrl top (game/TexasHoldem/GameTable.cpp's
+// RenderToImage `pr.top`), baseline (1024,625) frame size - the SAME
+// baseline 0126/0127's own hardcoded geometry tables were measured against.
+// Combined with the CANDIDATE rect's own (possibly +/-1px-drifted, per this
+// section's header comment) `.top` at call time - not a second,
+// independently-rounded "player element" candidate the way 0127's first
+// attempt used - so the parity this produces is always correct FOR
+// WHATEVER RECT IS ACTUALLY BEING CROPPED, self-correcting for the small
+// rect drift instead of being vulnerable to it. Index = seat (0..5, PS_6p's
+// fixed 6-seat layout, same scope limitation 0126/0127's own per-seat
+// tables have).
+static int VsmHoleCardRowParityOffset(const Rect& candidate_rect, int seat, Size frame_size)
+{
+	static const int kBaselinePlayerTop[6] = { 351, 260, 39, 10, 39, 260 };
+	if(seat < 0 || seat >= 6)
+		return 0;
+	const double base_frame_h = 625.0;
+	double sy = frame_size.cy > 0 ? frame_size.cy / base_frame_h : 1.0;
+	int real_player_top = (int)(kBaselinePlayerTop[seat] * sy + 0.5);
+	return candidate_rect.top - real_player_top;
+}
+
+// Composes a hole-card reference the way GameTable::RenderToImage's DrawChild
+// lambda + ScaledImageCtrl's own FIT-mode scaling actually renders one:
+// `native` (a real card's or the back's Size(48,76) native art, from
+// TexasHoldemGetCardReferenceImage/TexasHoldemGetCardBackReferenceImage)
+// aspect-fit into (w,h) via FitCardArt (same helper 0126's ComposeFitted
+// uses), centered over the deterministic striped background (NOT 0126's flat
+// Color(0,80,0) felt fallback - hole-card slots sit inside a PlayerCtrl, not
+// over the Board, so the background behind their letterbox gaps is the
+// per-player striped pattern, see this section's header comment).
+static Image VsmComposeHoleCardFitted(const Image& native, int w, int h, int row_parity_offset, bool is_winner)
+{
+	Image bg = TexasHoldemGetActionIconEmptyReferenceImage(Size(w, h), row_parity_offset, is_winner);
+	Image fitted = FitCardArt(native, Size(w, h));
+	if(fitted.IsEmpty())
+		return bg;
+	ImageDraw iw(w, h);
+	iw.Alpha().DrawRect(0, 0, w, h, White());
+	iw.DrawImage(0, 0, bg);
+	iw.DrawImage((w - fitted.GetWidth()) / 2, (h - fitted.GetHeight()) / 2, fitted);
+	return iw;
+}
+
+// EMPIRICALLY TRIED AND REJECTED: a small +/-1px residual translational
+// search (mirroring 0126's own residual-tolerance shape, minus scale
+// variance) was tried here, given the confirmed +/-1px candidate-rect drift
+// (this section's header comment). Measured directly on a real fixture
+// (before/after on the SAME frames/slots, see this task's evidence
+// section): it changed the thinnest genuine margins by well under 1% (e.g.
+// 1.36316 vs 1.36269 - noise-level, not a real improvement) while making
+// the tool an order of magnitude slower (each probe went from 106 image
+// comparisons to 954) - the thin margins on certain genuine recognitions
+// are NOT a geometry-alignment artifact this search could fix, they are an
+// intrinsic property of specific card pairs scoring close together under
+// this comparison (see evidence section for the actual runner-up
+// identities). Removed rather than kept as a no-op cost.
+static bool VsmScoreHoleCardSlot(const Image& frame_img, const Rect& candidate_rect, int seat,
+                                   double scores_out[kHoleCardVocabSize], int& winner_out)
+{
+	int w = candidate_rect.GetWidth(), h = candidate_rect.GetHeight();
+	if(w <= 0 || h <= 0)
+		return false;
+	Rect frame_rect(0, 0, frame_img.GetWidth(), frame_img.GetHeight());
+	if(!frame_rect.Contains(candidate_rect))
+		return false;
+
+	Image candidate_img = Crop(frame_img, candidate_rect);
+	int row_parity_offset = VsmHoleCardRowParityOffset(candidate_rect, seat, frame_img.GetSize());
+
+	auto ScoreAgainstNative = [&](const Image& native) -> double {
+		double best = DBL_MAX;
+		for(int wi = 0; wi < 2; wi++) {
+			Image ref = VsmComposeHoleCardFitted(native, w, h, row_parity_offset, wi == 1);
+			double d = VsmMeanAbsPixelDiff(candidate_img, ref);
+			if(d < best)
+				best = d;
+		}
+		return best;
+	};
+
+	for(int card = 0; card < 52; card++) {
+		Image native = TexasHoldemGetCardReferenceImage(card, kCardNativeSize, kCardReferenceTheme);
+		scores_out[card] = ScoreAgainstNative(native);
+	}
+	{
+		Image back_native = TexasHoldemGetCardBackReferenceImage(kCardNativeSize, kCardReferenceTheme);
+		scores_out[kHoleCardBackVocabIndex] = ScoreAgainstNative(back_native);
+	}
+
+	winner_out = 0;
+	for(int i = 1; i < kHoleCardVocabSize; i++)
+		if(scores_out[i] < scores_out[winner_out])
+			winner_out = i;
+	return true;
+}
+
+// Confidence-margin acceptance gate (SAME shape as 0126's kCardMatchMinMargin
+// - a margin, not an absolute cap, for the same reason: the letterbox
+// background compositing inflates every one of the 53 scores by roughly the
+// same shared amount, so the GAP between winner and runner-up is the
+// reliable signal, not either score's own absolute value).
+//
+// Derived from real measured scores across 3 fresh recordings (this task's
+// own scratch geometry-check fixture plus the 2 fixtures reported in this
+// task's evidence section, task0128_seedA/seedB, seeds 601/702, 60 frames
+// each) - see this task's evidence section for the full table. EVERY winner
+// this task observed in any of these fixtures (accepted OR discarded by the
+// gate) agreed with ground truth - 100% argmin accuracy, zero wrong picks to
+// compare a "should have been rejected" margin against, the SAME situation
+// 0126 found for its own board-card margin. The smallest genuine (ground-
+// truth-confirmed correct) margin observed across all 3 fixtures was 1.24
+// (seedB frame 39, seat 0 slot 0, card 38 scored 39.02 vs runner-up 40.26).
+// 1.2 sits just below that observed floor, following 0126's exact
+// methodology (2.0 sat just below its own 2.14 floor). This is a THIN margin
+// above the observed floor, same honest caveat 0126's own comment makes: a
+// future noisier session could plausibly produce a genuine case just under
+// 1.2, in which case the failure mode is a false NEGATIVE (correctly
+// reported as "not yet confident" rather than silently wrong) - the safer
+// failure direction. A materially LARGER threshold (e.g. 0126's own 2.0) was
+// tried first and rejected here specifically BECAUSE it discarded several
+// genuinely correct real-fixture recognitions (margins 1.24-1.99, all
+// ground-truth-confirmed correct - see evidence section), which in turn left
+// a seat's sticky hole-card value stale from a PREVIOUS hand into a NEW
+// hand's frames whenever the new hand's own recognition was thin enough to
+// be rejected - a real, evidenced false-mismatch failure mode this lower,
+// data-driven threshold measurably reduces (see evidence section for the
+// concrete before/after Match/Mismatch counts).
+static const double kHoleCardMatchMinMargin = 1.2;
+
+// One accepted hole_card-role recognition: sticky value assignment for one
+// (seat, card_index) slot. value: -1 == back/hidden, 0..51 == recognized
+// card - SAME -1 convention board_cards' own derived value already uses for
+// "nothing real recognized here" (see TexasHoldemLogicPlayerState::hole_cards'
+// own doc comment in TexasHoldemLogicState.h).
+struct VsmHoleCardObservation : Moveable<VsmHoleCardObservation> {
+	int frame      = -1;
+	int seat       = -1;
+	int card_index = -1; // 0 or 1 (hole_card_0/hole_card_1)
+	int value      = -2;
+};
+
+// One change-triggered direct-probe attempt of a hole_card_N candidate rect
+// (mirrors VsmBoardCardProbeAttempt/VsmActionIconProbeAttempt's role - real
+// scores kept for this task's evidence-printing table).
+struct VsmHoleCardProbeAttempt : Moveable<VsmHoleCardProbeAttempt> {
+	int    frame      = -1;
+	int    seat       = -1;
+	int    card_index = -1;
+	bool   scored         = false;
+	double score_best     = -1, score_runnerup = -1;
+	int    winner         = -1; // 0..51 recognized card, kHoleCardBackVocabIndex == back
+	bool   accepted       = false;
+};
+
+// Per-(seat, card_index) sticky-since-last-observation state: structurally a
+// near-literal copy of DeriveBoardCardsPerFrame's shape (task 0126) - a
+// deliberately NEW function, not a reuse of it (see this section's header
+// comment / this task's guardrail against repurposing 0126's own function) -
+// keyed by (seat, card_index) pairs instead of a fixed 0..4 array index,
+// since hole-card slots belong to a variable-length, per-session seat list
+// rather than a fixed board. Recognizing "back" as the winner in a LATER
+// frame than a previously-recognized real card for the SAME (seat,
+// card_index) is the reset signal, exactly mirroring 0126's holder-reference
+// reset (see this task's evidence section for real confirmation this fires
+// correctly across a real hand boundary, hero excluded by construction since
+// hero never legitimately shows "back" in normal play, per
+// GameTable::refreshGroupbox's own `playerID == 0` condition - no
+// hero-specific code needed, the sticky machinery below handles it
+// automatically: hero's sticky value just keeps updating directly from one
+// real card to the next).
+static void DeriveHoleCardsPerFrame(const Vector<VsmHoleCardObservation>& observations,
+                                      int frame_lo, int frame_hi,
+                                      const Vector<int>& seats,
+                                      VectorMap<int, Vector<bool>> known_out[2],
+                                      VectorMap<int, Vector<int>> value_out[2])
+{
+	for(int slot = 0; slot < 2; slot++) {
+		for(int seat : seats) {
+			VectorMap<int, int> value_by_frame;
+			for(const VsmHoleCardObservation& o : observations)
+				if(o.seat == seat && o.card_index == slot)
+					value_by_frame.GetAdd(o.frame, o.value) = o.value;
+
+			Vector<bool> known;
+			Vector<int>  value;
+			bool k = false;
+			int  v = -1;
+			for(int fid = frame_lo; fid <= frame_hi; fid++) {
+				int i = value_by_frame.Find(fid);
+				if(i >= 0) { k = true; v = value_by_frame[i]; }
+				known.Add(k);
+				value.Add(v);
+			}
+			known_out[slot].Add(seat, pick(known));
+			value_out[slot].Add(seat, pick(value));
+		}
+	}
+}
+
+// Fixture-independent correctness check of DeriveHoleCardsPerFrame's own
+// sticky/reset state machine (mirrors RunActionIconSelfTest's own synthetic
+// check, task 0127) - added per this task's guardrail ("follow 0127's
+// precedent of adding a synthetic self-test case if real recognition data
+// alone doesn't exercise every path, e.g. the reset-across-hand-boundary
+// transition"): even though this task DID get real positive-match data for
+// both vocabulary categories (see evidence section), a real fixture is not
+// guaranteed to exercise a full reveal-then-next-hand-hidden-again round
+// trip for a NON-hero seat within a short 30-frame recording, so this
+// synthetic check exercises that transition directly and deterministically.
+static bool RunHoleCardSelfTest()
+{
+	Cout() << "=== --self-test: synthetic hole-card sticky/reset check ===\n\n";
+	// Seat 2, slot 0: back at frame 1 (dealt face-down), revealed as card 10
+	// at frame 6 (showdown), reset back to -1 (back) at frame 9 (next hand's
+	// preflop deal) - the reveal-then-next-hand-hidden-again round trip.
+	// Seat 0 (hero), slot 1: goes straight from "not yet observed" to a real
+	// card at frame 3 (never shows "back" - by construction, no special-case
+	// code needed, see this section's header comment), then a NEW real card
+	// at frame 8 (next hand) - hero's slot just keeps updating card-to-card,
+	// no reset step in between, matching real play.
+	Vector<VsmHoleCardObservation> synthetic;
+	{ VsmHoleCardObservation o; o.frame = 1; o.seat = 2; o.card_index = 0; o.value = -1; synthetic.Add(o); }
+	{ VsmHoleCardObservation o; o.frame = 6; o.seat = 2; o.card_index = 0; o.value = 10; synthetic.Add(o); }
+	{ VsmHoleCardObservation o; o.frame = 9; o.seat = 2; o.card_index = 0; o.value = -1; synthetic.Add(o); }
+	{ VsmHoleCardObservation o; o.frame = 3; o.seat = 0; o.card_index = 1; o.value = 22; synthetic.Add(o); }
+	{ VsmHoleCardObservation o; o.frame = 8; o.seat = 0; o.card_index = 1; o.value = 41; synthetic.Add(o); }
+
+	Vector<int> seats; seats.Add(0); seats.Add(2);
+	VectorMap<int, Vector<bool>> known[2];
+	VectorMap<int, Vector<int>>  value[2];
+	DeriveHoleCardsPerFrame(synthetic, 0, 11, seats, known, value);
+
+	bool ok = true;
+	auto Check = [&](int slot, int seat, int fid, bool exp_known, int exp_value) {
+		bool got_known = known[slot].Get(seat)[fid];
+		int  got_value = value[slot].Get(seat)[fid];
+		bool row_ok = (got_known == exp_known) && (!exp_known || got_value == exp_value);
+		if(!row_ok) ok = false;
+		Cout() << "  slot " << slot << " seat " << seat << " frame " << fid
+		       << " expected=" << (exp_known ? IntStr(exp_value) : String("unknown"))
+		       << " got=" << (got_known ? IntStr(got_value) : String("unknown"))
+		       << (row_ok ? "  OK" : "  MISMATCH") << "\n";
+	};
+	for(int fid = 0; fid <= 11; fid++) {
+		bool exp_known = fid >= 1;
+		int  exp_value = fid < 6 ? -1 : (fid < 9 ? 10 : -1);
+		Check(0, 2, fid, exp_known, exp_value);
+	}
+	for(int fid = 0; fid <= 11; fid++) {
+		bool exp_known = fid >= 3;
+		int  exp_value = fid < 8 ? 22 : 41;
+		Check(1, 0, fid, exp_known, exp_value);
+	}
+
+	Cout() << "\n--self-test (hole-card) " << (ok ? "PASS" : "FAIL") << "\n";
+	return ok;
+}
+
+// ---------------------------------------------------------------------------
 static bool RunSelfTest()
 {
 	Cout() << "=== --self-test: synthetic dealer-seat derivation check ===\n\n";
@@ -1269,7 +1651,10 @@ GUI_APP_MAIN
 			// to report PASS overall - printed one after the other, same as
 			// running two independent fixture-free checks in one invocation.
 			bool ok2 = RunActionIconSelfTest();
-			SetExitCode((ok && ok2) ? 0 : 1);
+			// M05-10 (task 0128): a third independent, fixture-free check -
+			// all three must pass for --self-test to report PASS overall.
+			bool ok3 = RunHoleCardSelfTest();
+			SetExitCode((ok && ok2 && ok3) ? 0 : 1);
 			return;
 		}
 	}
@@ -1428,7 +1813,16 @@ GUI_APP_MAIN
 		if(c.kind == "subslot" && c.role == "action_icon")
 			action_icon_candidates.Add(&c);
 
+	// M05-10 (task 0128): the per-seat, per-slot hole_card_0/hole_card_1
+	// sub-slot candidates - built once here, same pattern as the three roles
+	// above.
+	Vector<const VsmLayoutCandidate*> hole_card_candidates;
+	for(const VsmLayoutCandidate& c : candidates)
+		if(c.kind == "subslot" && c.role == "hole_card")
+			hole_card_candidates.Add(&c);
+
 	Vector<VsmActionIconObservation> action_icon_observations;
+	Vector<VsmHoleCardObservation> hole_card_observations;
 
 	// M05-08 (task 0126): frame-0 initial seed pass. Unlike the dealer-button
 	// signal (which only ever "appears" and is correctly left "unknown" at
@@ -1475,6 +1869,45 @@ GUI_APP_MAIN
 		Cout() << "\n";
 	}
 
+	// M05-10 (task 0128): frame-0 initial seed pass for hole cards, same
+	// rationale as the board-card seed pass immediately above - whatever a
+	// seat's hole_card_0/1 slots show at frame 0 (already-dealt "back", an
+	// already-dealt real card for hero, or the genuine pre-deal blank state
+	// - see this task's evidence section for which of these frame 0 actually
+	// is in this task's own fixtures) is scored directly here, not gated by
+	// change detection (nothing "changed" to produce frame 0's own content).
+	if(!hole_card_candidates.IsEmpty()) {
+		Cout() << "=== Hole-card template match: frame-0 initial seed ===\n";
+		Cout() << Format("%-6s %-5s %-5s %-9s %-9s %-9s %-8s %-10s\n",
+			"frame", "seat", "slot", "best", "runnerup", "margin", "winner", "accepted?");
+		Image frame0_img = VsmFrameImageToImage(probe_frame);
+		for(const VsmLayoutCandidate* c : hole_card_candidates) {
+			double scores[kHoleCardVocabSize];
+			int winner = -1;
+			if(!VsmScoreHoleCardSlot(frame0_img, c->rect, c->seat_index, scores, winner))
+				continue;
+			double runnerup = DBL_MAX;
+			for(int i = 0; i < kHoleCardVocabSize; i++)
+				if(i != winner && scores[i] < runnerup)
+					runnerup = scores[i];
+			double margin = runnerup - scores[winner];
+			bool accept = margin >= kHoleCardMatchMinMargin;
+			String winner_str = (winner == kHoleCardBackVocabIndex) ? String("back") : IntStr(winner);
+			Cout() << Format("%-6d %-5d %-5d %-9s %-9s %-9s %-8s %-10s\n",
+				0, c->seat_index, c->card_index, DblStr(scores[winner]), DblStr(runnerup), DblStr(margin),
+				winner_str, accept ? "accepted" : "rejected");
+			if(accept) {
+				VsmHoleCardObservation hco;
+				hco.frame = 0;
+				hco.seat = c->seat_index;
+				hco.card_index = c->card_index;
+				hco.value = (winner == kHoleCardBackVocabIndex) ? -1 : winner;
+				hole_card_observations.Add(hco);
+			}
+		}
+		Cout() << "\n";
+	}
+
 	// --- Region detection across every transition, same params as
 	// reference/VisualStateLayoutAssign. ---
 	VsmChangeDetectParams params;
@@ -1512,6 +1945,11 @@ GUI_APP_MAIN
 	// M05-09 (task 0127): change-triggered action_icon direct-probe state,
 	// same pattern/rationale as board_card_probe_attempts immediately above.
 	Vector<VsmActionIconProbeAttempt> action_icon_probe_attempts;
+
+	// M05-10 (task 0128): change-triggered hole_card direct-probe state, same
+	// pattern/rationale as action_icon_probe_attempts/board_card_probe_attempts
+	// immediately above.
+	Vector<VsmHoleCardProbeAttempt> hole_card_probe_attempts;
 
 	VsmFrameImage prev_frame;
 	prev_frame.Set(probe_frame.width, probe_frame.height, nullptr);
@@ -1642,6 +2080,28 @@ GUI_APP_MAIN
 					obs.action_icon_winner         = winner;
 					obs.action_icon_score_best     = scores[winner_index];
 					obs.action_icon_score_runnerup = runnerup;
+				}
+			}
+
+			// M05-10 (task 0128): hole-card template-match scoring. Only
+			// hole_card-role candidates need this (see VsmScoreHoleCardSlot's
+			// doc comment).
+			if(obs.role == "hole_card") {
+				if(!curr_frame_img_ready) {
+					curr_frame_img = VsmFrameImageToImage(curr_frame);
+					curr_frame_img_ready = true;
+				}
+				double scores[kHoleCardVocabSize];
+				int winner = -1;
+				if(VsmScoreHoleCardSlot(curr_frame_img, region_rect, obs.seat_index, scores, winner)) {
+					double runnerup = DBL_MAX;
+					for(int i = 0; i < kHoleCardVocabSize; i++)
+						if(i != winner && scores[i] < runnerup)
+							runnerup = scores[i];
+					obs.hole_card_scored         = true;
+					obs.hole_card_winner         = winner;
+					obs.hole_card_score_best     = scores[winner];
+					obs.hole_card_score_runnerup = runnerup;
 				}
 			}
 
@@ -1836,6 +2296,66 @@ GUI_APP_MAIN
 				aio.seat  = c->seat_index;
 				aio.value = attempt.winner;
 				action_icon_observations.Add(aio);
+			}
+		}
+
+		// M05-10 (task 0128): change-triggered direct probe of each
+		// hole_card_0/hole_card_1 candidate rect - same rationale/trigger
+		// condition as the board_card and action_icon probes above (real
+		// recordings show tiny per-seat sub-slot roles essentially never win
+		// a normal VsmMatchRegion observation on their own). This is also
+		// the mechanism that probes a FOLDED seat's hole_card_0/1 rects even
+		// though those sub-slots are Hidden() at that point in a real
+		// session (see this task's evidence section, "the fold/combined
+		// case" - GameTable::RenderToImage's DrawChild lambda draws
+		// pixmapLabel_carda/cardb unconditionally, ignoring Show()/Hide(),
+		// so a fold's real pixel content there is a genuine, probeable
+		// blend of stale carda/cardb content and the new interlaced
+		// pixmapLabel_cards image drawn on top of it - a real, deliberately
+		// NOT-recognized case this task's acceptance gate must correctly
+		// reject, verified with real evidence below).
+		for(const VsmLayoutCandidate* c : hole_card_candidates) {
+			bool close_enough = false;
+			for(const VsmChangedRect& cr : changes) {
+				if(!(c->rect & cr.GetRect()).IsEmpty()) {
+					close_enough = true;
+					break;
+				}
+			}
+			if(!close_enough)
+				continue;
+
+			if(!curr_frame_img_ready) {
+				curr_frame_img = VsmFrameImageToImage(curr_frame);
+				curr_frame_img_ready = true;
+			}
+
+			VsmHoleCardProbeAttempt attempt;
+			attempt.frame = fid;
+			attempt.seat = c->seat_index;
+			attempt.card_index = c->card_index;
+			double scores[kHoleCardVocabSize];
+			int winner = -1;
+			if(VsmScoreHoleCardSlot(curr_frame_img, c->rect, c->seat_index, scores, winner)) {
+				double runnerup = DBL_MAX;
+				for(int i = 0; i < kHoleCardVocabSize; i++)
+					if(i != winner && scores[i] < runnerup)
+						runnerup = scores[i];
+				attempt.scored         = true;
+				attempt.winner         = winner;
+				attempt.score_best     = scores[winner];
+				attempt.score_runnerup = runnerup;
+				attempt.accepted       = (runnerup - scores[winner]) >= kHoleCardMatchMinMargin;
+			}
+			hole_card_probe_attempts.Add(attempt);
+
+			if(attempt.scored && attempt.accepted) {
+				VsmHoleCardObservation hco;
+				hco.frame      = fid;
+				hco.seat       = c->seat_index;
+				hco.card_index = c->card_index;
+				hco.value      = (attempt.winner == kHoleCardBackVocabIndex) ? -1 : attempt.winner;
+				hole_card_observations.Add(hco);
 			}
 		}
 
@@ -2063,6 +2583,73 @@ GUI_APP_MAIN
 		       << " accepted=" << probe_accepted << "\n\n";
 	}
 
+	// M05-10 (task 0128): hole-card confidence-margin acceptance gate, same
+	// shape as the board-card gate above - accepted observations are
+	// appended to `hole_card_observations`, which already holds the frame-0
+	// initial-seed observations added before the transition loop started.
+	int hole_card_obs = 0;
+	for(const VsmLayoutObservationOut& o : observations)
+		if(o.role == "hole_card")
+			hole_card_obs++;
+	if(hole_card_obs > 0) {
+		Cout() << "=== Hole-card template match (hole_card-role observations) ===\n";
+		Cout() << Format("%-6s %-5s %-5s %-9s %-9s %-9s %-8s %-10s\n",
+			"frame", "seat", "slot", "best", "runnerup", "margin", "winner", "accepted?");
+	}
+	int hole_card_discarded = 0;
+	for(const VsmLayoutObservationOut& o : observations) {
+		if(o.role != "hole_card")
+			continue;
+		double margin = o.hole_card_scored ? (o.hole_card_score_runnerup - o.hole_card_score_best) : -1.0;
+		bool accept = o.hole_card_scored && margin >= kHoleCardMatchMinMargin;
+		if(accept) {
+			VsmHoleCardObservation hco;
+			hco.frame      = o.frame;
+			hco.seat       = o.seat_index;
+			hco.card_index = o.card_index;
+			hco.value      = (o.hole_card_winner == kHoleCardBackVocabIndex) ? -1 : o.hole_card_winner;
+			hole_card_observations.Add(hco);
+		}
+		else
+			hole_card_discarded++;
+		String winner_str = !o.hole_card_scored ? String("n/a")
+			: (o.hole_card_winner == kHoleCardBackVocabIndex ? String("back") : IntStr(o.hole_card_winner));
+		Cout() << Format("%-6d %-5d %-5d %-9s %-9s %-9s %-8s %-10s\n",
+			o.frame, o.seat_index, o.card_index,
+			o.hole_card_scored ? DblStr(o.hole_card_score_best)     : String("n/a"),
+			o.hole_card_scored ? DblStr(o.hole_card_score_runnerup) : String("n/a"),
+			o.hole_card_scored ? DblStr(margin)                     : String("n/a"),
+			winner_str,
+			accept ? "accepted" : "discarded");
+	}
+	if(hole_card_obs > 0)
+		Cout() << "hole_card-role observations: " << hole_card_obs
+		       << " accepted=" << (hole_card_obs - hole_card_discarded)
+		       << " discarded=" << hole_card_discarded << "\n\n";
+
+	if(!hole_card_probe_attempts.IsEmpty()) {
+		Cout() << "=== Hole-card change-triggered direct probe (task 0128) ===\n";
+		Cout() << Format("%-6s %-5s %-5s %-9s %-9s %-9s %-8s %-10s\n",
+			"frame", "seat", "slot", "best", "runnerup", "margin", "winner", "accepted?");
+		int probe_accepted = 0;
+		for(const VsmHoleCardProbeAttempt& a : hole_card_probe_attempts) {
+			double margin = a.scored ? (a.score_runnerup - a.score_best) : -1.0;
+			String winner_str = !a.scored ? String("n/a")
+				: (a.winner == kHoleCardBackVocabIndex ? String("back") : IntStr(a.winner));
+			Cout() << Format("%-6d %-5d %-5d %-9s %-9s %-9s %-8s %-10s\n",
+				a.frame, a.seat, a.card_index,
+				a.scored ? DblStr(a.score_best)     : String("n/a"),
+				a.scored ? DblStr(a.score_runnerup) : String("n/a"),
+				a.scored ? DblStr(margin)            : String("n/a"),
+				winner_str,
+				a.accepted ? "accepted" : "discarded");
+			if(a.accepted)
+				probe_accepted++;
+		}
+		Cout() << "Direct-probe triggers: " << hole_card_probe_attempts.GetCount()
+		       << " accepted=" << probe_accepted << "\n\n";
+	}
+
 	// --- Derive per-frame board-card slot values (frame-0 seed + every
 	// accepted per-transition recognition above), 5 independent sticky
 	// tracks. ---
@@ -2087,6 +2674,16 @@ GUI_APP_MAIN
 	VectorMap<int, Vector<int>>  action_icon_value;
 	DeriveActionIconsPerFrame(action_icon_observations, 0, info.frame_count - 1, action_icon_seats,
 	                            action_icon_known, action_icon_value);
+
+	// --- Derive per-frame per-(seat,slot) hole-card values (see
+	// DeriveHoleCardsPerFrame's own doc comment). Same seat list as action
+	// icons, reused directly rather than re-scanning hole_card_candidates
+	// for an equivalent list (every seat with any action_icon candidate also
+	// has a hole_card candidate, both are per-active-seat sub-slots). ---
+	VectorMap<int, Vector<bool>> hole_card_known[2];
+	VectorMap<int, Vector<int>>  hole_card_value[2];
+	DeriveHoleCardsPerFrame(hole_card_observations, 0, info.frame_count - 1, action_icon_seats,
+	                          hole_card_known, hole_card_value);
 
 	// --- Derive per-frame dealer seat from dealer_button observations
 	// (input now pre-filtered to only genuine dealer-seat moves, above, PLUS
@@ -2358,6 +2955,114 @@ GUI_APP_MAIN
 		Cout() << "Per-seat totals across all frames: match=" << total_match
 		       << " mismatch=" << total_mismatch << " winner=" << total_winner
 		       << " unscored=" << total_unscored << "\n";
+	}
+
+	// --- M05-10 (task 0128): hole-card frame-by-frame comparison. A fourth
+	// pass over the SAME out_records (additive, mutated in place, same
+	// pattern the board-card/action-icon passes above already used), using
+	// the per-(seat,slot) sticky state derived above. Populates
+	// `logic_state.players[i].hole_cards`/`hole_cards_known` (existing
+	// fields, task 0119) for EVERY seat (both known and not-yet-known), then
+	// compares only the slots vision recognized as a REAL card (excluding
+	// -1/"back") against ground truth's OWN `hole_cards` at the same index -
+	// see VsmLogicCompareRecordOut::hole_cards_match_seats' doc comment for
+	// the exact verdict semantics.
+	Cout() << "\n=== Frame-by-frame hole cards: derived vs. ground truth (per seat) ===\n";
+	Cout() << Format("%-6s %-5s %-14s %-14s\n", "frame", "seat", "derived", "gt_hole_cards");
+
+	int hole_cards_match_frames = 0, hole_cards_mismatch_frames = 0, hole_cards_unscored_frames = 0;
+	for(int fid = 0; fid < out_records.GetCount() && fid < gt_records.GetCount(); fid++) {
+		VsmLogicCompareRecordOut& rec = out_records[fid];
+		const TexasHoldemGroundTruthRecord& gt = gt_records[fid];
+		TexasHoldemLogicState& ls = rec.logic_state;
+
+		rec.hole_cards_match_seats = 0;
+		rec.hole_cards_mismatch_seats = 0;
+		rec.hole_cards_hidden_seats = 0;
+		rec.hole_cards_unknown_seats = 0;
+
+		for(TexasHoldemLogicPlayerState& ps : ls.players) {
+			int ki0 = hole_card_known[0].Find(ps.seat);
+			int ki1 = hole_card_known[1].Find(ps.seat);
+			bool k0 = (ki0 >= 0) && fid < hole_card_known[0][ki0].GetCount() && hole_card_known[0][ki0][fid];
+			bool k1 = (ki1 >= 0) && fid < hole_card_known[1][ki1].GetCount() && hole_card_known[1][ki1][fid];
+			int vi0 = hole_card_value[0].Find(ps.seat);
+			int vi1 = hole_card_value[1].Find(ps.seat);
+			int v0 = (k0 && vi0 >= 0 && fid < hole_card_value[0][vi0].GetCount()) ? hole_card_value[0][vi0][fid] : -1;
+			int v1 = (k1 && vi1 >= 0 && fid < hole_card_value[1][vi1].GetCount()) ? hole_card_value[1][vi1][fid] : -1;
+
+			ps.hole_cards.Clear();
+			ps.hole_cards.Add(v0);
+			ps.hole_cards.Add(v1);
+			ps.hole_cards_known = k0 && k1;
+
+			if(!ps.hole_cards_known) {
+				rec.hole_cards_unknown_seats++;
+				continue;
+			}
+			ls.players_known = true;
+
+			const TexasHoldemPlayerSnapshot* gtp = NULL;
+			for(const TexasHoldemPlayerSnapshot& p : gt.players)
+				if(p.seat == ps.seat) { gtp = &p; break; }
+
+			int seat_match = 0, seat_mismatch = 0;
+			for(int slot = 0; slot < 2; slot++) {
+				int derived_v = ps.hole_cards[slot];
+				if(derived_v < 0)
+					continue; // back/hidden - nothing to compare, mirrors board_cards' -1 exclusion
+				int gt_v = (gtp && slot < gtp->hole_cards.GetCount()) ? gtp->hole_cards[slot] : -1;
+				if(derived_v == gt_v)
+					seat_match++;
+				else
+					seat_mismatch++;
+			}
+			if(seat_mismatch > 0)
+				rec.hole_cards_mismatch_seats++;
+			else if(seat_match > 0)
+				rec.hole_cards_match_seats++;
+			else
+				rec.hole_cards_hidden_seats++;
+
+			Cout() << Format("%-6d %-5d %-14s %-14s\n",
+				fid, ps.seat, FormatBoardVec(ps.hole_cards),
+				gtp ? FormatBoardVec(gtp->hole_cards) : String("n/a"));
+		}
+
+		if(rec.hole_cards_mismatch_seats > 0) {
+			rec.hole_cards_verdict = "mismatch";
+			hole_cards_mismatch_frames++;
+		}
+		else if(rec.hole_cards_match_seats > 0) {
+			rec.hole_cards_verdict = "match";
+			hole_cards_match_frames++;
+		}
+		else {
+			rec.hole_cards_verdict = "unscored";
+			hole_cards_unscored_frames++;
+		}
+	}
+
+	Cout() << "\n=== Hole-card Comparison Summary ===\n";
+	Cout() << "Total frames: " << out_records.GetCount() << "\n";
+	Cout() << "Match (frames with >=1 seat's real hole card(s) recognized, all recognized seats correct): "
+	       << hole_cards_match_frames << "\n";
+	Cout() << "Mismatch (frames with >=1 recognized real hole card disagreeing with ground truth): "
+	       << hole_cards_mismatch_frames << "\n";
+	Cout() << "Unscored (no seat had a confidently-recognized real hole card this frame - covers "
+	           "hidden/back-only and not-yet-observed seats alike): "
+	       << hole_cards_unscored_frames << "\n";
+	{
+		int total_match = 0, total_mismatch = 0, total_hidden = 0, total_unknown = 0;
+		for(const VsmLogicCompareRecordOut& o : out_records) {
+			total_match   += o.hole_cards_match_seats;
+			total_mismatch += o.hole_cards_mismatch_seats;
+			total_hidden  += o.hole_cards_hidden_seats;
+			total_unknown += o.hole_cards_unknown_seats;
+		}
+		Cout() << "Per-seat totals across all frames: match=" << total_match
+		       << " mismatch=" << total_mismatch << " hidden(back)=" << total_hidden
+		       << " unknown=" << total_unknown << "\n";
 	}
 
 	if(!jsonl_out.IsEmpty()) {

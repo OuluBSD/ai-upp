@@ -222,6 +222,40 @@ Image TexasHoldemGetCardReferenceImage(int card, Size target_size, const String&
 Image TexasHoldemGetBoardHolderReferenceImage(int card_index, Size target_size, const String& theme);
 
 // ---------------------------------------------------------------------------
+// M05-10 (task 0128): the card-BACK reference - the "hidden/face-down" member
+// of the per-player hole-card vocabulary, mirroring the two helpers above's
+// theme-aware pattern but resolving the SAME single "back9.png" file
+// GameTable::GetCardImage(card<0) resolves regardless of WHICH sub-slot
+// index it's being drawn into (GameTable.cpp:257-258's `filename =
+// "back9.png"` branch) - unlike TexasHoldemGetBoardHolderReferenceImage
+// (task 0126), there is only ONE "not a real card" image here, not a
+// per-slot-index family of three, so this is a single function taking no
+// index parameter, closer in shape to TexasHoldemGetCardReferenceImage
+// itself than to the board-holder helper.
+//
+// `target_size`/`theme`: same convention as TexasHoldemGetCardReferenceImage
+// - LoadCardArt (game/CardRender/CardRender.h) already caches by
+// (theme,filename,target_size) and already falls back from a missing themed
+// dir to the "default" theme dir (CardRender.cpp's ResolveCardArtPath) - both
+// reused verbatim, not reimplemented here, exactly like the sibling helper.
+//
+// Deliberately does NOT replicate GetCardImage's OWN third-tier procedural
+// fallback (GameTable.cpp:271-284: a blue-filled, black-framed placeholder,
+// non-trivial unlike the board-holder's flat-color fallback) - this task
+// confirmed empirically (see its Manager task file's Evidence section) that
+// `share/imgs/cards/default/back9.png` is present and resolves in this
+// checkout, so that fallback tier is unreachable in practice here. This
+// mirrors the EXACT precedent TexasHoldemGetCardReferenceImage itself
+// already set immediately above (task 0126 also did not replicate
+// GetCardImage's procedural fallback for real card faces, for the same
+// "unreachable given confirmed asset availability" reasoning) - kept
+// consistent rather than inventing a new policy for this one sibling value.
+// If `back9.png` were ever removed from this checkout, this helper would
+// return an empty Image() where the live game would instead render the
+// procedural placeholder - a documented, known divergence, not an oversight.
+Image TexasHoldemGetCardBackReferenceImage(Size target_size, const String& theme);
+
+// ---------------------------------------------------------------------------
 // M05-09 (task 0127): per-player action-icon template-match reference helper,
 // mirroring TexasHoldemGetPuckReferenceImage/TexasHoldemGetCardReferenceImage's
 // theme-aware pattern above, extracted from GameTable::LoadTheme's actionPics[]

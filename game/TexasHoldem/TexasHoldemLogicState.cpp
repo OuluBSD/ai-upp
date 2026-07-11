@@ -161,6 +161,14 @@ Image TexasHoldemGetBoardHolderReferenceImage(int card_index, Size target_size, 
 	return Image(iw);
 }
 
+// M05-10 (task 0128): see TexasHoldemLogicState.h for the full doc comment.
+// Filename copied verbatim from GameTable::GetCardImage's `card < 0` branch
+// (game/TexasHoldem/GameTable.cpp:257-258: `filename = "back9.png"`).
+Image TexasHoldemGetCardBackReferenceImage(Size target_size, const String& theme)
+{
+	return LoadCardArt("back9.png", target_size, theme);
+}
+
 // M05-09 (task 0127): see TexasHoldemLogicState.h for the full doc comment.
 // Filename table copied verbatim from GameTable::LoadTheme's actionPics[]
 // assignment (GameTable.cpp:1216-1223) - index 1..6 match PlayerAction's own

@@ -168,6 +168,59 @@ struct TexasHoldemLogicState : Moveable<TexasHoldemLogicState> {
 //      same drawing GameTable::GetPuckImage has produced since task 0120.
 Image TexasHoldemGetPuckReferenceImage(int role, const String& theme);
 
+// ---------------------------------------------------------------------------
+// M05-08 (task 0126): board (community) card template-match reference
+// helpers, mirroring TexasHoldemGetPuckReferenceImage's theme-aware pattern
+// above but for the card vocabulary instead of the 3 pucks. See
+// GameTable::GetCardImage (game/TexasHoldem/GameTable.cpp:246) and
+// GameTable::PaintBoard (GameTable.cpp:1270-1289), which this pair of
+// functions was extracted from the same way TexasHoldemGetPuckReferenceImage
+// was extracted from GetPuckImage/refreshGroupbox/LoadTheme.
+//
+// TWO separate functions, not one with a card<0 special case, because the
+// "not yet dealt" placeholder is a DIFFERENT image per board_card sub-slot
+// INDEX (flop/turn/river cardholder art differ), not a single universal
+// "blank" image the way `card<0` maps to one "back9.png" for face-down
+// pockets/opponents elsewhere in this file's caller GetCardImage - see
+// TexasHoldemGetBoardHolderReferenceImage below.
+//
+// TexasHoldemGetCardReferenceImage(card, target_size, theme): for `card` in
+// 0..51, returns exactly what GameTable::GetCardImage(card) would draw for a
+// REAL (already dealt, face-up) card - same suit/rank filename encoding
+// (card = suit_index*13 + rank_index, suits clubs/diamonds/hearts/spades,
+// ranks 2..10/jack/queen/king/ace) and the SAME LoadCardArt (game/CardRender/
+// CardRender.h) call GetCardImage makes, reused verbatim (path resolution is
+// NOT reimplemented here). Unlike GetCardImage (which always requests a fixed
+// Size(48,76)), this takes `target_size` explicitly so a caller can ask
+// LoadCardArt to hand back a reference already rescaled to a detected
+// region's own on-screen size in one call - LoadCardArt already caches by
+// (theme,filename,target_size), so this doesn't cost an extra Rescale() per
+// comparison the way the puck reference above requires of its callers.
+// `card` must be in 0..51: an out-of-range value (in particular any `card<0`
+// "not yet dealt" sentinel) returns an empty Image - callers must route that
+// case to TexasHoldemGetBoardHolderReferenceImage instead.
+Image TexasHoldemGetCardReferenceImage(int card, Size target_size, const String& theme);
+
+// TexasHoldemGetBoardHolderReferenceImage(card_index, target_size, theme):
+// for one board_card sub-slot INDEX (0..4, matching
+// VsmFormSubSlot/VsmLayoutCandidate::card_index for role=="board_card"),
+// returns the "not yet dealt this street" placeholder GameTable::PaintBoard
+// itself would draw for that slot (GameTable.cpp:1280-1283: card_index<3 =>
+// cardholder_flop.png, ==3 => cardholder_turn.png, ==4 (or greater) =>
+// cardholder_river.png). Two-tier resolution, mirroring PaintBoard's own
+// choice exactly (there is no "legacy dir" middle tier here, unlike the
+// puck's 3-tier resolution above - PaintBoard itself only ever chooses
+// between a themed PNG or a solid color, never a second file path):
+//   1. themed dir: <dataDir>/gfx/gui/table/<theme>/cardholder_{flop,turn,
+//      river}.png (GameTable::LoadTheme, GameTable.cpp:1211-1213), rescaled
+//      to target_size if given and different from the loaded image's size.
+//   2. procedural fallback: a plain Color(0,80,0)-filled rect at
+//      target_size, byte-for-byte the same color PaintBoard's own fallback
+//      draws (GameTable.cpp:1287's `w.DrawRect(x, y, w1, h1, Color(0, 80,
+//      0))`) when the themed asset is missing - same reasoning task 0121
+//      used for its own procedural puck fallback tier.
+Image TexasHoldemGetBoardHolderReferenceImage(int card_index, Size target_size, const String& theme);
+
 END_UPP_NAMESPACE
 
 #endif

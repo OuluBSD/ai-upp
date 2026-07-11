@@ -1,6 +1,7 @@
 description "VisualStateModel M05-01 logic-state schema + dealer-button ground-truth comparator CLI\377";
 
 uses
+	CardRender,
 	TexasHoldem,
 	VisualStateModel;
 

@@ -183,14 +183,49 @@ Vector<VsmFormLayout> VsmParseFormFile(const String& path)
 //     those two slots — it is a rendering-state detail (which image is drawn
 //     into the same on-screen area), not a distinct region.
 //
-// BoardCtrl rows: transcribed from the legacy "ps-6p" profile branch,
-// game/Poker/TableLayoutProfile.cpp:43-61 (`board_x=641, board_y=349,
-// board_step=131, board_w=122, board_h=143`), against the profile's
-// `TexasTableLayout::BaseSize()` == 1920x1080 (TableLayoutProfile.cpp:115-
-// 117), as used by `BoardCardRect()` (TableLayoutProfile.cpp:147-155):
+// BoardCtrl rows: transcribed from the "texas-holdem-legacy-pokertable"
+// profile branch, game/Poker/TableLayoutProfile.cpp:63-83 (`board_x=680,
+// board_y=293, board_step=113, board_w=94, board_h=133`), against the
+// profile's `TexasTableLayout::BaseSize()` == 1920x1080 (TableLayoutProfile.cpp:
+// 115-117), as used by `BoardCardRect()` (TableLayoutProfile.cpp:147-155):
 // `x = (int)(board_x*Sx(sz)) + i*(int)(board_step*Sx(sz))`,
 // `y = (int)(board_y*Sy(sz))`, `cw = (int)(board_w*Sx(sz))`,
 // `ch = (int)(board_h*Sy(sz))`, where `Sx(sz)=sz.cx/1920`, `Sy(sz)=sz.cy/1080`.
+//
+// *** ROOT-CAUSE NOTE (task 0129, M05-11) — why legacy-pokertable and NOT
+// ps-6p: ***
+// Tasks 0113-0128 believed the PS_6p recording rendered board cards with the
+// "ps-6p" profile (`board_x=641, board_y=349, board_step=131, board_w=122,
+// board_h=143`), matching the provider name and the .form file. Task 0126
+// then measured — via real GameTable::PaintBoard instrumentation — that the
+// true on-screen board_card_0 rect at a 1024x625 frame is (362,169)-(412,245)
+// [50x76], NOT the (362 vs 341, 50 vs 65...) the ps-6p constants predict, and
+// worked around it locally (VsmEmpiricalBoardCardRect in
+// reference/VisualStateLogicCompare/main.cpp) while attributing the gap to a
+// theorized Form scale_mode=2 "letterbox" shrinking Board().GetSize().
+//
+// Task 0129 re-instrumented PaintBoard fresh (temporary Cout, added+removed;
+// see the evidence section of Manager task
+// 0129_m05_board_card_geometry_root_fix.md) and found that theory was WRONG:
+// Board().GetSize() IS the full (1024,625) (board.GetRect()==[0,0]-[1024,625],
+// no letterbox), but the ACTIVE PROFILE at PaintBoard time is
+// "texas-holdem-legacy-pokertable", not "ps-6p". The legacy-pokertable
+// constants above reproduce the instrumented render (362,169,50,76 for card 0,
+// step 60) BIT-FOR-BIT at (1024,625); the ps-6p constants never could for any
+// board size (a real inconsistency the task spec itself flagged). Why the
+// profile flips despite `--provider PS_6p`: GameTable's constructor sets
+// "ps-6p" (GameTable.cpp:576), but StartTexasHoldemLocalGame later calls
+// SetProjectContext("default","ps-6p") (TexasHoldemLocalGame.cpp:58); no
+// "ps-6p" platform script exists, so SetProjectContext falls back to
+// texas-holdem.py and RESETS m_scriptPlatform to "texas-holdem"
+// (GameTable.cpp:888-892); ApplyProjectThemeMetadata then calls
+// ResolveThemeLayoutProfile(emptyTheme,"texas-holdem"), which returns
+// "texas-holdem-legacy-pokertable" (GameTheme.cpp:195-196). That last
+// SetProfile wins, so every board card the recorder captures is drawn with
+// legacy-pokertable geometry. This VSM table must therefore replicate
+// legacy-pokertable to match what is actually on screen (per this task's
+// guardrail: fix the model's replica, not the real renderer).
+//
 // Note the base offset and the `i*step` term are each truncated to int
 // SEPARATELY before being summed — this is why `fx` below holds only the
 // base term and `fstep_x`/`index` hold the step term (see VsmFormSubSlot's
@@ -198,14 +233,20 @@ Vector<VsmFormLayout> VsmParseFormFile(const String& path)
 // into one fraction before truncating was off by 1-4px per index (verified,
 // then corrected, in task 0113's evidence section) because
 // `(int)(a)+(int)(b) != (int)(a+b)` in general. With base/step kept
-// separate, this reproduces `BoardCardRect`'s rects EXACTLY (bit-for-bit),
-// verified across 8 board sizes (640x400 up to 3840x2160) x 5 indices = 40
-// cases, not merely approximately. This is a PS_6p-specific transcription
-// (same scope as the legacy profile it came from) — a future platform
-// whose `.form`-driven board rendering differs would need its own
-// BoardCtrl sub-slot data, same limitation the legacy per-platform
-// `LayoutBaseCoords` struct already had, just relocated from C++ code to a
-// data row.
+// separate, this reproduces `BoardCardRect`'s rects EXACTLY (bit-for-bit)
+// when resolved against the ACTUAL board size the renderer uses. (The
+// downstream VsmBuildCandidates path resolves sub-slots against the .form's
+// design-space (1024x648) Board rect and only THEN scales to the decoded
+// frame size (1024x625) — a resolve-then-scale that costs ~1px vs. the
+// renderer's resolve-directly-at-625; that residual is inherent to the whole
+// sub-slot pipeline, affects every sub-slot equally, and is why the compare
+// tool's bit-exact VsmEmpiricalBoardCardRect override is kept — see task 0129
+// §3.) This is a real-render-specific transcription (legacy-pokertable is the
+// profile the recorder actually renders with) — a future platform whose
+// `.form`-driven board rendering resolves to a different active profile would
+// need its own BoardCtrl sub-slot data, same limitation the legacy
+// per-platform `LayoutBaseCoords` struct already had, just relocated from C++
+// code to a data row.
 Vector<VsmFormSubSlot> VsmGetSubSlots(const String& element_type)
 {
 	Vector<VsmFormSubSlot> out;
@@ -270,8 +311,12 @@ Vector<VsmFormSubSlot> VsmGetSubSlots(const String& element_type)
 		out.Add(s);
 	}
 	else if(element_type == "BoardCtrl") {
-		const double board_x = 641.0, board_y = 349.0, board_step = 131.0;
-		const double board_w = 122.0, board_h = 143.0;
+		// "texas-holdem-legacy-pokertable" profile constants — the profile the
+		// PS_6p recorder actually renders board cards with (see the header
+		// comment's ROOT-CAUSE NOTE above; NOT the "ps-6p" profile's
+		// 641/349/131/122/143, which never matched the real on-screen rect).
+		const double board_x = 680.0, board_y = 293.0, board_step = 113.0;
+		const double board_w = 94.0, board_h = 133.0;
 		const double base_cx = 1920.0, base_cy = 1080.0;
 		for(int i = 0; i < 5; i++) {
 			VsmFormSubSlot s;

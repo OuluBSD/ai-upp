@@ -399,8 +399,19 @@ CONSOLE_APP_MAIN
 				}
 			}
 
-			// --- VsmGetSubSlots/VsmResolveSubSlot against the PS_6p Board rect
-			// [task 0113 evidence, bit-exact vs. the legacy renderer] ---
+			// --- VsmGetSubSlots/VsmResolveSubSlot against the PS_6p Board rect ---
+			// Task 0129 (M05-11): expected values reflect the ACTUAL profile the
+			// PS_6p recorder renders board cards with,
+			// "texas-holdem-legacy-pokertable" (board_x=680, board_y=293,
+			// board_step=113, board_w=94, board_h=133), NOT the "ps-6p" profile
+			// (641/349/131/122/143) tasks 0113-0128 mistakenly assumed. Fresh
+			// PaintBoard instrumentation proved the active profile is
+			// legacy-pokertable (see FormLayout.cpp's ROOT-CAUSE NOTE and Manager
+			// task 0129's evidence). Numbers below are legacy-pokertable resolved
+			// against the .form design-space (0,0,1024,648) Board rect:
+			//   x0=(int)(680/1920*1024)=362, step=(int)(113/1920*1024)=60,
+			//   y =(int)(293/1080*648) =175, w=(int)(94/1920*1024)=50,
+			//   h =(int)(133/1080*648) =79.
 			if(board) {
 				Rect board_rect = layout.GetAbsoluteRect(*board);
 				CHECK(RectEq(board_rect, 0, 0, 1024, 648),
@@ -410,11 +421,11 @@ CONSOLE_APP_MAIN
 				Vector<VsmFormSubSlot> slots = VsmGetSubSlots("BoardCtrl");
 				struct Expect { const char* name; int x, y, w, h; };
 				static const Expect expects[] = {
-					{ "board_card_0", 341, 209, 65, 85 },
-					{ "board_card_1", 410, 209, 65, 85 },
-					{ "board_card_2", 479, 209, 65, 85 },
-					{ "board_card_3", 548, 209, 65, 85 },
-					{ "board_card_4", 617, 209, 65, 85 },
+					{ "board_card_0", 362, 175, 50, 79 },
+					{ "board_card_1", 422, 175, 50, 79 },
+					{ "board_card_2", 482, 175, 50, 79 },
+					{ "board_card_3", 542, 175, 50, 79 },
+					{ "board_card_4", 602, 175, 50, 79 },
 				};
 				for(const Expect& ex : expects) {
 					const VsmFormSubSlot* slot = FindSubSlot(slots, ex.name);
@@ -423,7 +434,7 @@ CONSOLE_APP_MAIN
 						Rect r = VsmResolveSubSlot(*slot, board_rect);
 						CHECK(RectEq(r, ex.x, ex.y, ex.w, ex.h),
 						      Format("%s resolves to (%d,%d,%d,%d) "
-						             "[task 0113 evidence, bit-exact against the legacy renderer]",
+						             "[task 0129: bit-exact against the legacy-pokertable renderer]",
 						             ex.name, ex.x, ex.y, ex.w, ex.h));
 					}
 				}

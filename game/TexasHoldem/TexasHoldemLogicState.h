@@ -221,6 +221,106 @@ Image TexasHoldemGetCardReferenceImage(int card, Size target_size, const String&
 //      used for its own procedural puck fallback tier.
 Image TexasHoldemGetBoardHolderReferenceImage(int card_index, Size target_size, const String& theme);
 
+// ---------------------------------------------------------------------------
+// M05-09 (task 0127): per-player action-icon template-match reference helper,
+// mirroring TexasHoldemGetPuckReferenceImage/TexasHoldemGetCardReferenceImage's
+// theme-aware pattern above, extracted from GameTable::LoadTheme's actionPics[]
+// load (GameTable.cpp:1216-1223) and GameTable::refreshGroupbox's selection of
+// one of those 7 images per seat (GameTable.cpp:1713-1716).
+//
+// Vocabulary convention: reuses `PlayerAction`'s (game/GameRules/GameDefs.h)
+// OWN integer values directly for the six real icons - 1=CHECK, 2=CALL,
+// 3=BET, 4=RAISE, 5=FOLD, 6=ALLIN - the SAME encoding ground truth's
+// `TexasHoldemPlayerSnapshot::action` already uses (game/TexasHoldem/
+// Main.cpp:66's `ps.action = (int)player->getMyAction()`), so a caller never
+// needs a translation table between "vocabulary index" and "ground truth
+// value" the way 0126's card vocabulary needed one extra index (52) for its
+// holder tier. The 7th vocabulary member - the `isWinner` override
+// (`actionPics[9]`, GameTable.cpp:1714) - is NOT a `PlayerAction` enumerator
+// at all (no such value exists in that enum); `kActionIconVocabWinner` below
+// names it explicitly as 9, matching `actionPics[9]`'s own array index for
+// direct readability against that code, not because 9 means anything as a
+// `PlayerAction`. Callers must treat this 7th member as its own distinct,
+// non-ground-truth-comparable recognized state (see this task's Manager task
+// file's "Ground truth semantics" section - `TexasHoldemPlayerSnapshot` has
+// no "is winner" field to compare it against).
+//
+// IMPORTANT theme-directory finding (verified by re-reading GameTable.cpp:
+// 1216 before assuming this parallels 0121/0126): unlike the puck
+// (`gfx/gui/table/<theme>/...`) and card-holder (`gfx/gui/table/<theme>/
+// cardholder_*.png`) assets, action-icon art loads from a SINGLE SHARED
+// location regardless of table theme - `String actionDir =
+// AppendFileName(dataDir, "gfx/gui/misc/actionpics");` has no `<theme>`
+// path component at all. So, unlike the two helpers above, this function
+// takes NO `theme` parameter - adding one that's silently ignored would
+// misleadingly imply theme-awareness this asset tier genuinely does not
+// have.
+//
+// IMPORTANT fallback-tier finding (also load-bearing for task 0127's design,
+// see its evidence section): `GameTable::refreshGroupbox`'s `aPic` selection
+// (GameTable.cpp:1713-1716) has NO procedural-fallback tier the way the puck
+// (task 0120) and board holder (task 0126) both do - if
+// `StreamRaster::LoadFileAny` fails to find the PNG, `aPic` simply stays a
+// default-constructed empty `Image()`, and `ScaledImageCtrl::Paint`/
+// `GameTable::RenderToImage`'s own `DrawChild` lambda (GameTable.cpp:1343-
+// 1345's `if (!si.img.IsEmpty())` guard) draw literally nothing for it - so
+// this helper deliberately does NOT invent a procedural fallback of its own:
+// doing so would make its return value NOT correspond to what GameTable
+// itself actually renders (this checkout ships no `gfx/gui/misc/actionpics/
+// *.png` assets at all - confirmed empirically, see task 0127's evidence
+// section - so every one of the 7 vocabulary members legitimately resolves
+// to an empty Image() in THIS environment; this function mirrors that
+// honestly rather than papering over it, exactly the way the two helpers
+// above stay faithful to their own source's real fallback tiers).
+static const int kActionIconVocabWinner = 9;
+
+Image TexasHoldemGetActionIconReferenceImage(int action_or_winner, Size target_size);
+
+// ---------------------------------------------------------------------------
+// M05-09 (task 0127): the "no icon currently shown" positive reference - the
+// task's own framing (see this task's Manager task file's "Key difference
+// from board cards" section) correctly points out that, unlike 0126's board
+// holder, there is no PNG ASSET for this state. But re-reading the ACTUAL
+// off-screen renderer `--record-session`/`--dump-render-image`/`DumpSnapshot`
+// use - `GameTable::RenderToImage` (GameTable.cpp:1292-1423), NOT
+// `PlayerBgCtrl::Paint`/`ScaledImageCtrl::Paint` (those only run for the
+// live interactive window) - shows this state is NOT a photographic/scene-
+// dependent "whatever happens to be behind it": `RenderToImage`'s own per-
+// player loop (GameTable.cpp:1317-1329) manually re-implements
+// `PlayerBgCtrl::Paint`'s striped background DIRECTLY, unconditionally,
+// BEFORE drawing any of that seat's children (name/stack/cards/puck/action
+// icon) - `w.DrawRect(pr, Black())` then `for(y=0;y<pr.Height();y+=2)
+// w.DrawRect(pr.left,pr.top+y,pr.Width(),1,bc)` where `bc` is
+// `Color(0,255,0)` if that seat is a hand winner, else `Color(0,120,0)`.
+// `ScaledImageCtrl::Paint`'s off-screen replica (the `DrawChild` lambda,
+// GameTable.cpp:1343-1345) draws NOTHING at all when `actionPic`'s own image
+// is empty (`if (!si.img.IsEmpty())` guard) - no backdrop fill of its own,
+// unlike `PaintBoard`'s `Color(0,80,0)` felt fallback (task 0126). So
+// whatever this striped pattern already put there is EXACTLY, deterministically,
+// what a real captured frame's action_icon rect shows whenever no icon is
+// set - a genuine, computable positive reference, just not a file-backed one.
+// Confirmed by direct pixel inspection of a real `--record-session` frame
+// (see this task's evidence section): alternating (0,0,0)/(0,120,0) rows,
+// exact phase match.
+//
+// `target_size`: the candidate rect's own on-screen (w,h), same convention
+// as the other reference helpers.
+// `row_parity_offset`: (action_icon_rect.top - owning_player_rect.top) in
+// real frame pixels - the phase of the alternating rows depends ONLY on this
+// value's parity (the stripe loop above always starts a colored row at
+// y=0 relative to the PLAYER rect's own top, not the action_icon sub-rect's
+// own top) - not on any other absolute frame coordinate. Callers derive this
+// from the SAME layout-candidate list that gives them `target_size`/
+// `candidate_rect` in the first place (the owning seat's own "seat"-role
+// element candidate's `rect.top`), so no extra GameTable instance/rendering
+// is needed to compute it.
+// `is_winner`: selects the winner-highlight stripe color (0,255,0)/border
+// vs. the normal (0,120,0) - see this helper's caller for why this task
+// deliberately does NOT attempt to recognize the winner-highlighted variant
+// of this pattern as a distinct vocabulary member (out of scope, no ground
+// truth to validate it against either way - see evidence section).
+Image TexasHoldemGetActionIconEmptyReferenceImage(Size target_size, int row_parity_offset, bool is_winner);
+
 END_UPP_NAMESPACE
 
 #endif

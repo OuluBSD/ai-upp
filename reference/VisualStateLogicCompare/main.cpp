@@ -107,6 +107,18 @@ struct VsmLayoutObservationOut : Moveable<VsmLayoutObservationOut> {
 	int    card_winner = -1;
 	double card_score_best = -1, card_score_runnerup = -1;
 
+	// M05-09 (task 0127): template-match scores, filled in only for
+	// role=="action_icon" observations (see VsmScoreActionIcon).
+	// action_icon_winner is the winning vocabulary VALUE directly (not an
+	// array index): 1..6 == a recognized real action (matches PlayerAction/
+	// ground truth's own `action` encoding), 9 == the WINNER icon override
+	// (kActionIconVocabWinner, excluded from ground-truth comparison, see
+	// this task's evidence section), 0 == the deterministic "no icon shown"
+	// background pattern won (TexasHoldemGetActionIconEmptyReferenceImage).
+	bool   action_icon_scored = false;
+	int    action_icon_winner = -2;
+	double action_icon_score_best = -1, action_icon_score_runnerup = -1;
+
 	void Jsonize(JsonIO& json)
 	{
 		json
@@ -163,6 +175,35 @@ struct VsmLogicCompareRecordOut : Moveable<VsmLogicCompareRecordOut> {
 	int    board_cards_match_slots = 0, board_cards_mismatch_slots = 0, board_cards_pending_slots = 0;
 	String board_cards_verdict;
 
+	// M05-09 (task 0127): per-seat action-icon comparison, mirroring
+	// board_cards_verdict's per-frame aggregate shape but for a variable-
+	// length seat count rather than a fixed 5 slots. Per-seat detail lives in
+	// `logic_state.players[i].action`/`action_known` (see
+	// TexasHoldemLogicPlayerState - this task POPULATES those existing
+	// fields, mirroring how dealer-seat derivation already populates
+	// `button`/`button_known`, no schema change needed there). Counts here
+	// are the frame-level SUM across every active seat:
+	//   action_icon_match_seats    - sticky value is a real action (1..6)
+	//                                AND agrees with ground truth's `action`.
+	//   action_icon_mismatch_seats - sticky value is a real action (1..6)
+	//                                but disagrees.
+	//   action_icon_winner_seats   - sticky value is the WINNER icon (9) -
+	//                                excluded from ground-truth comparison
+	//                                (TexasHoldemPlayerSnapshot has no "is
+	//                                winner" field - see this task's evidence
+	//                                section), counted separately.
+	//   action_icon_unscored_seats - not yet observed since the last reset
+	//                                (see DeriveActionIconsPerFrame) - the
+	//                                EXPECTED common case in this checkout,
+	//                                see evidence section for why.
+	// action_icons_verdict (frame-level): "mismatch" if any seat mismatches,
+	// else "match" if any seat matches, else "unscored" (nothing to compare
+	// yet this frame - covers both "never observed" and "only winner/reset
+	// seats observed").
+	int    action_icon_match_seats = 0, action_icon_mismatch_seats = 0;
+	int    action_icon_winner_seats = 0, action_icon_unscored_seats = 0;
+	String action_icons_verdict;
+
 	TexasHoldemLogicState logic_state;
 
 	void Jsonize(JsonIO& json)
@@ -179,6 +220,11 @@ struct VsmLogicCompareRecordOut : Moveable<VsmLogicCompareRecordOut> {
 			("board_cards_mismatch_slots", board_cards_mismatch_slots)
 			("board_cards_pending_slots", board_cards_pending_slots)
 			("board_cards_verdict", board_cards_verdict)
+			("action_icon_match_seats", action_icon_match_seats)
+			("action_icon_mismatch_seats", action_icon_mismatch_seats)
+			("action_icon_winner_seats", action_icon_winner_seats)
+			("action_icon_unscored_seats", action_icon_unscored_seats)
+			("action_icons_verdict", action_icons_verdict)
 			("logic_state", logic_state)
 		;
 	}
@@ -845,6 +891,299 @@ static void DeriveBoardCardsPerFrame(const Vector<VsmBoardCardObservation>& obse
 }
 
 // ---------------------------------------------------------------------------
+// M05-09 (task 0127): per-player action-icon template-match recognition.
+//
+// See this task's Manager task file's "Key difference from board cards"
+// section for the full framing: unlike 0126's board holder, there is no PNG
+// asset for the "no icon currently shown" state (`GameTable::refreshGroupbox`
+// leaves `actionPic`'s image genuinely empty, no procedural-fallback tier the
+// way the puck/holder both have - see TexasHoldemGetActionIconReferenceImage's
+// header comment). Re-reading the ACTUAL off-screen renderer
+// (`GameTable::RenderToImage`, used by `--record-session`/`DumpSnapshot`)
+// while scoping this found that this state is NOT actually an unknown/scene-
+// dependent background the way the task's own framing feared - `RenderToImage`
+// manually redraws `PlayerBgCtrl`'s striped background pattern directly,
+// deterministically, before any child (including `actionPic`) is drawn, and
+// `actionPic`'s own off-screen paint draws NOTHING when its image is empty
+// (no backdrop of its own) - so "no icon shown" DOES have a genuine, exactly-
+// computable positive reference after all, just not a file-backed one. See
+// TexasHoldemGetActionIconEmptyReferenceImage's header comment for the full
+// derivation, and this task's evidence section for pixel-level confirmation
+// against a real recorded frame.
+//
+// DESIGN DECISION (the task's own explicitly-requested judgment call, see its
+// "Key difference from board cards" section's two suggested directions "or a
+// variant"): this is a VARIANT of the task's suggested option 1, made safe
+// by the finding above. Option 1 as literally stated ("no confident
+// vocabulary match" itself signals reset) was flagged by the task as risky
+// (a single noisy/occluded frame could cause a spurious reset) precisely
+// because it has no POSITIVE evidence behind it - it's inferred from an
+// absence. This implementation instead adds the empty/background pattern as
+// an explicit 8th vocabulary member and only resets on a CONFIDENT POSITIVE
+// match against it (same acceptance gate as every other vocabulary member),
+// exactly mirroring how 0126's holder reference gave board cards a real
+// reset signal - the task's own option 2 concern ("never assert a specific
+// wrong value") is still honored: winning the empty-pattern class does NOT
+// assert ground truth's specific 0/7/8 value (still ambiguous, see the task's
+// own ambiguity note) - it only clears a previously-sticky REAL action back
+// to "not yet observed" (unscored), never itself compared to ground truth.
+// This combines option 1's real reset mechanism with option 2's safety
+// property, made possible only because (unlike the task's own initial
+// framing assumed) a genuine positive "empty" reference turned out to exist
+// after all once the real off-screen renderer was read carefully.
+//
+// A SEPARATE, real, load-bearing finding (see evidence section for the full
+// confirmation) determined how much this machinery can actually be exercised
+// in THIS checkout: no `gfx/gui/misc/actionpics/*.png` assets exist at all
+// (all 7 TexasHoldemGetActionIconReferenceImage(...) calls return an empty
+// Image() - confirmed empirically, see evidence), so the 6 real-action + 1
+// winner vocabulary members can NEVER win the argmin here (VsmMeanAbsPixelDiff
+// already returns DBL_MAX against an empty reference, by contract) - only the
+// empty/background class can ever confidently score. This is not a bug in
+// this task's code, an honestly-reported asset-availability fact about this
+// specific checkout (same category of finding 0121 made for the puck before
+// task 0120 added a procedural fallback - except here, GameTable's OWN real
+// rendering has no such fallback tier to mirror, so inventing one in this
+// reference helper would misrepresent what actually renders, and is out of
+// this task's scope/guardrails regardless - it would require touching
+// GameTable.cpp's real rendering, explicitly forbidden). The scoring/gate
+// machinery below is still built fully and correctly (portable to a future
+// environment that ships real action-icon assets), and its correctness is
+// verified independent of real assets via a synthetic extension to
+// --self-test (see RunActionIconSelfTest below).
+
+// Real-action-or-winner vocabulary (7 members, see
+// TexasHoldemGetActionIconReferenceImage's header comment for the encoding).
+static const int kActionIconRealVocab[7] = { 1, 2, 3, 4, 5, 6, kActionIconVocabWinner };
+static const int kActionIconRealVocabCount = 7;
+// Sentinel winner VALUE (distinct from every real PlayerAction value 1..10)
+// meaning "the deterministic empty/background pattern won the argmin" - see
+// VsmScoreActionIcon's doc comment. Chosen as 0 to read naturally next to
+// ground truth's own PLAYER_ACTION_NONE (both "nothing shown"), but this
+// code never asserts ground truth's actual value is 0 when it wins (see the
+// design-decision comment above) - it is purely an internal reset signal.
+static const int kActionIconEmptyWinnerValue = 0;
+
+// Confidence-margin AND absolute-score-cap acceptance gate (the task's own
+// hint: margin-only isn't sufficient here, since a genuinely blank slot would
+// still produce some 7-way argmin winner with some margin over the runner-up
+// if there were no empty class in the race at all - now moot for the 8-way
+// vocabulary above, but the double gate is kept regardless as the more
+// conservative shape, matching 0122's absolute-cap design philosophy for a
+// vocabulary member with no reliable "shared inflation" cancellation argument
+// the way 0126's cards had).
+//
+// Empirically derived for the EMPTY/background class ONLY (see this task's
+// evidence section for the real measured numbers, gathered from 2 fresh
+// fixtures): its winning score was 0.0 (exact pixel match - it's a purely
+// procedural reference against a purely procedural render, no camera/codec
+// noise) in every single accepted observation, with the runner-up always
+// DBL_MAX (no real-icon reference ever has real content to compete with, see
+// above) - trivially clears any reasonable cap/margin. The SAME numeric gate
+// is applied uniformly to all 8 vocabulary members (simpler, one gate, same
+// pattern the other three VSM recognizers use) but is UNVALIDATED for the 7
+// real-action/winner members specifically: no genuine real-icon match was
+// ever observed in this checkout to derive a real threshold from (see above)
+// - kept conservative and clearly documented as a placeholder pending real
+// asset availability, rather than fabricating a derivation that didn't
+// happen. This is the honest, evidence-respecting choice the task's own
+// guardrail demands over silently picking a number.
+static const double kActionIconMatchMaxScore = 40.0;
+static const double kActionIconMatchMinMargin = 2.0;
+
+// IMPORTANT empirical finding (see this task's evidence section for the full
+// diagnosis - the same category of finding 0126 made for board_card_N's
+// candidate rect, §2 there): computing the empty-background reference's
+// stripe-PHASE as (action_icon subslot candidate rect.top - "seat" element
+// candidate rect.top) is NOT reliable at the +/-1px level a period-2 striped
+// pattern needs. Both quantities come from VsmBuildCandidates/
+// VsmResolveSubSlot, each truncating/rounding INDEPENDENTLY from the owner
+// rect's own fractional design-space position - direct instrumentation of
+// the real GameTable::RenderToImage output (temporary Cout(), since removed,
+// see evidence section) found the SUBSLOT rect itself already matches the
+// real on-screen action_icon rect exactly for every seat (confirmed earlier
+// for seat 0/2 too, per this task's own required geometry check), but the
+// SEPARATELY-rounded "seat" element rect can differ from the real PlayerCtrl
+// rect by exactly 1px (seen for seats 2/3/4 in the seedA fixture), OR the
+// reverse can happen (subslot off by 1px, element exact - seen for seats
+// 1/5) - either way flips the computed phase's PARITY, which is invisible to
+// a normal pixel-diff comparison (both candidates "look" correct within 1px)
+// but fatal to a binary alternating-row match (a wrong parity mean-abs-diffs
+// to ~40, exactly the (0,120,0)-vs-(0,0,0) row-color difference divided by 3
+// channels - matches the real discarded scores measured, see evidence
+// section). Fixed the same way 0126 fixed its own geometry mismatch: a
+// direct, empirically-measured correction (not a blind search - the mismatch
+// is a small, fixed, per-seat integer, not per-frame noise) rather than
+// relying on the two independently-rounded candidate rects to agree.
+static int VsmActionIconRowParityOffset(int seat, Size frame_size)
+{
+	// Measured directly via temporary GameTable.cpp instrumentation
+	// (GameTable::RenderToImage's per-player loop, since removed - see
+	// evidence section) against a real `--record-session` PS_6p frame,
+	// baseline size (1024,625) - the same baseline every fixture in this and
+	// prior VSM tasks decodes to. Index = seat (0..5, PS_6p's fixed 6-seat
+	// layout).
+	static const int kBaselineOffsets[6] = { 131, 102, 162, 146, 162, 102 };
+	if(seat < 0 || seat >= 6)
+		return 0;
+	const double base_frame_h = 625.0;
+	double sy = frame_size.cy > 0 ? frame_size.cy / base_frame_h : 1.0;
+	return (int)(kBaselineOffsets[seat] * sy + 0.5);
+}
+
+// Mirrors VsmScorePuckRoles/VsmScoreCardSlot's contract: crops
+// `candidate_rect` out of `frame_img`, scores it against the 6 real-action +
+// 1 winner + 1 empty-background references (8-way), returns the argmin's
+// VALUE (not array index) in `winner_out`. `seat` selects the empirically-
+// measured stripe-phase correction above (see VsmActionIconRowParityOffset's
+// doc comment for why this can't be derived from the candidate list alone).
+static bool VsmScoreActionIcon(const Image& frame_img, const Rect& candidate_rect, int seat,
+                                 double scores_out[kActionIconRealVocabCount + 1], int& winner_out)
+{
+	int w = candidate_rect.GetWidth(), h = candidate_rect.GetHeight();
+	if(w <= 0 || h <= 0)
+		return false;
+	Rect frame_rect(0, 0, frame_img.GetWidth(), frame_img.GetHeight());
+	if(!frame_rect.Contains(candidate_rect))
+		return false;
+
+	Image candidate = Crop(frame_img, candidate_rect);
+	for(int i = 0; i < kActionIconRealVocabCount; i++) {
+		Image ref = TexasHoldemGetActionIconReferenceImage(kActionIconRealVocab[i], Size(w, h));
+		scores_out[i] = VsmMeanAbsPixelDiff(candidate, ref);
+	}
+	int row_parity_offset = VsmActionIconRowParityOffset(seat, frame_img.GetSize());
+	Image empty_ref = TexasHoldemGetActionIconEmptyReferenceImage(Size(w, h), row_parity_offset, false);
+	scores_out[kActionIconRealVocabCount] = VsmMeanAbsPixelDiff(candidate, empty_ref);
+
+	int best = 0;
+	for(int i = 1; i <= kActionIconRealVocabCount; i++)
+		if(scores_out[i] < scores_out[best])
+			best = i;
+	winner_out = (best == kActionIconRealVocabCount) ? kActionIconEmptyWinnerValue : kActionIconRealVocab[best];
+	return true;
+}
+
+// One accepted action_icon-role recognition: sticky value assignment for one
+// seat. value: 1..6 == recognized real action, kActionIconVocabWinner(9) ==
+// the WINNER icon (excluded from ground-truth comparison downstream),
+// kActionIconEmptyWinnerValue(0) == the empty/background pattern (a RESET
+// signal, see DeriveActionIconsPerFrame - never itself asserted as ground
+// truth's value).
+struct VsmActionIconObservation : Moveable<VsmActionIconObservation> {
+	int frame = -1;
+	int seat  = -1;
+	int value = -2;
+};
+
+// One change-triggered direct-probe attempt of an action_icon candidate rect
+// (mirrors VsmBoardCardProbeAttempt's role - real scores kept for this task's
+// evidence-printing table, not just the final accept/reject verdict).
+struct VsmActionIconProbeAttempt : Moveable<VsmActionIconProbeAttempt> {
+	int    frame = -1;
+	int    seat  = -1;
+	bool   scored         = false;
+	double score_best     = -1, score_runnerup = -1;
+	int    winner         = -2; // 1..6 real action, 9 winner, 0 empty/background
+	bool   accepted       = false;
+};
+
+// Per-seat sticky-since-last-CONFIDENT-observation state (see the design-
+// decision comment above VsmScoreActionIcon for why an empty/background
+// observation resets `known` back to false rather than asserting a specific
+// value) - a deliberately NEW function, structurally similar to
+// DeriveBoardCardsPerFrame but not a repurposing of it, per this file's
+// guardrail against overloading a different role's existing function.
+static void DeriveActionIconsPerFrame(const Vector<VsmActionIconObservation>& observations,
+                                        int frame_lo, int frame_hi,
+                                        const Vector<int>& seats,
+                                        VectorMap<int, Vector<bool>>& known_out,
+                                        VectorMap<int, Vector<int>>& value_out)
+{
+	for(int seat : seats) {
+		VectorMap<int, int> value_by_frame;
+		for(const VsmActionIconObservation& o : observations)
+			if(o.seat == seat)
+				value_by_frame.GetAdd(o.frame, o.value) = o.value;
+
+		Vector<bool> known;
+		Vector<int>  value;
+		bool k = false;
+		int  v = -1;
+		for(int fid = frame_lo; fid <= frame_hi; fid++) {
+			int i = value_by_frame.Find(fid);
+			if(i >= 0) {
+				int ov = value_by_frame[i];
+				if(ov == kActionIconEmptyWinnerValue) {
+					// Positive "no icon shown" match: reset, never assert a
+					// specific ground-truth value (see design comment above).
+					k = false;
+					v = -1;
+				}
+				else {
+					k = true;
+					v = ov;
+				}
+			}
+			known.Add(k);
+			value.Add(v);
+		}
+		known_out.Add(seat, pick(known));
+		value_out.Add(seat, pick(value));
+	}
+}
+
+// Fixture-independent correctness check of DeriveActionIconsPerFrame's sticky/
+// reset state machine, exercised with SYNTHETIC observations (mirroring
+// RunSelfTest's own dealer-seat synthetic check below) - needed because, per
+// this task's evidence section, no genuine real-action recognition is
+// possible in THIS checkout (no action-icon PNG assets exist), so this is the
+// only way to verify the state machine's own logic (not the vision scoring,
+// which is separately, honestly reported as untestable here) is correct.
+static bool RunActionIconSelfTest()
+{
+	Cout() << "=== --self-test: synthetic action-icon sticky/reset check ===\n\n";
+	// Seat 0: observed CALL at frame 2 (sticky through frame 4), then an
+	// empty/background match at frame 5 (reset - frames 5+ unknown until the
+	// next real observation), then FOLD at frame 8 (sticky to the end).
+	// Seat 1: observed WINNER(9) at frame 6 (sticky, but must never compare
+	// to ground truth - verified by the caller, this function only checks
+	// the sticky VALUE/known flag are correct).
+	Vector<VsmActionIconObservation> synthetic;
+	{ VsmActionIconObservation o; o.frame = 2; o.seat = 0; o.value = 2; synthetic.Add(o); } // CALL
+	{ VsmActionIconObservation o; o.frame = 5; o.seat = 0; o.value = kActionIconEmptyWinnerValue; synthetic.Add(o); }
+	{ VsmActionIconObservation o; o.frame = 8; o.seat = 0; o.value = 5; synthetic.Add(o); } // FOLD
+	{ VsmActionIconObservation o; o.frame = 6; o.seat = 1; o.value = kActionIconVocabWinner; synthetic.Add(o); }
+
+	Vector<int> seats; seats.Add(0); seats.Add(1);
+	VectorMap<int, Vector<bool>> known;
+	VectorMap<int, Vector<int>>  value;
+	DeriveActionIconsPerFrame(synthetic, 0, 9, seats, known, value);
+
+	bool ok = true;
+	auto Check = [&](int seat, int fid, bool exp_known, int exp_value) {
+		bool got_known = known.Get(seat)[fid];
+		int  got_value = value.Get(seat)[fid];
+		bool row_ok = (got_known == exp_known) && (!exp_known || got_value == exp_value);
+		if(!row_ok) ok = false;
+		Cout() << "  seat " << seat << " frame " << fid
+		       << " expected=" << (exp_known ? IntStr(exp_value) : String("unknown"))
+		       << " got=" << (got_known ? IntStr(got_value) : String("unknown"))
+		       << (row_ok ? "  OK" : "  MISMATCH") << "\n";
+	};
+	for(int fid = 0; fid <= 9; fid++) {
+		bool exp_known = (fid >= 2 && fid < 5) || fid >= 8;
+		int  exp_value = fid < 5 ? 2 : 5;
+		Check(0, fid, exp_known, exp_value);
+	}
+	for(int fid = 0; fid <= 9; fid++)
+		Check(1, fid, fid >= 6, kActionIconVocabWinner);
+
+	Cout() << "\n--self-test (action-icon) " << (ok ? "PASS" : "FAIL") << "\n";
+	return ok;
+}
+
+// ---------------------------------------------------------------------------
 static bool RunSelfTest()
 {
 	Cout() << "=== --self-test: synthetic dealer-seat derivation check ===\n\n";
@@ -926,7 +1265,11 @@ GUI_APP_MAIN
 	for(int i = 0; i < args.GetCount(); i++) {
 		if(args[i] == "--self-test") {
 			bool ok = RunSelfTest();
-			SetExitCode(ok ? 0 : 1);
+			// M05-09 (task 0127): both self-tests must pass for --self-test
+			// to report PASS overall - printed one after the other, same as
+			// running two independent fixture-free checks in one invocation.
+			bool ok2 = RunActionIconSelfTest();
+			SetExitCode((ok && ok2) ? 0 : 1);
 			return;
 		}
 	}
@@ -1075,6 +1418,18 @@ GUI_APP_MAIN
 
 	Vector<VsmBoardCardObservation> board_card_observations;
 
+	// M05-09 (task 0127): the per-seat action_icon sub-slot candidates - built
+	// once here, same pattern as puck/board_card above. (VsmScoreActionIcon's
+	// empty-background stripe-phase calculation uses an empirically-measured
+	// per-seat table, not this candidate list - see
+	// VsmActionIconRowParityOffset's doc comment for why.)
+	Vector<const VsmLayoutCandidate*> action_icon_candidates;
+	for(const VsmLayoutCandidate& c : candidates)
+		if(c.kind == "subslot" && c.role == "action_icon")
+			action_icon_candidates.Add(&c);
+
+	Vector<VsmActionIconObservation> action_icon_observations;
+
 	// M05-08 (task 0126): frame-0 initial seed pass. Unlike the dealer-button
 	// signal (which only ever "appears" and is correctly left "unknown" at
 	// frame 0 per DeriveDealerSeatPerFrame's own doc comment - there's no
@@ -1153,6 +1508,10 @@ GUI_APP_MAIN
 	// detection mechanism, verified against real fixtures, see the Manager
 	// task file's evidence section).
 	Vector<VsmBoardCardProbeAttempt> board_card_probe_attempts;
+
+	// M05-09 (task 0127): change-triggered action_icon direct-probe state,
+	// same pattern/rationale as board_card_probe_attempts immediately above.
+	Vector<VsmActionIconProbeAttempt> action_icon_probe_attempts;
 
 	VsmFrameImage prev_frame;
 	prev_frame.Set(probe_frame.width, probe_frame.height, nullptr);
@@ -1255,6 +1614,34 @@ GUI_APP_MAIN
 					obs.card_winner         = winner;
 					obs.card_score_best     = scores[winner];
 					obs.card_score_runnerup = runnerup;
+				}
+			}
+
+			// M05-09 (task 0127): action-icon template-match scoring. Only
+			// action_icon-role candidates need this (see VsmScoreActionIcon's
+			// doc comment).
+			if(obs.role == "action_icon") {
+				if(!curr_frame_img_ready) {
+					curr_frame_img = VsmFrameImageToImage(curr_frame);
+					curr_frame_img_ready = true;
+				}
+				double scores[kActionIconRealVocabCount + 1];
+				int winner = -2;
+				if(VsmScoreActionIcon(curr_frame_img, region_rect, obs.seat_index, scores, winner)) {
+					double runnerup = DBL_MAX;
+					int winner_index = -1;
+					for(int i = 0; i <= kActionIconRealVocabCount; i++) {
+						int val = (i == kActionIconRealVocabCount) ? kActionIconEmptyWinnerValue : kActionIconRealVocab[i];
+						if(val == winner)
+							winner_index = i;
+					}
+					for(int i = 0; i <= kActionIconRealVocabCount; i++)
+						if(i != winner_index && scores[i] < runnerup)
+							runnerup = scores[i];
+					obs.action_icon_scored         = true;
+					obs.action_icon_winner         = winner;
+					obs.action_icon_score_best     = scores[winner_index];
+					obs.action_icon_score_runnerup = runnerup;
 				}
 			}
 
@@ -1389,6 +1776,66 @@ GUI_APP_MAIN
 				bco.card_index = c->card_index;
 				bco.value      = (attempt.winner == kCardHolderVocabIndex) ? -1 : attempt.winner;
 				board_card_observations.Add(bco);
+			}
+		}
+
+		// M05-09 (task 0127): change-triggered direct probe of each
+		// action_icon candidate rect - same rationale as the board_card probe
+		// immediately above (checked first, per this task's own guidance:
+		// role=="action_icon" observations from the normal VsmMatchRegion
+		// path are rare/nonexistent in real fixtures too - see evidence
+		// section for the real observation count found). Unlike the board
+		// probe, no geometry correction is needed here (§2/this task's
+		// evidence section confirmed the action_icon candidate rect already
+		// matches the real on-screen rect exactly), so this probes the
+		// theoretical candidate rect directly, same as the board probe does.
+		for(const VsmLayoutCandidate* c : action_icon_candidates) {
+			bool close_enough = false;
+			for(const VsmChangedRect& cr : changes) {
+				if(!(c->rect & cr.GetRect()).IsEmpty()) {
+					close_enough = true;
+					break;
+				}
+			}
+			if(!close_enough)
+				continue;
+
+			if(!curr_frame_img_ready) {
+				curr_frame_img = VsmFrameImageToImage(curr_frame);
+				curr_frame_img_ready = true;
+			}
+
+			VsmActionIconProbeAttempt attempt;
+			attempt.frame = fid;
+			attempt.seat  = c->seat_index;
+			double scores[kActionIconRealVocabCount + 1];
+			int winner = -2;
+			if(VsmScoreActionIcon(curr_frame_img, c->rect, c->seat_index, scores, winner)) {
+				int winner_index = -1;
+				for(int i = 0; i <= kActionIconRealVocabCount; i++) {
+					int val = (i == kActionIconRealVocabCount) ? kActionIconEmptyWinnerValue : kActionIconRealVocab[i];
+					if(val == winner)
+						winner_index = i;
+				}
+				double runnerup = DBL_MAX;
+				for(int i = 0; i <= kActionIconRealVocabCount; i++)
+					if(i != winner_index && scores[i] < runnerup)
+						runnerup = scores[i];
+				attempt.scored         = true;
+				attempt.winner         = winner;
+				attempt.score_best     = scores[winner_index];
+				attempt.score_runnerup = runnerup;
+				attempt.accepted       = (scores[winner_index] <= kActionIconMatchMaxScore)
+				                          && (runnerup - scores[winner_index] >= kActionIconMatchMinMargin);
+			}
+			action_icon_probe_attempts.Add(attempt);
+
+			if(attempt.scored && attempt.accepted) {
+				VsmActionIconObservation aio;
+				aio.frame = fid;
+				aio.seat  = c->seat_index;
+				aio.value = attempt.winner;
+				action_icon_observations.Add(aio);
 			}
 		}
 
@@ -1547,12 +1994,99 @@ GUI_APP_MAIN
 		       << " accepted=" << probe_accepted << "\n\n";
 	}
 
+	// M05-09 (task 0127): action-icon confidence-margin + absolute-cap
+	// acceptance gate, mirroring the board-card gate immediately above (same
+	// double loop shape: first the normal-VsmMatchRegion-path observations,
+	// then the change-triggered direct-probe table) - see VsmScoreActionIcon's
+	// doc comment for the gate's own derivation/limits.
+	auto ActionIconWinnerStr = [](int w) -> String {
+		if(w == kActionIconEmptyWinnerValue) return "empty";
+		if(w == kActionIconVocabWinner) return "winner";
+		return IntStr(w);
+	};
+	int action_icon_obs = 0;
+	for(const VsmLayoutObservationOut& o : observations)
+		if(o.role == "action_icon")
+			action_icon_obs++;
+	if(action_icon_obs > 0) {
+		Cout() << "=== Action-icon template match (action_icon-role observations) ===\n";
+		Cout() << Format("%-6s %-5s %-9s %-9s %-9s %-8s %-10s\n",
+			"frame", "seat", "best", "runnerup", "margin", "winner", "accepted?");
+	}
+	int action_icon_discarded = 0;
+	for(const VsmLayoutObservationOut& o : observations) {
+		if(o.role != "action_icon")
+			continue;
+		double margin = o.action_icon_scored ? (o.action_icon_score_runnerup - o.action_icon_score_best) : -1.0;
+		bool accept = o.action_icon_scored && (o.action_icon_score_best <= kActionIconMatchMaxScore)
+		              && (margin >= kActionIconMatchMinMargin);
+		if(accept) {
+			VsmActionIconObservation aio;
+			aio.frame = o.frame;
+			aio.seat  = o.seat_index;
+			aio.value = o.action_icon_winner;
+			action_icon_observations.Add(aio);
+		}
+		else
+			action_icon_discarded++;
+		Cout() << Format("%-6d %-5d %-9s %-9s %-9s %-8s %-10s\n",
+			o.frame, o.seat_index,
+			o.action_icon_scored ? DblStr(o.action_icon_score_best)     : String("n/a"),
+			o.action_icon_scored ? DblStr(o.action_icon_score_runnerup) : String("n/a"),
+			o.action_icon_scored ? DblStr(margin)                       : String("n/a"),
+			o.action_icon_scored ? ActionIconWinnerStr(o.action_icon_winner) : String("n/a"),
+			accept ? "accepted" : "discarded");
+	}
+	if(action_icon_obs > 0)
+		Cout() << "action_icon-role observations: " << action_icon_obs
+		       << " accepted=" << (action_icon_obs - action_icon_discarded)
+		       << " discarded=" << action_icon_discarded << "\n\n";
+
+	if(!action_icon_probe_attempts.IsEmpty()) {
+		Cout() << "=== Action-icon change-triggered direct probe (task 0127) ===\n";
+		Cout() << Format("%-6s %-5s %-9s %-9s %-9s %-8s %-10s\n",
+			"frame", "seat", "best", "runnerup", "margin", "winner", "accepted?");
+		int probe_accepted = 0;
+		for(const VsmActionIconProbeAttempt& a : action_icon_probe_attempts) {
+			double margin = a.scored ? (a.score_runnerup - a.score_best) : -1.0;
+			Cout() << Format("%-6d %-5d %-9s %-9s %-9s %-8s %-10s\n",
+				a.frame, a.seat,
+				a.scored ? DblStr(a.score_best)     : String("n/a"),
+				a.scored ? DblStr(a.score_runnerup) : String("n/a"),
+				a.scored ? DblStr(margin)            : String("n/a"),
+				a.scored ? ActionIconWinnerStr(a.winner) : String("n/a"),
+				a.accepted ? "accepted" : "discarded");
+			if(a.accepted)
+				probe_accepted++;
+		}
+		Cout() << "Direct-probe triggers: " << action_icon_probe_attempts.GetCount()
+		       << " accepted=" << probe_accepted << "\n\n";
+	}
+
 	// --- Derive per-frame board-card slot values (frame-0 seed + every
 	// accepted per-transition recognition above), 5 independent sticky
 	// tracks. ---
 	Vector<bool> board_known[5];
 	Vector<int>  board_value[5];
 	DeriveBoardCardsPerFrame(board_card_observations, 0, info.frame_count - 1, board_known, board_value);
+
+	// --- Derive per-frame per-seat action-icon values (see
+	// DeriveActionIconsPerFrame's own doc comment for the sticky/reset
+	// design). Seat list: every seat that has an action_icon candidate at
+	// all (built once above, `action_icon_candidates`). ---
+	Vector<int> action_icon_seats;
+	{
+		VectorMap<int, bool> seen;
+		for(const VsmLayoutCandidate* c : action_icon_candidates)
+			if(seen.Find(c->seat_index) < 0) {
+				seen.Add(c->seat_index, true);
+				action_icon_seats.Add(c->seat_index);
+			}
+	}
+	VectorMap<int, Vector<bool>> action_icon_known;
+	VectorMap<int, Vector<int>>  action_icon_value;
+	DeriveActionIconsPerFrame(action_icon_observations, 0, info.frame_count - 1, action_icon_seats,
+	                            action_icon_known, action_icon_value);
 
 	// --- Derive per-frame dealer seat from dealer_button observations
 	// (input now pre-filtered to only genuine dealer-seat moves, above, PLUS
@@ -1730,6 +2264,101 @@ GUI_APP_MAIN
 	       << board_pending_frames << "\n";
 	Cout() << "Unknown (not every one of the 5 slots observed yet): "
 	       << board_unknown_frames << "\n";
+
+	// --- M05-09 (task 0127): action-icon frame-by-frame comparison. A third
+	// pass over the SAME out_records (additive, mutated in place, same
+	// pattern the board-card pass above already used), using the per-seat
+	// sticky state derived above. Only seats whose sticky value is a REAL
+	// action (1..6) are compared against ground truth's `action` field -
+	// see the task's own ambiguity note (0/7/8 are all visually
+	// indistinguishable) and VsmLogicCompareRecordOut's doc comment for why
+	// "winner" (9) and "not yet observed" seats are excluded from
+	// match/mismatch, not silently guessed.
+	Cout() << "\n=== Frame-by-frame action icons: derived vs. ground truth (per seat) ===\n";
+	Cout() << Format("%-6s %-5s %-10s %-10s %-10s\n", "frame", "seat", "derived", "gt_action", "verdict");
+
+	int action_icon_match_frames = 0, action_icon_mismatch_frames = 0, action_icon_unscored_frames = 0;
+	for(int fid = 0; fid < out_records.GetCount() && fid < gt_records.GetCount(); fid++) {
+		VsmLogicCompareRecordOut& rec = out_records[fid];
+		const TexasHoldemGroundTruthRecord& gt = gt_records[fid];
+		TexasHoldemLogicState& ls = rec.logic_state;
+
+		rec.action_icon_match_seats = 0;
+		rec.action_icon_mismatch_seats = 0;
+		rec.action_icon_winner_seats = 0;
+		rec.action_icon_unscored_seats = 0;
+
+		for(TexasHoldemLogicPlayerState& ps : ls.players) {
+			int ki = action_icon_known.Find(ps.seat);
+			bool k = (ki >= 0) && fid < action_icon_known[ki].GetCount() && action_icon_known[ki][fid];
+			int vi = action_icon_value.Find(ps.seat);
+			int v  = (k && vi >= 0 && fid < action_icon_value[vi].GetCount()) ? action_icon_value[vi][fid] : -1;
+
+			if(!k)
+				continue; // not yet observed since the last reset - leave action_known false (default)
+
+			if(v == kActionIconVocabWinner) {
+				ps.action_known = true;
+				ps.action = v;
+				ls.players_known = true;
+				rec.action_icon_winner_seats++;
+				continue; // excluded from ground-truth comparison, see doc comment above
+			}
+
+			ps.action_known = true;
+			ps.action = v;
+			ls.players_known = true;
+
+			int gt_action = -1;
+			for(const TexasHoldemPlayerSnapshot& p : gt.players)
+				if(p.seat == ps.seat) { gt_action = p.action; break; }
+
+			if(v == gt_action)
+				rec.action_icon_match_seats++;
+			else
+				rec.action_icon_mismatch_seats++;
+
+			Cout() << Format("%-6d %-5d %-10d %-10d %-10s\n",
+				fid, ps.seat, v, gt_action, (v == gt_action) ? "match" : "mismatch");
+		}
+
+		rec.action_icon_unscored_seats = ls.players.GetCount()
+			- rec.action_icon_match_seats - rec.action_icon_mismatch_seats - rec.action_icon_winner_seats;
+
+		if(rec.action_icon_mismatch_seats > 0) {
+			rec.action_icons_verdict = "mismatch";
+			action_icon_mismatch_frames++;
+		}
+		else if(rec.action_icon_match_seats > 0) {
+			rec.action_icons_verdict = "match";
+			action_icon_match_frames++;
+		}
+		else {
+			rec.action_icons_verdict = "unscored";
+			action_icon_unscored_frames++;
+		}
+	}
+
+	Cout() << "\n=== Action-icon Comparison Summary ===\n";
+	Cout() << "Total frames: " << out_records.GetCount() << "\n";
+	Cout() << "Match (frames with >=1 seat's real action (1..6) recognized, all recognized seats correct): "
+	       << action_icon_match_frames << "\n";
+	Cout() << "Mismatch (frames with >=1 recognized real action disagreeing with ground truth): "
+	       << action_icon_mismatch_frames << "\n";
+	Cout() << "Unscored (no seat had a confidently-recognized real action this frame): "
+	       << action_icon_unscored_frames << "\n";
+	{
+		int total_match = 0, total_mismatch = 0, total_winner = 0, total_unscored = 0;
+		for(const VsmLogicCompareRecordOut& o : out_records) {
+			total_match    += o.action_icon_match_seats;
+			total_mismatch += o.action_icon_mismatch_seats;
+			total_winner   += o.action_icon_winner_seats;
+			total_unscored += o.action_icon_unscored_seats;
+		}
+		Cout() << "Per-seat totals across all frames: match=" << total_match
+		       << " mismatch=" << total_mismatch << " winner=" << total_winner
+		       << " unscored=" << total_unscored << "\n";
+	}
 
 	if(!jsonl_out.IsEmpty()) {
 		String jsonl;

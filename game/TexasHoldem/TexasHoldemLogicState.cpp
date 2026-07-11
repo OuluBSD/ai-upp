@@ -161,4 +161,57 @@ Image TexasHoldemGetBoardHolderReferenceImage(int card_index, Size target_size, 
 	return Image(iw);
 }
 
+// M05-09 (task 0127): see TexasHoldemLogicState.h for the full doc comment.
+// Filename table copied verbatim from GameTable::LoadTheme's actionPics[]
+// assignment (GameTable.cpp:1216-1223) - index 1..6 match PlayerAction's own
+// CHECK..ALLIN values, index kActionIconVocabWinner(9) matches the isWinner
+// override's actionPics[9] slot. Single shared (non-themed) directory, no
+// procedural fallback tier - see this function's header comment for why
+// both of those are deliberate, verified findings, not omissions.
+Image TexasHoldemGetActionIconReferenceImage(int action_or_winner, Size target_size)
+{
+	const char* filename = NULL;
+	switch(action_or_winner) {
+	case 1: filename = "action_check.png"; break; // PLAYER_ACTION_CHECK
+	case 2: filename = "action_call.png";  break; // PLAYER_ACTION_CALL
+	case 3: filename = "action_bet.png";   break; // PLAYER_ACTION_BET
+	case 4: filename = "action_raise.png"; break; // PLAYER_ACTION_RAISE
+	case 5: filename = "action_fold.png";  break; // PLAYER_ACTION_FOLD
+	case 6: filename = "action_allin.png"; break; // PLAYER_ACTION_ALLIN
+	case kActionIconVocabWinner: filename = "action_winner.png"; break; // isWinner override
+	default: return Image();
+	}
+
+	String dataDir = Tools::GetDataDir();
+	String actionDir = AppendFileName(dataDir, "gfx/gui/misc/actionpics");
+	Image img = StreamRaster::LoadFileAny(AppendFileName(actionDir, filename));
+	if(!img.IsEmpty() && target_size.cx > 0 && target_size.cy > 0 && img.GetSize() != target_size)
+		img = Rescale(img, target_size);
+	return img;
+}
+
+// M05-09 (task 0127): see TexasHoldemLogicState.h for the full doc comment.
+// Striped-row drawing copied verbatim (same colors, same `y+=2` phase rule)
+// from GameTable::RenderToImage's per-player loop (GameTable.cpp:1322-1329),
+// the ACTUAL off-screen renderer `--record-session` uses - NOT from
+// PlayerBgCtrl::Paint (game/TexasHoldem/GameTable.h), which is a separate,
+// live-window-only code path this function does not need to mirror.
+Image TexasHoldemGetActionIconEmptyReferenceImage(Size target_size, int row_parity_offset, bool is_winner)
+{
+	int cx = max(1, target_size.cx), cy = max(1, target_size.cy);
+	Color bc = is_winner ? Color(0, 255, 0) : Color(0, 120, 0);
+
+	ImageDraw iw(cx, cy);
+	iw.Alpha().DrawRect(0, 0, cx, cy, White());
+	iw.DrawRect(0, 0, cx, cy, Black());
+	// Row `r` of this crop is at absolute-frame row (row_parity_offset + r)
+	// relative to the owning player rect's own top - colored iff that value
+	// is even (GameTable.cpp:1327's `for(y=0;y<h;y+=2)` always colors y=0,2,4...
+	// relative to the PLAYER rect's top, not this crop's own top).
+	int start = ((row_parity_offset % 2) + 2) % 2; // 0 or 1: parity of row 0 of this crop
+	for(int y = start; y < cy; y += 2)
+		iw.DrawRect(0, y, cx, 1, bc);
+	return Image(iw);
+}
+
 END_UPP_NAMESPACE

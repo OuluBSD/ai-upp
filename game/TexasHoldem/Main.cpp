@@ -72,7 +72,8 @@ static void CaptureM01GroundTruth(TexasHoldemGroundTruthRecord& record, const st
 static int DumpM01SourceContractSample(const String& out_dir, const String& provider,
                                        Size table_size, int num_players, int start_cash,
                                        int game_speed, int seed, const String& session_id, int frame_count,
-                                       bool step_actions, class ConfigFile& config, EngineLog& engineLog)
+                                       bool step_actions, bool capture_transient_states,
+                                       class ConfigFile& config, EngineLog& engineLog)
 {
 	String sample_provider = provider.IsEmpty() ? "PS_6p" : provider;
 	String sample_session = session_id.IsEmpty() ? "texas-m01-ps6p-sample" : session_id;
@@ -93,6 +94,11 @@ static int DumpM01SourceContractSample(const String& out_dir, const String& prov
 	options.provider = sample_provider;
 	options.project_name = "default";
 	options.script_automation = true;
+	// task 0130: recorder-only opt-in. When --capture-transient-states is set
+	// (alongside --step-actions), defer the next-hand deal so a frame showing
+	// the showdown reveal can be captured before the next hand overwrites it.
+	// Default off -> existing recordings/fixtures behave byte-for-byte as before.
+	table.SetDeferNextHandTransition(capture_transient_states && step_actions);
 	auto game = StartTexasHoldemLocalGame(table, options, config, engineLog);
 	Ctrl::ProcessEvents();
 	table.RefreshLayoutDeep();
@@ -101,14 +107,31 @@ static int DumpM01SourceContractSample(const String& out_dir, const String& prov
 	String gt_jsonl;
 	for (int frame_id = 0; frame_id < frame_count; frame_id++) {
 		if (step_actions && frame_id > 0) {
-			int before_turn_uid = TexasHoldemCurrentTurnUid(game);
-			bool stepped = StepTexasHoldemLocalGameAction(game);
-			int after_turn_uid = TexasHoldemCurrentTurnUid(game);
-			Cout() << "record_step=" << frame_id
-			       << " action=next_player"
-			       << " stepped=" << (stepped ? 1 : 0)
-			       << " turn_uid_before=" << before_turn_uid
-			       << " turn_uid_after=" << after_turn_uid << "\n";
+			if (capture_transient_states && table.HasPendingNextHand()) {
+				// task 0130: a prior step reached a showdown and deferred the
+				// next-hand deal. The reveal frame was already captured on that
+				// prior iteration; resolve the deferred deal now as this step's
+				// action instead of calling bero->nextPlayer() on the finished
+				// hand (which would re-run the post-river resolution).
+				int before_turn_uid = TexasHoldemCurrentTurnUid(game);
+				table.ResolvePendingNextHand();
+				int after_turn_uid = TexasHoldemCurrentTurnUid(game);
+				Cout() << "record_step=" << frame_id
+				       << " action=deferred_next_hand_deal"
+				       << " stepped=1"
+				       << " turn_uid_before=" << before_turn_uid
+				       << " turn_uid_after=" << after_turn_uid << "\n";
+			}
+			else {
+				int before_turn_uid = TexasHoldemCurrentTurnUid(game);
+				bool stepped = StepTexasHoldemLocalGameAction(game);
+				int after_turn_uid = TexasHoldemCurrentTurnUid(game);
+				Cout() << "record_step=" << frame_id
+				       << " action=next_player"
+				       << " stepped=" << (stepped ? 1 : 0)
+				       << " turn_uid_before=" << before_turn_uid
+				       << " turn_uid_after=" << after_turn_uid << "\n";
+			}
 		}
 		Ctrl::ProcessEvents();
 		table.RefreshLayoutDeep();
@@ -185,6 +208,7 @@ GUI_APP_MAIN
 		       << "  --validate-source-contract-sample <dir> Validate M01 sample session\n"
 		       << "  --record-session       Write M02 record session using the TexasHoldem source contract\n"
 		       << "  --step-actions         Advance one shared game action before each recorded frame after frame 0\n"
+		       << "  --capture-transient-states Defer the next-hand deal after a showdown so the reveal frame is captured (with --step-actions)\n"
 		       << "  --replay-session <dir> Validate and print deterministic M02 replay summary\n"
 		       << "  --expect-provider <name> Expected provider for --replay-session\n"
 		       << "  --expect-size <WxH>    Expected table size for --replay-session\n"
@@ -382,6 +406,7 @@ GUI_APP_MAIN
 		int seed = 1;
 		int frame_count = 8;
 		bool step_actions = false;
+		bool capture_transient_states = false;
 		for (int i = 1; i < args.GetCount(); i++) {
 			if (args[i] == "--out" && i + 1 < args.GetCount())
 				out_dir = args[++i];
@@ -409,10 +434,12 @@ GUI_APP_MAIN
 				frame_count = max(1, StrInt(args[++i]));
 			else if (args[i] == "--step-actions")
 				step_actions = true;
+			else if (args[i] == "--capture-transient-states")
+				capture_transient_states = true;
 		}
 		int rc = DumpM01SourceContractSample(out_dir, provider, table_size, num_players,
 		                                     start_cash, game_speed, seed, session_id, frame_count, step_actions,
-		                                     config, *engineLog);
+		                                     capture_transient_states, config, *engineLog);
 		std::_Exit(rc);
 	}
 

@@ -243,6 +243,14 @@ public:
 	int GetActionDelayMs() const;
 	bool IsActionFlowPaused() const;
 	void SetScriptAutomationEnabled(bool enabled);
+	// Recorder-only opt-in (task 0130): when enabled together with script
+	// automation, postRiverAnimation1() defers the next-hand deal instead of
+	// dealing it synchronously in the same call stack, so the recorder can
+	// capture a frame showing the showdown reveal before the next hand is
+	// dealt. Default false -> every existing consumer keeps today's behavior.
+	void SetDeferNextHandTransition(bool enabled);
+	bool HasPendingNextHand() const;
+	void ResolvePendingNextHand();
 
 	virtual void Layout() override;
 	virtual void Paint(Draw& w) override;
@@ -302,6 +310,8 @@ private:
 
 	bool m_imageMode = false;
 	bool m_scriptAutomationEnabled = false;
+	bool m_deferNextHandTransition = false; // task 0130: recorder-only opt-in
+	bool m_nextHandPending = false;         // task 0130: a deferred next-hand deal is queued
 	GameScript m_script;
 	String m_scriptProject = "default";
 	String m_scriptPlatform = "texas-holdem";

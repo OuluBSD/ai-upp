@@ -867,6 +867,27 @@ void GameTable::SetScriptAutomationEnabled(bool enabled)
 	m_scriptAutomationEnabled = enabled;
 }
 
+void GameTable::SetDeferNextHandTransition(bool enabled)
+{
+	m_deferNextHandTransition = enabled;
+	if (!enabled)
+		m_nextHandPending = false;
+}
+
+bool GameTable::HasPendingNextHand() const
+{
+	return m_nextHandPending;
+}
+
+void GameTable::ResolvePendingNextHand()
+{
+	if (!m_nextHandPending)
+		return;
+	m_nextHandPending = false;
+	// Deal the next hand now -- the deferred half of the split transition (task 0130).
+	OnNextHand();
+}
+
 void GameTable::SetProjectContext(const String& project_name, const String& platform_name)
 {
 	m_scriptProject = TrimBoth(project_name);
@@ -1833,6 +1854,17 @@ void GameTable::postRiverAnimation1()
 		// above and GameTable::Timer() (GameTable.cpp:1290). Real interactive
 		// GUI play always has m_scriptAutomationEnabled == false and is
 		// unaffected below.
+		if (m_deferNextHandTransition) {
+			// task 0130 recorder-only opt-in: do NOT deal the next hand here.
+			// The showdown reveal was just pushed into the GUI (refreshCash()
+			// in LocalHand::switchRounds, immediately before this call). Set a
+			// pending flag and return so the recorder's step loop can capture a
+			// frame with the reveal visible, then resolve the deal on a later
+			// step via ResolvePendingNextHand(). Splits one atomic transition
+			// into two recorder-visible steps.
+			m_nextHandPending = true;
+			return;
+		}
 		OnNextHand();
 		return;
 	}

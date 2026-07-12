@@ -5,6 +5,7 @@ uses
 	CtrlLib,
 	Docking,
 	VisualStateModel,
+	VisualStateLogic,
 	CardRender,
 	TexasHoldem,
 	plugin/jpg;
@@ -27,7 +28,9 @@ file
 	TexasHoldemSessionAdapter.h,
 	TexasHoldemSessionAdapter.cpp,
 	TexasHoldemLayoutBindingAdapter.h,
-	TexasHoldemLayoutBindingAdapter.cpp;
+	TexasHoldemLayoutBindingAdapter.cpp,
+	TexasHoldemLogicStateAdapter.h,
+	TexasHoldemLogicStateAdapter.cpp;
 
 mainconfig
 	"" = "GUI",

@@ -245,6 +245,9 @@ void MainWindow::InitDockers()
 	Register(layout_dock_);
 	layout_dock_.WhenBindingSelected = [=](int ri) { OnLayoutBindingSelected(ri); };
 
+	logic_dock_.Title("Logic State").SizeHint(Size(420, 300));
+	Register(logic_dock_);
+
 	timeline_dock_.WhenStep   = [=] { OnStep(); };
 	timeline_dock_.WhenRunAll = [=] { OnRunAll(); };
 	timeline_dock_.WhenReset  = [=] { OnResetReplay(); };
@@ -290,6 +293,11 @@ void MainWindow::OnResetDockLayout()
 	// steal vertical space from the frame canvas until the user reaches for it.
 	DockBottom(layout_dock_);
 	Tabify(layout_dock_, timeline_dock_);
+
+	// Logic-State Timeline (task 0133): pairs naturally with Layout Bindings
+	// (both overlay derived data on the same frame/timeline) — joins the same
+	// bottom tabbed group rather than claiming its own always-visible pane.
+	Tabify(layout_dock_, logic_dock_);
 
 	Log("layout: reset to default (primary: Annotation Editor/Model State; "
 	    "secondary: Rules & Preprocessing tab group; bottom: Layout Bindings/Replay Timeline)");
@@ -1001,6 +1009,12 @@ void MainWindow::ClearTexasSession()
 	th_layout_model_ = VsmSessionLayoutModel();
 	th_form_path_.Clear();
 	layout_dock_.Clear();
+
+	// Logic-state timeline (task 0133): drop the derived model so the panel
+	// doesn't linger when switching to the sample or an imported session.
+	th_logic_model_ = VsmSessionLogicModel();
+	logic_dock_.SetModel(nullptr);
+	logic_dock_.Clear();
 }
 
 void MainWindow::OpenTexasHoldemSession(const String& path)
@@ -1077,6 +1091,32 @@ void MainWindow::OpenTexasHoldemSession(const String& path)
 	else
 		Log("texas layout: model build FAILED from " + th_form_path_ + " — " + th_layout_model_.error);
 
+	// Logic-state timeline model (task 0133): built once here from the SAME
+	// resolved th_form_path_ the layout-binding model above uses. Calls the
+	// shared uppsrc/VisualStateLogic/LogicCompare.h M05 derivation pipeline
+	// (VsmDeriveSessionLogicStates), the exact same template-match scoring
+	// reference/VisualStateLogicCompare's CLI performs — so, like that CLI,
+	// this can take a noticeable amount of time for longer sessions (the cost
+	// is dominated by per-slot/per-seat template-match scoring across every
+	// transition, not anything this adapter adds). Degrades to an
+	// "unavailable" state in the panel if no .form was resolved or derivation
+	// fails; the rest of the TexasHoldem session flow is unaffected either way.
+	if(th_form_path_.IsEmpty()) {
+		th_logic_model_ = VsmSessionLogicModel();
+		logic_dock_.SetModel(nullptr);
+		Log("texas logic-state: no .form resolved; logic-state timeline unavailable");
+	}
+	else {
+		th_logic_model_ = VsmBuildSessionLogicModel(th_session_, th_form_path_);
+		logic_dock_.SetModel(&th_logic_model_);
+		if(th_logic_model_.loaded)
+			Log(Format("texas logic-state: derived %d frame record(s) from %s",
+			           th_logic_model_.records.GetCount(), th_form_path_));
+		else
+			Log("texas logic-state: derivation FAILED from " + th_form_path_ +
+			    " — " + th_logic_model_.error);
+	}
+
 	// Show the first frame (frame 0 has no predecessor -> no changed regions).
 	SetTexasFrame(0);
 
@@ -1127,6 +1167,11 @@ void MainWindow::SetTexasFrame(int frame_id)
 	th_frame_bindings_ = VsmComputeFrameBindings(th_session_, th_layout_model_, frame_id);
 	layout_dock_.SetFrameBindings(frame_id, th_frame_bindings_);
 	frame_canvas_.SetLayoutBindings(&th_frame_bindings_);
+
+	// Logic-state timeline for this frame (task 0133): the model itself was
+	// already fully derived once in OpenTexasHoldemSession(); scrubbing here
+	// is just an O(1) lookup into th_logic_model_.records[frame_id].
+	logic_dock_.SetFrame(frame_id);
 
 	timeline_dock_.SetProgress(frame_id, fc);
 }

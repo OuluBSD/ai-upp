@@ -11,6 +11,7 @@ using namespace Upp;
 #include "DebugTab.h"
 #include "TexasHoldemSessionAdapter.h"
 #include "TexasHoldemLayoutBindingAdapter.h"
+#include "TexasHoldemLogicStateAdapter.h"
 #include "FrameCanvas.h"
 #include "DockPanels.h"
 #include "JpegSequenceImporter.h"
@@ -54,6 +55,7 @@ private:
 	OcrRulePanel          ocr_dock_;
 	ModelStatePanel       model_dock_;
 	LayoutBindingPanel    layout_dock_;   // task 0132: .form layout-binding view
+	LogicStatePanel       logic_dock_;    // task 0133: derived logic-state timeline view
 
 	// ---- Session storage + annotation layer + pipeline + rules + model runtime
 	VsmSessionStore           session_store_;
@@ -103,6 +105,18 @@ private:
 	VsmSessionLayoutModel        th_layout_model_;
 	Vector<VsmLayoutBinding>     th_frame_bindings_;
 	String                       th_form_path_;
+
+	// ---- Logic-state timeline model (task 0133 / M06-03). th_logic_model_
+	// holds one derived TexasHoldemLogicState per frame for the whole session
+	// (built once on open, from th_form_path_ — the same resolved .form path
+	// the layout-binding model already uses), computed by the GUI-independent
+	// TexasHoldemLogicStateAdapter, which calls the shared
+	// uppsrc/VisualStateLogic/LogicCompare.h M05 derivation pipeline (task
+	// 0133's extraction of reference/VisualStateLogicCompare's own scoring/
+	// derivation code) directly — no logic duplicated. logic_dock_ is
+	// refreshed to the current frame in SetTexasFrame(), mirroring
+	// th_frame_bindings_/layout_dock_'s own per-frame refresh.
+	VsmSessionLogicModel         th_logic_model_;
 
 	VsmAnnotationLayer        annotation_layer_;
 	String                    annotation_path_;

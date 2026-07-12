@@ -262,4 +262,44 @@ private:
 	void OnSel();
 };
 
+// ---------------------------------------------------------------------------
+// LogicStatePanel — scrubbable per-frame logic-state timeline view (task
+// 0133): shows the derived TexasHoldemLogicState for the current frame —
+// street/hand_id/turn_uid/pot (each known/unknown), dealer_seat, per-slot
+// board_cards, and a per-seat table (action, hole_cards, plus the
+// match/mismatch verdict against ground truth). All data is computed
+// GUI-independently by TexasHoldemLogicStateAdapter (VsmSessionLogicModel),
+// which calls the shared uppsrc/VisualStateLogic/LogicCompare.h M05
+// derivation pipeline directly — the same code
+// reference/VisualStateLogicCompare's CLI uses. Only ever populated for an
+// active TexasHoldem session (source C). Scrubbing the Replay Timeline
+// (task 0131) updates this panel to the corresponding frame via SetFrame().
+
+class LogicStatePanel : public DockableCtrl {
+public:
+	typedef LogicStatePanel CLASSNAME;
+
+	LogicStatePanel();
+
+	// Header info from the session's frame-independent logic model (form
+	// path, frame count). nullptr / unloaded model shows the "unavailable"
+	// state. Does not itself populate a frame — call SetFrame() next.
+	void SetModel(const VsmSessionLogicModel* model);
+
+	// Populate every field for one frame from model_->RecordForFrame(frame_id).
+	void SetFrame(int frame_id);
+
+	void Clear();
+
+private:
+	const VsmSessionLogicModel* model_ = nullptr;
+
+	Label header_lbl_;         // form path / "unavailable" state
+	Label frame_lbl_;          // Frame / hand_id / street / turn_uid / pot (each known/unknown)
+	Label dealer_lbl_;         // dealer_seat (known/unknown)
+	Label board_lbl_;          // per-slot board_cards + board_cards_verdict
+	Label verdict_lbl_;        // action_icons_verdict / hole_cards_verdict (frame-level)
+	ArrayCtrl players_list_;   // per-seat: seat / dealer / action / hole cards
+};
+
 #endif

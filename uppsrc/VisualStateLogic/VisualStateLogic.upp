@@ -1,0 +1,10 @@
+description "Shared M05 logic-state scoring/derivation (extracted from VisualStateLogicCompare, task 0133)\377";
+
+uses
+	CardRender,
+	TexasHoldem,
+	VisualStateModel;
+
+file
+	LogicCompare.h,
+	LogicCompare.cpp;

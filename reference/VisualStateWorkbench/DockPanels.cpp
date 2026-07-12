@@ -868,3 +868,119 @@ void LayoutBindingPanel::OnSel()
 		return;
 	WhenBindingSelected(row_region_index_[row]);
 }
+
+// ---------------------------------------------------------------------------
+// LogicStatePanel (task 0133)
+
+// "N" if known, "unknown" otherwise — the same known/unknown display
+// convention the CLI's own stdout tables use (e.g. "unknown" for
+// derived_dealer_seat_known == false).
+static String FormatKnownInt(bool known, int v)
+{
+	return known ? IntStr(v) : String("unknown");
+}
+
+// Card slot value formatter: -1 == "not yet dealt" (board) / "back, hidden"
+// (hole card), 0..51 == a recognized card index. Kept as a plain integer
+// (not a suit/rank name) to match the CLI's own FormatBoardVec convention
+// (reference/VisualStateLogicCompare/main.cpp) exactly, rather than
+// inventing a second card-naming scheme this codebase doesn't otherwise have.
+static String FormatCardVec(const Vector<int>& v)
+{
+	String s = "[";
+	for(int i = 0; i < v.GetCount(); i++) {
+		if(i) s << ",";
+		s << v[i];
+	}
+	s << "]";
+	return s;
+}
+
+LogicStatePanel::LogicStatePanel()
+{
+	header_lbl_.SetLabel("Logic State: —");
+	frame_lbl_.SetLabel("Frame: —");
+	dealer_lbl_.SetLabel("Dealer seat: —");
+	board_lbl_.SetLabel("Board cards: —");
+	verdict_lbl_.SetLabel("Action verdict: —   Hole verdict: —");
+
+	players_list_.AddColumn("Seat", 40);
+	players_list_.AddColumn("Dealer", 50);
+	players_list_.AddColumn("Action", 70);
+	players_list_.AddColumn("Hole Cards", 90);
+
+	Add(header_lbl_.HSizePos(4, 4).TopPos(4, 20));
+	Add(frame_lbl_.HSizePos(4, 4).TopPos(26, 20));
+	Add(dealer_lbl_.HSizePos(4, 4).TopPos(48, 20));
+	Add(board_lbl_.HSizePos(4, 4).TopPos(70, 20));
+	Add(verdict_lbl_.HSizePos(4, 4).TopPos(92, 20));
+	Add(players_list_.HSizePos(4, 4).VSizePos(116, 4));
+}
+
+void LogicStatePanel::SetModel(const VsmSessionLogicModel* model)
+{
+	model_ = model;
+	if(!model || !model->loaded) {
+		header_lbl_.SetLabel(model && !model->error.IsEmpty()
+		                      ? ("Logic State: unavailable — " + model->error)
+		                      : String("Logic State: unavailable (no derived model)"));
+		return;
+	}
+	header_lbl_.SetLabel(Format("Logic State: \"%s\"  %d frame record(s)",
+	                            model->form_path, model->records.GetCount()));
+}
+
+void LogicStatePanel::SetFrame(int frame_id)
+{
+	const VsmLogicCompareRecordOut* rec = model_ ? model_->RecordForFrame(frame_id) : nullptr;
+	if(!rec) {
+		Clear();
+		return;
+	}
+	const TexasHoldemLogicState& ls = rec->logic_state;
+
+	frame_lbl_.SetLabel(Format("Frame: %d   Hand: %s   Street: %s   Turn: %s   Pot: %s",
+	                           rec->frame_id,
+	                           FormatKnownInt(ls.hand_id_known, ls.hand_id),
+	                           FormatKnownInt(ls.street_known, ls.street),
+	                           FormatKnownInt(ls.turn_uid_known, ls.turn_uid),
+	                           FormatKnownInt(ls.pot_known, ls.pot)));
+
+	dealer_lbl_.SetLabel(Format("Dealer seat: %s   (ground truth: %s)   verdict: %s",
+	                            FormatKnownInt(rec->derived_dealer_seat_known, rec->derived_dealer_seat),
+	                            FormatKnownInt(rec->ground_truth_dealer_seat_known, rec->ground_truth_dealer_seat),
+	                            rec->verdict));
+
+	board_lbl_.SetLabel(Format("Board cards: %s (known=%s)   gt: %s   verdict: %s",
+	                           FormatCardVec(ls.board_cards),
+	                           ls.board_cards_known ? "yes" : "no",
+	                           FormatCardVec(rec->ground_truth_board_cards),
+	                           rec->board_cards_verdict));
+
+	verdict_lbl_.SetLabel(Format("Action verdict: %s (match=%d mismatch=%d winner=%d unscored=%d)   "
+	                             "Hole verdict: %s (match=%d mismatch=%d hidden=%d unknown=%d)",
+	                             rec->action_icons_verdict,
+	                             rec->action_icon_match_seats, rec->action_icon_mismatch_seats,
+	                             rec->action_icon_winner_seats, rec->action_icon_unscored_seats,
+	                             rec->hole_cards_verdict,
+	                             rec->hole_cards_match_seats, rec->hole_cards_mismatch_seats,
+	                             rec->hole_cards_hidden_seats, rec->hole_cards_unknown_seats));
+
+	players_list_.Clear();
+	for(const TexasHoldemLogicPlayerState& ps : ls.players) {
+		String dealer = ps.button_known ? (ps.button == 1 ? String("D") : IntStr(ps.button)) : String("—");
+		String action = FormatKnownInt(ps.action_known, ps.action);
+		String hole    = ps.hole_cards_known ? FormatCardVec(ps.hole_cards) : String("unknown");
+		players_list_.Add(ps.seat, dealer, action, hole);
+	}
+}
+
+void LogicStatePanel::Clear()
+{
+	header_lbl_.SetLabel("Logic State: —");
+	frame_lbl_.SetLabel("Frame: —");
+	dealer_lbl_.SetLabel("Dealer seat: —");
+	board_lbl_.SetLabel("Board cards: —");
+	verdict_lbl_.SetLabel("Action verdict: —   Hole verdict: —");
+	players_list_.Clear();
+}

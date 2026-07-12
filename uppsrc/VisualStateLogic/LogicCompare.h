@@ -162,6 +162,37 @@ struct VsmLayoutObservationOut : Moveable<VsmLayoutObservationOut> {
 	}
 };
 
+// M07-02 (task 0138): one per-field recognizer-confidence datum, surfaced for
+// production/video-only mode where there is no ground truth to compare against
+// and the caller instead needs "how sure was the parser". This carries the
+// best-vs-runner-up match-score separation each M05 recognizer ALREADY computes
+// at accept-gate time (see LogicCompare.cpp:VsmScore*), which today is used only
+// for the boolean accept/reject decision and then discarded. Pure additive
+// surfacing — no recognition/threshold/scoring behavior changes; the same data
+// that already drove accept/reject is simply also reported.
+//
+// `field` uses the SAME naming convention task 0134's mismatch panel
+// (VsmMismatchRow) established: "dealer_seat", "board_card_0".."board_card_4",
+// "action_icon[seat N]", "hole_cards[seat N]".
+//
+// `confidence` is FAMILY-RELATIVE (0..1), NOT globally comparable across
+// families — each recognizer family scores on its own scale with its own gate,
+// so the confidence for each is expressed relative to that family's own
+// existing threshold constants (see the per-family formula comments in
+// LogicCompare.cpp). It is the confidence of the observation that established
+// the field's CURRENT (sticky/carried-forward) value at this frame; when the
+// field is not known (`known == false`) the confidence is 0.0.
+struct VsmFieldConfidence : Moveable<VsmFieldConfidence> {
+	String field;
+	bool   known = false;
+	double confidence = 0.0;
+
+	void Jsonize(JsonIO& json)
+	{
+		json("field", field)("known", known)("confidence", confidence);
+	}
+};
+
 // The per-frame comparator record. See LogicCompare.cpp / the CLI's own
 // header comment for the exact per-field verdict semantics.
 struct VsmLogicCompareRecordOut : Moveable<VsmLogicCompareRecordOut> {
@@ -189,6 +220,11 @@ struct VsmLogicCompareRecordOut : Moveable<VsmLogicCompareRecordOut> {
 
 	TexasHoldemLogicState logic_state;
 
+	// M07-02 (task 0138): per-field recognizer confidence, additive. One entry
+	// per field that carries a per-frame derived value (dealer seat, each of the
+	// 5 board-card slots, each seat's action icon, each seat's hole cards).
+	Vector<VsmFieldConfidence> field_confidence;
+
 	void Jsonize(JsonIO& json)
 	{
 		json
@@ -214,6 +250,7 @@ struct VsmLogicCompareRecordOut : Moveable<VsmLogicCompareRecordOut> {
 			("hole_cards_unknown_seats", hole_cards_unknown_seats)
 			("hole_cards_verdict", hole_cards_verdict)
 			("logic_state", logic_state)
+			("field_confidence", field_confidence)
 		;
 	}
 };
@@ -235,6 +272,10 @@ struct VsmBoardCardObservation : Moveable<VsmBoardCardObservation> {
 	int frame      = -1;
 	int card_index = -1;
 	int value      = -2; // -1 == holder, 0..51 == recognized card
+	// M07-02 (task 0138): family-relative recognizer confidence [0..1] of this
+	// accepted recognition (additive; internal — not Jsonized). See
+	// VsmMarginConfidence in LogicCompare.cpp.
+	double confidence = 0.0;
 };
 
 // M05-08 (task 0126): one change-triggered board_card direct-probe attempt.
@@ -252,6 +293,9 @@ struct VsmActionIconObservation : Moveable<VsmActionIconObservation> {
 	int frame = -1;
 	int seat  = -1;
 	int value = -2;
+	// M07-02 (task 0138): family-relative recognizer confidence [0..1] (additive;
+	// internal — not Jsonized). See VsmActionIconConfidence in LogicCompare.cpp.
+	double confidence = 0.0;
 };
 
 // M05-09 (task 0127): one change-triggered action_icon direct-probe attempt.
@@ -270,6 +314,9 @@ struct VsmHoleCardObservation : Moveable<VsmHoleCardObservation> {
 	int seat       = -1;
 	int card_index = -1;
 	int value      = -2;
+	// M07-02 (task 0138): family-relative recognizer confidence [0..1] (additive;
+	// internal — not Jsonized). See VsmMarginConfidence in LogicCompare.cpp.
+	double confidence = 0.0;
 };
 
 // M05-10 (task 0128): one change-triggered hole_card direct-probe attempt.
@@ -282,6 +329,55 @@ struct VsmHoleCardProbeAttempt : Moveable<VsmHoleCardProbeAttempt> {
 	int    winner         = -1;
 	bool   accepted       = false;
 };
+
+// ---------------------------------------------------------------------------
+// M07-02 (task 0138): family-relative recognizer-confidence helpers. These
+// derive a 0..1 "how sure was the parser" value from the SAME best/runner-up
+// match scores each recognizer already computes at accept-gate time — no new
+// scoring, no threshold change. Full per-family formula rationale lives with
+// the definitions in LogicCompare.cpp.
+//
+// VsmMarginConfidence: for the card/hole-card families, whose accept gate is a
+// single best-vs-runner-up margin >= min_margin. Returns
+// margin/(margin + min_margin): 0 when there is no separation, exactly 0.5 at
+// the family's own accept boundary, asymptotically ->1 as the winner pulls away.
+double VsmMarginConfidence(double best, double runnerup, double min_margin);
+// VsmActionIconConfidence: the action-icon family gates on BOTH an absolute
+// max-score AND a min-margin, so its confidence is the min of a margin-relative
+// and an absolute-quality sub-confidence (whichever gate is closer to failing).
+double VsmActionIconConfidence(double best, double runnerup);
+// VsmPuckDealerConfidence: the dealer/puck family has no min-margin constant —
+// acceptance is a pure argmin over 3 mean-abs-pixel-diff role scores — so its
+// confidence is the scale-free normalized contrast (runnerup - best)/(runnerup +
+// best) between the winning dealer role and the next-best role.
+double VsmPuckDealerConfidence(double dealer_score, double sb_score, double bb_score);
+
+// M07-02 (task 0138): parallel, purely-additive per-frame confidence latches.
+// Each mirrors the EXACT sticky/carry-forward (and, for action icons, the
+// reset-on-empty) semantics of its value-deriving sibling above, but carries the
+// confidence of the observation that established the current value instead of
+// the value itself. Kept as separate functions so the byte-for-byte-proven
+// value derivation (Derive*PerFrame) is not modified at all.
+void DeriveBoardCardsConfidencePerFrame(const Vector<VsmBoardCardObservation>& observations,
+                                        int frame_lo, int frame_hi,
+                                        Vector<double> confidence_out[5]);
+void DeriveActionIconsConfidencePerFrame(const Vector<VsmActionIconObservation>& observations,
+                                         int frame_lo, int frame_hi,
+                                         const Vector<int>& seats,
+                                         VectorMap<int, Vector<double>>& confidence_out);
+void DeriveHoleCardsConfidencePerFrame(const Vector<VsmHoleCardObservation>& observations,
+                                       int frame_lo, int frame_hi,
+                                       const Vector<int>& seats,
+                                       VectorMap<int, Vector<double>> confidence_out[2]);
+// Dealer seat: build a frame->confidence map from the same pre-filtered
+// dealer-move observations ApplyDealerButtonObservations consumes (same
+// last-wins-per-frame rule), then latch it sticky exactly like
+// DeriveDealerSeatPerFrame latches the seat.
+void ApplyDealerButtonConfidence(const Vector<VsmLayoutObservationOut>& observations,
+                                 VectorMap<int, double>& dealer_confidence_by_frame);
+void DeriveDealerSeatConfidencePerFrame(const VectorMap<int, double>& dealer_confidence_by_frame,
+                                        int frame_lo, int frame_hi,
+                                        Vector<double>& confidence_out);
 
 // ---------------------------------------------------------------------------
 // Leaf scoring/derivation functions (definitions + full rationale in

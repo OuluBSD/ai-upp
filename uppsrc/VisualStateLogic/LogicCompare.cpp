@@ -14,6 +14,77 @@ namespace Upp {
 // comments are the CLI's own, kept intact.
 // ===========================================================================
 
+// ===========================================================================
+// M07-02 (task 0138): RECOGNIZER-CONFIDENCE FORMULAS
+//
+// Pure additive surfacing of data the recognizers already compute. Each family
+// scores on its own scale with its own accept gate; the constants these
+// formulas reference (kCardMatchMinMargin/kHoleCardMatchMinMargin/
+// kActionIconMatchMinMargin/kActionIconMatchMaxScore) are the project's OWN,
+// already-committed definition of "how much separation is enough to trust a
+// guess", so confidence is expressed RELATIVE to them rather than invented from
+// scratch. The result is a family-relative 0..1 measure — deliberately NOT
+// claimed to be comparable across families (their score scales differ), per the
+// task's "honestly-scoped, family-relative confidence over a fabricated
+// universal one" guidance.
+// ===========================================================================
+
+// Card families (board card, hole card): the accept gate is a single
+// best-vs-runner-up margin >= min_margin, where the scores are mean-abs-pixel
+// distances (LOWER is better). We map the margin through margin/(margin +
+// min_margin): monotically increasing in the margin, 0 at no separation,
+// exactly 0.5 at the family's own accept boundary (margin == min_margin), and
+// asymptotically approaching 1 as the winner pulls further ahead of the field.
+// (min_margin > 0 for every real family, so this never divides by zero; a
+// non-positive/degenerate margin clamps to 0.)
+double VsmMarginConfidence(double best, double runnerup, double min_margin)
+{
+	double margin = runnerup - best;
+	if(margin <= 0.0 || min_margin <= 0.0)
+		return 0.0;
+	return margin / (margin + min_margin);
+}
+
+// Action-icon family: uniquely gates on BOTH an absolute max-score
+// (best <= kActionIconMatchMaxScore) AND a min-margin
+// (margin >= kActionIconMatchMinMargin). A confident recognition must clear
+// both, so its confidence is the MIN of two sub-confidences — whichever gate is
+// closest to failing bounds it:
+//   * margin sub-confidence: margin/(margin + kActionIconMatchMinMargin), same
+//     shape as the card families;
+//   * absolute-quality sub-confidence: (kActionIconMatchMaxScore - best) /
+//     kActionIconMatchMaxScore, i.e. how far the winning distance sits below
+//     the absolute-score ceiling (1 at a perfect 0-distance match, 0 at the
+//     ceiling), clamped to [0,1].
+double VsmActionIconConfidence(double best, double runnerup)
+{
+	double margin_conf = VsmMarginConfidence(best, runnerup, kActionIconMatchMinMargin);
+	double abs_conf = (kActionIconMatchMaxScore - best) / kActionIconMatchMaxScore;
+	if(abs_conf < 0.0) abs_conf = 0.0;
+	if(abs_conf > 1.0) abs_conf = 1.0;
+	return min(margin_conf, abs_conf);
+}
+
+// Dealer/puck family: acceptance is a pure argmin over 3 mean-abs-pixel-diff
+// role scores (dealer=0, sb=1, bb=2) — the dealer observation is kept iff the
+// dealer role is the lowest-scoring, with NO min-margin constant to scale
+// against. So confidence is the scale-free normalized contrast between the
+// winning dealer score and the next-best (SB/BB) role:
+// (runnerup - dealer)/(runnerup + dealer). This is inherently bounded 0..1,
+// invents no threshold: 0 when dealer ties the next role (a coin-flip), rising
+// toward 1 as the dealer template matches far better than either alternative.
+double VsmPuckDealerConfidence(double dealer_score, double sb_score, double bb_score)
+{
+	double runnerup = min(sb_score, bb_score);
+	double denom = runnerup + dealer_score;
+	if(denom <= 0.0)
+		return 0.0;
+	double c = (runnerup - dealer_score) / denom;
+	if(c < 0.0) c = 0.0;
+	if(c > 1.0) c = 1.0;
+	return c;
+}
+
 // ---------------------------------------------------------------------------
 // M05-03 (task 0121): template-match disambiguation for dealer_button-role
 // observations.
@@ -166,6 +237,44 @@ void DeriveDealerSeatPerFrame(const VectorMap<int, int>& dealer_seat_by_frame,
 	}
 }
 
+// M07-02 (task 0138): confidence siblings of the two functions above. Purely
+// additive — the value derivation (ApplyDealerButtonObservations /
+// DeriveDealerSeatPerFrame) is untouched.
+//
+// ApplyDealerButtonConfidence mirrors ApplyDealerButtonObservations exactly:
+// iterate the SAME pre-filtered dealer-move observations in the SAME order and
+// take the LAST one per frame (GetAdd(...) = ...), but store the dealer-role
+// confidence instead of the seat, so the frame keys stay in lockstep with
+// dealer_seat_by_frame.
+void ApplyDealerButtonConfidence(const Vector<VsmLayoutObservationOut>& observations,
+                                 VectorMap<int, double>& dealer_confidence_by_frame)
+{
+	for(const VsmLayoutObservationOut& o : observations) {
+		if(o.role != "dealer_button")
+			continue;
+		double c = o.puck_scored
+			? VsmPuckDealerConfidence(o.puck_score_dealer, o.puck_score_sb, o.puck_score_bb)
+			: 0.0;
+		dealer_confidence_by_frame.GetAdd(o.frame, c) = c;
+	}
+}
+
+// DeriveDealerSeatConfidencePerFrame mirrors DeriveDealerSeatPerFrame's sticky
+// latch exactly, over the confidence map instead of the seat map.
+void DeriveDealerSeatConfidencePerFrame(const VectorMap<int, double>& dealer_confidence_by_frame,
+                                        int frame_lo, int frame_hi,
+                                        Vector<double>& confidence_out)
+{
+	confidence_out.Clear();
+	double conf = 0.0;
+	for(int fid = frame_lo; fid <= frame_hi; fid++) {
+		int i = dealer_confidence_by_frame.Find(fid);
+		if(i >= 0)
+			conf = dealer_confidence_by_frame[i];
+		confidence_out.Add(conf);
+	}
+}
+
 // ---------------------------------------------------------------------------
 // M05-08 (task 0126): board (community) card template-match recognition.
 //
@@ -298,6 +407,32 @@ void DeriveBoardCardsPerFrame(const Vector<VsmBoardCardObservation>& observation
 	}
 }
 
+// M07-02 (task 0138): board-card confidence sibling. Same 5 independent sticky
+// tracks and same latest-observation-per-(slot,frame) rule as
+// DeriveBoardCardsPerFrame, latching confidence instead of value. Value
+// derivation above is untouched.
+void DeriveBoardCardsConfidencePerFrame(const Vector<VsmBoardCardObservation>& observations,
+                                        int frame_lo, int frame_hi,
+                                        Vector<double> confidence_out[5])
+{
+	for(int slot = 0; slot < 5; slot++) {
+		VectorMap<int, double> conf_by_frame;
+		for(const VsmBoardCardObservation& o : observations)
+			if(o.card_index == slot)
+				conf_by_frame.GetAdd(o.frame, o.confidence) = o.confidence;
+
+		Vector<double>& conf = confidence_out[slot];
+		conf.Clear();
+		double c = 0.0;
+		for(int fid = frame_lo; fid <= frame_hi; fid++) {
+			int i = conf_by_frame.Find(fid);
+			if(i >= 0)
+				c = conf_by_frame[i];
+			conf.Add(c);
+		}
+	}
+}
+
 // ---------------------------------------------------------------------------
 // M05-09 (task 0127): per-player action-icon template-match recognition.
 //
@@ -381,6 +516,44 @@ void DeriveActionIconsPerFrame(const Vector<VsmActionIconObservation>& observati
 		}
 		known_out.Add(seat, pick(known));
 		value_out.Add(seat, pick(value));
+	}
+}
+
+// M07-02 (task 0138): action-icon confidence sibling. Mirrors
+// DeriveActionIconsPerFrame's sticky-since-last-CONFIDENT-observation rule
+// EXACTLY, including the reset: an empty/background observation
+// (kActionIconEmptyWinnerValue) drops confidence back to 0.0 the same frame it
+// drops `known` back to false, so this stays in lockstep with the value latch.
+// Needs both value and confidence per frame to reproduce that branch; value
+// derivation above is untouched.
+void DeriveActionIconsConfidencePerFrame(const Vector<VsmActionIconObservation>& observations,
+                                         int frame_lo, int frame_hi,
+                                         const Vector<int>& seats,
+                                         VectorMap<int, Vector<double>>& confidence_out)
+{
+	for(int seat : seats) {
+		VectorMap<int, int>    value_by_frame;
+		VectorMap<int, double> conf_by_frame;
+		for(const VsmActionIconObservation& o : observations)
+			if(o.seat == seat) {
+				value_by_frame.GetAdd(o.frame, o.value) = o.value;
+				conf_by_frame.GetAdd(o.frame, o.confidence) = o.confidence;
+			}
+
+		Vector<double> conf;
+		double c = 0.0;
+		for(int fid = frame_lo; fid <= frame_hi; fid++) {
+			int i = value_by_frame.Find(fid);
+			if(i >= 0) {
+				int ov = value_by_frame[i];
+				if(ov == kActionIconEmptyWinnerValue)
+					c = 0.0;
+				else
+					c = conf_by_frame[i];
+			}
+			conf.Add(c);
+		}
+		confidence_out.Add(seat, pick(conf));
 	}
 }
 
@@ -489,6 +662,34 @@ void DeriveHoleCardsPerFrame(const Vector<VsmHoleCardObservation>& observations,
 			}
 			known_out[slot].Add(seat, pick(known));
 			value_out[slot].Add(seat, pick(value));
+		}
+	}
+}
+
+// M07-02 (task 0138): hole-card confidence sibling. Same per-(seat,slot) sticky
+// tracks and same latest-observation-per-frame rule as DeriveHoleCardsPerFrame,
+// latching confidence instead of value. Value derivation above is untouched.
+void DeriveHoleCardsConfidencePerFrame(const Vector<VsmHoleCardObservation>& observations,
+                                       int frame_lo, int frame_hi,
+                                       const Vector<int>& seats,
+                                       VectorMap<int, Vector<double>> confidence_out[2])
+{
+	for(int slot = 0; slot < 2; slot++) {
+		for(int seat : seats) {
+			VectorMap<int, double> conf_by_frame;
+			for(const VsmHoleCardObservation& o : observations)
+				if(o.seat == seat && o.card_index == slot)
+					conf_by_frame.GetAdd(o.frame, o.confidence) = o.confidence;
+
+			Vector<double> conf;
+			double c = 0.0;
+			for(int fid = frame_lo; fid <= frame_hi; fid++) {
+				int i = conf_by_frame.Find(fid);
+				if(i >= 0)
+					c = conf_by_frame[i];
+				conf.Add(c);
+			}
+			confidence_out[slot].Add(seat, pick(conf));
 		}
 	}
 }
@@ -622,6 +823,7 @@ bool VsmDeriveSessionLogicStates(const String& session_dir, const String& form_p
 				bco.frame = 0;
 				bco.card_index = c->card_index;
 				bco.value = (winner == kCardHolderVocabIndex) ? -1 : winner;
+				bco.confidence = VsmMarginConfidence(scores[winner], runnerup, kCardMatchMinMargin);
 				board_card_observations.Add(bco);
 			}
 		}
@@ -647,6 +849,7 @@ bool VsmDeriveSessionLogicStates(const String& session_dir, const String& form_p
 				hco.seat = c->seat_index;
 				hco.card_index = c->card_index;
 				hco.value = (winner == kHoleCardBackVocabIndex) ? -1 : winner;
+				hco.confidence = VsmMarginConfidence(scores[winner], runnerup, kHoleCardMatchMinMargin);
 				hole_card_observations.Add(hco);
 			}
 		}
@@ -894,6 +1097,7 @@ bool VsmDeriveSessionLogicStates(const String& session_dir, const String& form_p
 					bco.frame      = fid;
 					bco.card_index = c->card_index;
 					bco.value      = (winner == kCardHolderVocabIndex) ? -1 : winner;
+					bco.confidence = VsmMarginConfidence(scores[winner], runnerup, kCardMatchMinMargin);
 					board_card_observations.Add(bco);
 				}
 			}
@@ -936,6 +1140,7 @@ bool VsmDeriveSessionLogicStates(const String& session_dir, const String& form_p
 					aio.frame = fid;
 					aio.seat  = c->seat_index;
 					aio.value = winner;
+					aio.confidence = VsmActionIconConfidence(scores[winner_index], runnerup);
 					action_icon_observations.Add(aio);
 				}
 			}
@@ -972,6 +1177,7 @@ bool VsmDeriveSessionLogicStates(const String& session_dir, const String& form_p
 					hco.seat       = c->seat_index;
 					hco.card_index = c->card_index;
 					hco.value      = (winner == kHoleCardBackVocabIndex) ? -1 : winner;
+					hco.confidence = VsmMarginConfidence(scores[winner], runnerup, kHoleCardMatchMinMargin);
 					hole_card_observations.Add(hco);
 				}
 			}
@@ -1008,6 +1214,7 @@ bool VsmDeriveSessionLogicStates(const String& session_dir, const String& form_p
 			bco.frame      = o.frame;
 			bco.card_index = o.card_index;
 			bco.value      = (o.card_winner == kCardHolderVocabIndex) ? -1 : o.card_winner;
+			bco.confidence = VsmMarginConfidence(o.card_score_best, o.card_score_runnerup, kCardMatchMinMargin);
 			board_card_observations.Add(bco);
 		}
 	}
@@ -1024,6 +1231,7 @@ bool VsmDeriveSessionLogicStates(const String& session_dir, const String& form_p
 			aio.frame = o.frame;
 			aio.seat  = o.seat_index;
 			aio.value = o.action_icon_winner;
+			aio.confidence = VsmActionIconConfidence(o.action_icon_score_best, o.action_icon_score_runnerup);
 			action_icon_observations.Add(aio);
 		}
 	}
@@ -1040,6 +1248,7 @@ bool VsmDeriveSessionLogicStates(const String& session_dir, const String& form_p
 			hco.seat       = o.seat_index;
 			hco.card_index = o.card_index;
 			hco.value      = (o.hole_card_winner == kHoleCardBackVocabIndex) ? -1 : o.hole_card_winner;
+			hco.confidence = VsmMarginConfidence(o.hole_card_score_best, o.hole_card_score_runnerup, kHoleCardMatchMinMargin);
 			hole_card_observations.Add(hco);
 		}
 	}
@@ -1077,6 +1286,26 @@ bool VsmDeriveSessionLogicStates(const String& session_dir, const String& form_p
 	Vector<bool> derived_known;
 	Vector<int>  derived_seat;
 	DeriveDealerSeatPerFrame(dealer_seat_by_frame, 0, info.frame_count - 1, derived_known, derived_seat);
+
+	// --- M07-02 (task 0138): per-frame recognizer confidence, derived in
+	// parallel to (and never altering) the value derivation above, using the
+	// same observation lists and the same sticky/reset latch rules. ---
+	Vector<double> board_confidence[5];
+	DeriveBoardCardsConfidencePerFrame(board_card_observations, 0, info.frame_count - 1, board_confidence);
+
+	VectorMap<int, Vector<double>> action_icon_confidence;
+	DeriveActionIconsConfidencePerFrame(action_icon_observations, 0, info.frame_count - 1,
+	                                    action_icon_seats, action_icon_confidence);
+
+	VectorMap<int, Vector<double>> hole_card_confidence[2];
+	DeriveHoleCardsConfidencePerFrame(hole_card_observations, 0, info.frame_count - 1,
+	                                  action_icon_seats, hole_card_confidence);
+
+	VectorMap<int, double> dealer_confidence_by_frame;
+	ApplyDealerButtonConfidence(dealer_move_observations, dealer_confidence_by_frame);
+	Vector<double> derived_dealer_confidence;
+	DeriveDealerSeatConfidencePerFrame(dealer_confidence_by_frame, 0, info.frame_count - 1,
+	                                   derived_dealer_confidence);
 
 	// --- Build comparator records (dealer-seat pass). ---
 	for(int fid = 0; fid < gt_records.GetCount(); fid++) {
@@ -1285,6 +1514,72 @@ bool VsmDeriveSessionLogicStates(const String& session_dir, const String& form_p
 			rec.hole_cards_verdict = "match";
 		else
 			rec.hole_cards_verdict = "unscored";
+	}
+
+	// --- M07-02 (task 0138): per-field confidence pass. Purely additive; reads
+	// the same per-frame `known` flags the existing passes already use so each
+	// entry's `known`/`confidence` stay in lockstep with the derived value, and
+	// reports the confidence of the observation that established that value. One
+	// entry per field that carries a per-frame value: dealer_seat, board_card_0
+	// ..4, action_icon[seat N] (per player), hole_cards[seat N] (per player). ---
+	for(int fid = 0; fid < out_records.GetCount(); fid++) {
+		VsmLogicCompareRecordOut& rec = out_records[fid];
+		Vector<VsmFieldConfidence>& fc = rec.field_confidence;
+
+		// dealer_seat
+		{
+			VsmFieldConfidence e;
+			e.field = "dealer_seat";
+			e.known = rec.derived_dealer_seat_known;
+			e.confidence = e.known ? derived_dealer_confidence[fid] : 0.0;
+			fc.Add(pick(e));
+		}
+
+		// board_card_0 .. board_card_4
+		for(int slot = 0; slot < 5; slot++) {
+			bool k = fid < board_known[slot].GetCount() && board_known[slot][fid];
+			VsmFieldConfidence e;
+			e.field = Format("board_card_%d", slot);
+			e.known = k;
+			e.confidence = (k && fid < board_confidence[slot].GetCount()) ? board_confidence[slot][fid] : 0.0;
+			fc.Add(pick(e));
+		}
+
+		// action_icon[seat N], per player (same seat list / known rule as the
+		// action-icon comparison pass above).
+		for(const TexasHoldemLogicPlayerState& ps : rec.logic_state.players) {
+			int ki = action_icon_known.Find(ps.seat);
+			bool k = (ki >= 0) && fid < action_icon_known[ki].GetCount() && action_icon_known[ki][fid];
+			int ci = action_icon_confidence.Find(ps.seat);
+			VsmFieldConfidence e;
+			e.field = Format("action_icon[seat %d]", ps.seat);
+			e.known = k;
+			e.confidence = (k && ci >= 0 && fid < action_icon_confidence[ci].GetCount())
+				? action_icon_confidence[ci][fid] : 0.0;
+			fc.Add(pick(e));
+		}
+
+		// hole_cards[seat N], per player. `known` == both slots known (same rule
+		// as the hole-card comparison pass); confidence is the MIN of the two
+		// slots' confidences — the weaker card bounds how sure the pair is.
+		for(const TexasHoldemLogicPlayerState& ps : rec.logic_state.players) {
+			int ki0 = hole_card_known[0].Find(ps.seat);
+			int ki1 = hole_card_known[1].Find(ps.seat);
+			bool k0 = (ki0 >= 0) && fid < hole_card_known[0][ki0].GetCount() && hole_card_known[0][ki0][fid];
+			bool k1 = (ki1 >= 0) && fid < hole_card_known[1][ki1].GetCount() && hole_card_known[1][ki1][fid];
+			bool k = k0 && k1;
+			VsmFieldConfidence e;
+			e.field = Format("hole_cards[seat %d]", ps.seat);
+			e.known = k;
+			if(k) {
+				int ci0 = hole_card_confidence[0].Find(ps.seat);
+				int ci1 = hole_card_confidence[1].Find(ps.seat);
+				double c0 = (ci0 >= 0 && fid < hole_card_confidence[0][ci0].GetCount()) ? hole_card_confidence[0][ci0][fid] : 0.0;
+				double c1 = (ci1 >= 0 && fid < hole_card_confidence[1][ci1].GetCount()) ? hole_card_confidence[1][ci1][fid] : 0.0;
+				e.confidence = min(c0, c1);
+			}
+			fc.Add(pick(e));
+		}
 	}
 
 	return true;

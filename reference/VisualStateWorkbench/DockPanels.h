@@ -252,14 +252,42 @@ public:
 	// existing region-selection wiring.
 	Event<int> WhenBindingSelected;
 
+	// M06-05 (task 0135): fires after a successful "Save to .form" write, so
+	// MainWindow can rebuild th_layout_model_ from the now-changed file (the
+	// model this panel displays is a snapshot taken at session-open time —
+	// see MainWindow::OpenTexasHoldemSession() — and does not auto-refresh
+	// itself). Carries the saved element's name purely for logging.
+	Event<String> WhenElementRectSaved;
+
 private:
 	const VsmSessionLayoutModel* model_ = nullptr;
 
 	Label     info_lbl_, scale_lbl_, frame_lbl_;
 	ArrayCtrl list_;
 	Vector<int> row_region_index_; // list row -> region_index
+	Vector<VsmLayoutBinding> row_bindings_; // list row -> full binding (task 0135: needed by OnSel for the edit affordance's kind/assigned fields)
+
+	// M06-05 (task 0135): element-rect edit affordance. Only meaningful when
+	// the selected row's matched candidate `kind == "element"` (a top-level
+	// `.form` element) — sub-slot editing is explicitly out of scope (see
+	// task 0135's Scope section: sub-slots are shared per-Type fraction
+	// tables, not per-instance data, so there is nothing coherent to write
+	// back for a single row). The fields hold the element's OWN (not
+	// absolute-resolved) design-space x/y/cx/cy — i.e. exactly the value
+	// VsmWriteFormElementRect patches on disk. `VsmSessionLayoutModel` does
+	// not keep its raw `VsmParseFormFile()` result around (it is a
+	// `Moveable`-only type, not deep-copyable — see FormLayout.h), so both
+	// OnSel() and OnSave() re-parse `model_->form_path` fresh on demand
+	// instead (a small, cheap XML file, and freshest possible input to
+	// VsmWriteFormElementRect's own stale-file consistency guard).
+	String    edit_element_name_;    // empty if no element row is selected
+	Label     edit_lbl_, x_lbl_, y_lbl_, cx_lbl_, cy_lbl_;
+	EditInt   x_edit_, y_edit_, cx_edit_, cy_edit_;
+	Button    save_btn_;
+	Label     save_status_lbl_;
 
 	void OnSel();
+	void OnSave();
 };
 
 // ---------------------------------------------------------------------------

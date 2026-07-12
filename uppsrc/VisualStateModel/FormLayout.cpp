@@ -368,4 +368,118 @@ Rect VsmResolveSubSlot(const VsmFormSubSlot& slot, const Rect& owner_rect)
 	            owner_rect.left + lx + lcx, owner_rect.top + ly + lcy);
 }
 
+// ---------------------------------------------------------------------------
+// M06-05 (task 0135) element-rect writer — see FormLayout.h's
+// VsmWriteFormElementRect() comment for the full rationale (pure textual
+// patch of one <item> tag's x/y/cx/cy attribute values only, rather than a
+// generic-XML-serializer round trip, to guarantee byte-for-byte preservation
+// of everything else in the file).
+
+// Replaces the value of one `attr="..."` occurrence inside `tag` (a small
+// substring holding exactly one `<item ...>` opening tag) with `new_value`.
+// `attr_pattern` must include the leading space and trailing `="` (e.g.
+// `" x=\""`) so it cannot ambiguously match a different attribute whose name
+// ends the same way (e.g. `" x=\""` vs. `" cx=\""` — see the header comment's
+// note that every attribute here is space-separated, so a leading space
+// anchors the match to the exact attribute name). Returns false (leaving
+// `tag` unchanged) if the pattern or its closing quote isn't found.
+static bool VsmPatchTagAttr(String& tag, const char* attr_pattern, int new_value)
+{
+	int p = tag.Find(attr_pattern);
+	if(p < 0)
+		return false;
+	int vstart = p + (int)strlen(attr_pattern);
+	int vend = tag.Find('"', vstart);
+	if(vend < 0)
+		return false;
+	tag = tag.Mid(0, vstart) + AsString(new_value) + tag.Mid(vend);
+	return true;
+}
+
+// Reads the value of one `attr="..."` occurrence inside `tag`, or returns
+// false if not found / not parseable as an int. Used only for the
+// stale-file consistency guard (compare what's actually on disk against what
+// `layouts` already parsed) before any bytes are written.
+static bool VsmReadTagAttr(const String& tag, const char* attr_pattern, int& out)
+{
+	int p = tag.Find(attr_pattern);
+	if(p < 0)
+		return false;
+	int vstart = p + (int)strlen(attr_pattern);
+	int vend = tag.Find('"', vstart);
+	if(vend < 0)
+		return false;
+	out = StrInt(tag.Mid(vstart, vend - vstart));
+	return true;
+}
+
+bool VsmWriteFormElementRect(const String& path, const Vector<VsmFormLayout>& layouts,
+                              const String& element_name, int x, int y, int cx, int cy)
+{
+	// (a) confirm the element is known to the already-parsed model first —
+	// refuse to touch the file at all for an element name that isn't real.
+	bool found_in_model = false;
+	for(const VsmFormLayout& layout : layouts)
+		if(layout.Find(element_name)) {
+			found_in_model = true;
+			break;
+		}
+	if(!found_in_model)
+		return false;
+
+	String text = LoadFile(path);
+	if(text.IsEmpty())
+		return false;
+
+	String name_tag = "<name>" + element_name + "</name>";
+
+	// Must be exactly one occurrence — an ambiguous match (two elements
+	// sharing a name, which VsmFormLayout::Find() itself would also only
+	// ever return the FIRST of) is refused rather than guessed at.
+	int first = text.Find(name_tag);
+	if(first < 0)
+		return false;
+	if(text.Find(name_tag, first + 1) >= 0)
+		return false;
+
+	int item_start = text.ReverseFind("<item ", first);
+	if(item_start < 0)
+		return false;
+	int tag_close = text.Find('>', item_start);
+	if(tag_close < 0 || tag_close > first)
+		return false;
+	// Reject a self-closing `<item ... />` (would mean no <name> child could
+	// legitimately follow it as this element's own name) as a shape this
+	// function doesn't understand rather than silently mis-patching it.
+	if(tag_close > item_start && text[tag_close - 1] == '/')
+		return false;
+
+	int tag_end = tag_close + 1; // one past the '>'
+	String tag = text.Mid(item_start, tag_end - item_start);
+
+	// (b) stale-file guard: the rect this textual search just found must
+	// match what `layouts` already parsed for this element, or `layouts`
+	// no longer describes what's actually on disk.
+	int old_x, old_y, old_cx, old_cy;
+	if(!VsmReadTagAttr(tag, " x=\"", old_x) || !VsmReadTagAttr(tag, " y=\"", old_y) ||
+	   !VsmReadTagAttr(tag, " cx=\"", old_cx) || !VsmReadTagAttr(tag, " cy=\"", old_cy))
+		return false;
+	const VsmFormElement* model_el = nullptr;
+	for(const VsmFormLayout& layout : layouts)
+		if(const VsmFormElement* e = layout.Find(element_name)) {
+			model_el = e;
+			break;
+		}
+	if(!model_el || model_el->x != old_x || model_el->y != old_y ||
+	   model_el->cx != old_cx || model_el->cy != old_cy)
+		return false;
+
+	if(!VsmPatchTagAttr(tag, " x=\"", x) || !VsmPatchTagAttr(tag, " y=\"", y) ||
+	   !VsmPatchTagAttr(tag, " cx=\"", cx) || !VsmPatchTagAttr(tag, " cy=\"", cy))
+		return false;
+
+	String new_text = text.Mid(0, item_start) + tag + text.Mid(tag_end);
+	return SaveFile(path, new_text);
+}
+
 } // namespace Upp

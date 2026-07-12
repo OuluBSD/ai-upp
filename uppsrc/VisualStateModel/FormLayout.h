@@ -231,6 +231,50 @@ Vector<VsmFormSubSlot> VsmGetSubSlots(const String& element_type);
 // independently to each axis's position term, unaffected by aspect_lock.
 Rect VsmResolveSubSlot(const VsmFormSubSlot& slot, const Rect& owner_rect);
 
+// ---------------------------------------------------------------------------
+// M06-05 (task 0135): round-trip-safe element-rect writer.
+//
+// Updates ONE top-level element's design-space x/y/cx/cy on disk, in the
+// `.form` XML file at `path`, in place. `layouts` must be the result of
+// `VsmParseFormFile(path)` for this SAME path — used to (a) confirm
+// `element_name` actually exists before touching the file at all, and (b)
+// cross-check that the rect this function finds via its own independent
+// textual search of the raw file matches what the shared XML parser already
+// read for that same element, as a consistency guard against `layouts` being
+// stale (e.g. the file changed on disk since it was parsed).
+//
+// Deliberately does NOT go through XML.h's generic AsXML()/re-serialize-the-
+// whole-document path. That was tried first and rejected: AsXML's output
+// uses CRLF line endings, a double-quoted `<?xml version="1.0" ...?>`
+// declaration, and no space before a self-closing tag's `/>` — this file (like
+// every `.form` file TheIDE's own designer writes) uses LF-only line endings,
+// a single-quoted lowercase-encoding declaration, and a space before `/>` —
+// none of which AsXML reproduces (confirmed empirically, see task 0135's
+// evidence). Reconstructing the whole document from `VsmFormElement`'s parsed
+// fields would ALSO lose the `align`/`valign` item attributes and any other
+// attribute the parsed model doesn't have a named field for, since
+// `VsmFormElement` only captures x/y/cx/cy plus the `<properties>` block, not
+// arbitrary `<item>`-tag attributes.
+//
+// Instead, this performs a pure textual patch: it locates ONLY the four
+// x/y/cx/cy attribute values on `element_name`'s own opening `<item ...>` tag
+// (found by searching for the unique `<name>element_name</name>` child and
+// walking back to its owning `<item `) and replaces just those four
+// substrings. Every other byte of the file — every other `<item>`, every
+// `<property>`, `align`/`valign`, all whitespace/indentation, the XML
+// declaration — is left completely untouched, so preserving everything else
+// byte-for-byte is guaranteed by construction rather than by a serializer
+// that has to replicate this file's exact formatting conventions.
+//
+// Returns false, leaving the file completely unmodified, if: `element_name`
+// isn't found in `layouts`; the on-disk text doesn't contain exactly one
+// `<name>element_name</name>` (ambiguous or missing); no `<item ` is found
+// immediately before it; or the rect read back from that tag's raw text
+// doesn't match the rect `layouts` already has for that element (stale-file
+// guard, see above).
+bool VsmWriteFormElementRect(const String& path, const Vector<VsmFormLayout>& layouts,
+                              const String& element_name, int x, int y, int cx, int cy);
+
 } // namespace Upp
 
 #endif

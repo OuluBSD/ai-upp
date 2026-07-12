@@ -205,6 +205,12 @@ private:
 	// task 0132: a click in the Layout Bindings panel drives the SAME region
 	// selection wiring as a canvas/Regions-list click (reuses OnRegionSelected).
 	void OnLayoutBindingSelected(int region_index);
+	// task 0135: after LayoutBindingPanel writes an edited element rect to
+	// th_form_path_ on disk (via the shared VsmWriteFormElementRect), rebuild
+	// th_layout_model_ from that now-changed file so the rest of the session
+	// (layout dock, canvas overlay, mismatch panel) reflects the edit — the
+	// model built at session-open time does not auto-refresh itself.
+	void OnLayoutElementRectSaved(const String& element_name);
 	// task 0134: "Prev/Next Mismatch" in the Ground-Truth Mismatch panel drives
 	// the SAME frame navigation SetTexasFrame() already provides (only valid
 	// while a TexasHoldem session (C) is active).

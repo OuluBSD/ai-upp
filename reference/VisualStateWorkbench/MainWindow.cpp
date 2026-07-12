@@ -244,6 +244,7 @@ void MainWindow::InitDockers()
 	layout_dock_.Title("Layout Bindings").SizeHint(Size(560, 260));
 	Register(layout_dock_);
 	layout_dock_.WhenBindingSelected = [=](int ri) { OnLayoutBindingSelected(ri); };
+	layout_dock_.WhenElementRectSaved = [=](String name) { OnLayoutElementRectSaved(name); };
 
 	logic_dock_.Title("Logic State").SizeHint(Size(420, 300));
 	Register(logic_dock_);
@@ -719,6 +720,32 @@ void MainWindow::OnLayoutBindingSelected(int region_index)
 	int global_row = (int)(rn - th_session_.regions.begin());
 	if(global_row >= 0 && global_row < th_session_.regions.GetCount())
 		regions_list_.SetCursor(global_row);
+}
+
+void MainWindow::OnLayoutElementRectSaved(const String& element_name)
+{
+	// task 0135: LayoutBindingPanel already wrote the edit straight to
+	// th_form_path_ on disk via the shared VsmWriteFormElementRect writer
+	// (GUI-independent, same function a headless caller would use) BEFORE
+	// firing this event — this handler only rebuilds the in-memory model
+	// that mirrors that file, it does not perform the write itself.
+	if(active_session_ != ACTIVE_TEXAS || th_form_path_.IsEmpty())
+		return;
+
+	th_layout_model_ = VsmBuildSessionLayoutModel(th_session_, th_form_path_);
+	layout_dock_.SetModel(&th_layout_model_);
+	frame_canvas_.SetLayoutModel(&th_layout_model_);
+	mismatch_dock_.SetModel(&th_session_, &th_layout_model_, &th_logic_model_);
+
+	if(th_layout_model_.loaded)
+		Log(Format("texas layout: \"%s\" rect saved to %s — model rebuilt (%d candidates)",
+		           element_name, th_form_path_, th_layout_model_.candidates.GetCount()));
+	else
+		Log("texas layout: model rebuild FAILED after saving \"" + element_name +
+		    "\" — " + th_layout_model_.error);
+
+	// Refresh the current frame's bindings/overlay against the rebuilt model.
+	SetTexasFrame(th_step_pos_);
 }
 
 void MainWindow::OnMismatchJumpToFrame(int frame_id)

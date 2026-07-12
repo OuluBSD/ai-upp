@@ -808,10 +808,31 @@ LayoutBindingPanel::LayoutBindingPanel()
 	list_.AddColumn("Overlap", 56);
 	list_.WhenSel = [=] { OnSel(); };
 
+	// M06-05 (task 0135): element-rect edit row, docked below the list. Only
+	// enabled when the selected row's matched candidate is a top-level
+	// element (see edit_element_name_'s comment in the header).
+	edit_lbl_.SetLabel("Edit element rect: —");
+	x_lbl_.SetLabel("x:"); y_lbl_.SetLabel("y:"); cx_lbl_.SetLabel("cx:"); cy_lbl_.SetLabel("cy:");
+	save_btn_.SetLabel("Save to .form");
+	save_status_lbl_.SetLabel("");
+	save_btn_.WhenAction = [=] { OnSave(); };
+	save_btn_.Disable();
+
 	Add(info_lbl_.HSizePos(4, 4).TopPos(4, 20));
 	Add(scale_lbl_.HSizePos(4, 4).TopPos(26, 20));
 	Add(frame_lbl_.HSizePos(4, 4).TopPos(48, 20));
-	Add(list_.HSizePos(4, 4).VSizePos(72, 4));
+	Add(list_.HSizePos(4, 4).VSizePos(72, 46));
+	Add(edit_lbl_.HSizePos(4, 4).BottomPos(24, 18));
+	Add(x_lbl_.LeftPos(4, 16).BottomPos(2, 18));
+	Add(x_edit_.LeftPos(20, 44).BottomPos(2, 18));
+	Add(y_lbl_.LeftPos(68, 16).BottomPos(2, 18));
+	Add(y_edit_.LeftPos(84, 44).BottomPos(2, 18));
+	Add(cx_lbl_.LeftPos(132, 20).BottomPos(2, 18));
+	Add(cx_edit_.LeftPos(152, 44).BottomPos(2, 18));
+	Add(cy_lbl_.LeftPos(200, 20).BottomPos(2, 18));
+	Add(cy_edit_.LeftPos(220, 44).BottomPos(2, 18));
+	Add(save_btn_.LeftPos(268, 90).BottomPos(2, 18));
+	Add(save_status_lbl_.HSizePos(362, 4).BottomPos(2, 18));
 }
 
 void LayoutBindingPanel::SetModel(const VsmSessionLayoutModel* model)
@@ -835,6 +856,7 @@ void LayoutBindingPanel::SetFrameBindings(int frame_id, const Vector<VsmLayoutBi
 {
 	list_.Clear();
 	row_region_index_.Clear();
+	row_bindings_.Clear();
 
 	int matched = 0;
 	for(const VsmLayoutBinding& b : bindings) {
@@ -845,20 +867,33 @@ void LayoutBindingPanel::SetFrameBindings(int frame_id, const Vector<VsmLayoutBi
 		list_.Add(Format("region-%d", b.region_index), rect, b.role, seat, card,
 		          b.assigned, overlap);
 		row_region_index_.Add(b.region_index);
+		row_bindings_.Add(b);
 		if(b.matched) matched++;
 	}
 	frame_lbl_.SetLabel(Format("Frame: %d   regions: %d   matched: %d   unassigned: %d",
 	                           frame_id, bindings.GetCount(), matched,
 	                           bindings.GetCount() - matched));
+	// task 0135: a frame change invalidates whichever row was mid-edit.
+	edit_element_name_.Clear();
+	edit_lbl_.SetLabel("Edit element rect: —");
+	x_edit_.Clear(); y_edit_.Clear(); cx_edit_.Clear(); cy_edit_.Clear();
+	save_btn_.Disable();
+	save_status_lbl_.SetLabel("");
 }
 
 void LayoutBindingPanel::Clear()
 {
 	list_.Clear();
 	row_region_index_.Clear();
+	row_bindings_.Clear();
 	info_lbl_.SetLabel("Layout: —");
 	scale_lbl_.SetLabel("Scale: —");
 	frame_lbl_.SetLabel("Frame: —");
+	edit_element_name_.Clear();
+	edit_lbl_.SetLabel("Edit element rect: —");
+	x_edit_.Clear(); y_edit_.Clear(); cx_edit_.Clear(); cy_edit_.Clear();
+	save_btn_.Disable();
+	save_status_lbl_.SetLabel("");
 }
 
 void LayoutBindingPanel::OnSel()
@@ -867,6 +902,78 @@ void LayoutBindingPanel::OnSel()
 	if(row < 0 || row >= row_region_index_.GetCount())
 		return;
 	WhenBindingSelected(row_region_index_[row]);
+
+	// M06-05 (task 0135): populate the edit fields iff this row's matched
+	// candidate is a top-level element (b.kind == "element") — sub-slots and
+	// unassigned rows leave the edit affordance disabled (see the header's
+	// edit_element_name_ comment for why sub-slot editing is out of scope).
+	edit_element_name_.Clear();
+	x_edit_.Clear(); y_edit_.Clear(); cx_edit_.Clear(); cy_edit_.Clear();
+	save_btn_.Disable();
+	save_status_lbl_.SetLabel("");
+
+	if(row >= row_bindings_.GetCount()) {
+		edit_lbl_.SetLabel("Edit element rect: —");
+		return;
+	}
+	const VsmLayoutBinding& b = row_bindings_[row];
+	if(!b.matched || b.kind != "element" || !model_) {
+		edit_lbl_.SetLabel(b.matched
+			? "Edit element rect: (sub-slot rows are not editable, see task 0135)"
+			: "Edit element rect: (unassigned row)");
+		return;
+	}
+
+	// Look up the element's OWN (writer-coordinate) rect by re-parsing
+	// model_->form_path fresh — NOT model_->profile, which only holds the
+	// absolute/resolved rect (see VsmLayoutElementInfo's comment) — see the
+	// header's edit_element_name_ comment for why this re-parses rather than
+	// caching a VsmFormLayout copy.
+	Vector<VsmFormLayout> layouts = VsmParseFormFile(model_->form_path);
+	const VsmFormElement* el = nullptr;
+	for(const VsmFormLayout& layout : layouts)
+		if(const VsmFormElement* e = layout.Find(b.assigned)) {
+			el = e;
+			break;
+		}
+	if(!el) {
+		edit_lbl_.SetLabel("Edit element rect: (\"" + b.assigned + "\" not found in .form file)");
+		return;
+	}
+
+	edit_element_name_ = b.assigned;
+	edit_lbl_.SetLabel("Edit element rect: \"" + b.assigned + "\"");
+	x_edit_ = el->x; y_edit_ = el->y; cx_edit_ = el->cx; cy_edit_ = el->cy;
+	save_btn_.Enable();
+}
+
+void LayoutBindingPanel::OnSave()
+{
+	if(edit_element_name_.IsEmpty() || !model_ || !model_->loaded) {
+		save_status_lbl_.SetLabel("nothing to save");
+		return;
+	}
+	int x  = (int)x_edit_.GetData();
+	int y  = (int)y_edit_.GetData();
+	int cx = (int)cx_edit_.GetData();
+	int cy = (int)cy_edit_.GetData();
+
+	// Re-parse fresh (same reasoning as OnSel() above) so the `layouts`
+	// VsmWriteFormElementRect cross-checks against reflects the file exactly
+	// as it is right now, not a stale snapshot from whenever the row was
+	// selected.
+	Vector<VsmFormLayout> layouts = VsmParseFormFile(model_->form_path);
+
+	// Shared, GUI-independent writer (FormLayout.h/.cpp) — the exact same
+	// function a headless caller would use. This is the CLI-Expectations-
+	// preserving persistence step: the result is a plain edit to the SAME
+	// `.form` file on disk `VisualStateLayoutAssign`/the game engine already
+	// read, so a rerun of either sees this edit with no adapter of its own.
+	bool ok = VsmWriteFormElementRect(model_->form_path, layouts,
+	                                   edit_element_name_, x, y, cx, cy);
+	save_status_lbl_.SetLabel(ok ? "Saved" : "save failed");
+	if(ok)
+		WhenElementRectSaved(edit_element_name_);
 }
 
 // ---------------------------------------------------------------------------

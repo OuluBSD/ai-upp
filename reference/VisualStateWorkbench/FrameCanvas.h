@@ -18,6 +18,19 @@ public:
 	void SetFrame(int frame) { current_frame_ = frame; Refresh(); }
 	int  GetCurrentFrame() const { return current_frame_; }
 
+	// Real per-frame image (task 0131). Drawn at (0, kTopOffset) at 1:1 scale,
+	// UNDER the overlay layers, so overlay rects (which add kTopOffset) line up
+	// pixel-exact with the frame. An empty Image() restores the old
+	// dark-placeholder look (sample/imported sessions never set one, so their
+	// appearance and drag-to-create coordinate system are unchanged).
+	void SetFrameImage(const Image& img) { frame_image_ = img; Refresh(); }
+	bool HasFrameImage() const { return !frame_image_.IsEmpty(); }
+
+	// Optional info line shown at the top-left. When set, it replaces the
+	// session_-derived line (used by TexasHoldem sessions, which are not backed
+	// by a VsmSession). Empty string restores the default behaviour.
+	void SetInfoText(const String& s) { info_text_ = s; Refresh(); }
+
 	// Overlay data (all optional)
 	void SetChangedRegions(const Vector<VsmChangedRect>& regions);
 	void SetAnnotationLayer(VsmAnnotationLayer* layer) { ann_layer_ = layer; Refresh(); }
@@ -53,6 +66,8 @@ private:
 
 	const VsmSession*                    session_      = nullptr;
 	int                                  current_frame_ = -1;
+	Image                                frame_image_;   // real per-frame image (optional)
+	String                               info_text_;     // overrides session_ info line when set
 	VsmAnnotationLayer*                  ann_layer_    = nullptr;
 	const Vector<VsmTemplateMatchResult>* tmpl_results_ = nullptr;
 	const Vector<VsmOcrResult>*          ocr_results_  = nullptr;

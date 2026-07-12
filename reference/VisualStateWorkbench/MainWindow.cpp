@@ -35,6 +35,7 @@ public:
 		IMAGE_SEQUENCE = 1,
 		SAMPLE         = 2,
 		E2E_SAMPLE     = 3,
+		TEXAS_SESSION  = 4,
 	};
 
 	OpenImportDialog();
@@ -63,6 +64,7 @@ OpenImportDialog::OpenImportDialog()
 	type_lbl_.SetLabel("Source:");
 	type_drop_.Add(SESSION_DIR,    "Existing session directory");
 	type_drop_.Add(IMAGE_SEQUENCE, "Image sequence (.vsm/.jpg/.png)");
+	type_drop_.Add(TEXAS_SESSION,  "TexasHoldem session (metadata.json + frames/)");
 	type_drop_.Add(SAMPLE,         "Built-in sample data");
 	type_drop_.Add(E2E_SAMPLE,     "Built-in E2E sample data");
 	type_drop_.SetIndex(0);
@@ -91,7 +93,7 @@ OpenImportDialog::OpenImportDialog()
 bool OpenImportDialog::NeedsPath() const
 {
 	SourceType t = (SourceType)(int)type_drop_.GetData();
-	return t == SESSION_DIR || t == IMAGE_SEQUENCE;
+	return t == SESSION_DIR || t == IMAGE_SEQUENCE || t == TEXAS_SESSION;
 }
 
 void OpenImportDialog::OnTypeChanged()
@@ -380,9 +382,11 @@ void MainWindow::LoadSampleSession()
 	Log("session: loading sample…");
 
 	// Loading the sample always makes the sample replay session (A) the
-	// active session, discarding any opened/imported session (B) identity.
-	has_src_session_ = false;
+	// active session, discarding any opened/imported (B) or TexasHoldem (C)
+	// session identity.
+	active_session_ = ACTIVE_SAMPLE;
 	src_step_pos_    = 0;
+	ClearTexasSession();
 	// The sample session has no real per-frame image bytes at all (only
 	// VsmSession regions/changes) -- so there is no real "current frame" to
 	// offer the rule/pipeline preview panels while it's active.
@@ -424,11 +428,18 @@ void MainWindow::LoadSampleSession()
 
 void MainWindow::OnStep()
 {
-	// Operate on whichever session is active: the opened/imported session
-	// (B, src_source_) once one has been opened, else the sample replay
-	// session (A, replay_). This mirrors the has_src_session_ branch
-	// OnRunPipeline() already uses for "Run Pipeline".
-	if(has_src_session_) {
+	// Operate on whichever session is active (active_session_): the TexasHoldem
+	// session (C), the opened/imported session (B, src_source_), or the sample
+	// replay session (A, replay_).
+	if(active_session_ == ACTIVE_TEXAS) {
+		if(th_step_pos_ >= th_session_.info.frame_count - 1) {
+			Log("texas session: already at last frame");
+			return;
+		}
+		SetTexasFrame(th_step_pos_ + 1);
+		return;
+	}
+	if(active_session_ == ACTIVE_IMPORTED) {
 		VsmImageBuffer img;
 		int64 ts_ms = 0;
 		if(!src_source_.ReadFrame(img, ts_ms)) {
@@ -450,7 +461,13 @@ void MainWindow::OnStep()
 
 void MainWindow::OnRunAll()
 {
-	if(has_src_session_) {
+	if(active_session_ == ACTIVE_TEXAS) {
+		if(th_session_.info.frame_count > 0)
+			SetTexasFrame(th_session_.info.frame_count - 1);
+		Log("texas session: run all complete");
+		return;
+	}
+	if(active_session_ == ACTIVE_IMPORTED) {
 		VsmImageBuffer img;
 		int64 ts_ms = 0;
 		bool got_any = false;
@@ -474,13 +491,14 @@ void MainWindow::OnRunAll()
 
 void MainWindow::OnResetReplay()
 {
-	// Resetting the sample is only destructive when an opened/imported
-	// session (B) is currently active -- confirm before discarding it.
-	if(has_src_session_) {
+	// Resetting the sample is only destructive when a real session (B imported
+	// or C TexasHoldem) is currently active -- confirm before discarding it.
+	if(active_session_ != ACTIVE_SAMPLE) {
 		if(!PromptYesNo("This will discard the currently opened session and "
 		                "reload the built-in sample. Continue?"))
 			return;
-		src_source_.Close();
+		if(active_session_ == ACTIVE_IMPORTED)
+			src_source_.Close();
 	}
 	LoadSampleSession();
 }
@@ -591,12 +609,28 @@ void MainWindow::OnRegionSelected(const String& id)
 		return;
 	}
 	// Look up regions from whichever session is actually being displayed.
+	// TexasHoldem sessions (C) DO have region data: the canvas fires
+	// "region-N" where N indexes th_frame_nodes_ (the current frame's region
+	// nodes, in overlay draw order) -- map that straight back to the node.
+	if(active_session_ == ACTIVE_TEXAS) {
+		if(id.StartsWith("region-")) {
+			int n = ScanInt(id.Mid(7));
+			if(n >= 0 && n < th_frame_nodes_.GetCount()) {
+				const VsmRegionNode* rn = th_frame_nodes_[n];
+				props_dock_.SetRegion(rn->id, rn);
+				Log("region selected: " + rn->id);
+				return;
+			}
+		}
+		props_dock_.Clear();
+		return;
+	}
 	// Opened/imported sessions (B) have no VsmRegionNode-shaped region list
 	// in the headless API today (see RefreshAfterSourceStep()), so there is
 	// nothing to search there -- report that plainly rather than
 	// (incorrectly) matching against the unrelated sample session's (A)
 	// regions, which is what happened before this fix.
-	if(has_src_session_) {
+	if(active_session_ == ACTIVE_IMPORTED) {
 		props_dock_.Clear();
 		Log("region: no region data available for the opened session (" + id + ")");
 		return;
@@ -615,7 +649,14 @@ void MainWindow::OnRegionListSel()
 {
 	int row = regions_list_.GetCursor();
 	if(row < 0) return;
-	if(has_src_session_) {
+	if(active_session_ == ACTIVE_TEXAS) {
+		if(row >= th_session_.regions.GetCount()) return;
+		const VsmRegionNode& rn = th_session_.regions[row];
+		props_dock_.SetRegion(rn.id, &rn);
+		Log(Format("region list selected: %s", rn.id));
+		return;
+	}
+	if(active_session_ == ACTIVE_IMPORTED) {
 		Log("region list: no region data available for the opened session");
 		return;
 	}
@@ -734,8 +775,12 @@ void MainWindow::OnAnnotationChanged()
 
 void MainWindow::OnCompareGroundTruth()
 {
-	if(!has_src_session_) {
-		Log("ground truth: open a session first");
+	// This is the legacy generic .vsm/VsmGroundTruthLoader flow — it only
+	// applies to opened/imported sessions (B). TexasHoldem sessions (C) have
+	// their own ground-truth data (th_session_.ground_truth) consumed by later
+	// M06 tasks, not by this comparator.
+	if(active_session_ != ACTIVE_IMPORTED) {
+		Log("ground truth: open an imported session first");
 		return;
 	}
 
@@ -827,8 +872,10 @@ void MainWindow::OpenSessionPath(const String& path)
 
 	// This session (B) becomes the active session: toolbar Step/Run All and
 	// region lookups now act on it instead of the sample replay session (A)
-	// -- see OnStep()/OnRunAll()/OnRegionSelected()/OnRegionListSel().
-	has_src_session_ = true;
+	// -- see OnStep()/OnRunAll()/OnRegionSelected()/OnRegionListSel(). Also
+	// discards any previously active TexasHoldem session (C) display state.
+	ClearTexasSession();
+	active_session_ = ACTIVE_IMPORTED;
 	src_step_pos_    = 0;
 	// No frame has been read from the newly opened session yet (Step/Run
 	// All haven't run) -- clear any stale frame left over from whatever was
@@ -884,12 +931,132 @@ void MainWindow::OnOpenImportSession()
 	case OpenImportDialog::IMAGE_SEQUENCE:
 		DispatchImageSequenceImport(path);
 		break;
+	case OpenImportDialog::TEXAS_SESSION:
+		OpenTexasHoldemSession(path);
+		break;
 	case OpenImportDialog::SAMPLE:
 		LoadSampleSession();
 		break;
 	case OpenImportDialog::E2E_SAMPLE:
 		OnLoadE2ESample();
 		break;
+	}
+}
+
+// ---------------------------------------------------------------------------
+// TexasHoldem M01/M02 session source (task 0131)
+
+void MainWindow::ClearTexasSession()
+{
+	th_session_ = VsmTexasHoldemSession();
+	th_step_pos_ = 0;
+	th_frame_nodes_.Clear();
+	frame_canvas_.SetFrameImage(Image());
+	frame_canvas_.SetInfoText(String());
+}
+
+void MainWindow::OpenTexasHoldemSession(const String& path)
+{
+	if(path.IsEmpty()) return;
+	Log("texas session: opening " + path);
+
+	VsmTexasHoldemSession sess;
+	VsmTexasHoldemLoadResult r = VsmLoadTexasHoldemSession(path, sess, &log_);
+	if(!r.success) {
+		Log("texas session: load failed — " + r.error);
+		PromptOK("Could not open TexasHoldem session:\n" + path + "\n\n" + r.error +
+		         "\nSee Debug tab for details.");
+		return;
+	}
+
+	// This TexasHoldem session (C) becomes the single active session. Close any
+	// imported source (B) so it doesn't linger as a second "real" session.
+	if(active_session_ == ACTIVE_IMPORTED)
+		src_source_.Close();
+	th_session_    = pick(sess);
+	active_session_ = ACTIVE_TEXAS;
+	th_step_pos_   = 0;
+
+	// TexasHoldem sessions carry their own per-frame pixels via the adapter, so
+	// the generic VsmImageBuffer "current frame" fed to the rule/pipeline
+	// preview panels stays empty (those panels are out of scope here).
+	current_frame_img_ = VsmImageBuffer();
+	PushCurrentFrameToPanels();
+
+	// Session Info panel from the real metadata.json.
+	session_dock_.SetTexasHoldemInfo(th_session_.info);
+
+	// Regions tab: one row per changed region per transition.
+	RebuildTexasRegionsList();
+
+	// A fresh, empty annotation layer (TexasHoldem sessions have no
+	// annotations.json). Keep annotation authoring working, but with no backing
+	// file to persist to (annotation_path_ empty -> NotifySaveResult path_empty).
+	annotation_layer_ = VsmAnnotationLayer();
+	annotation_layer_.session_id = th_session_.info.session_id;
+	annotation_path_ = String();
+	annotation_dock_.SetLayer(&annotation_layer_);
+	frame_canvas_.SetSession(nullptr);
+	frame_canvas_.SetAnnotationLayer(&annotation_layer_);
+	frame_canvas_.WhenAnnotationCreated = [=] { OnAnnotationChanged(); };
+	frame_canvas_.WhenAnnotationMoved   = [=] { OnAnnotationChanged(); };
+
+	registry_.Set("session.last_path", path);
+
+	// Show the first frame (frame 0 has no predecessor -> no changed regions).
+	SetTexasFrame(0);
+
+	Log(Format("texas session: opened — %s provider=%s %dx%d frames=%d "
+	           "regions=%d(records) distinct=%d gt=%d",
+	           th_session_.info.session_id, th_session_.info.provider,
+	           th_session_.info.table_width, th_session_.info.table_height,
+	           th_session_.info.frame_count, r.region_records, r.distinct_regions,
+	           r.ground_truth_records));
+}
+
+void MainWindow::SetTexasFrame(int frame_id)
+{
+	if(th_session_.IsEmpty()) return;
+	int fc = th_session_.info.frame_count;
+	if(frame_id < 0) frame_id = 0;
+	if(fc > 0 && frame_id > fc - 1) frame_id = fc - 1;
+	th_step_pos_ = frame_id;
+
+	// Real frame image under the overlays.
+	VsmFrameImage fi;
+	if(VsmLoadTexasHoldemFrameImage(th_session_, frame_id, fi))
+		frame_canvas_.SetFrameImage(VsmFrameImageToImage(fi));
+	else
+		frame_canvas_.SetFrameImage(Image());
+
+	// Overlay: this frame's changed-region rectangles, in stable detection
+	// order so canvas "region-N" click indices line up with th_frame_nodes_.
+	th_frame_nodes_ = th_session_.RegionsForFrame(frame_id);
+	Vector<VsmChangedRect> rects;
+	for(const VsmRegionNode* rn : th_frame_nodes_) {
+		VsmChangedRect cr;
+		cr.x = rn->x; cr.y = rn->y; cr.w = rn->w; cr.h = rn->h;
+		rects.Add(cr);
+	}
+	frame_canvas_.SetChangedRegions(rects);
+	frame_canvas_.SetFrame(frame_id);
+	frame_canvas_.SetInfoText(Format("TexasHoldem: %s  %dx%d  frame: %d/%d",
+	                                 th_session_.info.session_id,
+	                                 th_session_.info.table_width,
+	                                 th_session_.info.table_height,
+	                                 frame_id, fc - 1));
+
+	timeline_dock_.SetProgress(frame_id, fc);
+}
+
+void MainWindow::RebuildTexasRegionsList()
+{
+	regions_list_.Clear();
+	for(const VsmRegionNode& rn : th_session_.regions) {
+		String rect = Format("(%d,%d) ", rn.x, rn.y) + IntStr(rn.w) + "x" + IntStr(rn.h);
+		regions_list_.Add(rn.id, rn.frame,
+		                  rn.action.IsEmpty() ? "—" : rn.action,
+		                  rect);
 	}
 }
 
@@ -1058,8 +1225,17 @@ void MainWindow::OnRunPipeline()
 	matcher.SetLog(&log_);
 	pipe.SetTemplateMatcher(&matcher);
 
+	// The generic observation pipeline runs against the sample (A) or an
+	// opened/imported (B) session. TexasHoldem sessions (C) use the M05
+	// template-match / logic-state pipeline (reference/VisualStateLogicCompare),
+	// not this one -- guard it out rather than run against a stale source.
+	if(active_session_ == ACTIVE_TEXAS) {
+		Log("pipeline: not applicable to TexasHoldem sessions in this task");
+		return;
+	}
+
 	VsmPipelineRunSummary summary;
-	if(has_src_session_) {
+	if(active_session_ == ACTIVE_IMPORTED) {
 		// Re-open source so we read from the beginning
 		String path = session_store_.GetPaths().root;
 		src_source_.Close();
@@ -1131,7 +1307,7 @@ void MainWindow::OnJumpToFrame(int frame)
 	// LoadSampleSession()) -- so jumping while the sample is active leaves
 	// no real frame for the rule/pipeline preview panels.
 	VsmImageBuffer img;
-	if(has_src_session_ && session_store_.IsOpen() && session_store_.LoadFrameImage(frame, img))
+	if(active_session_ == ACTIVE_IMPORTED && session_store_.IsOpen() && session_store_.LoadFrameImage(frame, img))
 		current_frame_img_ = pick(img);
 	else
 		current_frame_img_ = VsmImageBuffer();

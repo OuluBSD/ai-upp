@@ -76,8 +76,16 @@ void FrameCanvas::Paint(Draw& w)
 		return;
 	}
 
+	// Real per-frame image (task 0131), drawn under the overlays at 1:1 scale,
+	// anchored just below the top info line so overlay coordinates (which add
+	// kTopOffset) map pixel-exact onto the frame.
+	if(!frame_image_.IsEmpty())
+		w.DrawImage(0, kTopOffset, frame_image_);
+
 	// Session info line
-	if(session_) {
+	if(!info_text_.IsEmpty()) {
+		w.DrawText(8, 4, info_text_, StdFont(), SColorText());
+	} else if(session_) {
 		String frame_str = current_frame_ >= 0 ? Format("  frame: %d", current_frame_) : "";
 		String info = Format("Session: %s  %dx%d  src: %s%s",
 		                     session_->session_id, session_->frame_width,

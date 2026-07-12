@@ -770,6 +770,16 @@ void SessionInfoPanel::SetManifest(const VsmSessionManifest& m)
 	                             m.frames.GetCount(), m.crops.GetCount()));
 }
 
+void SessionInfoPanel::SetTexasHoldemInfo(const VsmM01M02SessionInfo& info)
+{
+	id_lbl_.SetLabel("Session: " + info.session_id);
+	source_lbl_.SetLabel("Provider: " + info.provider);
+	size_lbl_.SetLabel(Format("Size: %dx%d", info.table_width, info.table_height));
+	created_lbl_.SetLabel("Created: —");
+	format_lbl_.SetLabel("Format: png");
+	assets_lbl_.SetLabel(Format("Frames: %d", info.frame_count));
+}
+
 void SessionInfoPanel::Clear()
 {
 	id_lbl_.SetLabel("Session: —");

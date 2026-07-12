@@ -12,6 +12,7 @@ using namespace Upp;
 #include "FrameCanvas.h"
 #include "DockPanels.h"
 #include "JpegSequenceImporter.h"
+#include "TexasHoldemSessionAdapter.h"
 
 class MainWindow : public DockWindow {
 public:
@@ -55,12 +56,20 @@ private:
 	// ---- Session storage + annotation layer + pipeline + rules + model runtime
 	VsmSessionStore           session_store_;
 	VsmSessionStoreSource     src_source_;     // for sessions opened via OnOpenSession
-	// has_src_session_ is the single source of truth for "which session is
-	// active": true => the opened/imported session (B, src_source_) is what
-	// the toolbar/region controls act on; false => the built-in sample
-	// replay session (A, replay_) is active. See LoadSampleSession(),
-	// OpenSessionPath(), and OnResetReplay().
-	bool                      has_src_session_ = false;
+
+	// active_session_ is the SINGLE source of truth for "which session is
+	// active" — it generalizes task 0057's has_src_session_ bool from two
+	// states to three, keeping exactly one authoritative notion (never two
+	// flags that could disagree, which is the BUG-A/BUG-B class 0057 fixed):
+	//   ACTIVE_SAMPLE   => built-in sample replay session (A, replay_)
+	//   ACTIVE_IMPORTED => opened/imported .vsm/JPEG session (B, src_source_)
+	//   ACTIVE_TEXAS    => opened TexasHoldem M01/M02 session (C, th_session_)
+	// The toolbar Step/Run All, region lookups, Reset, Run Pipeline and
+	// ground-truth flows all branch on this. Set in LoadSampleSession()
+	// (SAMPLE), OpenSessionPath() (IMPORTED) and OpenTexasHoldemSession()
+	// (TEXAS).
+	enum ActiveSession { ACTIVE_SAMPLE, ACTIVE_IMPORTED, ACTIVE_TEXAS };
+	ActiveSession             active_session_ = ACTIVE_SAMPLE;
 	int                       src_step_pos_    = 0; // frames read from src_source_ so far (Step/Run All bookkeeping)
 	// The real current frame image of the active session, in the same
 	// headless pixel-buffer shape VsmSessionStoreSource/VsmSessionStore
@@ -73,6 +82,16 @@ private:
 	// RefreshAfterSourceStep(), OnJumpToFrame()) plus session
 	// load/open/reset points where the active session identity changes.
 	VsmImageBuffer            current_frame_img_;
+
+	// ---- TexasHoldem M01/M02 session (C) — task 0131. Loaded via the
+	// GUI-independent adapter (TexasHoldemSessionAdapter.h). th_step_pos_ is the
+	// currently displayed frame id; th_frame_nodes_ are the region nodes for
+	// that frame, in the same order the FrameCanvas overlay draws them (so a
+	// canvas "region-N" click maps straight back to a node).
+	VsmTexasHoldemSession        th_session_;
+	int                          th_step_pos_ = 0;
+	Vector<const VsmRegionNode*> th_frame_nodes_;
+
 	VsmAnnotationLayer        annotation_layer_;
 	String                    annotation_path_;
 	VsmPreprocessPipeline     current_pipeline_;
@@ -121,6 +140,18 @@ private:
 	// by OnOpenImportSession() (formerly duplicated inline in the old
 	// OnImportImageSequence() menu handler, now folded into this one helper).
 	void DispatchImageSequenceImport(const String& src_dir);
+	// TexasHoldem M01/M02 session source (task 0131): loads a real
+	// --record-session directory via the headless adapter and makes it the
+	// active session (C). SetTexasFrame() displays a given frame (real image +
+	// that frame's changed-region overlay); RebuildTexasRegionsList() fills the
+	// Regions tab with the per-transition region records.
+	void OpenTexasHoldemSession(const String& path);
+	void SetTexasFrame(int frame_id);
+	void RebuildTexasRegionsList();
+	// Clears any active TexasHoldem session display state (frame image, info
+	// line, region overlay/list bookkeeping). Called when switching away to the
+	// sample or an imported session.
+	void ClearTexasSession();
 	// Shared "current frame" accessor for the LEFT dock panels (PipelineEditorPanel,
 	// TemplateRulePanel, OcrRulePanel): pushes current_frame_img_ to each via
 	// their SetCurrentFrame(). Call whenever current_frame_img_ changes.

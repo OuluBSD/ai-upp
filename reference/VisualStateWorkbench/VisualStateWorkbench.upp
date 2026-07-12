@@ -5,6 +5,8 @@ uses
 	CtrlLib,
 	Docking,
 	VisualStateModel,
+	CardRender,
+	TexasHoldem,
 	plugin/jpg;
 
 file
@@ -21,7 +23,9 @@ file
 	DockPanels.h,
 	DockPanels.cpp,
 	JpegSequenceImporter.h,
-	JpegSequenceImporter.cpp;
+	JpegSequenceImporter.cpp,
+	TexasHoldemSessionAdapter.h,
+	TexasHoldemSessionAdapter.cpp;
 
 mainconfig
 	"" = "GUI",

@@ -213,6 +213,9 @@ public:
 
 	SessionInfoPanel();
 	void SetManifest(const VsmSessionManifest& m);
+	// task 0131: populate from a TexasHoldem M01/M02 session's metadata.json
+	// (reuses the same six labels; provider takes the "Source" slot).
+	void SetTexasHoldemInfo(const VsmM01M02SessionInfo& info);
 	void Clear();
 
 private:

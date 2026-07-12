@@ -50,6 +50,8 @@ file
 	GroundTruthTemplate.cpp,
 	FrameSource.h,
 	FrameSource.cpp,
+	LiveSession.h,
+	LiveSession.cpp,
 	ImageSequenceImporter.h,
 	ImageSequenceImporter.cpp,
 	CaptureSink.h,

@@ -53,6 +53,11 @@ struct TexasHoldemSessionMetadata : Moveable<TexasHoldemSessionMetadata> {
 	String frame_format = "png";
 	String frame_pattern = "frames/00000000.png";
 	String ground_truth = "groundtruth.jsonl";
+	// task 0137 (M07): additive recording-progress marker. "recording" while
+	// --record-session is still writing frames/ground-truth; "complete" once the
+	// session is fully finalized. Absent from old (pre-0137) fixtures, which every
+	// reader must treat as already "complete" (see VsmLiveM01M02SessionSource).
+	String status = "complete";
 
 	void Jsonize(JsonIO& jio);
 };

@@ -331,6 +331,195 @@ static void RunMergedNameActionFixtureChecks()
 	}
 }
 
+// ---------------------------------------------------------------------------
+// M07-01 (task 0137): live-tailing frame source regression.
+//
+// Proves VsmLiveM01M02SessionSource genuinely OBSERVES an M01/M02 session
+// directory being written incrementally by a concurrently-running
+// TexasHoldem.exe --record-session process -- not just re-reading a directory
+// that already happens to be complete. Two parts:
+//
+//   (A) A deterministic, no-subprocess check that an OLD-format completed
+//       fixture (no "status" marker at all -- var/vsm_fixtures/texas_ps6p_sample,
+//       frozen, recorded before this task) opens as "already complete" and
+//       yields all N frames immediately via the base ReadFrame() one-shot path.
+//       This guards the backward-compat requirement that absence of the marker
+//       is read as "complete", never "recording forever".
+//
+//   (B) The genuine live-tailing part: launch TexasHoldem.exe --record-session
+//       into a scratch dir as a BACKGROUND process, open the live source while
+//       recording is still in progress, and poll ReadFrameLive() concurrently.
+//       Asserts (a) metadata.frame_count is discoverable up-front before the
+//       recording finishes, (b) frames are observed strictly in order, (c) at
+//       least one ReadFrameLive() call returned LIVE_PENDING (had to wait for a
+//       frame that wasn't on disk yet) -- the check that would FAIL if the
+//       source only worked against an already-finished directory, (d) all N
+//       frames are eventually read, (e) genuine LIVE_EOS at the end once the
+//       recorder marks the session complete, (f) per-frame ground truth becomes
+//       readable. Scratch recording is deleted afterward.
+
+static void RunLiveTailingCompletedFixtureCheck()
+{
+	// (A) old-format completed fixture, no subprocess.
+	String session = "var/vsm_fixtures/texas_ps6p_sample";
+	CHECK(DirectoryExists(session), "texas_ps6p_sample fixture exists for live-source completed-read check");
+	if(!DirectoryExists(session))
+		return;
+
+	VsmLiveM01M02SessionSource src;
+	bool opened = src.Open(session);
+	CHECK(opened, "VsmLiveM01M02SessionSource opens the old-format completed texas_ps6p_sample");
+	if(!opened)
+		return;
+	CHECK(src.IsRecordingComplete(),
+	      "old-format session with NO \"status\" field reads as COMPLETE (absence != \"recording forever\") "
+	      "[task 0137 backward-compat guardrail]");
+	CHECK(src.GetTargetFrameCount() == 8,
+	      Format("live source reads frame_count==8 from texas_ps6p_sample metadata (got %d)",
+	             src.GetTargetFrameCount()));
+
+	int read = 0;
+	bool order_ok = true, images_ok = true;
+	VsmImageBuffer buf; int64 ts = 0;
+	while(src.ReadFrame(buf, ts)) {   // base one-shot contract on a complete session
+		if(buf.width <= 0 || buf.height <= 0 || buf.channels != 4)
+			images_ok = false;
+		if(src.GetCursor() != read + 1)
+			order_ok = false;
+		read++;
+	}
+	CHECK(read == 8,
+	      Format("base ReadFrame() drains all 8 frames of a completed session like a one-shot reader (got %d)", read));
+	CHECK(order_ok, "completed-session frames read strictly in order via the live source");
+	CHECK(images_ok, "completed-session frames decode to non-empty RGBA (channels==4) buffers");
+
+	// EOS is genuine end-of-stream on a complete session (not a wait).
+	VsmImageBuffer b2; int64 t2 = 0;
+	CHECK(src.ReadFrameLive(b2, t2) == VsmLiveM01M02SessionSource::LIVE_EOS,
+	      "after draining a completed session, ReadFrameLive() reports LIVE_EOS (genuine done, not PENDING)");
+}
+
+static void RunLiveTailingIncrementalCheck()
+{
+	// (B) genuine incremental observation against a live recorder subprocess.
+	String exe = GetExeDirFile("TexasHoldem.exe");
+	CHECK(FileExists(exe),
+	      Format("TexasHoldem.exe present next to the test exe (%s) for live-tailing subprocess", ~exe));
+	if(!FileExists(exe))
+		return;
+
+	String cwd = GetCurrentDirectory();
+	String scratch = AppendFileName(cwd, "var/vsm_fixtures/task0137_livetail_scratch");
+	if(DirectoryExists(scratch))
+		DeleteFolderDeep(scratch);
+	RealizeDirectory(scratch);
+
+	const int kFrames = 24;
+	Vector<String> args;
+	args << "--record-session" << "--provider" << "PS_6p" << "--seed" << "1"
+	     << "--frames" << IntStr(kFrames) << "--out" << scratch;
+
+	LocalProcess proc;
+	bool started = proc.Start(exe, args, NULL, cwd);   // cd = repo root so assets resolve
+	CHECK(started, "launched background TexasHoldem.exe --record-session for live-tailing");
+	if(!started) {
+		DeleteFolderDeep(scratch);
+		return;
+	}
+
+	String drain;
+	VsmLiveM01M02SessionSource src;
+
+	// Open as soon as metadata.json exists (written up-front, before frames). Retry
+	// because the recorder needs a moment to start and write metadata.
+	bool opened = false;
+	int open_retries = 0;
+	{
+		TimeStop ts;
+		while(ts.Seconds() < 30) {           // Elapsed() is microseconds; use Seconds()
+			proc.Read(drain);               // keep the pipe from filling / blocking the recorder
+			if(src.Open(scratch)) { opened = true; break; }
+			open_retries++;
+			Sleep(5);
+		}
+	}
+	CHECK(opened,
+	      Format("live source Open() succeeded on a still-recording session (metadata up-front, %d retries)",
+	             open_retries));
+	if(!opened) {
+		proc.Kill();
+		DeleteFolderDeep(scratch);
+		return;
+	}
+	CHECK(src.GetTargetFrameCount() == kFrames,
+	      Format("metadata frame_count==%d discoverable while recording still in progress (got %d)",
+	             kFrames, src.GetTargetFrameCount()));
+
+	int  frames_read   = 0;
+	int  pending_waits  = 0;
+	int  last_index    = -1;
+	bool order_ok      = true;
+	bool images_ok     = true;
+	VsmLiveM01M02SessionSource::LiveResult final_r = VsmLiveM01M02SessionSource::LIVE_PENDING;
+
+	TimeStop run;
+	while(run.Seconds() < 90) {
+		proc.Read(drain);
+		VsmImageBuffer buf; int64 ts = 0;
+		VsmLiveM01M02SessionSource::LiveResult r = src.ReadFrameLive(buf, ts);
+		if(r == VsmLiveM01M02SessionSource::LIVE_OK) {
+			int idx = src.GetCursor() - 1;
+			if(idx != last_index + 1) order_ok = false;
+			last_index = idx;
+			if(buf.width <= 0 || buf.height <= 0 || buf.channels != 4) images_ok = false;
+			frames_read++;
+		}
+		else if(r == VsmLiveM01M02SessionSource::LIVE_PENDING) {
+			pending_waits++;
+			Sleep(3);
+		}
+		else { // LIVE_EOS
+			final_r = r;
+			break;
+		}
+	}
+
+	// Let the recorder finish and drain remaining output.
+	{
+		TimeStop ts;
+		while(proc.IsRunning() && ts.Seconds() < 15) {
+			proc.Read(drain);
+			Sleep(5);
+		}
+	}
+
+	CHECK(frames_read == kFrames,
+	      Format("live source observed all %d frames incrementally (got %d)", kFrames, frames_read));
+	CHECK(order_ok, "live source observed frames strictly in ascending order 0..N-1");
+	CHECK(images_ok, "every live-observed frame decoded to a non-empty RGBA (channels==4) buffer");
+	CHECK(pending_waits > 0,
+	      Format("live source had to WAIT (LIVE_PENDING) at least once before a frame was on disk "
+	             "(got %d pending polls) -- proves genuine incremental tailing, NOT reading an "
+	             "already-complete directory", pending_waits));
+	CHECK(final_r == VsmLiveM01M02SessionSource::LIVE_EOS,
+	      "live source reported genuine LIVE_EOS after all frames consumed + recorder marked complete");
+	CHECK(src.IsRecordingComplete(),
+	      "recorder's final \"status\":\"complete\" rewrite was observed by the live source");
+
+	// Per-frame ground truth became available for every recorded frame.
+	int gt_ok = 0;
+	for(int i = 0; i < kFrames; i++) {
+		String line;
+		if(src.TryReadGroundTruth(i, line))
+			gt_ok++;
+	}
+	CHECK(gt_ok == kFrames,
+	      Format("opportunistic per-frame ground truth readable for all %d frames after completion (got %d)",
+	             kFrames, gt_ok));
+
+	DeleteFolderDeep(scratch);
+}
+
 CONSOLE_APP_MAIN
 {
 	StdLogSetup(LOG_COUT);
@@ -504,6 +693,11 @@ CONSOLE_APP_MAIN
 	// --- M05-06 (task 0124): second, structurally-divergent .form fixture
 	// (synthetic "PlayerCtrlMerged" seat type, merged name+action control) ---
 	RunMergedNameActionFixtureChecks();
+
+	// --- M07-01 (task 0137): live-tailing frame source ---
+	Cout() << "\n--- M07-01 live-tailing frame source (task 0137) ---\n";
+	RunLiveTailingCompletedFixtureCheck();
+	RunLiveTailingIncrementalCheck();
 
 	// --- Error path: nonexistent .form path ---
 	{

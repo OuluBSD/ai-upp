@@ -48,7 +48,8 @@ void TexasHoldemSessionMetadata::Jsonize(JsonIO& jio)
 	   ("frame_count", frame_count)
 	   ("frame_format", frame_format)
 	   ("frame_pattern", frame_pattern)
-	   ("ground_truth", ground_truth);
+	   ("ground_truth", ground_truth)
+	   ("status", status);
 }
 
 String TexasHoldemFrameName(int frame_id)

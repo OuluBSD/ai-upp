@@ -82,6 +82,38 @@ static int DumpM01SourceContractSample(const String& out_dir, const String& prov
 	RealizeDirectory(frames_dir);
 	frame_count = max(1, frame_count);
 
+	// task 0137 (M07): write metadata.json UP FRONT with status="recording" and the
+	// already-known target frame_count, so a live/tailing reader can discover the
+	// session and its expected frame count as soon as recording begins (not only
+	// after the whole process exits). Rewritten once at the very end with
+	// status="complete". Old-format sessions have no "status" field at all; readers
+	// treat its absence as "complete" (see VsmLiveM01M02SessionSource), so this is a
+	// purely additive change — a finalized new session is byte-for-byte identical to
+	// what the old code produced except for this one added marker field.
+	String meta_path = AppendFileName(root, "metadata.json");
+	TexasHoldemSessionMetadata meta;
+	meta.session_id = sample_session;
+	meta.provider = sample_provider;
+	meta.table_width = table_size.cx;
+	meta.table_height = table_size.cy;
+	meta.seed = seed;
+	meta.frame_count = frame_count;
+	meta.status = "recording";
+	SaveFile(meta_path, StoreAsJson(meta));
+
+	// task 0137 (M07): append one groundtruth.jsonl line per frame as it is captured
+	// (flushed each iteration so a tailing reader observes per-frame ground truth
+	// appear incrementally), instead of one SaveFile after the whole loop. Opened with
+	// FileOut (CREATE|NOWRITESHARE) which truncates any stale file and still permits a
+	// concurrent reader to open it FILE_SHARE_READ. The resulting file is byte-for-byte
+	// identical to the old single-SaveFile output (same lines, same order).
+	String gt_path = AppendFileName(root, "groundtruth.jsonl");
+	FileOut gt_out(gt_path);
+	if (!gt_out.IsOpen()) {
+		Cerr() << "ERROR: cannot open groundtruth for writing: " << gt_path << "\n";
+		return 2;
+	}
+
 	GameTable table(sample_provider);
 	table.SetRect(0, 0, table_size.cx, table_size.cy);
 	table.Layout();
@@ -104,7 +136,6 @@ static int DumpM01SourceContractSample(const String& out_dir, const String& prov
 	table.RefreshLayoutDeep();
 	table.Layout();
 
-	String gt_jsonl;
 	for (int frame_id = 0; frame_id < frame_count; frame_id++) {
 		if (step_actions && frame_id > 0) {
 			if (capture_transient_states && table.HasPendingNextHand()) {
@@ -153,18 +184,16 @@ static int DumpM01SourceContractSample(const String& out_dir, const String& prov
 		gt.table_height = table_size.cy;
 		gt.seed = seed;
 		CaptureM01GroundTruth(gt, game);
-		gt_jsonl << StoreAsJson(gt) << "\n";
+		gt_out << StoreAsJson(gt) << "\n";
+		gt_out.Flush();
 	}
-	SaveFile(AppendFileName(root, "groundtruth.jsonl"), gt_jsonl);
+	gt_out.Close();
 
-	TexasHoldemSessionMetadata meta;
-	meta.session_id = sample_session;
-	meta.provider = sample_provider;
-	meta.table_width = table_size.cx;
-	meta.table_height = table_size.cy;
-	meta.seed = seed;
-	meta.frame_count = frame_count;
-	SaveFile(AppendFileName(root, "metadata.json"), StoreAsJson(meta));
+	// task 0137 (M07): finalize — rewrite metadata.json with status="complete" as the
+	// last write, after every frame PNG and every groundtruth.jsonl line are on disk.
+	// This is the signal that flips a tailing reader from "poll/retry" to "done".
+	meta.status = "complete";
+	SaveFile(meta_path, StoreAsJson(meta));
 
 	Cout() << "source_contract_sample=" << root << "\n";
 	Cout() << "metadata=" << AppendFileName(root, "metadata.json") << "\n";

@@ -439,10 +439,29 @@ void  DeriveHoleCardsPerFrame(const Vector<VsmHoleCardObservation>& observations
 // agree on the composed result.
 //
 // Returns false and fills `error` on any load/parse failure; on success
-// `out_records` holds one record per ground-truth frame.
+// `out_records` holds one record per PROCESSED frame.
+//
+// M07-03 (task 0139): ground truth is now OPTIONAL and the derivation range is
+// decoupled from it. Two behaviours were added, both purely additive to the
+// legacy ground-truth-present/complete-session case (proven byte-for-byte
+// identical on the six kept M05 fixtures — see task 0139's evidence):
+//   * `ignore_ground_truth == true` (production-like / video-only mode): the
+//     driver never reads `groundtruth.jsonl` at all, even if it exists. Every
+//     per-field derived value + `field_confidence` is still produced; all the
+//     ground-truth-COMPARISON fields (verdict/*_verdict, ground_truth_*, the
+//     match/mismatch/pending counters) degrade to the honest sentinel
+//     "no_ground_truth" / empty / 0 so they are never mistaken for a real match.
+//   * Live/in-progress sessions: frames are read through 0137's tailing
+//     `VsmLiveM01M02SessionSource` (a drop-in for the one-shot readers on a
+//     complete session), so a still-recording directory can be derived
+//     incrementally over however many frames currently exist. The per-frame
+//     derivation loop bound is the session's own processed-frame count, NOT
+//     `groundtruth.jsonl`'s row count.
+// When `ignore_ground_truth == false` AND a complete `groundtruth.jsonl` is
+// present (the legacy case), behaviour and output are unchanged from before.
 bool VsmDeriveSessionLogicStates(const String& session_dir, const String& form_path,
                                  Vector<VsmLogicCompareRecordOut>& out_records,
-                                 String& error);
+                                 String& error, bool ignore_ground_truth = false);
 
 } // namespace Upp
 

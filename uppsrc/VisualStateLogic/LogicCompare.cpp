@@ -708,9 +708,47 @@ void DeriveHoleCardsConfidencePerFrame(const Vector<VsmHoleCardObservation>& obs
 // identical Vector<VsmLogicCompareRecordOut> via the six-fixture cross-check in
 // task 0133's evidence section (driver --jsonl-out == CLI --jsonl-out).
 // ===========================================================================
+// M07-03 (task 0139): read the NEXT frame from a live-tailing session source
+// into a VsmFrameImage, bridging 0137's VsmLiveM01M02SessionSource (which yields
+// a VsmImageBuffer and a three-state result) to the rest of this driver (which
+// works in VsmFrameImage). All the polling/retry lives in the source's own
+// ReadFrameLive — this only adds a bounded idle wait so a one-shot invocation
+// against a still-recording session waits a little for the next frame to land
+// but cannot hang forever if the recorder stalls or genuinely has no more.
+//
+// For a COMPLETE (or old-format status-less) session the source never returns
+// LIVE_PENDING, so this loop runs exactly once per call and behaves identically
+// to the one-shot VsmLoadM01M02SessionFrame it replaces (same VsmLoadPngFrame
+// decode underneath) — the byte-for-byte non-regression path.
+enum VsmLiveFrameStatus { VSM_LFRAME_OK, VSM_LFRAME_EOS };
+
+static VsmLiveFrameStatus VsmReadNextLiveFrame(VsmLiveM01M02SessionSource& src,
+                                               VsmFrameImage& out)
+{
+	const int kPollSleepMs = 25;
+	const int kMaxIdleMs   = 4000; // give up waiting for THIS frame after ~4s idle
+	int waited = 0;
+	for(;;) {
+		VsmImageBuffer buf;
+		int64 ts = 0;
+		VsmLiveM01M02SessionSource::LiveResult r = src.ReadFrameLive(buf, ts);
+		if(r == VsmLiveM01M02SessionSource::LIVE_OK) {
+			out.Set(buf.width, buf.height, buf.pixels.begin());
+			return VSM_LFRAME_OK;
+		}
+		if(r == VsmLiveM01M02SessionSource::LIVE_EOS)
+			return VSM_LFRAME_EOS;
+		// LIVE_PENDING: recording still in progress, next frame not on disk yet.
+		if(waited >= kMaxIdleMs)
+			return VSM_LFRAME_EOS; // bounded give-up: derive what's available
+		Sleep(kPollSleepMs);
+		waited += kPollSleepMs;
+	}
+}
+
 bool VsmDeriveSessionLogicStates(const String& session_dir, const String& form_path,
                                  Vector<VsmLogicCompareRecordOut>& out_records,
-                                 String& error)
+                                 String& error, bool ignore_ground_truth)
 {
 	out_records.Clear();
 	error.Clear();
@@ -720,31 +758,7 @@ bool VsmDeriveSessionLogicStates(const String& session_dir, const String& form_p
 		return false;
 	}
 
-	// --- Load ground truth (TexasHoldemGroundTruthRecord::Jsonize). ---
-	String gt_path = AppendFileName(session_dir, "groundtruth.jsonl");
-	if(!FileExists(gt_path)) {
-		error = Format("Missing groundtruth.jsonl under: %s", session_dir);
-		return false;
-	}
 	Vector<TexasHoldemGroundTruthRecord> gt_records;
-	{
-		Vector<String> rows = Split(LoadFile(gt_path), '\n', false);
-		for(String row : rows) {
-			row = TrimBoth(row);
-			if(row.IsEmpty())
-				continue;
-			TexasHoldemGroundTruthRecord rec;
-			if(!LoadFromJson(rec, row)) {
-				error = Format("Failed to parse groundtruth.jsonl row %d", gt_records.GetCount());
-				return false;
-			}
-			gt_records.Add(pick(rec));
-		}
-	}
-	if(gt_records.IsEmpty()) {
-		error = "groundtruth.jsonl has no rows";
-		return false;
-	}
 
 	VsmM01M02SessionInfo info;
 	if(!VsmReadM01M02SessionInfo(session_dir, info)) {
@@ -754,6 +768,42 @@ bool VsmDeriveSessionLogicStates(const String& session_dir, const String& form_p
 	if(info.frame_count < 2) {
 		error = "Session has fewer than 2 frames - no transitions to detect";
 		return false;
+	}
+
+	// M07-03 (task 0139): frames are read through 0137's tailing source (a
+	// drop-in for the one-shot VsmReadM01M02SessionInfo/VsmLoadM01M02SessionFrame
+	// pair on a complete session, and additionally able to poll a still-recording
+	// one). Opens as soon as metadata.json exists (frames may still be arriving).
+	VsmLiveM01M02SessionSource src;
+	if(!src.Open(session_dir)) {
+		error = Format("Failed to open live session source under %s: %s",
+		               session_dir, src.GetLastError());
+		return false;
+	}
+
+	// --- Load ground truth (TexasHoldemGroundTruthRecord::Jsonize). ---
+	// M07-03 (task 0139): ground truth is OPTIONAL now. In production-like mode
+	// (ignore_ground_truth) it is never read, even if present. Validation mode
+	// keeps the old strict full-file parse for already-complete sessions, so
+	// corrupt completed groundtruth.jsonl is still reported as an error. For a
+	// still-recording session the file can be mid-append; those rows are read
+	// opportunistically per frame later through VsmLiveM01M02SessionSource.
+	if(!ignore_ground_truth && src.IsRecordingComplete()) {
+		String gt_path = AppendFileName(session_dir, "groundtruth.jsonl");
+		if(FileExists(gt_path)) {
+			Vector<String> rows = Split(LoadFile(gt_path), '\n', false);
+			for(String row : rows) {
+				row = TrimBoth(row);
+				if(row.IsEmpty())
+					continue;
+				TexasHoldemGroundTruthRecord rec;
+				if(!LoadFromJson(rec, row)) {
+					error = Format("Failed to parse groundtruth.jsonl row %d", gt_records.GetCount());
+					return false;
+				}
+				gt_records.Add(pick(rec));
+			}
+		}
 	}
 
 	// --- Load the .form layout profile. ---
@@ -766,7 +816,7 @@ bool VsmDeriveSessionLogicStates(const String& session_dir, const String& form_p
 	VsmLayoutProfile profile = VsmBuildLayoutProfile(layout);
 
 	VsmFrameImage probe_frame;
-	if(!VsmLoadM01M02SessionFrame(session_dir, 0, probe_frame)) {
+	if(VsmReadNextLiveFrame(src, probe_frame) != VSM_LFRAME_OK) {
 		error = "Failed to decode frame 0";
 		return false;
 	}
@@ -878,12 +928,17 @@ bool VsmDeriveSessionLogicStates(const String& session_dir, const String& form_p
 	prev_frame.Set(probe_frame.width, probe_frame.height, nullptr);
 	memcpy(prev_frame.data, probe_frame.data, (size_t)probe_frame.width * probe_frame.height * 4);
 
-	for(int fid = 1; fid < info.frame_count; fid++) {
+	// M07-03 (task 0139): drive the transition loop off the live source instead
+	// of a fixed [1, info.frame_count) range. `last_frame` is the highest frame
+	// index actually read+processed this invocation; for a complete session this
+	// ends at info.frame_count - 1 (identical to the old bound), for a still-
+	// recording session it is however many frames were available (plus a bounded
+	// wait for the next). All the per-frame derivation ranges below use it.
+	int last_frame = 0; // frame 0 (the probe frame) is already available
+	for(int fid = 1; ; fid++) {
 		VsmFrameImage curr_frame;
-		if(!VsmLoadM01M02SessionFrame(session_dir, fid, curr_frame)) {
-			error = Format("Failed to decode frame %d", fid);
-			return false;
-		}
+		if(VsmReadNextLiveFrame(src, curr_frame) != VSM_LFRAME_OK)
+			break; // genuine end-of-stream, or nothing more available right now
 
 		Vector<VsmChangedRect> changes = VsmDetectChanges(prev_frame, curr_frame, params);
 		Image curr_frame_img;
@@ -1186,6 +1241,39 @@ bool VsmDeriveSessionLogicStates(const String& session_dir, const String& form_p
 		if(prev_frame.width != curr_frame.width || prev_frame.height != curr_frame.height)
 			prev_frame.Set(curr_frame.width, curr_frame.height, nullptr);
 		memcpy(prev_frame.data, curr_frame.data, (size_t)curr_frame.width * curr_frame.height * 4);
+		last_frame = fid;
+	}
+
+	// M07-03 (task 0139): everything downstream now derives over exactly the
+	// frames actually processed this invocation, not info.frame_count and not
+	// groundtruth.jsonl's row count.
+	int frame_count_processed = last_frame + 1;
+
+	Vector<TexasHoldemGroundTruthRecord> gt_by_frame;
+	Vector<bool> gt_known;
+	gt_by_frame.SetCount(frame_count_processed);
+	gt_known.SetCount(frame_count_processed, false);
+	if(!ignore_ground_truth) {
+		for(int i = 0; i < gt_records.GetCount(); i++) {
+			TexasHoldemGroundTruthRecord& rec = gt_records[i];
+			int frame_id = rec.frame_id >= 0 ? rec.frame_id : i;
+			if(frame_id >= 0 && frame_id < frame_count_processed) {
+				gt_by_frame[frame_id] = pick(rec);
+				gt_known[frame_id] = true;
+			}
+		}
+		for(int fid = 0; fid < frame_count_processed; fid++) {
+			if(gt_known[fid])
+				continue;
+			String row;
+			if(src.TryReadGroundTruth(fid, row)) {
+				TexasHoldemGroundTruthRecord rec;
+				if(LoadFromJson(rec, row)) {
+					gt_by_frame[fid] = pick(rec);
+					gt_known[fid] = true;
+				}
+			}
+		}
 	}
 
 	// --- M05-03 (task 0121): dealer_button disambiguation filter. ---
@@ -1256,7 +1344,7 @@ bool VsmDeriveSessionLogicStates(const String& session_dir, const String& form_p
 	// --- Per-frame board-card slot values. ---
 	Vector<bool> board_known[5];
 	Vector<int>  board_value[5];
-	DeriveBoardCardsPerFrame(board_card_observations, 0, info.frame_count - 1, board_known, board_value);
+	DeriveBoardCardsPerFrame(board_card_observations, 0, last_frame, board_known, board_value);
 
 	// --- Per-frame per-seat action-icon values. ---
 	Vector<int> action_icon_seats;
@@ -1270,13 +1358,13 @@ bool VsmDeriveSessionLogicStates(const String& session_dir, const String& form_p
 	}
 	VectorMap<int, Vector<bool>> action_icon_known;
 	VectorMap<int, Vector<int>>  action_icon_value;
-	DeriveActionIconsPerFrame(action_icon_observations, 0, info.frame_count - 1, action_icon_seats,
+	DeriveActionIconsPerFrame(action_icon_observations, 0, last_frame, action_icon_seats,
 	                          action_icon_known, action_icon_value);
 
 	// --- Per-frame per-(seat,slot) hole-card values. ---
 	VectorMap<int, Vector<bool>> hole_card_known[2];
 	VectorMap<int, Vector<int>>  hole_card_value[2];
-	DeriveHoleCardsPerFrame(hole_card_observations, 0, info.frame_count - 1, action_icon_seats,
+	DeriveHoleCardsPerFrame(hole_card_observations, 0, last_frame, action_icon_seats,
 	                        hole_card_known, hole_card_value);
 
 	// --- Per-frame dealer seat. ---
@@ -1285,80 +1373,112 @@ bool VsmDeriveSessionLogicStates(const String& session_dir, const String& form_p
 
 	Vector<bool> derived_known;
 	Vector<int>  derived_seat;
-	DeriveDealerSeatPerFrame(dealer_seat_by_frame, 0, info.frame_count - 1, derived_known, derived_seat);
+	DeriveDealerSeatPerFrame(dealer_seat_by_frame, 0, last_frame, derived_known, derived_seat);
 
 	// --- M07-02 (task 0138): per-frame recognizer confidence, derived in
 	// parallel to (and never altering) the value derivation above, using the
 	// same observation lists and the same sticky/reset latch rules. ---
 	Vector<double> board_confidence[5];
-	DeriveBoardCardsConfidencePerFrame(board_card_observations, 0, info.frame_count - 1, board_confidence);
+	DeriveBoardCardsConfidencePerFrame(board_card_observations, 0, last_frame, board_confidence);
 
 	VectorMap<int, Vector<double>> action_icon_confidence;
-	DeriveActionIconsConfidencePerFrame(action_icon_observations, 0, info.frame_count - 1,
+	DeriveActionIconsConfidencePerFrame(action_icon_observations, 0, last_frame,
 	                                    action_icon_seats, action_icon_confidence);
 
 	VectorMap<int, Vector<double>> hole_card_confidence[2];
-	DeriveHoleCardsConfidencePerFrame(hole_card_observations, 0, info.frame_count - 1,
+	DeriveHoleCardsConfidencePerFrame(hole_card_observations, 0, last_frame,
 	                                  action_icon_seats, hole_card_confidence);
 
 	VectorMap<int, double> dealer_confidence_by_frame;
 	ApplyDealerButtonConfidence(dealer_move_observations, dealer_confidence_by_frame);
 	Vector<double> derived_dealer_confidence;
-	DeriveDealerSeatConfidencePerFrame(dealer_confidence_by_frame, 0, info.frame_count - 1,
+	DeriveDealerSeatConfidencePerFrame(dealer_confidence_by_frame, 0, last_frame,
 	                                   derived_dealer_confidence);
 
 	// --- Build comparator records (dealer-seat pass). ---
-	for(int fid = 0; fid < gt_records.GetCount(); fid++) {
-		const TexasHoldemGroundTruthRecord& gt = gt_records[fid];
-
-		int gt_dealer_seat = -1;
-		bool gt_dealer_known = false;
-		for(const TexasHoldemPlayerSnapshot& p : gt.players) {
-			if(p.button == 1) {
-				gt_dealer_seat = p.seat;
-				gt_dealer_known = true;
-				break;
-			}
-		}
+	// M07-03 (task 0139): iterate over the frames actually PROCESSED, not
+	// gt_records.GetCount(). A frame with a ground-truth row (fid <
+	// gt_records.GetCount()) is compared exactly as before — byte-for-byte
+	// unchanged for the legacy complete-session-with-GT case. A frame WITHOUT
+	// ground truth (production-like mode, or a live frame whose GT row hasn't
+	// been written yet) degrades honestly: verdict "no_ground_truth", the
+	// ground_truth_* fields empty, and the player roster seeded from the layout's
+	// own seat list (action_icon_seats) since there is no GT roster to mirror.
+	for(int fid = 0; fid < frame_count_processed; fid++) {
+		bool has_gt = gt_known[fid];
 
 		VsmLogicCompareRecordOut rec;
 		rec.frame_id = fid;
 		rec.derived_dealer_seat_known = derived_known[fid];
 		rec.derived_dealer_seat       = derived_seat[fid];
-		rec.ground_truth_dealer_seat_known = gt_dealer_known;
-		rec.ground_truth_dealer_seat       = gt_dealer_seat;
-
-		if(!rec.derived_dealer_seat_known)
-			rec.verdict = "unknown";
-		else if(gt_dealer_known && rec.derived_dealer_seat == gt_dealer_seat)
-			rec.verdict = "match";
-		else
-			rec.verdict = "mismatch";
 
 		TexasHoldemLogicState& ls = rec.logic_state;
 		ls.frame_id = fid;
 		ls.dealer_seat_known = rec.derived_dealer_seat_known;
 		ls.dealer_seat       = rec.derived_dealer_seat;
-		for(const TexasHoldemPlayerSnapshot& p : gt.players) {
-			TexasHoldemLogicPlayerState ps;
-			ps.seat = p.seat;
-			if(rec.derived_dealer_seat_known && p.seat == rec.derived_dealer_seat) {
-				ps.button_known = true;
-				ps.button = 1;
-				ls.players_known = true;
+
+		if(has_gt) {
+			const TexasHoldemGroundTruthRecord& gt = gt_by_frame[fid];
+
+			int gt_dealer_seat = -1;
+			bool gt_dealer_known = false;
+			for(const TexasHoldemPlayerSnapshot& p : gt.players) {
+				if(p.button == 1) {
+					gt_dealer_seat = p.seat;
+					gt_dealer_known = true;
+					break;
+				}
 			}
-			ls.players.Add(pick(ps));
+
+			rec.ground_truth_dealer_seat_known = gt_dealer_known;
+			rec.ground_truth_dealer_seat       = gt_dealer_seat;
+
+			if(!rec.derived_dealer_seat_known)
+				rec.verdict = "unknown";
+			else if(gt_dealer_known && rec.derived_dealer_seat == gt_dealer_seat)
+				rec.verdict = "match";
+			else
+				rec.verdict = "mismatch";
+
+			for(const TexasHoldemPlayerSnapshot& p : gt.players) {
+				TexasHoldemLogicPlayerState ps;
+				ps.seat = p.seat;
+				if(rec.derived_dealer_seat_known && p.seat == rec.derived_dealer_seat) {
+					ps.button_known = true;
+					ps.button = 1;
+					ls.players_known = true;
+				}
+				ls.players.Add(pick(ps));
+			}
+		}
+		else {
+			rec.ground_truth_dealer_seat_known = false;
+			rec.ground_truth_dealer_seat       = -1;
+			rec.verdict = "no_ground_truth";
+
+			for(int seat : action_icon_seats) {
+				TexasHoldemLogicPlayerState ps;
+				ps.seat = seat;
+				if(rec.derived_dealer_seat_known && seat == rec.derived_dealer_seat) {
+					ps.button_known = true;
+					ps.button = 1;
+					ls.players_known = true;
+				}
+				ls.players.Add(pick(ps));
+			}
 		}
 
 		out_records.Add(pick(rec));
 	}
 
 	// --- M05-08 (task 0126): board-card frame-by-frame comparison. ---
-	for(int fid = 0; fid < out_records.GetCount() && fid < gt_records.GetCount(); fid++) {
+	// M07-03 (task 0139): the DERIVED board-card values are populated into
+	// logic_state for every processed frame (ground-truth-independent); only the
+	// COMPARISON (ground_truth_board_cards + verdict/counters) is gated on GT.
+	// GT-present frames are handled exactly as before.
+	for(int fid = 0; fid < out_records.GetCount(); fid++) {
 		VsmLogicCompareRecordOut& rec = out_records[fid];
-		const TexasHoldemGroundTruthRecord& gt = gt_records[fid];
-
-		rec.ground_truth_board_cards = clone(gt.board_cards);
+		bool has_gt = gt_known[fid];
 
 		TexasHoldemLogicState& ls = rec.logic_state;
 		ls.board_cards.Clear();
@@ -1375,6 +1495,15 @@ bool VsmDeriveSessionLogicStates(const String& session_dir, const String& form_p
 		rec.board_cards_match_slots = 0;
 		rec.board_cards_mismatch_slots = 0;
 		rec.board_cards_pending_slots = 0;
+
+		if(!has_gt) {
+			rec.board_cards_verdict = "no_ground_truth";
+			continue;
+		}
+
+		const TexasHoldemGroundTruthRecord& gt = gt_by_frame[fid];
+		rec.ground_truth_board_cards = clone(gt.board_cards);
+
 		if(!all_known)
 			rec.board_cards_verdict = "unknown";
 		else {
@@ -1401,9 +1530,13 @@ bool VsmDeriveSessionLogicStates(const String& session_dir, const String& form_p
 	}
 
 	// --- M05-09 (task 0127): action-icon frame-by-frame comparison. ---
-	for(int fid = 0; fid < out_records.GetCount() && fid < gt_records.GetCount(); fid++) {
+	// M07-03 (task 0139): the DERIVED per-seat action value is written into
+	// logic_state for every processed frame (GT-independent); only the
+	// match/mismatch comparison against GT is gated on a GT row. GT-present
+	// frames are handled exactly as before.
+	for(int fid = 0; fid < out_records.GetCount(); fid++) {
 		VsmLogicCompareRecordOut& rec = out_records[fid];
-		const TexasHoldemGroundTruthRecord& gt = gt_records[fid];
+		bool has_gt = gt_known[fid];
 		TexasHoldemLogicState& ls = rec.logic_state;
 
 		rec.action_icon_match_seats = 0;
@@ -1432,8 +1565,11 @@ bool VsmDeriveSessionLogicStates(const String& session_dir, const String& form_p
 			ps.action = v;
 			ls.players_known = true;
 
+			if(!has_gt)
+				continue; // derived value populated; no GT to compare against
+
 			int gt_action = -1;
-			for(const TexasHoldemPlayerSnapshot& p : gt.players)
+			for(const TexasHoldemPlayerSnapshot& p : gt_by_frame[fid].players)
 				if(p.seat == ps.seat) { gt_action = p.action; break; }
 
 			if(v == gt_action)
@@ -1445,7 +1581,9 @@ bool VsmDeriveSessionLogicStates(const String& session_dir, const String& form_p
 		rec.action_icon_unscored_seats = ls.players.GetCount()
 			- rec.action_icon_match_seats - rec.action_icon_mismatch_seats - rec.action_icon_winner_seats;
 
-		if(rec.action_icon_mismatch_seats > 0)
+		if(!has_gt)
+			rec.action_icons_verdict = "no_ground_truth";
+		else if(rec.action_icon_mismatch_seats > 0)
 			rec.action_icons_verdict = "mismatch";
 		else if(rec.action_icon_match_seats > 0)
 			rec.action_icons_verdict = "match";
@@ -1454,9 +1592,13 @@ bool VsmDeriveSessionLogicStates(const String& session_dir, const String& form_p
 	}
 
 	// --- M05-10 (task 0128): hole-card frame-by-frame comparison. ---
-	for(int fid = 0; fid < out_records.GetCount() && fid < gt_records.GetCount(); fid++) {
+	// M07-03 (task 0139): the DERIVED per-seat hole cards are written into
+	// logic_state for every processed frame (GT-independent); only the
+	// per-slot comparison against GT is gated on a GT row. GT-present frames are
+	// handled exactly as before.
+	for(int fid = 0; fid < out_records.GetCount(); fid++) {
 		VsmLogicCompareRecordOut& rec = out_records[fid];
-		const TexasHoldemGroundTruthRecord& gt = gt_records[fid];
+		bool has_gt = gt_known[fid];
 		TexasHoldemLogicState& ls = rec.logic_state;
 
 		rec.hole_cards_match_seats = 0;
@@ -1485,8 +1627,11 @@ bool VsmDeriveSessionLogicStates(const String& session_dir, const String& form_p
 			}
 			ls.players_known = true;
 
+			if(!has_gt)
+				continue; // derived hole cards populated; no GT to compare against
+
 			const TexasHoldemPlayerSnapshot* gtp = NULL;
-			for(const TexasHoldemPlayerSnapshot& p : gt.players)
+			for(const TexasHoldemPlayerSnapshot& p : gt_by_frame[fid].players)
 				if(p.seat == ps.seat) { gtp = &p; break; }
 
 			int seat_match = 0, seat_mismatch = 0;
@@ -1508,7 +1653,9 @@ bool VsmDeriveSessionLogicStates(const String& session_dir, const String& form_p
 				rec.hole_cards_hidden_seats++;
 		}
 
-		if(rec.hole_cards_mismatch_seats > 0)
+		if(!has_gt)
+			rec.hole_cards_verdict = "no_ground_truth";
+		else if(rec.hole_cards_mismatch_seats > 0)
 			rec.hole_cards_verdict = "mismatch";
 		else if(rec.hole_cards_match_seats > 0)
 			rec.hole_cards_verdict = "match";

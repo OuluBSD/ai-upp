@@ -99,6 +99,41 @@ static bool Fail(const char* label)
 	return false;
 }
 
+// ---------------------------------------------------------------------------
+// M07-03 (task 0139): production-like (video-only) output record.
+//
+// A STABLE, documented projection of VsmLogicCompareRecordOut carrying ONLY the
+// vision-derived state plus per-field recognizer confidence — the exact data a
+// production caller has when there is no ground truth to compare against. It
+// deliberately OMITS every ground-truth-comparison field
+// (verdict/*_verdict, ground_truth_*, the match/mismatch/pending/winner
+// counters), since none of those are meaningful without ground truth.
+//
+// Emitted one JSON object per processed frame (JSONL) by --production-out. Shape:
+//   { "frame_id": int,
+//     "derived_dealer_seat_known": bool,
+//     "derived_dealer_seat": int,
+//     "logic_state": TexasHoldemLogicState,   // full derived board/players state
+//     "field_confidence": [ {field,known,confidence}, ... ] }  // per task 0138
+struct VsmProductionRecordOut : Moveable<VsmProductionRecordOut> {
+	int  frame_id = -1;
+	bool derived_dealer_seat_known = false;
+	int  derived_dealer_seat = -1;
+	TexasHoldemLogicState logic_state;
+	Vector<VsmFieldConfidence> field_confidence;
+
+	void Jsonize(JsonIO& json)
+	{
+		json
+			("frame_id", frame_id)
+			("derived_dealer_seat_known", derived_dealer_seat_known)
+			("derived_dealer_seat", derived_dealer_seat)
+			("logic_state", logic_state)
+			("field_confidence", field_confidence)
+		;
+	}
+};
+
 
 
 
@@ -309,6 +344,13 @@ GUI_APP_MAIN
 	String session_dir;
 	String form_path;
 	String jsonl_out;
+	// M07-03 (task 0139): the two MILESTONE_07 CLI modes. Both route into the
+	// shared driver VsmDeriveSessionLogicStates (which owns the live-tailing +
+	// optional-ground-truth logic) rather than duplicating this file's own
+	// orchestration loop a third time (see the mode-dispatch block below for the
+	// full design rationale).
+	String production_out;   // --production-out <path> => production-like mode
+	bool   validate_live = false; // --validate-live => validation mode, live-capable
 
 	Vector<String> positional;
 	for(int i = 0; i < args.GetCount(); i++) {
@@ -316,6 +358,8 @@ GUI_APP_MAIN
 		if(arg == "--help") {
 			Cout() << "Usage: VisualStateLogicCompare <m01m02_session_dir> <path-to-.form> "
 			          "[--jsonl-out <path>]\n"
+			          "       VisualStateLogicCompare --validate-live <session_dir> <.form> [--jsonl-out <path>]\n"
+			          "       VisualStateLogicCompare --production-out <path> <session_dir> <.form>\n"
 			          "       VisualStateLogicCompare --self-test\n"
 			          "  <m01m02_session_dir>  M01/M02 session directory (metadata.json +\n"
 			          "                        groundtruth.jsonl + frames/%08d.png), e.g.\n"
@@ -323,6 +367,15 @@ GUI_APP_MAIN
 			          "  <path-to-.form>       .form layout file, e.g.\n"
 			          "                        game/TexasHoldem/GameTable_PS_6p.form\n"
 			          "  --jsonl-out <path>    write one JSON comparator record per frame to <path>\n"
+			          "  --validate-live       VALIDATION mode via the shared driver: like the default\n"
+			          "                        run but ALSO accepts a still-recording (live) session\n"
+			          "                        directory and a temporarily-incomplete groundtruth.jsonl;\n"
+			          "                        writes full comparator records (incl. field_confidence)\n"
+			          "                        to --jsonl-out. Ground truth IS attached when present.\n"
+			          "  --production-out <p>  PRODUCTION-LIKE (video-only) mode via the shared driver:\n"
+			          "                        runs against a live OR replay session WITHOUT ever reading\n"
+			          "                        groundtruth.jsonl, and writes derived state + per-field\n"
+			          "                        confidence (no verdict/match/mismatch fields) to <p>.\n"
 			          "  --self-test           run a synthetic (fixture-independent) check of the\n"
 			          "                        dealer-seat derivation logic itself and exit\n";
 			SetExitCode(0);
@@ -332,9 +385,99 @@ GUI_APP_MAIN
 			if(i + 1 >= args.GetCount()) { Fail("--jsonl-out requires a value"); return; }
 			jsonl_out = args[++i];
 		}
+		else if(arg == "--production-out") {
+			if(i + 1 >= args.GetCount()) { Fail("--production-out requires a value"); return; }
+			production_out = args[++i];
+		}
+		else if(arg == "--validate-live") {
+			validate_live = true;
+		}
 		else {
 			positional.Add(arg);
 		}
+	}
+
+	// -----------------------------------------------------------------------
+	// M07-03 (task 0139): production-like and live-validation modes.
+	//
+	// WHERE THIS LOGIC LIVES (task §4 decision): both new modes call INTO the
+	// shared driver `VsmDeriveSessionLogicStates` (uppsrc/VisualStateLogic),
+	// which task 0139 taught to (a) tail a still-recording session via 0137's
+	// VsmLiveM01M02SessionSource and (b) run with ground truth optional/ignored.
+	// The CLI's OWN separate orchestration loop below (the default path) is a
+	// known, disclosed pre-existing duplication (task 0133) kept ONLY so the
+	// legacy validation run stays byte-for-byte identical; it is deliberately
+	// NOT re-plumbed for live/no-GT here — that would extend the duplication and
+	// risk the very non-regression this task must protect. Instead the new
+	// capabilities are reached through the single shared driver, so 0137's
+	// polling/retry lives in exactly one place. The default path is untouched.
+	if(!production_out.IsEmpty() || validate_live) {
+		if(positional.GetCount() < 2) {
+			Fail("this mode needs <session_dir> <.form> (pass --help for details)");
+			return;
+		}
+		bool production = !production_out.IsEmpty();
+		String sdir = positional[0];
+		String fpath = positional[1];
+
+		Cout() << "=== VisualStateLogicCompare "
+		       << (production ? "production-like (video-only)" : "validation (live-capable)")
+		       << " mode [M07-03] ===\n";
+		Cout() << "session=" << sdir << " form=" << fpath << "\n";
+		if(production)
+			Cout() << "ground truth: NOT read (production-like mode)\n";
+
+		Vector<VsmLogicCompareRecordOut> records;
+		String error;
+		// ignore_ground_truth == production: production-like never reads GT even
+		// if present; validation attaches GT opportunistically when available.
+		if(!VsmDeriveSessionLogicStates(sdir, fpath, records, error, production)) {
+			Fail(Format("driver failed: %s", error));
+			return;
+		}
+		Cout() << "derived " << records.GetCount() << " frame record(s)\n";
+
+		if(production) {
+			// Production JSONL shape: derived state + confidence ONLY. No
+			// verdict/ground_truth/match fields (there is nothing to compare
+			// against). Documented in task 0139's Evidence section.
+			String jsonl;
+			// Move (pick) the derived sub-objects out of each record into the
+			// production projection — records are not needed after this. Both
+			// TexasHoldemLogicState and Vector<VsmFieldConfidence> are Moveable.
+			for(VsmLogicCompareRecordOut& r : records) {
+				VsmProductionRecordOut p;
+				p.frame_id                  = r.frame_id;
+				p.derived_dealer_seat_known = r.derived_dealer_seat_known;
+				p.derived_dealer_seat       = r.derived_dealer_seat;
+				p.logic_state               = pick(r.logic_state);
+				p.field_confidence          = pick(r.field_confidence);
+				jsonl << StoreAsJson(p) << "\n";
+			}
+			if(!SaveFile(production_out, jsonl)) {
+				Fail(Format("Failed to write --production-out file: %s", production_out));
+				return;
+			}
+			Cout() << "Wrote " << records.GetCount()
+			       << " production record(s) to " << production_out << "\n";
+		}
+		else if(!jsonl_out.IsEmpty()) {
+			// Validation mode: full comparator records (verdicts + ground_truth_*
+			// + field_confidence), same VsmLogicCompareRecordOut shape the default
+			// path's --jsonl-out uses, but produced by the shared driver so it also
+			// carries populated field_confidence and tolerates a live session.
+			String jsonl;
+			for(const VsmLogicCompareRecordOut& r : records)
+				jsonl << StoreAsJson(r) << "\n";
+			if(!SaveFile(jsonl_out, jsonl)) {
+				Fail(Format("Failed to write --jsonl-out file: %s", jsonl_out));
+				return;
+			}
+			Cout() << "Wrote " << records.GetCount()
+			       << " comparator record(s) to " << jsonl_out << "\n";
+		}
+		SetExitCode(0);
+		return;
 	}
 
 	if(positional.GetCount() < 2) {

@@ -12,6 +12,7 @@ using namespace Upp;
 #include "TexasHoldemSessionAdapter.h"
 #include "TexasHoldemLayoutBindingAdapter.h"
 #include "TexasHoldemLogicStateAdapter.h"
+#include "TexasHoldemMismatchAdapter.h"
 #include "FrameCanvas.h"
 #include "DockPanels.h"
 #include "JpegSequenceImporter.h"
@@ -56,6 +57,7 @@ private:
 	ModelStatePanel       model_dock_;
 	LayoutBindingPanel    layout_dock_;   // task 0132: .form layout-binding view
 	LogicStatePanel       logic_dock_;    // task 0133: derived logic-state timeline view
+	MismatchPanel         mismatch_dock_; // task 0134: ground-truth mismatch panel
 
 	// ---- Session storage + annotation layer + pipeline + rules + model runtime
 	VsmSessionStore           session_store_;
@@ -203,6 +205,10 @@ private:
 	// task 0132: a click in the Layout Bindings panel drives the SAME region
 	// selection wiring as a canvas/Regions-list click (reuses OnRegionSelected).
 	void OnLayoutBindingSelected(int region_index);
+	// task 0134: "Prev/Next Mismatch" in the Ground-Truth Mismatch panel drives
+	// the SAME frame navigation SetTexasFrame() already provides (only valid
+	// while a TexasHoldem session (C) is active).
+	void OnMismatchJumpToFrame(int frame_id);
 
 	// ---- Annotation
 	void LoadSampleAnnotation();

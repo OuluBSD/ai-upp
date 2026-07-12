@@ -248,6 +248,10 @@ void MainWindow::InitDockers()
 	logic_dock_.Title("Logic State").SizeHint(Size(420, 300));
 	Register(logic_dock_);
 
+	mismatch_dock_.Title("Ground-Truth Mismatch").SizeHint(Size(560, 320));
+	Register(mismatch_dock_);
+	mismatch_dock_.WhenJumpToFrame = [=](int f) { OnMismatchJumpToFrame(f); };
+
 	timeline_dock_.WhenStep   = [=] { OnStep(); };
 	timeline_dock_.WhenRunAll = [=] { OnRunAll(); };
 	timeline_dock_.WhenReset  = [=] { OnResetReplay(); };
@@ -298,6 +302,11 @@ void MainWindow::OnResetDockLayout()
 	// (both overlay derived data on the same frame/timeline) — joins the same
 	// bottom tabbed group rather than claiming its own always-visible pane.
 	Tabify(layout_dock_, logic_dock_);
+
+	// Ground-Truth Mismatch panel (task 0134): the natural next stop after
+	// Logic State (it consumes the SAME derived records plus ground truth) —
+	// joins the same bottom tabbed group.
+	Tabify(layout_dock_, mismatch_dock_);
 
 	Log("layout: reset to default (primary: Annotation Editor/Model State; "
 	    "secondary: Rules & Preprocessing tab group; bottom: Layout Bindings/Replay Timeline)");
@@ -712,6 +721,17 @@ void MainWindow::OnLayoutBindingSelected(int region_index)
 		regions_list_.SetCursor(global_row);
 }
 
+void MainWindow::OnMismatchJumpToFrame(int frame_id)
+{
+	// "Prev/Next Mismatch" only makes sense while a TexasHoldem session is
+	// active (the Ground-Truth Mismatch panel is only ever populated for
+	// source C) — reuses SetTexasFrame(), the SAME frame-navigation entry
+	// point the Replay Timeline / Step / Run All already use.
+	if(active_session_ != ACTIVE_TEXAS)
+		return;
+	SetTexasFrame(frame_id);
+}
+
 // ---------------------------------------------------------------------------
 // Annotation
 
@@ -1015,6 +1035,12 @@ void MainWindow::ClearTexasSession()
 	th_logic_model_ = VsmSessionLogicModel();
 	logic_dock_.SetModel(nullptr);
 	logic_dock_.Clear();
+
+	// Ground-truth mismatch panel (task 0134): same lifecycle as logic_dock_
+	// above — borrows th_session_/th_layout_model_/th_logic_model_ by
+	// pointer, so it must be cleared (nullptr'd) BEFORE those go away.
+	mismatch_dock_.SetModel(nullptr, nullptr, nullptr);
+	mismatch_dock_.Clear();
 }
 
 void MainWindow::OpenTexasHoldemSession(const String& path)
@@ -1117,6 +1143,12 @@ void MainWindow::OpenTexasHoldemSession(const String& path)
 			    " — " + th_logic_model_.error);
 	}
 
+	// Ground-truth mismatch panel (task 0134): reuses the SAME th_session_ /
+	// th_layout_model_ / th_logic_model_ just built above — no separate model
+	// of its own, just borrowed pointers (nullptr'd together in
+	// ClearTexasSession()).
+	mismatch_dock_.SetModel(&th_session_, &th_layout_model_, &th_logic_model_);
+
 	// Show the first frame (frame 0 has no predecessor -> no changed regions).
 	SetTexasFrame(0);
 
@@ -1136,12 +1168,15 @@ void MainWindow::SetTexasFrame(int frame_id)
 	if(fc > 0 && frame_id > fc - 1) frame_id = fc - 1;
 	th_step_pos_ = frame_id;
 
-	// Real frame image under the overlays.
+	// Real frame image under the overlays. Kept as a local Image (not just
+	// pushed straight to frame_canvas_) so the Ground-Truth Mismatch panel
+	// (task 0134) can crop the SAME already-decoded frame below without a
+	// second decode.
 	VsmFrameImage fi;
+	Image frame_img;
 	if(VsmLoadTexasHoldemFrameImage(th_session_, frame_id, fi))
-		frame_canvas_.SetFrameImage(VsmFrameImageToImage(fi));
-	else
-		frame_canvas_.SetFrameImage(Image());
+		frame_img = VsmFrameImageToImage(fi);
+	frame_canvas_.SetFrameImage(frame_img);
 
 	// Overlay: this frame's changed-region rectangles, in stable detection
 	// order so canvas "region-N" click indices line up with th_frame_nodes_.
@@ -1172,6 +1207,11 @@ void MainWindow::SetTexasFrame(int frame_id)
 	// already fully derived once in OpenTexasHoldemSession(); scrubbing here
 	// is just an O(1) lookup into th_logic_model_.records[frame_id].
 	logic_dock_.SetFrame(frame_id);
+
+	// Ground-truth mismatch panel (task 0134): rebuilds its rows from the
+	// SAME already-derived th_logic_model_ record plus the already-decoded
+	// frame_img above (crops the real frame directly, no re-decode).
+	mismatch_dock_.SetFrame(frame_id, frame_img);
 
 	timeline_dock_.SetProgress(frame_id, fc);
 }

@@ -30,7 +30,9 @@ file
 	TexasHoldemLayoutBindingAdapter.h,
 	TexasHoldemLayoutBindingAdapter.cpp,
 	TexasHoldemLogicStateAdapter.h,
-	TexasHoldemLogicStateAdapter.cpp;
+	TexasHoldemLogicStateAdapter.cpp,
+	TexasHoldemMismatchAdapter.h,
+	TexasHoldemMismatchAdapter.cpp;
 
 mainconfig
 	"" = "GUI",

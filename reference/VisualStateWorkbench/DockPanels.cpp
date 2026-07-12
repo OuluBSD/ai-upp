@@ -984,3 +984,146 @@ void LogicStatePanel::Clear()
 	verdict_lbl_.SetLabel("Action verdict: —   Hole verdict: —");
 	players_list_.Clear();
 }
+
+// ---------------------------------------------------------------------------
+// MismatchPanel (task 0134)
+
+MismatchPanel::MismatchPanel()
+{
+	header_lbl_.SetLabel("Ground-Truth Mismatch: —");
+	frame_lbl_.SetLabel("Frame: —");
+	crop_lbl_.SetLabel("Crop: —");
+	ref_lbl_.SetLabel("Reference: —");
+
+	prev_mismatch_btn_.SetLabel("< Prev Mismatch");
+	next_mismatch_btn_.SetLabel("Next Mismatch >");
+	prev_mismatch_btn_.WhenAction = [=] { OnPrevMismatch(); };
+	next_mismatch_btn_.WhenAction = [=] { OnNextMismatch(); };
+
+	rows_list_.AddColumn("Field", 150);
+	rows_list_.AddColumn("Verdict", 72);
+	rows_list_.AddColumn("Expected", 90);
+	rows_list_.AddColumn("Parsed", 90);
+	rows_list_.WhenSel = [=] { OnRowSel(); };
+
+	Add(header_lbl_.HSizePos(4, 4).TopPos(4, 20));
+	Add(frame_lbl_.HSizePos(4, 4).TopPos(26, 20));
+	Add(prev_mismatch_btn_.LeftPos(4, 120).TopPos(48, 22));
+	Add(next_mismatch_btn_.LeftPos(128, 120).TopPos(48, 22));
+	Add(rows_list_.HSizePos(4, 226).VSizePos(76, 4));
+	Add(crop_lbl_.RightPos(4, 218).TopPos(76, 18));
+	Add(crop_img_.RightPos(4, 218).TopPos(96, 150));
+	Add(ref_lbl_.RightPos(4, 218).TopPos(250, 18));
+	Add(ref_img_.RightPos(4, 218).TopPos(270, 150));
+}
+
+void MismatchPanel::SetModel(const VsmTexasHoldemSession* session,
+                             const VsmSessionLayoutModel* layout_model,
+                             const VsmSessionLogicModel* logic_model)
+{
+	session_ = session;
+	layout_model_ = layout_model;
+	logic_model_ = logic_model;
+
+	if(!session_ || !logic_model_ || !logic_model_->loaded) {
+		header_lbl_.SetLabel(logic_model_ && !logic_model_->error.IsEmpty()
+		                      ? ("Ground-Truth Mismatch: unavailable — " + logic_model_->error)
+		                      : String("Ground-Truth Mismatch: unavailable (no derived model)"));
+		return;
+	}
+	header_lbl_.SetLabel(Format("Ground-Truth Mismatch: \"%s\"  %d frame record(s)",
+	                            logic_model_->form_path, logic_model_->records.GetCount()));
+}
+
+void MismatchPanel::SetFrame(int frame_id, const Image& frame_img)
+{
+	current_frame_id_ = frame_id;
+	rows_.Clear();
+	rows_list_.Clear();
+	crop_img_.SetImage(Image());
+	ref_img_.SetImage(Image());
+	crop_lbl_.SetLabel("Crop: —");
+	ref_lbl_.SetLabel("Reference: —");
+
+	if(!session_ || !layout_model_ || !logic_model_ || !logic_model_->loaded) {
+		frame_lbl_.SetLabel("Frame: —");
+		return;
+	}
+
+	rows_ = VsmBuildMismatchRows(*session_, *layout_model_, *logic_model_, frame_id, frame_img);
+
+	int n_match = 0, n_mismatch = 0, n_pending = 0, n_other = 0;
+	for(const VsmMismatchRow& r : rows_) {
+		if(r.verdict == "match") n_match++;
+		else if(r.verdict == "mismatch") n_mismatch++;
+		else if(r.verdict == "pending") n_pending++;
+		else n_other++;
+		rows_list_.Add(r.field, r.verdict, r.expected, r.parsed);
+	}
+	frame_lbl_.SetLabel(Format("Frame: %d   rows: %d   match: %d   mismatch: %d   pending: %d   other: %d",
+	                           frame_id, rows_.GetCount(), n_match, n_mismatch, n_pending, n_other));
+}
+
+void MismatchPanel::Clear()
+{
+	session_ = nullptr;
+	layout_model_ = nullptr;
+	logic_model_ = nullptr;
+	current_frame_id_ = -1;
+	rows_.Clear();
+	rows_list_.Clear();
+	crop_img_.SetImage(Image());
+	ref_img_.SetImage(Image());
+	header_lbl_.SetLabel("Ground-Truth Mismatch: —");
+	frame_lbl_.SetLabel("Frame: —");
+	crop_lbl_.SetLabel("Crop: —");
+	ref_lbl_.SetLabel("Reference: —");
+}
+
+void MismatchPanel::OnRowSel()
+{
+	int row = rows_list_.GetCursor();
+	if(row < 0 || row >= rows_.GetCount()) {
+		crop_img_.SetImage(Image());
+		ref_img_.SetImage(Image());
+		crop_lbl_.SetLabel("Crop: —");
+		ref_lbl_.SetLabel("Reference: —");
+		return;
+	}
+	const VsmMismatchRow& r = rows_[row];
+	crop_img_.SetImage(r.has_crop ? r.crop_image : Image());
+	ref_img_.SetImage(r.has_reference ? r.reference_image : Image());
+	// NOTE: "%d" immediately followed by a bare letter (e.g. the literal "x"
+	// in a WxH pair) is NOT safe with U++'s Format() — in a DEBUG build the
+	// formatter greedily absorbs trailing letters into the format id (here
+	// "dx"), finds no such formatter, and prints "<N/A 'dx' for type 1>"
+	// instead of the number (confirmed empirically while building this
+	// task's headless probe — see this task's evidence section; several
+	// PRE-EXISTING "%dx%d" Format() calls elsewhere in this same file/
+	// MainWindow.cpp appear to share this same latent bug, but fixing those
+	// is out of this task's scope). This file's own new code uses a space-
+	// padded " x " separator instead, which is safe.
+	crop_lbl_.SetLabel(r.has_region
+		? Format("Crop: %s  rect(%d,%d) %d x %d", r.field, r.region_rect.left, r.region_rect.top,
+		         r.region_rect.GetWidth(), r.region_rect.GetHeight())
+		: Format("Crop: %s — no region resolved", r.field));
+	ref_lbl_.SetLabel(Format("Reference (expected=%s): %s", r.expected, r.has_reference ? "shown" : "—"));
+}
+
+void MismatchPanel::OnPrevMismatch()
+{
+	if(!logic_model_)
+		return;
+	int fid = VsmFindNextMismatchFrame(*logic_model_, current_frame_id_, false);
+	if(fid >= 0)
+		WhenJumpToFrame(fid);
+}
+
+void MismatchPanel::OnNextMismatch()
+{
+	if(!logic_model_)
+		return;
+	int fid = VsmFindNextMismatchFrame(*logic_model_, current_frame_id_, true);
+	if(fid >= 0)
+		WhenJumpToFrame(fid);
+}

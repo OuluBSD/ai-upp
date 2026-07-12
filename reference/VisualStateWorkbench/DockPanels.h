@@ -302,4 +302,61 @@ private:
 	ArrayCtrl players_list_;   // per-seat: seat / dealer / action / hole cards
 };
 
+// ---------------------------------------------------------------------------
+// MismatchPanel — ground-truth mismatch panel (task 0134 / M06-04): one row
+// per resolved-this-frame field (dealer seat, each board_card slot, each
+// seat's action icon, each seat's hole cards), each with a match/mismatch/
+// pending/hidden/winner verdict, the expected (ground-truth) and parsed
+// (derived) values, and a region-crop-vs-reference-image preview for the
+// selected row. All data is computed GUI-independently by
+// TexasHoldemMismatchAdapter (VsmBuildMismatchRows), which reuses task
+// 0131's session ground truth, task 0132's `.form` candidate rects, and task
+// 0133's derived logic-state records directly — no comparison logic
+// duplicated. Only ever populated for an active TexasHoldem session (source
+// C). Scrubbing the Replay Timeline updates this panel via SetFrame(); the
+// "Prev/Next Mismatch" buttons fire WhenJumpToFrame so MainWindow can drive
+// the same SetTexasFrame() the timeline itself uses.
+
+class MismatchPanel : public DockableCtrl {
+public:
+	typedef MismatchPanel CLASSNAME;
+
+	MismatchPanel();
+
+	// Session/model pointers (task 0131/0132/0133), borrowed — set once per
+	// opened TexasHoldem session, nullptr'd on ClearTexasSession(). Does not
+	// itself populate a frame — call SetFrame() next.
+	void SetModel(const VsmTexasHoldemSession* session, const VsmSessionLayoutModel* layout_model,
+	             const VsmSessionLogicModel* logic_model);
+
+	// Rebuilds every row for `frame_id` from `frame_img` (the same already-
+	// decoded current-frame Image FrameCanvas::SetFrameImage() was just given
+	// — passed in rather than re-decoded here).
+	void SetFrame(int frame_id, const Image& frame_img);
+
+	void Clear();
+
+	// Fires with a target frame_id when "Prev/Next Mismatch" finds one.
+	Event<int> WhenJumpToFrame;
+
+private:
+	const VsmTexasHoldemSession* session_      = nullptr;
+	const VsmSessionLayoutModel* layout_model_ = nullptr;
+	const VsmSessionLogicModel*  logic_model_  = nullptr;
+	int current_frame_id_ = -1;
+
+	Vector<VsmMismatchRow> rows_;
+
+	Label     header_lbl_;
+	Label     frame_lbl_;
+	Button    prev_mismatch_btn_, next_mismatch_btn_;
+	ArrayCtrl rows_list_;
+	Label     crop_lbl_, ref_lbl_;
+	ImageCtrl crop_img_, ref_img_;
+
+	void OnRowSel();
+	void OnPrevMismatch();
+	void OnNextMismatch();
+};
+
 #endif

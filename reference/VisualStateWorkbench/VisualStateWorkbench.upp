@@ -25,7 +25,9 @@ file
 	JpegSequenceImporter.h,
 	JpegSequenceImporter.cpp,
 	TexasHoldemSessionAdapter.h,
-	TexasHoldemSessionAdapter.cpp;
+	TexasHoldemSessionAdapter.cpp,
+	TexasHoldemLayoutBindingAdapter.h,
+	TexasHoldemLayoutBindingAdapter.cpp;
 
 mainconfig
 	"" = "GUI",

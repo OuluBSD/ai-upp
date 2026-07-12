@@ -222,4 +222,44 @@ private:
 	Label id_lbl_, source_lbl_, size_lbl_, created_lbl_, format_lbl_, assets_lbl_;
 };
 
+// ---------------------------------------------------------------------------
+// LayoutBindingPanel — visualizes M04's `.form`-driven layout model (task
+// 0132): the parsed layout element/sub-slot candidates and, per frame, which
+// detected changed region got matched to which element/sub-slot, with role /
+// seat_index / card_index / overlap. All data is computed GUI-independently by
+// TexasHoldemLayoutBindingAdapter (VsmSessionLayoutModel / VsmLayoutBinding),
+// which reuses M04's shared FormLayout/LayoutProfile/RegionAssign functions.
+// Only ever populated for an active TexasHoldem session (source C).
+
+class LayoutBindingPanel : public DockableCtrl {
+public:
+	typedef LayoutBindingPanel CLASSNAME;
+
+	LayoutBindingPanel();
+
+	// Header info from the session's frame-independent layout model (form name,
+	// design-space/frame size, scale, candidate counts). nullptr / unloaded
+	// model shows the "unavailable" state.
+	void SetModel(const VsmSessionLayoutModel* model);
+
+	// Populate the per-region binding rows for the current frame.
+	void SetFrameBindings(int frame_id, const Vector<VsmLayoutBinding>& bindings);
+
+	void Clear();
+
+	// Fires with the clicked binding's region_index (the same "region-N" index
+	// FrameCanvas::WhenRegionSelected uses), so MainWindow can drive the SAME
+	// existing region-selection wiring.
+	Event<int> WhenBindingSelected;
+
+private:
+	const VsmSessionLayoutModel* model_ = nullptr;
+
+	Label     info_lbl_, scale_lbl_, frame_lbl_;
+	ArrayCtrl list_;
+	Vector<int> row_region_index_; // list row -> region_index
+
+	void OnSel();
+};
+
 #endif

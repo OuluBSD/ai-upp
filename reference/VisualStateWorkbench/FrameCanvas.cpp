@@ -95,6 +95,7 @@ void FrameCanvas::Paint(Draw& w)
 		w.DrawText(8, 4, "No session loaded — drag to create annotation", StdFont(), SColorShadow());
 	}
 
+	if(show_layout_)      DrawLayoutOverlay(w);
 	if(show_regions_)     DrawRegionOverlay(w);
 	if(show_annotations_) DrawAnnotationOverlay(w);
 	if(show_template_)    DrawTemplateOverlay(w);
@@ -169,6 +170,52 @@ void FrameCanvas::DrawOcrOverlay(Draw& w) const
 		int tx = sz.cx - 8 - GetTextSize(badge, StdFont(9)).cx;
 		w.DrawText(tx, badge_y, badge, StdFont(9), Color(255, 220, 100));
 		badge_y += 14;
+	}
+}
+
+void FrameCanvas::DrawLayoutOverlay(Draw& w) const
+{
+	// Layout-binding overlay (task 0132): draws the `.form`-driven layout model
+	// (M04) distinctly from the plain changed-region overlay. Candidate rects
+	// are in frame-pixel space already (VsmBuildCandidates scaled them), so they
+	// map onto the frame with the same +kTopOffset the region/annotation
+	// overlays use. Two layers:
+	//   1. All candidate rects, faint, elements vs sub-slots in distinct colors
+	//      (context — where every declared element/sub-slot sits this frame).
+	//   2. This frame's matched bindings: the matched candidate rect emphasized
+	//      with its role label; the selected binding highlighted.
+	auto ToCanvas = [&](const Rect& r) {
+		return Rect(r.left, r.top + kTopOffset, r.right, r.bottom + kTopOffset);
+	};
+
+	const Color kElement = Color(200, 140, 0);    // amber — top-level elements
+	const Color kSubSlot = Color(0, 170, 190);    // cyan  — resolved sub-slots
+	const Color kMatched = Color(120, 220, 255);  // bright cyan — matched candidate
+	const Color kSelected = Color(255, 235, 60);  // yellow — selected binding
+
+	if(layout_model_ && layout_model_->loaded) {
+		for(const VsmLayoutCandidate& c : layout_model_->candidates) {
+			Rect rr = ToCanvas(c.rect);
+			if(rr.Width() <= 0 || rr.Height() <= 0) continue;
+			DrawFrame(w, rr, c.kind == "subslot" ? kSubSlot : kElement);
+		}
+	}
+
+	if(layout_bindings_) {
+		for(const VsmLayoutBinding& b : *layout_bindings_) {
+			if(!b.matched) continue;
+			bool sel = (b.region_index == selected_region_);
+			Rect rr = ToCanvas(b.candidate_rect);
+			if(rr.Width() <= 0 || rr.Height() <= 0) continue;
+			Color c = sel ? kSelected : kMatched;
+			DrawFrame(w, rr, c);
+			DrawFrame(w, rr.Deflated(1), c);
+			// Role label (+ seat/card index when present) just inside the rect.
+			String lbl = b.role;
+			if(b.seat_index >= 0) lbl << " s" << b.seat_index;
+			if(b.card_index >= 0) lbl << " c" << b.card_index;
+			w.DrawText(rr.left + 2, rr.top + 2, lbl, StdFont(8), c);
+		}
 	}
 }
 

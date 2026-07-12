@@ -789,3 +789,82 @@ void SessionInfoPanel::Clear()
 	format_lbl_.SetLabel("Format: —");
 	assets_lbl_.SetLabel("Assets: —");
 }
+
+// ---------------------------------------------------------------------------
+// LayoutBindingPanel (task 0132)
+
+LayoutBindingPanel::LayoutBindingPanel()
+{
+	info_lbl_.SetLabel("Layout: —");
+	scale_lbl_.SetLabel("Scale: —");
+	frame_lbl_.SetLabel("Frame: —");
+
+	list_.AddColumn("Region", 62);
+	list_.AddColumn("Rect", 96);
+	list_.AddColumn("Role", 92);
+	list_.AddColumn("Seat", 38);
+	list_.AddColumn("Card", 38);
+	list_.AddColumn("Element / sub-slot", 150);
+	list_.AddColumn("Overlap", 56);
+	list_.WhenSel = [=] { OnSel(); };
+
+	Add(info_lbl_.HSizePos(4, 4).TopPos(4, 20));
+	Add(scale_lbl_.HSizePos(4, 4).TopPos(26, 20));
+	Add(frame_lbl_.HSizePos(4, 4).TopPos(48, 20));
+	Add(list_.HSizePos(4, 4).VSizePos(72, 4));
+}
+
+void LayoutBindingPanel::SetModel(const VsmSessionLayoutModel* model)
+{
+	model_ = model;
+	if(!model || !model->loaded) {
+		info_lbl_.SetLabel("Layout: no .form model (unavailable)");
+		scale_lbl_.SetLabel("Scale: —");
+		return;
+	}
+	info_lbl_.SetLabel(Format("Layout: \"%s\"  %d el + %d sub-slot = %d candidates",
+	                          model->profile.name, model->element_count,
+	                          model->subslot_count, model->candidates.GetCount()));
+	scale_lbl_.SetLabel(Format("Design-space %dx%d  ->  frame %dx%d   scale sx=%s sy=%s",
+	                           model->profile.width, model->profile.height,
+	                           model->frame_width, model->frame_height,
+	                           DblStr(model->sx), DblStr(model->sy)));
+}
+
+void LayoutBindingPanel::SetFrameBindings(int frame_id, const Vector<VsmLayoutBinding>& bindings)
+{
+	list_.Clear();
+	row_region_index_.Clear();
+
+	int matched = 0;
+	for(const VsmLayoutBinding& b : bindings) {
+		String rect = Format("(%d,%d) %dx%d", b.x, b.y, b.w, b.h);
+		String seat = b.seat_index >= 0 ? IntStr(b.seat_index) : String("—");
+		String card = b.card_index >= 0 ? IntStr(b.card_index) : String("—");
+		String overlap = b.matched ? (DblStr(b.overlap * 100.0) + "%") : String("—");
+		list_.Add(Format("region-%d", b.region_index), rect, b.role, seat, card,
+		          b.assigned, overlap);
+		row_region_index_.Add(b.region_index);
+		if(b.matched) matched++;
+	}
+	frame_lbl_.SetLabel(Format("Frame: %d   regions: %d   matched: %d   unassigned: %d",
+	                           frame_id, bindings.GetCount(), matched,
+	                           bindings.GetCount() - matched));
+}
+
+void LayoutBindingPanel::Clear()
+{
+	list_.Clear();
+	row_region_index_.Clear();
+	info_lbl_.SetLabel("Layout: —");
+	scale_lbl_.SetLabel("Scale: —");
+	frame_lbl_.SetLabel("Frame: —");
+}
+
+void LayoutBindingPanel::OnSel()
+{
+	int row = list_.GetCursor();
+	if(row < 0 || row >= row_region_index_.GetCount())
+		return;
+	WhenBindingSelected(row_region_index_[row]);
+}

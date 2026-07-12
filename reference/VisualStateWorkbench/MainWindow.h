@@ -9,10 +9,11 @@ using namespace Upp;
 
 #include "AppState.h"
 #include "DebugTab.h"
+#include "TexasHoldemSessionAdapter.h"
+#include "TexasHoldemLayoutBindingAdapter.h"
 #include "FrameCanvas.h"
 #include "DockPanels.h"
 #include "JpegSequenceImporter.h"
-#include "TexasHoldemSessionAdapter.h"
 
 class MainWindow : public DockWindow {
 public:
@@ -52,6 +53,7 @@ private:
 	TemplateRulePanel     template_dock_;
 	OcrRulePanel          ocr_dock_;
 	ModelStatePanel       model_dock_;
+	LayoutBindingPanel    layout_dock_;   // task 0132: .form layout-binding view
 
 	// ---- Session storage + annotation layer + pipeline + rules + model runtime
 	VsmSessionStore           session_store_;
@@ -91,6 +93,16 @@ private:
 	VsmTexasHoldemSession        th_session_;
 	int                          th_step_pos_ = 0;
 	Vector<const VsmRegionNode*> th_frame_nodes_;
+
+	// ---- Layout-binding model (task 0132 / M06-02). th_layout_model_ is the
+	// session's frame-independent `.form` layout candidate set (built once on
+	// open, GUI-independent adapter); th_frame_bindings_ are the current frame's
+	// region->element/sub-slot bindings (recomputed per frame in SetTexasFrame).
+	// th_form_path_ is the resolved GameTable_<provider>.form path (empty if
+	// none was found, in which case the layout view shows "unavailable").
+	VsmSessionLayoutModel        th_layout_model_;
+	Vector<VsmLayoutBinding>     th_frame_bindings_;
+	String                       th_form_path_;
 
 	VsmAnnotationLayer        annotation_layer_;
 	String                    annotation_path_;
@@ -174,6 +186,9 @@ private:
 	// ---- Region selection
 	void OnRegionSelected(const String& id);
 	void OnRegionListSel();
+	// task 0132: a click in the Layout Bindings panel drives the SAME region
+	// selection wiring as a canvas/Regions-list click (reuses OnRegionSelected).
+	void OnLayoutBindingSelected(int region_index);
 
 	// ---- Annotation
 	void LoadSampleAnnotation();

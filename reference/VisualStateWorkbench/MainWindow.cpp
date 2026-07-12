@@ -241,6 +241,10 @@ void MainWindow::InitDockers()
 	Register(model_dock_);
 	model_dock_.WhenJumpToFrame = [=](int f) { OnJumpToFrame(f); };
 
+	layout_dock_.Title("Layout Bindings").SizeHint(Size(560, 260));
+	Register(layout_dock_);
+	layout_dock_.WhenBindingSelected = [=](int ri) { OnLayoutBindingSelected(ri); };
+
 	timeline_dock_.WhenStep   = [=] { OnStep(); };
 	timeline_dock_.WhenRunAll = [=] { OnRunAll(); };
 	timeline_dock_.WhenReset  = [=] { OnResetReplay(); };
@@ -281,9 +285,14 @@ void MainWindow::OnResetDockLayout()
 	Tabify(template_dock_, ocr_dock_);
 	Tabify(template_dock_, pipeline_dock_);
 
-	DockBottom(timeline_dock_);
+	// Layout Bindings (task 0132): a wide per-frame table, docked at the bottom
+	// alongside the Replay Timeline it is scrubbed by, tabbed so it does not
+	// steal vertical space from the frame canvas until the user reaches for it.
+	DockBottom(layout_dock_);
+	Tabify(layout_dock_, timeline_dock_);
+
 	Log("layout: reset to default (primary: Annotation Editor/Model State; "
-	    "secondary: Rules & Preprocessing tab group)");
+	    "secondary: Rules & Preprocessing tab group; bottom: Layout Bindings/Replay Timeline)");
 }
 
 void MainWindow::CacheDefaultLayout()
@@ -547,6 +556,7 @@ void MainWindow::UpdateToolBar(Bar& bar)
 	bar.Add("Annotations", [=] { OnToggleOverlay(1); }).Check(frame_canvas_.ShowAnnotations());
 	bar.Add("Template",    [=] { OnToggleOverlay(2); }).Check(frame_canvas_.ShowTemplate());
 	bar.Add("OCR",         [=] { OnToggleOverlay(3); }).Check(frame_canvas_.ShowOcr());
+	bar.Add("Layout",      [=] { OnToggleOverlay(4); }).Check(frame_canvas_.ShowLayout());
 }
 
 // ---------------------------------------------------------------------------
@@ -558,10 +568,12 @@ void MainWindow::LoadOverlayState()
 	bool a = (bool)registry_.Get("overlay.annotations", true);
 	bool t = (bool)registry_.Get("overlay.template",    true);
 	bool o = (bool)registry_.Get("overlay.ocr",         true);
+	bool l = (bool)registry_.Get("overlay.layout",      true);
 	frame_canvas_.SetShowRegions(r);
 	frame_canvas_.SetShowAnnotations(a);
 	frame_canvas_.SetShowTemplate(t);
 	frame_canvas_.SetShowOcr(o);
+	frame_canvas_.SetShowLayout(l);
 }
 
 void MainWindow::SaveOverlayState()
@@ -570,6 +582,7 @@ void MainWindow::SaveOverlayState()
 	registry_.Set("overlay.annotations", (bool)frame_canvas_.ShowAnnotations());
 	registry_.Set("overlay.template",    (bool)frame_canvas_.ShowTemplate());
 	registry_.Set("overlay.ocr",         (bool)frame_canvas_.ShowOcr());
+	registry_.Set("overlay.layout",      (bool)frame_canvas_.ShowLayout());
 }
 
 void MainWindow::OnToggleOverlay(int which)
@@ -580,6 +593,7 @@ void MainWindow::OnToggleOverlay(int which)
 	case 1: frame_canvas_.SetShowAnnotations(!frame_canvas_.ShowAnnotations());  state = frame_canvas_.ShowAnnotations(); break;
 	case 2: frame_canvas_.SetShowTemplate   (!frame_canvas_.ShowTemplate());    state = frame_canvas_.ShowTemplate();   break;
 	case 3: frame_canvas_.SetShowOcr        (!frame_canvas_.ShowOcr());         state = frame_canvas_.ShowOcr();        break;
+	case 4: frame_canvas_.SetShowLayout     (!frame_canvas_.ShowLayout());      state = frame_canvas_.ShowLayout();     break;
 	}
 	SaveOverlayState();
 	toolbar_.Set(THISBACK(UpdateToolBar));
@@ -665,6 +679,29 @@ void MainWindow::OnRegionListSel()
 	const VsmRegionNode& rn = s.regions[row];
 	props_dock_.SetRegion(rn.id, &rn);
 	Log(Format("region list selected: %s", rn.id));
+}
+
+void MainWindow::OnLayoutBindingSelected(int region_index)
+{
+	// A click in the Layout Bindings panel selects the SAME region a click on
+	// the canvas / Regions list would, reusing the existing wiring rather than a
+	// parallel mechanism: OnRegionSelected() drives the Region Properties panel,
+	// the canvas highlights the region (+ its matched layout candidate), and the
+	// Regions list cursor is moved to the matching global row.
+	if(active_session_ != ACTIVE_TEXAS)
+		return;
+	if(region_index < 0 || region_index >= th_frame_nodes_.GetCount())
+		return;
+
+	OnRegionSelected(Format("region-%d", region_index));
+	frame_canvas_.SelectRegion(region_index);
+
+	// Map the current-frame region node back to its row in the whole-session
+	// Regions list (th_frame_nodes_ holds pointers into th_session_.regions).
+	const VsmRegionNode* rn = th_frame_nodes_[region_index];
+	int global_row = (int)(rn - th_session_.regions.begin());
+	if(global_row >= 0 && global_row < th_session_.regions.GetCount())
+		regions_list_.SetCursor(global_row);
 }
 
 // ---------------------------------------------------------------------------
@@ -953,6 +990,17 @@ void MainWindow::ClearTexasSession()
 	th_frame_nodes_.Clear();
 	frame_canvas_.SetFrameImage(Image());
 	frame_canvas_.SetInfoText(String());
+
+	// Layout-binding state (task 0132): drop the model/bindings so the panel and
+	// canvas overlay don't linger when switching to the sample or an imported
+	// session. Clear the canvas's borrowed pointers BEFORE the backing vectors
+	// go away.
+	frame_canvas_.SetLayoutBindings(nullptr);
+	frame_canvas_.SetLayoutModel(nullptr);
+	th_frame_bindings_.Clear();
+	th_layout_model_ = VsmSessionLayoutModel();
+	th_form_path_.Clear();
+	layout_dock_.Clear();
 }
 
 void MainWindow::OpenTexasHoldemSession(const String& path)
@@ -1003,6 +1051,32 @@ void MainWindow::OpenTexasHoldemSession(const String& path)
 
 	registry_.Set("session.last_path", path);
 
+	// Layout-binding model (task 0132): resolve the GameTable_<provider>.form
+	// for this session and build its (GUI-independent) candidate model once.
+	// Search roots are exe-relative (the .form files live under game/TexasHoldem
+	// in the repo, and the exe runs from bin/) plus cwd-relative fallbacks. If
+	// none is found the layout view degrades to an "unavailable" state; the rest
+	// of the TexasHoldem session flow is unaffected.
+	Vector<String> form_roots;
+	form_roots.Add(NormalizePath(AppendFileName(GetExeFolder(), "../game/TexasHoldem")));
+	form_roots.Add(NormalizePath(AppendFileName(GetExeFolder(), "../../game/TexasHoldem")));
+	form_roots.Add(NormalizePath(AppendFileName(GetCurrentDirectory(), "game/TexasHoldem")));
+	form_roots.Add("game/TexasHoldem");
+	th_form_path_    = VsmDefaultFormPathForProvider(th_session_.info.provider, form_roots);
+	th_layout_model_ = VsmBuildSessionLayoutModel(th_session_, th_form_path_);
+	layout_dock_.SetModel(&th_layout_model_);
+	frame_canvas_.SetLayoutModel(&th_layout_model_);
+	if(th_form_path_.IsEmpty())
+		Log("texas layout: no GameTable_" + th_session_.info.provider +
+		    ".form found on search roots; layout bindings unavailable");
+	else if(th_layout_model_.loaded)
+		Log(Format("texas layout: model built from %s — %d candidates (%d el + %d subslot) "
+		           "scale sx=%s sy=%s", th_form_path_, th_layout_model_.candidates.GetCount(),
+		           th_layout_model_.element_count, th_layout_model_.subslot_count,
+		           DblStr(th_layout_model_.sx), DblStr(th_layout_model_.sy)));
+	else
+		Log("texas layout: model build FAILED from " + th_form_path_ + " — " + th_layout_model_.error);
+
 	// Show the first frame (frame 0 has no predecessor -> no changed regions).
 	SetTexasFrame(0);
 
@@ -1045,6 +1119,14 @@ void MainWindow::SetTexasFrame(int frame_id)
 	                                 th_session_.info.table_width,
 	                                 th_session_.info.table_height,
 	                                 frame_id, fc - 1));
+
+	// Layout bindings for this frame (task 0132): recomputed via the same shared
+	// M04 matching functions the CLI uses. th_frame_bindings_'s region_index
+	// values line up 1:1 with th_frame_nodes_ / the "region-N" overlay order, so
+	// selecting a binding maps straight back to a region.
+	th_frame_bindings_ = VsmComputeFrameBindings(th_session_, th_layout_model_, frame_id);
+	layout_dock_.SetFrameBindings(frame_id, th_frame_bindings_);
+	frame_canvas_.SetLayoutBindings(&th_frame_bindings_);
 
 	timeline_dock_.SetProgress(frame_id, fc);
 }

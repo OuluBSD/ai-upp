@@ -139,6 +139,68 @@ static ValueMap VsmLoadJsonObject(const String& path, bool& ok)
 	return out;
 }
 
+static String VsmRepoFilePath(const String& package_dir, const String& filename)
+{
+	String rel = AppendFileName(package_dir, filename);
+	Vector<String> candidates;
+	candidates << AppendFileName(GetCurrentDirectory(), rel)
+	           << AppendFileName(AppendFileName(GetExeFolder(), ".."), rel);
+	for(const String& path : candidates)
+		if(FileExists(path))
+			return NormalizePath(path);
+	return NormalizePath(candidates[0]);
+}
+
+static String VsmTexasHoldemCanonicalProvider(const String& provider)
+{
+	String p = ToLower(TrimBoth(provider));
+	if(p == "ps_6p" || p == "ps-6p" || p == "ps 6-player")
+		return "PS_6p";
+	if(p == "classic")
+		return "Classic";
+	if(p == "minimal")
+		return "Minimal";
+	return "Original";
+}
+
+static String VsmTexasHoldemFormFile(const String& provider)
+{
+	return VsmTexasHoldemCanonicalProvider(provider) == "PS_6p" ? "GameTable_PS_6p.form" : "GameTable.form";
+}
+
+static String VsmTexasHoldemLayoutProfile(const String& provider)
+{
+	return VsmTexasHoldemCanonicalProvider(provider) == "PS_6p" ? "ps-6p" : "texas-holdem";
+}
+
+static ValueMap VsmTexasHoldemProviderInfo(const String& provider)
+{
+	String canonical = VsmTexasHoldemCanonicalProvider(provider);
+	String package_dir = AppendFileName("game", "TexasHoldem");
+	String form_file = VsmTexasHoldemFormFile(canonical);
+	String form_path = VsmRepoFilePath(package_dir, form_file);
+	ValueMap info;
+	info.Add("name", canonical);
+	info.Add("label", canonical == "PS_6p" ? "PS 6-player" : canonical);
+	info.Add("layout_profile", VsmTexasHoldemLayoutProfile(canonical));
+	info.Add("form_file", form_file);
+	info.Add("form_path", form_path);
+	info.Add("form_exists", FileExists(form_path));
+	info.Add("default_players", canonical == "PS_6p" ? 6 : 10);
+	info.Add("available", FileExists(form_path));
+	return info;
+}
+
+static ValueArray VsmTexasHoldemProviderCatalog()
+{
+	ValueArray providers;
+	providers.Add(VsmTexasHoldemProviderInfo("Original"));
+	providers.Add(VsmTexasHoldemProviderInfo("PS_6p"));
+	providers.Add(VsmTexasHoldemProviderInfo("Classic"));
+	providers.Add(VsmTexasHoldemProviderInfo("Minimal"));
+	return providers;
+}
+
 struct VsmModelSmokeCommand {
 	static void Setup(CoreCommand& command)
 	{
@@ -315,6 +377,27 @@ struct VsmM07SmokePipelineCommand {
 	}
 };
 
+struct VsmTexasHoldemProvidersCommand {
+	static void Setup(CoreCommand& command)
+	{
+		command.description = "Lists TexasHoldem provider/layout/form identities available to the VSM command surface.";
+		command.category = "vsm.texasholdem";
+		command.tags << "vsm" << "texasholdem" << "provider" << "layout" << "form";
+		command.handler = [](CoreCommandContext& context) {
+			ValueArray providers = VsmTexasHoldemProviderCatalog();
+			ValueMap value;
+			value.Add("providers", providers);
+			value.Add("provider_count", providers.GetCount());
+			CoreCommandResult result;
+			result.ok = true;
+			result.code = 0;
+			result.message = "TexasHoldem providers listed";
+			result.value = value;
+			return result;
+		};
+	}
+};
+
 struct VsmTexasHoldemProofCommand {
 	static void Setup(CoreCommand& command)
 	{
@@ -329,7 +412,8 @@ struct VsmTexasHoldemProofCommand {
 		command.args_schema.Add("size", "table size as WxH; default 1024x648");
 		command.args_schema.Add("step_actions", "true/false; default true");
 		command.handler = [](CoreCommandContext& context) {
-			String provider = context.Get("provider", "PS_6p");
+			String provider = VsmTexasHoldemCanonicalProvider(context.Get("provider", "PS_6p"));
+			ValueMap provider_info = VsmTexasHoldemProviderInfo(provider);
 			int frames = VsmCommandIntArg(context, "frames", 8, 1);
 			int seed = VsmCommandIntArg(context, "seed", 77, 0);
 			bool step_actions = VsmCommandBoolArg(context, "step_actions", true);
@@ -369,12 +453,15 @@ struct VsmTexasHoldemProofCommand {
 			value.Add("seed", seed);
 			value.Add("size", size_text);
 			value.Add("step_actions", step_actions);
+			value.Add("provider_info", provider_info);
 			value.Add("record", record.ToValueMap());
 
 			String metadata_path = AppendFileName(out_dir, "metadata.json");
 			String gt_path = AppendFileName(out_dir, "groundtruth.jsonl");
 			String frames_dir = AppendFileName(out_dir, "frames");
+			String form_path = provider_info.Get("form_path", String());
 			ValueArray artifacts;
+			artifacts.Add(VsmArtifactValue("provider_form", form_path));
 			artifacts.Add(VsmArtifactValue("session_dir", out_dir));
 			artifacts.Add(VsmArtifactValue("metadata", metadata_path));
 			artifacts.Add(VsmArtifactValue("groundtruth", gt_path));
@@ -386,6 +473,10 @@ struct VsmTexasHoldemProofCommand {
 			int gt_rows = VsmCountJsonlRows(gt_path);
 			int frame_files = VsmCountPngFiles(frames_dir);
 			ValueMap summary;
+			summary.Add("provider_id", provider_info.Get("name", provider));
+			summary.Add("layout_id", provider_info.Get("layout_profile", String()));
+			summary.Add("form_path", form_path);
+			summary.Add("form_exists", FileExists(form_path));
 			summary.Add("metadata_ok", metadata_ok);
 			if(metadata_ok) {
 				summary.Add("session_id", metadata.Get("session_id", String()));
@@ -405,6 +496,9 @@ struct VsmTexasHoldemProofCommand {
 				check.Add("message", message);
 				checks.Add(check);
 			};
+			AddCheck("provider_registered", !IsNull(provider_info.Get("name", Null)), provider);
+			AddCheck("layout_resolved", !AsString(provider_info.Get("layout_profile", "")).IsEmpty(), AsString(provider_info.Get("layout_profile", "")));
+			AddCheck("form_exists", FileExists(form_path), form_path);
 			AddCheck("record_exit", record.ok, record.message);
 			AddCheck("metadata_exists", FileExists(metadata_path), metadata_path);
 			AddCheck("groundtruth_exists", FileExists(gt_path), gt_path);
@@ -431,6 +525,7 @@ struct VsmTexasHoldemProofCommand {
 			value.Add("checks", checks);
 
 			bool ok = record.ok && (!record.ok || replay.ok) && metadata_ok &&
+			          FileExists(form_path) &&
 			          FileExists(gt_path) && DirectoryExists(frames_dir) &&
 			          frame_files == frames && gt_rows == frames;
 
@@ -454,6 +549,7 @@ INITBLOCK {
 	CoreCommandRegistry::Register<VsmAnnotationValidateCommand>("vsm.annotation-validate");
 	CoreCommandRegistry::Register<VsmGroundTruthInitCommand>("vsm.groundtruth-init");
 	CoreCommandRegistry::Register<VsmM07SmokePipelineCommand>("vsm.m07-smoke-pipeline");
+	CoreCommandRegistry::Register<VsmTexasHoldemProvidersCommand>("vsm.texasholdem-providers");
 	CoreCommandRegistry::Register<VsmTexasHoldemProofCommand>("vsm.texasholdem-proof");
 }
 

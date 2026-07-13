@@ -47,6 +47,64 @@ JSON. Prefer the registry envelope for automation status and use child stdout fo
 diagnostic detail until a specific workflow is moved to a shared service or gets
 a clean JSON/JSONL output mode.
 
+## Artifact Evidence Contract
+
+M10 artifact-producing commands must prove their work with machine-readable
+evidence under `value`, not only with `ok=true`. The minimum shape is:
+
+```json
+{
+  "ok": true,
+  "code": 0,
+  "message": "workflow completed",
+  "value": {
+    "artifacts": [
+      {
+        "role": "metadata",
+        "path": "path-to-artifact",
+        "exists": true,
+        "size": 291
+      }
+    ],
+    "summary": {
+      "frame_files": 3,
+      "groundtruth_rows": 3,
+      "metadata_ok": true
+    },
+    "checks": [
+      {
+        "name": "frame_count",
+        "ok": true,
+        "message": "expected=3 actual=3"
+      }
+    ]
+  }
+}
+```
+
+Required fields for artifact commands:
+
+- `artifacts`: generated or consumed paths, each with `role`, `path`, and
+  `exists`; file artifacts should include `size` when available.
+- `summary`: domain counts and identities, such as provider, session id, frame
+  count, JSONL row count, layout identity, or validation status.
+- `checks`: named pass/fail checks with `ok` and a diagnostic `message`.
+- `record`, `replay`, or other child results may be included while the command
+  remains process-backed; those child results must include child executable path,
+  arguments, exit code, and stdout inside the normal `CoreCommandResult` shape.
+
+Failure behavior:
+
+- Invalid command arguments must return `ok=false`, non-zero `code`, and a
+  specific `message`; they must not crash.
+- Missing or invalid artifacts must appear as failed checks when the command can
+  continue far enough to inspect them.
+- If a required child process fails before artifacts can be inspected, the outer
+  result should still return structured child status and a failed check for that
+  phase.
+
+`vsm.texasholdem-proof` is the M10 pilot for this contract.
+
 ## Preferred Commands
 
 | Command | Status | Wrapped executable | Arguments | Notes |
@@ -60,6 +118,7 @@ a clean JSON/JSONL output mode.
 | `vsm.session-diff` | preferred validation | `VisualStateSessionDiff [session_a session_b]` | optional `bin_dir`, optional paired `session_a`, `session_b` | Paired args are validated by the host. |
 | `vsm.annotation-validate` | preferred validation | `VisualStateAnnotationValidate [annotation_file]` | optional `bin_dir`, optional `annotation_file` | No file runs synthetic self-check. |
 | `vsm.groundtruth-init` | preferred template generation | `VisualStateGroundTruthInit [session_dir output_template_path]` | optional `bin_dir`, optional paired `session_dir`, `output_template_path` | Paired args are validated by the host. |
+| `vsm.texasholdem-providers` | preferred M10 provider catalog | in-process registry data | none | Lists provider identities, labels, layout profiles, and `.form` paths visible to the command surface. |
 | `vsm.texasholdem-proof` | preferred M10 provider proof | `TexasHoldem --record-session` + `TexasHoldem --replay-session` | optional `bin_dir`, `provider`, `frames`, `seed`, `size`, `step_actions` | First user-visible M10 command. Produces a session, checks artifact counts, then replays it. |
 
 ## Wrapped But Not Yet Preferred
@@ -103,7 +162,16 @@ It records a deterministic TexasHoldem `PS_6p` session, verifies the generated
 `metadata.json`, `groundtruth.jsonl`, and frame PNG artifacts, and then replays
 the session through the existing replay validator. The expected successful JSON
 shape is `ok=true`, `code=0`, `value.record.exit_code=0`,
-`value.replay.exit_code=0`, and artifact checks under `value.checks`.
+`value.replay.exit_code=0`, and artifact checks under `value.checks`. The
+provider-facing evidence includes `value.provider_info`, a `provider_form`
+artifact, and summary fields `provider_id`, `layout_id`, `form_path`, and
+`form_exists`.
+
+Provider identities can be listed separately:
+
+```text
+bin\VisualStateCommandRegistry.exe --run vsm.texasholdem-providers --json
+```
 
 The same command must stay runnable through the generic GUI wrapper:
 

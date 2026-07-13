@@ -21,10 +21,11 @@ struct RegistryProcessResult : Moveable<RegistryProcessResult> {
 
 class CommandRegistryClient {
 public:
-	CommandRegistryClient();
+	CommandRegistryClient() {}
+	CommandRegistryClient(const String& app_path) : app_path(app_path) {}
 
-	void SetExePath(const String& path) { exe_path = path; }
-	String GetExePath() const { return exe_path; }
+	void SetAppPath(const String& path) { app_path = path; }
+	String GetAppPath() const { return app_path; }
 
 	RegistryProcessResult List(ValueArray& commands) const;
 	RegistryProcessResult Describe(const String& name, ValueMap& command) const;
@@ -33,31 +34,30 @@ public:
 	ValueMap HeadlessSmoke() const;
 
 private:
-	String exe_path;
+	String app_path;
 
 	RegistryProcessResult Execute(const Vector<String>& args) const;
-	String DefaultExePath() const;
 };
 
 class CommandRegistryGuiWindow : public TopWindow {
 public:
 	typedef CommandRegistryGuiWindow CLASSNAME;
 
-	CommandRegistryGuiWindow();
+	CommandRegistryGuiWindow(const String& target_app);
 
 	void Layout() override;
 
 private:
 	CommandRegistryClient client;
 
-	EditString exe_path;
+	EditString app_path;
 	ArrayCtrl command_list;
 	LineEdit run_args;
 	LineEdit output;
 	Button refresh_button;
 	Button describe_button;
 	Button run_button;
-	Label exe_label;
+	Label app_label;
 	Label args_label;
 
 	void RefreshCommands();
@@ -67,6 +67,8 @@ private:
 	Vector<String> SplitArgs() const;
 	void ShowResult(const RegistryProcessResult& result);
 };
+
+String ParseCommandRegistryGuiTargetApp(const Vector<String>& args);
 
 END_UPP_NAMESPACE
 

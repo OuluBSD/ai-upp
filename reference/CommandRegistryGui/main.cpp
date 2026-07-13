@@ -9,41 +9,27 @@ static String JsonOrRaw(const RegistryProcessResult& result)
 	return result.stdout_text;
 }
 
-CommandRegistryClient::CommandRegistryClient()
-{
-	exe_path = DefaultExePath();
-}
-
-String CommandRegistryClient::DefaultExePath() const
-{
-#ifdef flagWIN32
-	return AppendFileName(GetExeFolder(), "CommandRegistry.exe");
-#else
-	return AppendFileName(GetExeFolder(), "CommandRegistry");
-#endif
-}
-
 RegistryProcessResult CommandRegistryClient::Execute(const Vector<String>& args) const
 {
 	RegistryProcessResult result;
-	if(exe_path.IsEmpty()) {
-		result.error = "CommandRegistry executable path is empty";
+	if(app_path.IsEmpty()) {
+		result.error = "Target command application path is empty";
 		return result;
 	}
-	if(!FileExists(exe_path)) {
-		result.error = "CommandRegistry executable not found: " + exe_path;
+	if(!FileExists(app_path)) {
+		result.error = "Target command application not found: " + app_path;
 		return result;
 	}
 	String out;
-	result.exit_code = Sys(exe_path, args, out);
+	result.exit_code = Sys(app_path, args, out);
 	result.stdout_text = out;
 	if(result.exit_code != 0) {
-		result.error = Format("CommandRegistry exited with code %d", result.exit_code);
+		result.error = Format("Target command application exited with code %d", result.exit_code);
 		return result;
 	}
 	Value parsed = ParseJSON(out);
 	if(parsed.IsError()) {
-		result.error = "CommandRegistry did not return valid JSON";
+		result.error = "Target command application did not return valid JSON";
 		return result;
 	}
 	result.json = parsed;
@@ -110,7 +96,7 @@ RegistryProcessResult CommandRegistryClient::Run(const String& name, const Vecto
 ValueMap CommandRegistryClient::HeadlessSmoke() const
 {
 	ValueMap report;
-	report.Add("exe", exe_path);
+	report.Add("app", app_path);
 
 	ValueArray commands;
 	RegistryProcessResult list_result = List(commands);
@@ -135,15 +121,16 @@ ValueMap CommandRegistryClient::HeadlessSmoke() const
 	return report;
 }
 
-CommandRegistryGuiWindow::CommandRegistryGuiWindow()
+CommandRegistryGuiWindow::CommandRegistryGuiWindow(const String& target_app)
 {
 	Title("Command Registry GUI");
 	Sizeable().Zoomable();
 	SetRect(0, 0, 1000, 700);
 
-	exe_label.SetLabel("Executable");
+	client.SetAppPath(target_app);
+	app_label.SetLabel("Application");
 	args_label.SetLabel("Run args: key=value, one per line");
-	exe_path <<= client.GetExePath();
+	app_path <<= client.GetAppPath();
 
 	command_list.AddColumn("Name");
 	command_list.AddColumn("Category");
@@ -161,8 +148,8 @@ CommandRegistryGuiWindow::CommandRegistryGuiWindow()
 	describe_button << [=] { DescribeSelected(); };
 	run_button << [=] { RunSelected(); };
 
-	Add(exe_label);
-	Add(exe_path);
+	Add(app_label);
+	Add(app_path);
 	Add(refresh_button);
 	Add(describe_button);
 	Add(run_button);
@@ -184,11 +171,11 @@ void CommandRegistryGuiWindow::Layout()
 	int lineh = DPI(24);
 	int gap = DPI(6);
 
-	exe_label.SetRect(margin, top + DPI(3), labelw, lineh);
+	app_label.SetRect(margin, top + DPI(3), labelw, lineh);
 	run_button.SetRect(size.cx - margin - buttonw, top, buttonw, lineh);
 	describe_button.SetRect(size.cx - margin - 2 * buttonw - gap, top, buttonw, lineh);
 	refresh_button.SetRect(size.cx - margin - 3 * buttonw - 2 * gap, top, buttonw, lineh);
-	exe_path.SetRect(margin + labelw, top, size.cx - 2 * margin - labelw - 3 * buttonw - 3 * gap, lineh);
+	app_path.SetRect(margin + labelw, top, size.cx - 2 * margin - labelw - 3 * buttonw - 3 * gap, lineh);
 
 	int list_top = top + lineh + margin;
 	int args_h = DPI(72);
@@ -225,7 +212,7 @@ Vector<String> CommandRegistryGuiWindow::SplitArgs() const
 
 void CommandRegistryGuiWindow::RefreshCommands()
 {
-	client.SetExePath(exe_path.GetData().ToString());
+	client.SetAppPath(app_path.GetData().ToString());
 	ValueArray commands;
 	RegistryProcessResult result = client.List(commands);
 	command_list.Clear();
@@ -246,7 +233,7 @@ void CommandRegistryGuiWindow::DescribeSelected()
 	String name = SelectedCommandName();
 	if(name.IsEmpty())
 		return;
-	client.SetExePath(exe_path.GetData().ToString());
+	client.SetAppPath(app_path.GetData().ToString());
 	ValueMap command;
 	ShowResult(client.Describe(name, command));
 }
@@ -256,7 +243,7 @@ void CommandRegistryGuiWindow::RunSelected()
 	String name = SelectedCommandName();
 	if(name.IsEmpty())
 		return;
-	client.SetExePath(exe_path.GetData().ToString());
+	client.SetAppPath(app_path.GetData().ToString());
 	ShowResult(client.Run(name, SplitArgs()));
 }
 
@@ -273,6 +260,27 @@ void CommandRegistryGuiWindow::ShowResult(const RegistryProcessResult& result)
 	output.SetData(text);
 }
 
+String ParseCommandRegistryGuiTargetApp(const Vector<String>& args)
+{
+	for(int i = 0; i < args.GetCount(); i++) {
+		String arg = args[i];
+		if(arg == "--app" && i + 1 < args.GetCount())
+			return args[i + 1];
+	}
+	for(int i = 0; i < args.GetCount(); i++) {
+		String arg = args[i];
+		if(arg == "--headless-smoke")
+			continue;
+		if(arg.StartsWith("--")) {
+			if(arg == "--app" && i + 1 < args.GetCount())
+				i++;
+			continue;
+		}
+		return arg;
+	}
+	return String();
+}
+
 } // namespace Upp
 
 using namespace Upp;
@@ -286,16 +294,14 @@ GUI_APP_MAIN
 	for(const String& arg : args)
 		if(arg == "--headless-smoke")
 			headless = true;
+	String target_app = ParseCommandRegistryGuiTargetApp(args);
 	if(headless) {
-		CommandRegistryClient client;
-		for(int i = 0; i < args.GetCount(); i++)
-			if(args[i] == "--exe" && i + 1 < args.GetCount())
-				client.SetExePath(args[++i]);
+		CommandRegistryClient client(target_app);
 		ValueMap report = client.HeadlessSmoke();
 		Cout() << AsJSON(report, true) << "\n";
 		SetExitCode((bool)report.Get("ok", false) ? 0 : 1);
 		return;
 	}
 
-	CommandRegistryGuiWindow().Run();
+	CommandRegistryGuiWindow(target_app).Run();
 }

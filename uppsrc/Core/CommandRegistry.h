@@ -77,4 +77,6 @@ private:
 	static Array<CoreCommand>& Commands();
 };
 
+void CoreCommandRegistryMain();
+
 #endif

@@ -1,0 +1,10 @@
+description "VisualState M07 video-only parity regression tests\377";
+
+uses
+	VisualStateLogic;
+
+file
+	main.cpp;
+
+mainconfig
+	"" = "GUI";

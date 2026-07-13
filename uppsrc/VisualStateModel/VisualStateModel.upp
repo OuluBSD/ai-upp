@@ -69,4 +69,6 @@ file
 	LayoutProfile.h,
 	LayoutProfile.cpp,
 	RegionAssign.h,
-	RegionAssign.cpp;
+	RegionAssign.cpp,
+	SessionRegionTimeline.h,
+	SessionRegionTimeline.cpp;

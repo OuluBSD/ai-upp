@@ -315,136 +315,57 @@ CONSOLE_APP_MAIN
 			return;
 		}
 
-		VsmM01M02SessionInfo info;
-		if(!VsmReadM01M02SessionInfo(session_dir, info)) {
-			Fail(Format("Failed to read M01/M02 session metadata.json under: %s", session_dir));
+		VsmSessionRegionTimelineOptions timeline_opts;
+		timeline_opts.frame_start = frame_start;
+		timeline_opts.frame_end = frame_end;
+
+		VsmSessionRegionTimeline timeline;
+		VsmSessionRegionTimelineResult timeline_result =
+			VsmBuildSessionRegionTimeline(session_dir, timeline_opts, timeline, &log);
+		if(!timeline_result.success) {
+			Fail(timeline_result.error);
 			return;
 		}
+		const VsmM01M02SessionInfo& info = timeline.info;
 
 		Cout() << "Session: provider=" << info.provider
 		       << " session_id=" << info.session_id
 		       << " size=" << info.table_width << "x" << info.table_height
 		       << " frame_count=" << info.frame_count << "\n\n";
 
-		if(info.frame_count < 2) {
-			Fail("Session has fewer than 2 frames — no transitions to detect");
-			return;
-		}
-
-		// Resolve --frame-start/--frame-end against the session's frame count.
-		// frame_start/frame_end restrict which *target* frame ids (the "curr"
-		// side of a prev->curr transition) are processed, supporting
-		// MILESTONE_03's "focused reruns" on a frame range.
-		int fs = frame_start >= 0 ? frame_start : 0;
-		int fe = frame_end   >= 0 ? frame_end   : info.frame_count - 1;
-		if(fs < 1) fs = 1; // frame 0 has no predecessor; first possible transition target is 1
-		if(fe > info.frame_count - 1) fe = info.frame_count - 1;
-		if(fs > fe) {
-			Fail(Format("Invalid frame range: --frame-start resolves to %d > --frame-end %d", fs, fe));
-			return;
-		}
-		int load_start = fs - 1;
-
-		Cout() << "Frame range: transitions " << load_start << "->" << fs
-		       << " .. " << (fe - 1) << "->" << fe << "\n\n";
-
-		// Configure change detection (same parameters as the synthetic path)
-		VsmChangeDetectParams params;
-		params.pixel_threshold = 30;
-		params.block_size = 8;
-		params.block_min_score = 0.05;
-		params.merge_gap = 16;
-		params.min_region_area = 64;
+		Cout() << "Frame range: transitions " << timeline_result.load_start << "->" << timeline_result.frame_start
+		       << " .. " << (timeline_result.frame_end - 1) << "->" << timeline_result.frame_end << "\n\n";
 
 		Cout() << "Detecting changes between frames...\n\n";
 
-		// Initialize region memory
-		VsmRegionMemory mem;
-		mem.SetLog(&log);
-
-		// Deterministic per-region-per-transition output record.
-		struct VsmRegionRecordOut : Moveable<VsmRegionRecordOut> {
-			int    frame_prev = -1;
-			int    frame      = -1;
-			int    x = 0, y = 0, w = 0, h = 0;
-			double score      = 0.0;
-			String region_id;
-
-			void Jsonize(JsonIO& json)
-			{
-				json("frame_prev", frame_prev)
-				    ("frame",      frame)
-				    ("x", x)("y", y)("w", w)("h", h)
-				    ("score",      score)
-				    ("region_id",  region_id);
-			}
-		};
-		Vector<VsmRegionRecordOut> records;
-		int rgn_counter = 0;
-
-		VsmFrameImage prev_frame;
-		if(!VsmLoadM01M02SessionFrame(session_dir, load_start, prev_frame)) {
-			Fail(Format("Failed to decode frame %d", load_start));
-			return;
-		}
-
-		for(int fid = fs; fid <= fe; fid++) {
+		for(const VsmSessionRegionTransition& transition : timeline.transitions) {
+			int fid = transition.frame;
 			VsmFrameImage curr_frame;
-			if(!VsmLoadM01M02SessionFrame(session_dir, fid, curr_frame)) {
+			if(!VsmLoadSessionRegionTransitionFrame(session_dir, transition, curr_frame)) {
 				Fail(Format("Failed to decode frame %d", fid));
 				return;
 			}
 
-			Vector<VsmChangedRect> changes = VsmDetectChanges(prev_frame, curr_frame, params);
 			Cout() << "Frame " << (fid - 1) << "->" << fid
-			       << ": detected " << changes.GetCount() << " changed region(s)\n";
+			       << ": detected " << transition.changes.GetCount() << " changed region(s)\n";
 
-			// This transition's records only (same fields/order as `changes`),
-			// used below to build the --crop-report-out markdown table without
-			// re-deriving region_id/score from `records` (the whole-run vector).
-			Vector<VsmRegionRecordOut> transition_records;
-
-			for(const VsmChangedRect& cr : changes) {
-				VsmFingerprint32 fp;
-				if(!VsmRegionMemory::ExtractFingerprint(curr_frame, cr.x, cr.y, cr.w, cr.h, fp)) {
-					Fail(Format("ExtractFingerprint frame %d", fid));
-					return;
-				}
-
-				// Query region memory for a match
-				VsmRegionMatch match = mem.FindNearest(fp, 0.3);
-				VsmRegionId rid;
-				if(!match.region_id.IsEmpty()) {
-					rid = match.region_id;
-				} else {
-					rid = Format("rgn-%04d", ++rgn_counter);
-					mem.Add(rid, fp);
-				}
-
-				VsmRegionRecordOut rec;
-				rec.frame_prev = fid - 1;
-				rec.frame      = fid;
-				rec.x = cr.x; rec.y = cr.y; rec.w = cr.w; rec.h = cr.h;
-				rec.score      = cr.score;
-				rec.region_id  = rid;
-				records.Add(rec);
-				transition_records.Add(rec);
-
-				Cout() << "  Frame " << fid << ": region_id=" << rid
-				       << " rect=(" << cr.x << "," << cr.y << "," << cr.w << "x" << cr.h << ")"
-				       << " score=" << DblStr(cr.score)
-				       << " hash=" << ShortHash(fp);
-				if(!match.region_id.IsEmpty()) {
-					Cout() << " [matched, distance=" << DblStr(match.distance) << "]";
+			for(int i = 0; i < transition.records.GetCount(); i++) {
+				const VsmSessionRegionRecord& rec = transition.records[i];
+				Cout() << "  Frame " << fid << ": region_id=" << rec.region_id
+				       << " rect=(" << rec.x << "," << rec.y << "," << rec.w << "x" << rec.h << ")"
+				       << " score=" << DblStr(rec.score)
+				       << " hash=" << rec.fingerprint_hash;
+				if(rec.matched) {
+					Cout() << " [matched, distance=" << DblStr(rec.match_distance) << "]";
 				}
 				Cout() << "\n";
 			}
 			Cout() << "\n";
 
-			if(!overlay_out.IsEmpty() && changes.GetCount() > 0) {
+			if(!overlay_out.IsEmpty() && transition.changes.GetCount() > 0) {
 				String out_path = AppendFileName(overlay_out,
 				    Format("overlay_%04d_%04d.png", fid - 1, fid));
-				if(VsmSaveOverlayPng(curr_frame, changes, out_path))
+				if(VsmSaveOverlayPng(curr_frame, transition.changes, out_path))
 					Cout() << "Wrote overlay PNG: " << out_path << "\n\n";
 				else {
 					Fail(Format("Failed to write overlay PNG: %s", out_path));
@@ -456,12 +377,12 @@ CONSOLE_APP_MAIN
 			// + one markdown file per transition embedding them and a data table
 			// mirroring the --jsonl-out record fields. Independent of and
 			// composable with --overlay-out (full-frame) above.
-			if(!crop_report_out.IsEmpty() && changes.GetCount() > 0) {
+			if(!crop_report_out.IsEmpty() && transition.changes.GetCount() > 0) {
 				Vector<String> crop_names;
-				for(int i = 0; i < changes.GetCount(); i++) {
+				for(int i = 0; i < transition.changes.GetCount(); i++) {
 					String crop_name = Format("crop_%04d_%04d_%02d.png", fid - 1, fid, i);
 					String crop_path = AppendFileName(crop_report_out, crop_name);
-					if(!VsmSaveRegionCropPng(curr_frame, changes[i], crop_path)) {
+					if(!VsmSaveRegionCropPng(curr_frame, transition.changes[i], crop_path)) {
 						Fail(Format("Failed to write crop PNG: %s", crop_path));
 						return;
 					}
@@ -471,17 +392,17 @@ CONSOLE_APP_MAIN
 				String md;
 				md << "# Frame transition " << Format("%04d", fid - 1)
 				   << " -> " << Format("%04d", fid) << "\n\n";
-				md << changes.GetCount() << " changed region(s) detected.\n\n";
-				for(int i = 0; i < changes.GetCount(); i++) {
-					const VsmRegionRecordOut& r = transition_records[i];
+				md << transition.changes.GetCount() << " changed region(s) detected.\n\n";
+				for(int i = 0; i < transition.records.GetCount(); i++) {
+					const VsmSessionRegionRecord& r = transition.records[i];
 					md << "## Region " << r.region_id << "\n\n";
 					md << "![" << r.region_id << "](" << crop_names[i] << ")\n\n";
 				}
 				md << "## Region Data\n\n";
 				md << "| region_id | x | y | w | h | score | frame_prev | frame |\n";
 				md << "| --- | --- | --- | --- | --- | --- | --- | --- |\n";
-				for(int i = 0; i < changes.GetCount(); i++) {
-					const VsmRegionRecordOut& r = transition_records[i];
+				for(int i = 0; i < transition.records.GetCount(); i++) {
+					const VsmSessionRegionRecord& r = transition.records[i];
 					md << "| " << r.region_id
 					   << " | " << r.x << " | " << r.y << " | " << r.w << " | " << r.h
 					   << " | " << DblStr(r.score)
@@ -496,39 +417,32 @@ CONSOLE_APP_MAIN
 					return;
 				}
 				Cout() << "Wrote crop report: " << md_path
-				       << " (" << changes.GetCount() << " crop PNG(s))\n\n";
+				       << " (" << transition.changes.GetCount() << " crop PNG(s))\n\n";
 			}
-
-			// Copy curr_frame data to prev_frame for next iteration (VsmFrameImage
-			// wraps a non-assignable Buffer<byte>, so copy the raw bytes instead).
-			if(prev_frame.width != curr_frame.width || prev_frame.height != curr_frame.height) {
-				prev_frame.Set(curr_frame.width, curr_frame.height, nullptr);
-			}
-			memcpy(prev_frame.data, curr_frame.data, (size_t)curr_frame.width * curr_frame.height * 4);
 		}
 
 		Cout() << "\n=== Region Detection Summary ===\n";
-		Cout() << "Total distinct regions: " << mem.GetCount() << "\n";
-		Cout() << "Total region records: " << records.GetCount() << "\n";
-		Cout() << "Transitions processed: " << load_start << "->" << fs
-		       << " .. " << (fe - 1) << "->" << fe << "\n";
+		Cout() << "Total distinct regions: " << timeline.distinct_region_count << "\n";
+		Cout() << "Total region records: " << timeline.records.GetCount() << "\n";
+		Cout() << "Transitions processed: " << timeline_result.load_start << "->" << timeline_result.frame_start
+		       << " .. " << (timeline_result.frame_end - 1) << "->" << timeline_result.frame_end << "\n";
 
 		// Emit deterministic JSON/JSONL region records: one JSON object per
 		// changed region per frame transition (frame id, rect, score, stable
 		// region id), suitable for regression diffing.
 		if(!jsonl_out.IsEmpty()) {
 			String jsonl;
-			for(const VsmRegionRecordOut& r : records)
+			for(const VsmSessionRegionRecord& r : timeline.records)
 				jsonl << StoreAsJson(r) << "\n";
 			if(!SaveFile(jsonl_out, jsonl)) {
 				Fail(Format("Failed to write --jsonl-out file: %s", jsonl_out));
 				return;
 			}
-			Cout() << "\nWrote " << records.GetCount() << " region record(s) to " << jsonl_out << "\n";
+			Cout() << "\nWrote " << timeline.records.GetCount() << " region record(s) to " << jsonl_out << "\n";
 		}
 		else {
 			Cout() << "\n=== JSONL region records (stdout; use --jsonl-out <path> to save) ===\n";
-			for(const VsmRegionRecordOut& r : records)
+			for(const VsmSessionRegionRecord& r : timeline.records)
 				Cout() << StoreAsJson(r) << "\n";
 		}
 	}

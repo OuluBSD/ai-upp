@@ -36,5 +36,6 @@ using namespace Upp;
 #include "FormLayout.h"
 #include "LayoutProfile.h"
 #include "RegionAssign.h"
+#include "SessionRegionTimeline.h"
 
 #endif

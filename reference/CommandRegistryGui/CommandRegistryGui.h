@@ -31,7 +31,7 @@ public:
 	RegistryProcessResult Describe(const String& name, ValueMap& command) const;
 	RegistryProcessResult Run(const String& name, const Vector<String>& key_value_args) const;
 
-	ValueMap HeadlessSmoke() const;
+	ValueMap HeadlessSmoke(const String& smoke_command = String()) const;
 
 private:
 	String app_path;
@@ -69,6 +69,7 @@ private:
 };
 
 String ParseCommandRegistryGuiTargetApp(const Vector<String>& args);
+String ParseCommandRegistryGuiSmokeCommand(const Vector<String>& args);
 
 END_UPP_NAMESPACE
 

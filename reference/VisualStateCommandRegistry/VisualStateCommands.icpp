@@ -1,0 +1,150 @@
+#include "VisualStateCommandRegistry.h"
+
+namespace Upp {
+
+static String VsmCommandExeName(const String& base)
+{
+#ifdef flagWIN32
+	return base + ".exe";
+#else
+	return base;
+#endif
+}
+
+static String VsmCommandBinDir(CoreCommandContext& context)
+{
+	String bin_dir = context.Get("bin_dir", "");
+	return bin_dir.IsEmpty() ? GetExeFolder() : bin_dir;
+}
+
+static CoreCommandResult RunVsmProcessCommand(CoreCommandContext& context, const String& exe_base, const Vector<String>& args)
+{
+	CoreCommandResult result;
+	String app = AppendFileName(VsmCommandBinDir(context), VsmCommandExeName(exe_base));
+	ValueMap value;
+	value.Add("app", app);
+	ValueArray arg_values;
+	for(const String& arg : args)
+		arg_values.Add(arg);
+	value.Add("args", arg_values);
+
+	if(!FileExists(app)) {
+		result.ok = false;
+		result.code = 127;
+		result.message = "Executable not found: " + app;
+		result.value = value;
+		return result;
+	}
+
+	String out;
+	int code = Sys(app, args, out);
+	value.Add("exit_code", code);
+	value.Add("stdout", out);
+	result.ok = code == 0;
+	result.code = code;
+	result.message = result.ok ? exe_base + " completed" : exe_base + " failed";
+	result.value = value;
+	return result;
+}
+
+struct VsmModelSmokeCommand {
+	static void Setup(CoreCommand& command)
+	{
+		command.description = "Runs the VisualStateModel headless smoke test executable.";
+		command.category = "vsm";
+		command.tags << "vsm" << "smoke" << "process";
+		command.args_schema.Add("bin_dir", "optional directory containing VisualStateModelTest executable");
+		command.handler = [](CoreCommandContext& context) {
+			Vector<String> args;
+			return RunVsmProcessCommand(context, "VisualStateModelTest", args);
+		};
+	}
+};
+
+struct VsmImportSequenceCommand {
+	static void Setup(CoreCommand& command)
+	{
+		command.description = "Runs the VisualStateImportSequence synthetic self-check.";
+		command.category = "vsm";
+		command.tags << "vsm" << "import" << "process";
+		command.args_schema.Add("bin_dir", "optional directory containing VisualStateImportSequence executable");
+		command.handler = [](CoreCommandContext& context) {
+			Vector<String> args;
+			return RunVsmProcessCommand(context, "VisualStateImportSequence", args);
+		};
+	}
+};
+
+struct VsmEndToEndCommand {
+	static void Setup(CoreCommand& command)
+	{
+		command.description = "Runs the VisualStateEndToEndSample synthetic pipeline self-check.";
+		command.category = "vsm";
+		command.tags << "vsm" << "pipeline" << "process";
+		command.args_schema.Add("bin_dir", "optional directory containing VisualStateEndToEndSample executable");
+		command.handler = [](CoreCommandContext& context) {
+			Vector<String> args;
+			return RunVsmProcessCommand(context, "VisualStateEndToEndSample", args);
+		};
+	}
+};
+
+struct VsmLogicSelfTestCommand {
+	static void Setup(CoreCommand& command)
+	{
+		command.description = "Runs the VisualStateLogicCompare fixture-independent M07 self-test.";
+		command.category = "vsm";
+		command.tags << "vsm" << "m07" << "logic" << "process";
+		command.args_schema.Add("bin_dir", "optional directory containing VisualStateLogicCompare executable");
+		command.handler = [](CoreCommandContext& context) {
+			Vector<String> args;
+			args << "--self-test";
+			return RunVsmProcessCommand(context, "VisualStateLogicCompare", args);
+		};
+	}
+};
+
+struct VsmM07SmokePipelineCommand {
+	static void Setup(CoreCommand& command)
+	{
+		command.description = "Runs the lightweight VSM smoke pipeline through registered pilot commands.";
+		command.category = "vsm.pipeline";
+		command.tags << "vsm" << "pipeline" << "m07";
+		command.args_schema.Add("bin_dir", "optional directory containing VSM pilot executables");
+		command.handler = [](CoreCommandContext& context) {
+			ValueMap child_args;
+			String bin_dir = context.Get("bin_dir", "");
+			if(!bin_dir.IsEmpty())
+				child_args.Add("bin_dir", bin_dir);
+
+			ValueArray steps;
+			CoreCommandResult model = context.Run("vsm.model-smoke", child_args);
+			steps.Add(model.ToValueMap());
+			CoreCommandResult import = context.Run("vsm.import-sequence", child_args);
+			steps.Add(import.ToValueMap());
+			CoreCommandResult e2e = context.Run("vsm.end-to-end", child_args);
+			steps.Add(e2e.ToValueMap());
+			CoreCommandResult logic = context.Run("vsm.logic-self-test", child_args);
+			steps.Add(logic.ToValueMap());
+
+			CoreCommandResult result;
+			result.ok = model.ok && import.ok && e2e.ok && logic.ok;
+			result.code = result.ok ? 0 : 1;
+			result.message = result.ok ? "VSM pilot pipeline completed" : "VSM pilot pipeline failed";
+			ValueMap value;
+			value.Add("steps", steps);
+			result.value = value;
+			return result;
+		};
+	}
+};
+
+INITBLOCK {
+	CoreCommandRegistry::Register<VsmModelSmokeCommand>("vsm.model-smoke");
+	CoreCommandRegistry::Register<VsmImportSequenceCommand>("vsm.import-sequence");
+	CoreCommandRegistry::Register<VsmEndToEndCommand>("vsm.end-to-end");
+	CoreCommandRegistry::Register<VsmLogicSelfTestCommand>("vsm.logic-self-test");
+	CoreCommandRegistry::Register<VsmM07SmokePipelineCommand>("vsm.m07-smoke-pipeline");
+}
+
+} // namespace Upp

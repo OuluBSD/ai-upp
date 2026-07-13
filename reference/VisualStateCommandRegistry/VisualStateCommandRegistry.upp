@@ -1,0 +1,13 @@
+description "VisualStateModel command-registry pilot host\377";
+
+uses
+	Core;
+
+file
+	AGENTS.md,
+	VisualStateCommandRegistry.h,
+	VisualStateCommands.icpp,
+	main.cpp;
+
+mainconfig
+	"" = "CONSOLE";

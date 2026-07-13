@@ -93,10 +93,38 @@ RegistryProcessResult CommandRegistryClient::Run(const String& name, const Vecto
 	return Execute(args);
 }
 
-ValueMap CommandRegistryClient::HeadlessSmoke() const
+static bool CommandArrayContains(const ValueArray& commands, const String& name)
+{
+	for(int i = 0; i < commands.GetCount(); i++) {
+		Value item_value = commands[i];
+		if(!item_value.Is<ValueMap>())
+			continue;
+		ValueMap item(item_value);
+		if(item.Get("name", "") == name)
+			return true;
+	}
+	return false;
+}
+
+static String FirstCommandName(const ValueArray& commands)
+{
+	for(int i = 0; i < commands.GetCount(); i++) {
+		Value item_value = commands[i];
+		if(!item_value.Is<ValueMap>())
+			continue;
+		ValueMap item(item_value);
+		String name = item.Get("name", "");
+		if(!name.IsEmpty())
+			return name;
+	}
+	return String();
+}
+
+ValueMap CommandRegistryClient::HeadlessSmoke(const String& smoke_command) const
 {
 	ValueMap report;
 	report.Add("app", app_path);
+	report.Add("smoke_command", smoke_command);
 
 	ValueArray commands;
 	RegistryProcessResult list_result = List(commands);
@@ -104,16 +132,30 @@ ValueMap CommandRegistryClient::HeadlessSmoke() const
 	report.Add("list_error", list_result.error);
 	report.Add("command_count", commands.GetCount());
 
+	String describe_name = !smoke_command.IsEmpty() ? smoke_command : (CommandArrayContains(commands, "sample.echo") ? "sample.echo" : FirstCommandName(commands));
 	ValueMap describe;
-	RegistryProcessResult describe_result = Describe("sample.echo", describe);
+	RegistryProcessResult describe_result = describe_name.IsEmpty() ? RegistryProcessResult() : Describe(describe_name, describe);
 	report.Add("describe_ok", describe_result.ok);
 	report.Add("describe_error", describe_result.error);
+	report.Add("describe_command", describe_name);
 
-	Vector<String> echo_args;
-	echo_args << "text=gui-smoke";
-	RegistryProcessResult run_result = Run("sample.echo", echo_args);
+	String run_name = smoke_command;
+	Vector<String> run_args;
+	if(run_name.IsEmpty() && CommandArrayContains(commands, "sample.echo")) {
+		run_name = "sample.echo";
+		run_args << "text=gui-smoke";
+	}
+	RegistryProcessResult run_result;
+	if(!run_name.IsEmpty())
+		run_result = Run(run_name, run_args);
+	else {
+		run_result.ok = true;
+		run_result.exit_code = 0;
+	}
 	report.Add("run_ok", run_result.ok);
 	report.Add("run_error", run_result.error);
+	report.Add("run_command", run_name);
+	report.Add("run_skipped", run_name.IsEmpty());
 	report.Add("run", run_result.json);
 
 	bool ok = list_result.ok && describe_result.ok && run_result.ok && commands.GetCount() > 0;
@@ -264,19 +306,32 @@ String ParseCommandRegistryGuiTargetApp(const Vector<String>& args)
 {
 	for(int i = 0; i < args.GetCount(); i++) {
 		String arg = args[i];
-		if(arg == "--app" && i + 1 < args.GetCount())
-			return args[i + 1];
+		if((arg == "--app" || arg == "--smoke-command") && i + 1 < args.GetCount()) {
+			if(arg == "--app")
+				return args[i + 1];
+			i++;
+		}
 	}
 	for(int i = 0; i < args.GetCount(); i++) {
 		String arg = args[i];
 		if(arg == "--headless-smoke")
 			continue;
 		if(arg.StartsWith("--")) {
-			if(arg == "--app" && i + 1 < args.GetCount())
+			if((arg == "--app" || arg == "--smoke-command") && i + 1 < args.GetCount())
 				i++;
 			continue;
 		}
 		return arg;
+	}
+	return String();
+}
+
+String ParseCommandRegistryGuiSmokeCommand(const Vector<String>& args)
+{
+	for(int i = 0; i < args.GetCount(); i++) {
+		String arg = args[i];
+		if(arg == "--smoke-command" && i + 1 < args.GetCount())
+			return args[i + 1];
 	}
 	return String();
 }
@@ -295,9 +350,10 @@ GUI_APP_MAIN
 		if(arg == "--headless-smoke")
 			headless = true;
 	String target_app = ParseCommandRegistryGuiTargetApp(args);
+	String smoke_command = ParseCommandRegistryGuiSmokeCommand(args);
 	if(headless) {
 		CommandRegistryClient client(target_app);
-		ValueMap report = client.HeadlessSmoke();
+		ValueMap report = client.HeadlessSmoke(smoke_command);
 		Cout() << AsJSON(report, true) << "\n";
 		SetExitCode((bool)report.Get("ok", false) ? 0 : 1);
 		return;

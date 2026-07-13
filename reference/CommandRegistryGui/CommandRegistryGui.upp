@@ -1,0 +1,12 @@
+description "GUI wrapper for Core CommandRegistry console\377";
+
+uses
+	CtrlLib;
+
+file
+	AGENTS.md,
+	CommandRegistryGui.h,
+	main.cpp;
+
+mainconfig
+	"" = "GUI";

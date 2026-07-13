@@ -138,8 +138,8 @@ Failure behavior:
 | `vsm.session-diff` | preferred validation | `VisualStateSessionDiff [session_a session_b]` | optional `bin_dir`, optional paired `session_a`, `session_b` | Paired args are validated by the host. |
 | `vsm.annotation-validate` | preferred validation | `VisualStateAnnotationValidate [annotation_file]` | optional `bin_dir`, optional `annotation_file` | No file runs synthetic self-check. |
 | `vsm.groundtruth-init` | preferred template generation | `VisualStateGroundTruthInit [session_dir output_template_path]` | optional `bin_dir`, optional paired `session_dir`, `output_template_path` | Paired args are validated by the host. |
-| `vsm.texasholdem-providers` | preferred M10 provider catalog | in-process registry data | none | Lists provider identities, labels, layout profiles, and `.form` paths visible to the command surface. |
-| `vsm.texasholdem-proof` | preferred M10 provider proof | `TexasHoldem --record-session` + `TexasHoldem --replay-session` | optional `bin_dir`, `provider`, `frames`, `seed`, `size`, `step_actions` | First user-visible M10 command. Produces a session, checks artifact counts, then replays it. `provider` accepts `ps6p`, `ps_6p`, `original`, `classic`, and `minimal`; `frames` is positive, `seed` is non-negative, and `size` is positive integer `WxH`. Invalid arguments return `code=2` before the child process starts. |
+| `vsm.texasholdem-providers` | preferred M10 provider catalog | shared `TexasHoldemProviderCatalog` data | none | Lists provider identities, labels, layout profiles, runtime table profiles, and `.form` paths visible to the command surface. |
+| `vsm.texasholdem-proof` | preferred M10 provider proof | `TexasHoldem --record-session` + `TexasHoldem --replay-session` | optional `bin_dir`, `provider`, `frames`, `seed`, `size`, `step_actions` | First user-visible M10 command. Produces a session, checks artifact counts, then replays it. `provider` must resolve through the shared TexasHoldem provider catalog; `frames` is positive, `seed` is non-negative, and `size` is positive integer `WxH`. Invalid arguments return `code=2` before the child process starts. |
 
 ## Wrapped But Not Yet Preferred
 

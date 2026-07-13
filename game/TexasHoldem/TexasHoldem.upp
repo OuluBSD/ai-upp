@@ -2,6 +2,7 @@ description "TexasHoldem engine ported from PokerTH\377B128,0,0";
 
 uses
 	Core,
+	TexasHoldemProviderCatalog,
 	CtrlLib,
 	Form,
 	CardRender,

@@ -1,7 +1,8 @@
 description "VisualStateModel command-registry pilot host\377";
 
 uses
-	Core;
+	Core,
+	TexasHoldemProviderCatalog;
 
 file
 	AGENTS.md,

@@ -109,12 +109,12 @@ struct VsmLayoutBinding : Moveable<VsmLayoutBinding> {
 VsmSessionLayoutModel VsmBuildSessionLayoutModel(const VsmTexasHoldemSession& session,
                                                  const String& form_path);
 
-// Best-effort locate the `GameTable_<provider>.form` layout file for a session
-// provider (e.g. "PS_6p" -> "GameTable_PS_6p.form"), searching `search_dirs` in
-// order and returning the first candidate that exists on disk (empty String if
-// none). GUI-independent so the workbench's form-path resolution can be
-// verified headlessly; the workbench supplies exe-relative + cwd-relative
-// search roots (the `.form` files live under game/TexasHoldem/ in the repo).
+// Best-effort locate the provider's catalog-defined `.form` layout file,
+// searching `search_dirs` in order and returning the first candidate that
+// exists on disk (empty String if none). GUI-independent so the workbench's
+// form-path resolution can be verified headlessly; the workbench supplies
+// exe-relative + cwd-relative search roots (the `.form` files live under
+// game/TexasHoldem/ in the repo).
 String VsmDefaultFormPathForProvider(const String& provider,
                                      const Vector<String>& search_dirs);
 

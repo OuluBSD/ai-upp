@@ -2,6 +2,7 @@
 #include "ClientThread.h"
 #include "NetPacket.h"
 #include "TexasHoldemLogicState.h"
+#include <TexasHoldemProviderCatalog/TexasHoldemProviderCatalog.h>
 #include <Poker/CardsValue.h>
 #include <EditorCommon/Tools.h>
 #include <EditorCommon/EditorCommon.h>
@@ -44,10 +45,8 @@ static void RegisterGameTableFormFactories()
 
 String GameTable::ResolveFormPath(const String& provider)
 {
-	String form_name = "GameTable.form";
-	String p = ToLower(TrimBoth(provider));
-	if (p == "ps_6p" || p == "ps-6p" || p == "pokerstars-6p")
-		form_name = "GameTable_PS_6p.form";
+	const TexasHoldemProviderInfo *info = TexasHoldemFindProvider(provider);
+	String form_name = info ? info->form_file : String("GameTable.form");
 	Vector<String> candidates;
 	candidates.Add(AppendFileName(GetCurrentDirectory(), "game/TexasHoldem/" + form_name));
 	candidates.Add(AppendFileName(GetFileDirectory(GetExeFilePath()), "../game/TexasHoldem/" + form_name));
@@ -61,10 +60,8 @@ String GameTable::ResolveFormPath(const String& provider)
 
 String GameTable::ProviderToLayoutProfile(const String& provider)
 {
-	String p = ToLower(TrimBoth(provider));
-	if (p == "ps_6p" || p == "ps-6p" || p == "pokerstars-6p")
-		return "ps-6p";
-	return "texas-holdem-classic";
+	const TexasHoldemProviderInfo *info = TexasHoldemFindProvider(provider);
+	return info ? info->table_profile : String("texas-holdem-classic");
 }
 
 template <class T>

@@ -8,6 +8,7 @@
 #include "GameTable.h"
 #include "TexasHoldemLocalGame.h"
 #include "TexasHoldemSessionContract.h"
+#include <TexasHoldemProviderCatalog/TexasHoldemProviderCatalog.h>
 #include <Poker/LocalEngineFactory.h>
 #include <GameRules/Game.h>
 #include <GameRules/PlayerData.h>
@@ -29,6 +30,26 @@ constexpr int LOCAL_GAME_DEFAULT_START_CASH = 2000;
 constexpr int LOCAL_GAME_DEFAULT_SPEED = 4;
 constexpr int M01_DEFAULT_WIDTH = 1024;
 constexpr int M01_DEFAULT_HEIGHT = 648;
+
+static const TexasHoldemProviderInfo *RequireTexasHoldemCliProvider(const String& provider)
+{
+	const TexasHoldemProviderInfo *info = TexasHoldemFindProvider(provider);
+	if(!info)
+		Cerr() << "ERROR: unknown provider '" << provider << "'\n";
+	return info;
+}
+
+static String CanonicalTexasHoldemCliProvider(const String& provider)
+{
+	const TexasHoldemProviderInfo *info = RequireTexasHoldemCliProvider(provider);
+	return info ? info->id : String();
+}
+
+static int TexasHoldemProviderDefaultPlayersOrFallback(const String& provider)
+{
+	const TexasHoldemProviderInfo *info = TexasHoldemFindProvider(provider);
+	return info ? info->default_players : LOCAL_GAME_DEFAULT_NUM_PLAYERS;
+}
 
 static void CaptureM01GroundTruth(TexasHoldemGroundTruthRecord& record, const std::shared_ptr<Game>& game)
 {
@@ -75,7 +96,7 @@ static int DumpM01SourceContractSample(const String& out_dir, const String& prov
                                        bool step_actions, bool capture_transient_states,
                                        class ConfigFile& config, EngineLog& engineLog)
 {
-	String sample_provider = provider.IsEmpty() ? "PS_6p" : provider;
+	String sample_provider = provider.IsEmpty() ? TexasHoldemDefaultProviderId() : provider;
 	String sample_session = session_id.IsEmpty() ? "texas-m01-ps6p-sample" : session_id;
 	String root = out_dir.IsEmpty() ? AppendFileName(GetCurrentDirectory(), "tmp/texas_m01_sample") : out_dir;
 	String frames_dir = AppendFileName(root, "frames");
@@ -340,6 +361,9 @@ GUI_APP_MAIN
 			else if(args[i] == "--provider" && i + 1 < args.GetCount())
 				provider = args[++i];
 		}
+		provider = CanonicalTexasHoldemCliProvider(provider);
+		if(provider.IsEmpty())
+			std::_Exit(2);
 		GameTable table(provider);
 		table.SetRect(0, 0, size.cx, size.cy);
 		table.RefreshLayoutDeep();
@@ -364,17 +388,20 @@ GUI_APP_MAIN
 	if (args.GetCount() > 0 && args[0] == "--dump-embedded-start") {
 		Size size(1024, 720);
 		String provider = cli_provider;
-		int num_players = TexasHoldemIsPs6pProvider(provider) ? 6 : LOCAL_GAME_DEFAULT_NUM_PLAYERS;
+		int num_players = TexasHoldemProviderDefaultPlayersOrFallback(provider);
 		int start_cash = LOCAL_GAME_DEFAULT_START_CASH;
 		int game_speed = LOCAL_GAME_DEFAULT_SPEED;
+		bool explicit_num_players = false;
 		for(int i = 1; i < args.GetCount(); i++) {
 			if(args[i] == "--size" && i + 1 < args.GetCount()) {
 				Vector<String> part = Split(args[++i], 'x');
 				if(part.GetCount() == 2)
 					size = Size(max(1, StrInt(part[0])), max(1, StrInt(part[1])));
 			}
-			else if(args[i] == "--num-players" && i + 1 < args.GetCount())
+			else if(args[i] == "--num-players" && i + 1 < args.GetCount()) {
 				num_players = StrInt(args[++i]);
+				explicit_num_players = true;
+			}
 			else if(args[i] == "--start-cash" && i + 1 < args.GetCount())
 				start_cash = StrInt(args[++i]);
 			else if(args[i] == "--game-speed" && i + 1 < args.GetCount())
@@ -382,6 +409,11 @@ GUI_APP_MAIN
 			else if(args[i] == "--provider" && i + 1 < args.GetCount())
 				provider = args[++i];
 		}
+		provider = CanonicalTexasHoldemCliProvider(provider);
+		if(provider.IsEmpty())
+			std::_Exit(2);
+		if(!explicit_num_players)
+			num_players = TexasHoldemProviderDefaultPlayersOrFallback(provider);
 		StartWindow start;
 		start.Init(config, engineLog);
 		start.SetRect(0, 0, size.cx, size.cy);
@@ -426,23 +458,25 @@ GUI_APP_MAIN
 	if (args.GetCount() > 0 && (args[0] == "--dump-source-contract-sample" || args[0] == "--record-session")) {
 		bool m02_record = args[0] == "--record-session";
 		String out_dir = AppendFileName(GetCurrentDirectory(), m02_record ? "tmp/texas_m02_session" : "tmp/texas_m01_sample");
-		String provider = cli_provider.IsEmpty() ? "PS_6p" : cli_provider;
+		String provider = cli_provider.IsEmpty() ? TexasHoldemDefaultProviderId() : cli_provider;
 		String session_id = m02_record ? "texas-m02-ps6p-recording" : "texas-m01-ps6p-sample";
 		Size table_size(M01_DEFAULT_WIDTH, M01_DEFAULT_HEIGHT);
-		int num_players = TexasHoldemIsPs6pProvider(provider) ? 6 : LOCAL_GAME_DEFAULT_NUM_PLAYERS;
+		int num_players = TexasHoldemProviderDefaultPlayersOrFallback(provider);
 		int start_cash = LOCAL_GAME_DEFAULT_START_CASH;
 		int game_speed = LOCAL_GAME_DEFAULT_SPEED;
 		int seed = 1;
 		int frame_count = 8;
 		bool step_actions = false;
 		bool capture_transient_states = false;
+		bool explicit_num_players = false;
 		for (int i = 1; i < args.GetCount(); i++) {
 			if (args[i] == "--out" && i + 1 < args.GetCount())
 				out_dir = args[++i];
 			else if (args[i] == "--provider" && i + 1 < args.GetCount()) {
 				provider = args[++i];
-				if (TexasHoldemIsPs6pProvider(provider))
-					num_players = 6;
+				const TexasHoldemProviderInfo *info = TexasHoldemFindProvider(provider);
+				if(info && !explicit_num_players)
+					num_players = info->default_players;
 			}
 			else if (args[i] == "--session-id" && i + 1 < args.GetCount())
 				session_id = args[++i];
@@ -451,8 +485,10 @@ GUI_APP_MAIN
 				if (part.GetCount() == 2)
 					table_size = Size(max(1, StrInt(part[0])), max(1, StrInt(part[1])));
 			}
-			else if (args[i] == "--num-players" && i + 1 < args.GetCount())
+			else if (args[i] == "--num-players" && i + 1 < args.GetCount()) {
 				num_players = max(2, StrInt(args[++i]));
+				explicit_num_players = true;
+			}
 			else if (args[i] == "--start-cash" && i + 1 < args.GetCount())
 				start_cash = max(100, StrInt(args[++i]));
 			else if (args[i] == "--game-speed" && i + 1 < args.GetCount())
@@ -466,6 +502,11 @@ GUI_APP_MAIN
 			else if (args[i] == "--capture-transient-states")
 				capture_transient_states = true;
 		}
+		provider = CanonicalTexasHoldemCliProvider(provider);
+		if(provider.IsEmpty())
+			std::_Exit(2);
+		if(!explicit_num_players)
+			num_players = TexasHoldemProviderDefaultPlayersOrFallback(provider);
 		int rc = DumpM01SourceContractSample(out_dir, provider, table_size, num_players,
 		                                     start_cash, game_speed, seed, session_id, frame_count, step_actions,
 		                                     capture_transient_states, config, *engineLog);
@@ -555,12 +596,15 @@ GUI_APP_MAIN
 
 	if (args.GetCount() > 0 && args[0] == "--local-game") {
 		String provider = cli_provider;
-		int num_players = TexasHoldemIsPs6pProvider(provider) ? 6 : LOCAL_GAME_DEFAULT_NUM_PLAYERS;
+		int num_players = TexasHoldemProviderDefaultPlayersOrFallback(provider);
 		int start_cash = LOCAL_GAME_DEFAULT_START_CASH;
 		int game_speed = LOCAL_GAME_DEFAULT_SPEED;
+		bool explicit_num_players = false;
 		for (int i = 1; i < args.GetCount(); ++i) {
-			if (args[i] == "--num-players" && i + 1 < args.GetCount())
+			if (args[i] == "--num-players" && i + 1 < args.GetCount()) {
 				num_players = max(2, StrInt(args[++i]));
+				explicit_num_players = true;
+			}
 			else if (args[i] == "--start-cash" && i + 1 < args.GetCount())
 				start_cash = max(100, StrInt(args[++i]));
 			else if (args[i] == "--game-speed" && i + 1 < args.GetCount())
@@ -568,6 +612,11 @@ GUI_APP_MAIN
 			else if (args[i] == "--provider" && i + 1 < args.GetCount())
 				provider = args[++i];
 		}
+		provider = CanonicalTexasHoldemCliProvider(provider);
+		if(provider.IsEmpty())
+			std::_Exit(2);
+		if(!explicit_num_players)
+			num_players = TexasHoldemProviderDefaultPlayersOrFallback(provider);
 		Cout() << "[TexasHoldem] local-game provider='" << provider << "' num_players=" << num_players
 		       << " start_cash=" << start_cash << " game_speed=" << game_speed << "\n";
 		RunLocalGame(num_players, start_cash, game_speed, provider, config, *engineLog);

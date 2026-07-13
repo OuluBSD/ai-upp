@@ -1,5 +1,6 @@
 #include "GameTable.h"
 #include "TexasHoldemLocalGame.h"
+#include <TexasHoldemProviderCatalog/TexasHoldemProviderCatalog.h>
 #include <Poker/LocalEngineFactory.h>
 #include <GameRules/Game.h>
 #include <GameRules/HandInterface.h>
@@ -13,13 +14,13 @@ NAMESPACE_UPP
 
 bool TexasHoldemIsPs6pProvider(const String& provider)
 {
-	String p = ToLower(TrimBoth(provider));
-	return p == "ps_6p" || p == "ps-6p" || p == "pokerstars-6p";
+	return TexasHoldemCanonicalProvider(provider) == "PS_6p";
 }
 
 String TexasHoldemProviderLayoutProfile(const String& provider)
 {
-	return TexasHoldemIsPs6pProvider(provider) ? "ps-6p" : "texas-holdem";
+	const TexasHoldemProviderInfo *info = TexasHoldemFindProvider(provider);
+	return info ? info->table_profile : String("texas-holdem-classic");
 }
 
 std::shared_ptr<Game> StartTexasHoldemLocalGame(GameTable& table,

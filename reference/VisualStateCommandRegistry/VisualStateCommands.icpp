@@ -248,44 +248,20 @@ static String VsmRepoFilePath(const String& package_dir, const String& filename)
 	return NormalizePath(candidates[0]);
 }
 
-static String VsmTexasHoldemCanonicalProvider(const String& provider)
+static ValueMap VsmTexasHoldemProviderInfoValue(const TexasHoldemProviderInfo& provider)
 {
-	String p = ToLower(TrimBoth(provider));
-	if(p == "ps6p" || p == "ps_6p" || p == "ps-6p" || p == "ps 6-player")
-		return "PS_6p";
-	if(p == "original")
-		return "Original";
-	if(p == "classic")
-		return "Classic";
-	if(p == "minimal")
-		return "Minimal";
-	return String();
-}
-
-static String VsmTexasHoldemFormFile(const String& provider)
-{
-	return VsmTexasHoldemCanonicalProvider(provider) == "PS_6p" ? "GameTable_PS_6p.form" : "GameTable.form";
-}
-
-static String VsmTexasHoldemLayoutProfile(const String& provider)
-{
-	return VsmTexasHoldemCanonicalProvider(provider) == "PS_6p" ? "ps-6p" : "texas-holdem";
-}
-
-static ValueMap VsmTexasHoldemProviderInfo(const String& provider)
-{
-	String canonical = VsmTexasHoldemCanonicalProvider(provider);
 	String package_dir = AppendFileName("game", "TexasHoldem");
-	String form_file = VsmTexasHoldemFormFile(canonical);
+	String form_file = provider.form_file;
 	String form_path = VsmRepoFilePath(package_dir, form_file);
 	ValueMap info;
-	info.Add("name", canonical);
-	info.Add("label", canonical == "PS_6p" ? "PS 6-player" : canonical);
-	info.Add("layout_profile", VsmTexasHoldemLayoutProfile(canonical));
+	info.Add("name", provider.id);
+	info.Add("label", provider.label);
+	info.Add("layout_profile", provider.layout_profile);
+	info.Add("table_profile", provider.table_profile);
 	info.Add("form_file", form_file);
 	info.Add("form_path", form_path);
 	info.Add("form_exists", FileExists(form_path));
-	info.Add("default_players", canonical == "PS_6p" ? 6 : 10);
+	info.Add("default_players", provider.default_players);
 	info.Add("available", FileExists(form_path));
 	return info;
 }
@@ -293,10 +269,8 @@ static ValueMap VsmTexasHoldemProviderInfo(const String& provider)
 static ValueArray VsmTexasHoldemProviderCatalog()
 {
 	ValueArray providers;
-	providers.Add(VsmTexasHoldemProviderInfo("Original"));
-	providers.Add(VsmTexasHoldemProviderInfo("PS_6p"));
-	providers.Add(VsmTexasHoldemProviderInfo("Classic"));
-	providers.Add(VsmTexasHoldemProviderInfo("Minimal"));
+	for(const TexasHoldemProviderInfo& provider : TexasHoldemListProviders())
+		providers.Add(VsmTexasHoldemProviderInfoValue(provider));
 	return providers;
 }
 
@@ -511,10 +485,11 @@ struct VsmTexasHoldemProofCommand {
 		command.args_schema.Add("size", "table size as WxH; default 1024x648");
 		command.args_schema.Add("step_actions", "true/false; default true");
 		command.handler = [](CoreCommandContext& context) {
-			String provider_arg = context.Get("provider", "PS_6p");
-			String provider = VsmTexasHoldemCanonicalProvider(provider_arg);
-			if(provider.IsEmpty())
-				return VsmCommandArgError("provider must be one of: ps6p, ps_6p, original, classic, minimal");
+			String provider_arg = context.Get("provider", TexasHoldemDefaultProviderId());
+			const TexasHoldemProviderInfo *provider_entry = TexasHoldemFindProvider(provider_arg);
+			if(!provider_entry)
+				return VsmCommandArgError("provider must be a known TexasHoldem provider");
+			String provider = provider_entry->id;
 
 			int frames;
 			if(!VsmCommandStrictIntArg(context, "frames", 8, 1, frames))
@@ -523,7 +498,7 @@ struct VsmTexasHoldemProofCommand {
 			if(!VsmCommandStrictIntArg(context, "seed", 77, 0, seed))
 				return VsmCommandArgError("seed must be a non-negative integer");
 
-			ValueMap provider_info = VsmTexasHoldemProviderInfo(provider);
+			ValueMap provider_info = VsmTexasHoldemProviderInfoValue(*provider_entry);
 			bool step_actions = VsmCommandBoolArg(context, "step_actions", true);
 			Size size(1024, 648);
 			String size_arg = context.Get("size", "");

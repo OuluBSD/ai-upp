@@ -1,4 +1,5 @@
 #include "TexasHoldemLayoutBindingAdapter.h"
+#include <TexasHoldemProviderCatalog/TexasHoldemProviderCatalog.h>
 
 namespace Upp {
 
@@ -53,7 +54,10 @@ String VsmDefaultFormPathForProvider(const String& provider,
 {
 	if(provider.IsEmpty())
 		return String();
-	String filename = "GameTable_" + provider + ".form";
+	const TexasHoldemProviderInfo *info = TexasHoldemFindProvider(provider);
+	if(!info)
+		return String();
+	String filename = info->form_file;
 	for(const String& dir : search_dirs) {
 		if(dir.IsEmpty())
 			continue;

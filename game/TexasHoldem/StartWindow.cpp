@@ -9,6 +9,7 @@
 #include "ServerManager.h"
 #include <EditorCommon/ConfigFile.h>
 #include "RunLocalGame.h"
+#include <TexasHoldemProviderCatalog/TexasHoldemProviderCatalog.h>
 
 NAMESPACE_UPP
 
@@ -17,10 +18,10 @@ constexpr int DEFAULT_LOCAL_PLAYERS = 10;
 constexpr int DEFAULT_LOCAL_CASH = 2000;
 constexpr int DEFAULT_LOCAL_SPEED = 4;
 
-bool StartWindowIsPs6pProvider(const String& provider)
+int StartWindowProviderDefaultPlayers(const String& provider)
 {
-	String p = ToLower(TrimBoth(provider));
-	return p == "ps_6p" || p == "ps-6p" || p == "pokerstars-6p";
+	const TexasHoldemProviderInfo *info = TexasHoldemFindProvider(provider);
+	return info ? info->default_players : DEFAULT_LOCAL_PLAYERS;
 }
 
 int StartWindowValidLocalPlayers(int value)
@@ -114,11 +115,9 @@ void StartWindow::FillProviders()
 {
 	ASSERT(providerChoice);
 	providerChoice->Clear();
-	providerChoice->Add("Original", t_("Original"));
-	providerChoice->Add("PS_6p", t_("PS 6-player"));
-	providerChoice->Add("Classic", t_("Classic"));
-	providerChoice->Add("Minimal", t_("Minimal"));
-	providerChoice->SetData("PS_6p");
+	for(const TexasHoldemProviderInfo& provider : TexasHoldemListProviders())
+		providerChoice->Add(provider.id, t_(provider.label));
+	providerChoice->SetData(TexasHoldemDefaultProviderId());
 	m_provider = AsString(providerChoice->GetData());
 }
 
@@ -126,10 +125,11 @@ String StartWindow::SelectedProvider() const
 {
 	if (providerChoice) {
 		String provider = AsString(providerChoice->GetData());
-		if (!provider.IsEmpty())
-			return provider;
+		String canonical = TexasHoldemCanonicalProvider(provider);
+		if (!canonical.IsEmpty())
+			return canonical;
 	}
-	return m_provider.IsEmpty() ? String("Original") : m_provider;
+	return m_provider.IsEmpty() ? TexasHoldemDefaultProviderId() : m_provider;
 }
 
 void StartWindow::UpdateTitleFromProvider()
@@ -206,15 +206,15 @@ void StartWindow::ShowGameScreen()
 
 void StartWindow::LoadSetupDefaults()
 {
-	bool ps6p = StartWindowIsPs6pProvider(SelectedProvider());
+	int provider_players = StartWindowProviderDefaultPlayers(SelectedProvider());
 	if (!m_config) {
-		numPlayers->SetData(ps6p ? 6 : DEFAULT_LOCAL_PLAYERS);
+		numPlayers->SetData(provider_players);
 		startCash->SetData(DEFAULT_LOCAL_CASH);
 		gameSpeed->SetData(DEFAULT_LOCAL_SPEED);
 		return;
 	}
-	if (ps6p)
-		numPlayers->SetData(6);
+	if (provider_players != DEFAULT_LOCAL_PLAYERS)
+		numPlayers->SetData(provider_players);
 	else {
 		int stored_players = m_config->readConfigInt("LocalNumPlayers");
 		numPlayers->SetData(StartWindowValidLocalPlayers(stored_players > 0 ? stored_players : DEFAULT_LOCAL_PLAYERS));
@@ -238,8 +238,11 @@ void StartWindow::StartLocalGameForTest(int players, int cash, int speed)
 
 void StartWindow::SelectProviderForTest(const String& provider)
 {
+	String canonical = TexasHoldemCanonicalProvider(provider);
+	if(canonical.IsEmpty())
+		canonical = TexasHoldemDefaultProviderId();
 	if (providerChoice)
-		providerChoice->SetData(provider);
+		providerChoice->SetData(canonical);
 	UpdateTitleFromProvider();
 }
 

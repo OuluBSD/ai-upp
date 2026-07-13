@@ -355,8 +355,7 @@ GUI_APP_MAIN
 		CommandRegistryClient client(target_app);
 		ValueMap report = client.HeadlessSmoke(smoke_command);
 		Cout() << AsJSON(report, true) << "\n";
-		SetExitCode((bool)report.Get("ok", false) ? 0 : 1);
-		return;
+		Exit((bool)report.Get("ok", false) ? 0 : 1);
 	}
 
 	CommandRegistryGuiWindow(target_app).Run();

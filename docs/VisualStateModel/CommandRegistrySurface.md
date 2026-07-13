@@ -91,14 +91,26 @@ source contract decides the boundary.
 
 ## Verified M09 Commands
 
-Representative verification:
+M09 close-out verified the full preferred command set, not only the four commands
+added during M09. All preferred command runs returned outer exit code `0`, JSON
+`ok=true`, JSON `code=0`, and process-backed child `value.exit_code=0`.
 
 ```text
 bin\VisualStateCommandRegistry.exe --list --json
+bin\VisualStateCommandRegistry.exe --describe vsm.model-smoke --json
+bin\VisualStateCommandRegistry.exe --describe vsm.import-sequence --json
+bin\VisualStateCommandRegistry.exe --describe vsm.end-to-end --json
+bin\VisualStateCommandRegistry.exe --describe vsm.logic-self-test --json
+bin\VisualStateCommandRegistry.exe --describe vsm.m07-smoke-pipeline --json
 bin\VisualStateCommandRegistry.exe --describe vsm.session-validate --json
 bin\VisualStateCommandRegistry.exe --describe vsm.session-diff --json
 bin\VisualStateCommandRegistry.exe --describe vsm.annotation-validate --json
 bin\VisualStateCommandRegistry.exe --describe vsm.groundtruth-init --json
+bin\VisualStateCommandRegistry.exe --run vsm.model-smoke --json
+bin\VisualStateCommandRegistry.exe --run vsm.import-sequence --json
+bin\VisualStateCommandRegistry.exe --run vsm.end-to-end --json
+bin\VisualStateCommandRegistry.exe --run vsm.logic-self-test --json
+bin\VisualStateCommandRegistry.exe --run vsm.m07-smoke-pipeline --json
 bin\VisualStateCommandRegistry.exe --run vsm.session-validate --json
 bin\VisualStateCommandRegistry.exe --run vsm.session-diff --json
 bin\VisualStateCommandRegistry.exe --run vsm.annotation-validate --json
@@ -106,3 +118,19 @@ bin\VisualStateCommandRegistry.exe --run vsm.groundtruth-init --json
 bin\CommandRegistryGui.exe --headless-smoke bin\VisualStateCommandRegistry.exe --smoke-command vsm.session-validate
 ```
 
+Negative diagnostics are also structured:
+
+```text
+bin\VisualStateCommandRegistry.exe --run vsm.no-such-command --json
+  => exit 127, ok=false, code=127
+bin\VisualStateCommandRegistry.exe --run vsm.session-diff --arg session_a=C:\missing --json
+  => exit 2, ok=false, code=2
+bin\VisualStateCommandRegistry.exe --run vsm.groundtruth-init --arg session_dir=C:\missing --json
+  => exit 2, ok=false, code=2
+bin\VisualStateCommandRegistry.exe --run vsm.session-validate --arg bin_dir=C:\missing --json
+  => exit 127, ok=false, code=127
+```
+
+`0149` extracted shared service logic only for the `VisualStateRegionDump`
+session-region timeline path. Other preferred commands remain process-backed
+wrappers over the authoritative legacy executables.

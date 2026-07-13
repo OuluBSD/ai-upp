@@ -172,13 +172,55 @@ static ValueMap ParseCoreCommandArgsJson(const String& json)
 	return ValueMap(value);
 }
 
-static void ApplyCoreCommandKeyValueArg(ValueMap& out, const String& key_value)
+static bool CoreCommandValueContainsExtraAssignment(const String& value)
+{
+	for(int i = 0; i < value.GetCount(); i++) {
+		if((byte)value[i] > ' ')
+			continue;
+		int j = i + 1;
+		while(j < value.GetCount() && (byte)value[j] <= ' ')
+			j++;
+		int begin = j;
+		while(j < value.GetCount() && (byte)value[j] > ' ')
+			j++;
+		if(begin < j && value.Mid(begin, j - begin).Find('=') >= 0)
+			return true;
+		i = j;
+	}
+	return false;
+}
+
+static void CoreCommandArgError(bool json, const String& message)
+{
+	if(json) {
+		CoreCommandResult result;
+		result.ok = false;
+		result.code = 2;
+		result.message = message;
+		Cout() << AsJSON(result.ToValueMap(), true) << "\n";
+	}
+	else
+		Cerr() << message << "\n";
+	SetExitCode(2);
+}
+
+static bool ApplyCoreCommandKeyValueArg(ValueMap& out, const String& key_value, String& error)
 {
 	int eq = key_value.Find('=');
-	if(eq < 0)
-		return;
+	if(eq < 0) {
+		error = "Malformed --arg value, expected key=value: " + key_value;
+		return false;
+	}
 	String key = key_value.Left(eq);
 	String value = key_value.Mid(eq + 1);
+	if(key.IsEmpty()) {
+		error = "Malformed --arg value, key is empty: " + key_value;
+		return false;
+	}
+	if(CoreCommandValueContainsExtraAssignment(value)) {
+		error = "Malformed --arg value contains multiple key=value pairs; pass one --arg per pair: " + key_value;
+		return false;
+	}
 	char *end = NULL;
 	long number = strtol(value, &end, 10);
 	Value parsed;
@@ -193,6 +235,7 @@ static void ApplyCoreCommandKeyValueArg(ValueMap& out, const String& key_value)
 		out.SetAt(existing, parsed);
 	else
 		out.Add(key, parsed);
+	return true;
 }
 
 void CoreCommandRegistryMain()
@@ -275,8 +318,13 @@ void CoreCommandRegistryMain()
 			return;
 		}
 		ValueMap parsed_args = ParseCoreCommandArgsJson(args_json);
-		for(const String& key_value : key_value_args)
-			ApplyCoreCommandKeyValueArg(parsed_args, key_value);
+		for(const String& key_value : key_value_args) {
+			String error;
+			if(!ApplyCoreCommandKeyValueArg(parsed_args, key_value, error)) {
+				CoreCommandArgError(json, error);
+				return;
+			}
+		}
 		CoreCommandResult result = CoreCommandRegistry::Run(name, parsed_args);
 		if(json) {
 			Cout() << AsJSON(result.ToValueMap(), true) << "\n";

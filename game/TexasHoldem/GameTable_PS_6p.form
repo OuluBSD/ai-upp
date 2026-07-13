@@ -12,7 +12,7 @@
 						<property name="Anchor" value="SIZE" />
 					</properties>
 				</item>
-				<item x="375" y="364" cx="255" cy="162" align="1" valign="1">
+				<item x="385" y="356" cx="255" cy="161" align="1" valign="1">
 					<name>Player0</name>
 					<properties>
 						<property name="Variable" value="player0" />
@@ -20,7 +20,7 @@
 						<property name="Type" value="PlayerCtrl" />
 					</properties>
 				</item>
-				<item x="10" y="270" cx="330" cy="125" align="1" valign="1">
+				<item x="35" y="250" cx="255" cy="162" align="1" valign="1">
 					<name>Player1</name>
 					<properties>
 						<property name="Variable" value="player1" />
@@ -28,7 +28,7 @@
 						<property name="Type" value="PlayerCtrl" />
 					</properties>
 				</item>
-				<item x="20" y="40" cx="330" cy="200" align="1" valign="1">
+				<item x="75" y="35" cx="255" cy="162" align="1" valign="1">
 					<name>Player2</name>
 					<properties>
 						<property name="Variable" value="player2" />
@@ -36,7 +36,7 @@
 						<property name="Type" value="PlayerCtrl" />
 					</properties>
 				</item>
-				<item x="380" y="10" cx="240" cy="180" align="1" valign="1">
+				<item x="385" y="10" cx="255" cy="162" align="1" valign="1">
 					<name>Player3</name>
 					<properties>
 						<property name="Variable" value="player3" />
@@ -44,7 +44,7 @@
 						<property name="Type" value="PlayerCtrl" />
 					</properties>
 				</item>
-				<item x="650" y="40" cx="330" cy="200" align="1" valign="1">
+				<item x="694" y="35" cx="255" cy="162" align="1" valign="1">
 					<name>Player4</name>
 					<properties>
 						<property name="Variable" value="player4" />
@@ -52,7 +52,7 @@
 						<property name="Type" value="PlayerCtrl" />
 					</properties>
 				</item>
-				<item x="680" y="270" cx="330" cy="125" align="1" valign="1">
+				<item x="734" y="250" cx="255" cy="162" align="1" valign="1">
 					<name>Player5</name>
 					<properties>
 						<property name="Variable" value="player5" />
@@ -92,7 +92,7 @@
 						<property name="Type" value="PlayerCtrl" />
 					</properties>
 				</item>
-				<item x="465" y="191" cx="98" cy="18" align="1" valign="1">
+				<item x="465" y="174" cx="98" cy="14" align="1" valign="1">
 					<name>PotTitle</name>
 					<properties>
 						<property name="Variable" value="lblPotTitle" />
@@ -103,7 +103,7 @@
 						<property name="Text.Align" value="Right" />
 					</properties>
 				</item>
-				<item x="465" y="191" cx="98" cy="18" align="1" valign="1">
+				<item x="430" y="190" cx="168" cy="13" align="1" valign="1">
 					<name>PotTotal</name>
 					<properties>
 						<property name="Variable" value="lblPotTotal" />
@@ -114,7 +114,7 @@
 						<property name="Text.Align" value="Right" />
 					</properties>
 				</item>
-				<item x="287" y="297" cx="93" cy="19" align="1" valign="1">
+				<item x="330" y="318" cx="130" cy="19" align="1" valign="1">
 					<name>PotBets</name>
 					<properties>
 						<property name="Variable" value="lblPotBets" />
@@ -136,7 +136,7 @@
 						<property name="Text.Align" value="Left" />
 					</properties>
 				</item>
-				<item x="648" y="297" cx="88" cy="19" align="1" valign="1">
+				<item x="565" y="318" cx="130" cy="19" align="1" valign="1">
 					<name>GameInfo</name>
 					<properties>
 						<property name="Variable" value="lblGameInfo" />
@@ -147,7 +147,7 @@
 						<property name="Text.Align" value="Left" />
 					</properties>
 				</item>
-				<item x="287" y="297" cx="93" cy="19" align="1" valign="1">
+				<item x="330" y="340" cx="130" cy="19" align="1" valign="1">
 					<name>HandInfo</name>
 					<properties>
 						<property name="Variable" value="lblHandInfo" />

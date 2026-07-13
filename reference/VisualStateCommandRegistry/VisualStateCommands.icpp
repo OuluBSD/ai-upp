@@ -56,6 +56,89 @@ static CoreCommandResult VsmCommandArgError(const String& message)
 	return result;
 }
 
+static bool VsmCommandBoolArg(CoreCommandContext& context, const String& key, bool fallback)
+{
+	Value raw = context.Get(key, Null);
+	if(IsNull(raw))
+		return fallback;
+	if(raw.Is<bool>())
+		return (bool)raw;
+	if(IsNumber(raw))
+		return (int)raw != 0;
+	String value = ToLower(TrimBoth(AsString(raw)));
+	if(value == "1" || value == "true" || value == "yes" || value == "on")
+		return true;
+	if(value == "0" || value == "false" || value == "no" || value == "off")
+		return false;
+	return fallback;
+}
+
+static int VsmCommandIntArg(CoreCommandContext& context, const String& key, int fallback, int min_value)
+{
+	Value raw = context.Get(key, Null);
+	if(IsNull(raw))
+		return fallback;
+	if(IsNumber(raw))
+		return max(min_value, (int)raw);
+	String value = AsString(raw);
+	return value.IsEmpty() ? fallback : max(min_value, StrInt(value));
+}
+
+static ValueMap VsmArtifactValue(const String& role, const String& path)
+{
+	ValueMap artifact;
+	artifact.Add("role", role);
+	artifact.Add("path", path);
+	artifact.Add("exists", FileExists(path) || DirectoryExists(path));
+	if(FileExists(path))
+		artifact.Add("size", GetFileLength(path));
+	return artifact;
+}
+
+static int VsmCountJsonlRows(const String& path)
+{
+	if(!FileExists(path))
+		return 0;
+	Vector<String> rows = Split(LoadFile(path), '\n', false);
+	int count = 0;
+	for(String row : rows)
+		if(!TrimBoth(row).IsEmpty())
+			count++;
+	return count;
+}
+
+static int VsmCountPngFiles(const String& dir)
+{
+	if(!DirectoryExists(dir))
+		return 0;
+	int count = 0;
+	FindFile ff(AppendFileName(dir, "*.png"));
+	while(ff) {
+		if(!ff.IsFolder())
+			count++;
+		ff.Next();
+	}
+	return count;
+}
+
+static ValueMap VsmLoadJsonObject(const String& path, bool& ok)
+{
+	ok = false;
+	ValueMap out;
+	if(!FileExists(path))
+		return out;
+	try {
+		Value value = ParseJSON(LoadFile(path));
+		if(value.Is<ValueMap>()) {
+			ok = true;
+			return value;
+		}
+	}
+	catch(...) {
+	}
+	return out;
+}
+
 struct VsmModelSmokeCommand {
 	static void Setup(CoreCommand& command)
 	{
@@ -232,6 +315,135 @@ struct VsmM07SmokePipelineCommand {
 	}
 };
 
+struct VsmTexasHoldemProofCommand {
+	static void Setup(CoreCommand& command)
+	{
+		command.description = "Records and replays a deterministic TexasHoldem source-contract session through the command surface.";
+		command.category = "vsm.texasholdem";
+		command.tags << "vsm" << "texasholdem" << "provider" << "artifact" << "process";
+		command.args_schema.Add("bin_dir", "optional directory containing TexasHoldem executable");
+		command.args_schema.Add("provider", "provider/theme identity; default PS_6p");
+		command.args_schema.Add("out_dir", "optional output session directory");
+		command.args_schema.Add("frames", "frame count to record; default 8");
+		command.args_schema.Add("seed", "deterministic game seed; default 77");
+		command.args_schema.Add("size", "table size as WxH; default 1024x648");
+		command.args_schema.Add("step_actions", "true/false; default true");
+		command.handler = [](CoreCommandContext& context) {
+			String provider = context.Get("provider", "PS_6p");
+			int frames = VsmCommandIntArg(context, "frames", 8, 1);
+			int seed = VsmCommandIntArg(context, "seed", 77, 0);
+			bool step_actions = VsmCommandBoolArg(context, "step_actions", true);
+			Size size(1024, 648);
+			String size_arg = context.Get("size", "");
+			if(!size_arg.IsEmpty()) {
+				Vector<String> part = Split(size_arg, 'x');
+				if(part.GetCount() != 2)
+					return VsmCommandArgError("size must use WxH format");
+				size = Size(max(1, StrInt(part[0])), max(1, StrInt(part[1])));
+			}
+			String size_text = Format("%d`x%d", size.cx, size.cy);
+
+			String out_dir = context.Get("out_dir", "");
+			if(out_dir.IsEmpty())
+				out_dir = AppendFileName(GetTempDirectory(), "vsm_texasholdem_proof_" + AsString(Random64()));
+			RealizeDirectory(out_dir);
+
+			Vector<String> record_args;
+			record_args << "--record-session"
+			            << "--fastcrash"
+			            << "--out" << out_dir
+			            << "--provider" << provider
+			            << "--session-id" << "vsm-texasholdem-proof"
+			            << "--size" << size_text
+			            << "--frames" << AsString(frames)
+			            << "--seed" << AsString(seed);
+			if(step_actions)
+				record_args << "--step-actions";
+
+			CoreCommandResult record = RunVsmProcessCommand(context, "TexasHoldem", record_args);
+
+			ValueMap value;
+			value.Add("provider", provider);
+			value.Add("session_dir", out_dir);
+			value.Add("requested_frames", frames);
+			value.Add("seed", seed);
+			value.Add("size", size_text);
+			value.Add("step_actions", step_actions);
+			value.Add("record", record.ToValueMap());
+
+			String metadata_path = AppendFileName(out_dir, "metadata.json");
+			String gt_path = AppendFileName(out_dir, "groundtruth.jsonl");
+			String frames_dir = AppendFileName(out_dir, "frames");
+			ValueArray artifacts;
+			artifacts.Add(VsmArtifactValue("session_dir", out_dir));
+			artifacts.Add(VsmArtifactValue("metadata", metadata_path));
+			artifacts.Add(VsmArtifactValue("groundtruth", gt_path));
+			artifacts.Add(VsmArtifactValue("frames_dir", frames_dir));
+			value.Add("artifacts", artifacts);
+
+			bool metadata_ok = false;
+			ValueMap metadata = VsmLoadJsonObject(metadata_path, metadata_ok);
+			int gt_rows = VsmCountJsonlRows(gt_path);
+			int frame_files = VsmCountPngFiles(frames_dir);
+			ValueMap summary;
+			summary.Add("metadata_ok", metadata_ok);
+			if(metadata_ok) {
+				summary.Add("session_id", metadata.Get("session_id", String()));
+				summary.Add("metadata_provider", metadata.Get("provider", String()));
+				summary.Add("metadata_frame_count", metadata.Get("frame_count", 0));
+				summary.Add("status", metadata.Get("status", String()));
+			}
+			summary.Add("groundtruth_rows", gt_rows);
+			summary.Add("frame_files", frame_files);
+			value.Add("summary", summary);
+
+			ValueArray checks;
+			auto AddCheck = [&](const String& name, bool ok, const String& message) {
+				ValueMap check;
+				check.Add("name", name);
+				check.Add("ok", ok);
+				check.Add("message", message);
+				checks.Add(check);
+			};
+			AddCheck("record_exit", record.ok, record.message);
+			AddCheck("metadata_exists", FileExists(metadata_path), metadata_path);
+			AddCheck("groundtruth_exists", FileExists(gt_path), gt_path);
+			AddCheck("frames_dir_exists", DirectoryExists(frames_dir), frames_dir);
+			AddCheck("metadata_parse", metadata_ok, metadata_ok ? "metadata parsed" : "metadata parse failed");
+			AddCheck("frame_count", frame_files == frames, Format("expected=%d actual=%d", frames, frame_files));
+			AddCheck("groundtruth_count", gt_rows == frames, Format("expected=%d actual=%d", frames, gt_rows));
+
+			CoreCommandResult replay;
+			if(record.ok) {
+				Vector<String> replay_args;
+				replay_args << "--replay-session" << out_dir
+				            << "--fastcrash"
+				            << "--expect-provider" << provider
+				            << "--expect-size" << size_text
+				            << "--expect-frame-ms" << "100";
+				replay = RunVsmProcessCommand(context, "TexasHoldem", replay_args);
+				value.Add("replay", replay.ToValueMap());
+				AddCheck("replay_exit", replay.ok, replay.message);
+			}
+			else {
+				AddCheck("replay_exit", false, "record failed; replay skipped");
+			}
+			value.Add("checks", checks);
+
+			bool ok = record.ok && (!record.ok || replay.ok) && metadata_ok &&
+			          FileExists(gt_path) && DirectoryExists(frames_dir) &&
+			          frame_files == frames && gt_rows == frames;
+
+			CoreCommandResult result;
+			result.ok = ok;
+			result.code = ok ? 0 : 1;
+			result.message = ok ? "TexasHoldem proof completed" : "TexasHoldem proof failed";
+			result.value = value;
+			return result;
+		};
+	}
+};
+
 INITBLOCK {
 	CoreCommandRegistry::Register<VsmModelSmokeCommand>("vsm.model-smoke");
 	CoreCommandRegistry::Register<VsmImportSequenceCommand>("vsm.import-sequence");
@@ -242,6 +454,7 @@ INITBLOCK {
 	CoreCommandRegistry::Register<VsmAnnotationValidateCommand>("vsm.annotation-validate");
 	CoreCommandRegistry::Register<VsmGroundTruthInitCommand>("vsm.groundtruth-init");
 	CoreCommandRegistry::Register<VsmM07SmokePipelineCommand>("vsm.m07-smoke-pipeline");
+	CoreCommandRegistry::Register<VsmTexasHoldemProofCommand>("vsm.texasholdem-proof");
 }
 
 } // namespace Upp

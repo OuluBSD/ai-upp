@@ -105,7 +105,6 @@ public:
 					// concrete bug that bit -- harmless here only because
 					// this rect already starts at (0,0), but Clip() is the
 					// semantically correct call: intersect, don't re-offset).
-					w.Begin();
 					w.Clip(0, 0, sz.cx, sz.cy);
 				}
 				if (w1 == isz.cx && h1 == isz.cy)

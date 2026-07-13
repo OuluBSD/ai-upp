@@ -689,6 +689,50 @@ void GameTable::DumpLayoutRects(Stream& out) const
 	out << "pause_button " << BtnPause().GetRect() << "\n";
 	for (int i = 0; i < 5; i++)
 		out << "board_card" << i << " " << TexasTableLayout::BoardCardRect(Board().GetSize(), i) << "\n";
+	auto Intersects = [](Rect a, Rect b) {
+		return max(a.left, b.left) < min(a.right, b.right) &&
+		       max(a.top, b.top) < min(a.bottom, b.bottom);
+	};
+	Rect pot_total = LblPotTotal().GetRect();
+	Rect pot_bets = LblPotBets().GetRect();
+	Rect turn_title = LblTurnTitle().GetRect();
+	Rect game_info = LblGameInfo().GetRect();
+	Rect hand_info = LblHandInfo().GetRect();
+	Rect board_cards = TexasTableLayout::BoardCardRect(Board().GetSize(), 0);
+	for(int i = 1; i < 5; i++)
+		board_cards |= TexasTableLayout::BoardCardRect(Board().GetSize(), i);
+	out << "layout_check pot_title_total_overlap=" << (Intersects(LblPotTitle().GetRect(), pot_total) ? 1 : 0)
+	    << " pot_bets_hand_overlap=" << (Intersects(pot_bets, hand_info) ? 1 : 0)
+	    << " turn_game_overlap=" << (Intersects(turn_title, game_info) ? 1 : 0) << "\n";
+	out << "layout_check pot_total_board_cards_overlap=" << (Intersects(pot_total, board_cards) ? 1 : 0)
+	    << " pot_title_board_cards_overlap=" << (Intersects(LblPotTitle().GetRect(), board_cards) ? 1 : 0)
+	    << " pot_bets_board_cards_overlap=" << (Intersects(pot_bets, board_cards) ? 1 : 0) << "\n";
+	int visible_players = 0;
+	bool players_uniform = true;
+	Size player_size(0, 0);
+	bool pot_total_player_overlap = false;
+	bool pot_title_player_overlap = false;
+	for(int i = 0; i < 10; i++) {
+		Rect pr = players[i].GetRect();
+		if(pr.GetWidth() <= 1 || pr.GetHeight() <= 1)
+			continue;
+		visible_players++;
+		if(player_size.cx == 0 && player_size.cy == 0)
+			player_size = pr.GetSize();
+		else
+			players_uniform = players_uniform && pr.GetSize() == player_size;
+		pot_total_player_overlap = pot_total_player_overlap || Intersects(pr, pot_total);
+		pot_title_player_overlap = pot_title_player_overlap || Intersects(pr, LblPotTitle().GetRect());
+		out << "layout_check player" << i
+		    << "_board_cards_overlap=" << (Intersects(pr, board_cards) ? 1 : 0)
+		    << " player_size=" << pr.GetSize() << "\n";
+	}
+	out << "layout_check visible_players=" << visible_players
+	    << " players_uniform=" << (players_uniform ? 1 : 0)
+	    << " pot_total_player_overlap=" << (pot_total_player_overlap ? 1 : 0)
+	    << " pot_title_player_overlap=" << (pot_title_player_overlap ? 1 : 0)
+	    << " uniform_size=" << player_size
+	    << " board_cards_bounds=" << board_cards << "\n";
 	out.Flush();
 }
 
@@ -1391,7 +1435,6 @@ void GameTable::RenderToImage(Draw& w)
 						// the subsequent DrawImage()'s already-ABSOLUTE dx/dy
 						// draw miles outside the (now relocated) origin) just
 						// intersects the clip region, leaving coordinates as-is.
-						w.Begin();
 						w.Clip(abs_cr);
 					}
 					w.DrawImage(dx, dy, out);

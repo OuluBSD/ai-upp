@@ -137,6 +137,10 @@ Current Task Files (`CURRENT_TASK.md`)
 - GUI automation should prefer `LOG()` over modal dialogs when running unattended.
 - Rich text in this codebase uses QTF; prefer `SetQTF()` for rich text controls.
 - The `RecyclerPool` / `BiVectorRecycler` family is used for reuse-oriented buffering when capacity retention matters.
+- U++ `Format` uses backtick (`` ` ``) as the separator marker inside format
+  strings. When literal text must sit between two format specifiers, write the
+  separator explicitly, e.g. `Format("%d`x%d", width, height)`, not
+  `Format("%dx%d", width, height)`.
 
 ## Headless / GUI Dual-Purpose Rule
 

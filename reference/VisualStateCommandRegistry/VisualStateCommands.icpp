@@ -47,6 +47,15 @@ static CoreCommandResult RunVsmProcessCommand(CoreCommandContext& context, const
 	return result;
 }
 
+static CoreCommandResult VsmCommandArgError(const String& message)
+{
+	CoreCommandResult result;
+	result.ok = false;
+	result.code = 2;
+	result.message = message;
+	return result;
+}
+
 struct VsmModelSmokeCommand {
 	static void Setup(CoreCommand& command)
 	{
@@ -104,6 +113,90 @@ struct VsmLogicSelfTestCommand {
 	}
 };
 
+struct VsmSessionValidateCommand {
+	static void Setup(CoreCommand& command)
+	{
+		command.description = "Runs VisualStateSessionValidate in synthetic mode or for a session directory.";
+		command.category = "vsm.validation";
+		command.tags << "vsm" << "session" << "validation" << "process";
+		command.args_schema.Add("bin_dir", "optional directory containing VisualStateSessionValidate executable");
+		command.args_schema.Add("session_dir", "optional session directory; omitted runs synthetic self-check");
+		command.handler = [](CoreCommandContext& context) {
+			Vector<String> args;
+			String session_dir = context.Get("session_dir", "");
+			if(!session_dir.IsEmpty())
+				args << session_dir;
+			return RunVsmProcessCommand(context, "VisualStateSessionValidate", args);
+		};
+	}
+};
+
+struct VsmSessionDiffCommand {
+	static void Setup(CoreCommand& command)
+	{
+		command.description = "Runs VisualStateSessionDiff in synthetic mode or compares two session directories.";
+		command.category = "vsm.validation";
+		command.tags << "vsm" << "session" << "diff" << "process";
+		command.args_schema.Add("bin_dir", "optional directory containing VisualStateSessionDiff executable");
+		command.args_schema.Add("session_a", "optional first session directory; both session_a and session_b are required for real diff mode");
+		command.args_schema.Add("session_b", "optional second session directory; both session_a and session_b are required for real diff mode");
+		command.handler = [](CoreCommandContext& context) {
+			String session_a = context.Get("session_a", "");
+			String session_b = context.Get("session_b", "");
+			if(session_a.IsEmpty() != session_b.IsEmpty())
+				return VsmCommandArgError("session_a and session_b must be provided together");
+			Vector<String> args;
+			if(!session_a.IsEmpty()) {
+				args << session_a;
+				args << session_b;
+			}
+			return RunVsmProcessCommand(context, "VisualStateSessionDiff", args);
+		};
+	}
+};
+
+struct VsmAnnotationValidateCommand {
+	static void Setup(CoreCommand& command)
+	{
+		command.description = "Runs VisualStateAnnotationValidate in synthetic mode or for an annotation file.";
+		command.category = "vsm.validation";
+		command.tags << "vsm" << "annotation" << "validation" << "process";
+		command.args_schema.Add("bin_dir", "optional directory containing VisualStateAnnotationValidate executable");
+		command.args_schema.Add("annotation_file", "optional annotation file; omitted runs synthetic self-check");
+		command.handler = [](CoreCommandContext& context) {
+			Vector<String> args;
+			String annotation_file = context.Get("annotation_file", "");
+			if(!annotation_file.IsEmpty())
+				args << annotation_file;
+			return RunVsmProcessCommand(context, "VisualStateAnnotationValidate", args);
+		};
+	}
+};
+
+struct VsmGroundTruthInitCommand {
+	static void Setup(CoreCommand& command)
+	{
+		command.description = "Runs VisualStateGroundTruthInit in synthetic mode or generates a template for a session.";
+		command.category = "vsm.groundtruth";
+		command.tags << "vsm" << "groundtruth" << "template" << "process";
+		command.args_schema.Add("bin_dir", "optional directory containing VisualStateGroundTruthInit executable");
+		command.args_schema.Add("session_dir", "optional session directory; both session_dir and output_template_path are required for real generation mode");
+		command.args_schema.Add("output_template_path", "optional output template path; both session_dir and output_template_path are required for real generation mode");
+		command.handler = [](CoreCommandContext& context) {
+			String session_dir = context.Get("session_dir", "");
+			String output_template_path = context.Get("output_template_path", "");
+			if(session_dir.IsEmpty() != output_template_path.IsEmpty())
+				return VsmCommandArgError("session_dir and output_template_path must be provided together");
+			Vector<String> args;
+			if(!session_dir.IsEmpty()) {
+				args << session_dir;
+				args << output_template_path;
+			}
+			return RunVsmProcessCommand(context, "VisualStateGroundTruthInit", args);
+		};
+	}
+};
+
 struct VsmM07SmokePipelineCommand {
 	static void Setup(CoreCommand& command)
 	{
@@ -144,6 +237,10 @@ INITBLOCK {
 	CoreCommandRegistry::Register<VsmImportSequenceCommand>("vsm.import-sequence");
 	CoreCommandRegistry::Register<VsmEndToEndCommand>("vsm.end-to-end");
 	CoreCommandRegistry::Register<VsmLogicSelfTestCommand>("vsm.logic-self-test");
+	CoreCommandRegistry::Register<VsmSessionValidateCommand>("vsm.session-validate");
+	CoreCommandRegistry::Register<VsmSessionDiffCommand>("vsm.session-diff");
+	CoreCommandRegistry::Register<VsmAnnotationValidateCommand>("vsm.annotation-validate");
+	CoreCommandRegistry::Register<VsmGroundTruthInitCommand>("vsm.groundtruth-init");
 	CoreCommandRegistry::Register<VsmM07SmokePipelineCommand>("vsm.m07-smoke-pipeline");
 }
 

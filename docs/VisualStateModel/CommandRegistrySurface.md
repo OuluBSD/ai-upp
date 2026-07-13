@@ -1,6 +1,6 @@
 # VisualStateModel Command Registry Surface
 
-This document records the preferred M09 command surface for VisualStateModel
+This document records the preferred M09/M10 command surface for VisualStateModel
 automation. The generic protocol is documented in `docs/CommandRegistry.md`;
 this file records the VSM-specific commands and migration status.
 
@@ -60,6 +60,7 @@ a clean JSON/JSONL output mode.
 | `vsm.session-diff` | preferred validation | `VisualStateSessionDiff [session_a session_b]` | optional `bin_dir`, optional paired `session_a`, `session_b` | Paired args are validated by the host. |
 | `vsm.annotation-validate` | preferred validation | `VisualStateAnnotationValidate [annotation_file]` | optional `bin_dir`, optional `annotation_file` | No file runs synthetic self-check. |
 | `vsm.groundtruth-init` | preferred template generation | `VisualStateGroundTruthInit [session_dir output_template_path]` | optional `bin_dir`, optional paired `session_dir`, `output_template_path` | Paired args are validated by the host. |
+| `vsm.texasholdem-proof` | preferred M10 provider proof | `TexasHoldem --record-session` + `TexasHoldem --replay-session` | optional `bin_dir`, `provider`, `frames`, `seed`, `size`, `step_actions` | First user-visible M10 command. Produces a session, checks artifact counts, then replays it. |
 
 ## Wrapped But Not Yet Preferred
 
@@ -86,8 +87,29 @@ implementation.
 
 TexasHoldem source/session commands such as `--dump-source-contract-sample`,
 `--validate-source-contract-sample`, `--record-session`, and `--replay-session`
-remain outside the preferred VSM command host until the Phase 12 controllable
-source contract decides the boundary.
+remain valid lower-level entrypoints. M10 exposes the first preferred wrapper as
+`vsm.texasholdem-proof`; use it when the goal is to verify the provider path
+through the generic CoreCommand surface.
+
+## Verified M10 Command
+
+The first M10 command users should run is:
+
+```text
+bin\VisualStateCommandRegistry.exe --run vsm.texasholdem-proof --arg frames=3 --arg seed=77 --json
+```
+
+It records a deterministic TexasHoldem `PS_6p` session, verifies the generated
+`metadata.json`, `groundtruth.jsonl`, and frame PNG artifacts, and then replays
+the session through the existing replay validator. The expected successful JSON
+shape is `ok=true`, `code=0`, `value.record.exit_code=0`,
+`value.replay.exit_code=0`, and artifact checks under `value.checks`.
+
+The same command must stay runnable through the generic GUI wrapper:
+
+```text
+bin\CommandRegistryGui.exe --headless-smoke bin\VisualStateCommandRegistry.exe --smoke-command vsm.texasholdem-proof
+```
 
 ## Verified M09 Commands
 

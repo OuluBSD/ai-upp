@@ -1,0 +1,10 @@
+description "Agentic development environment command-line tool";
+
+uses
+	Core,
+	Vfs/ProgDB;
+
+file
+	AGENTS.md,
+	ade.cpp;
+

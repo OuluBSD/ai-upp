@@ -1,0 +1,10 @@
+description "Line-oriented program database for semantic development tools";
+
+uses
+	Core,
+	Vfs/Core;
+
+file
+	AGENTS.md,
+	ProgDB.h,
+	ProgDB.cpp;

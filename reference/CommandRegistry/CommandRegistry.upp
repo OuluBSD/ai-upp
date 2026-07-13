@@ -1,0 +1,13 @@
+description "Reference console for Core CommandRegistry\377";
+
+uses
+	Core;
+
+file
+	AGENTS.md,
+	CommandRegistry.h,
+	CommandRegistry.icpp,
+	main.cpp;
+
+mainconfig
+	"" = "CONSOLE";

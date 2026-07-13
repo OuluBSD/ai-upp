@@ -107,6 +107,8 @@ file
 	CoreLog.cpp,
 	AppRegistry.h,
 	AppRegistry.cpp,
+	CommandRegistry.h,
+	CommandRegistry.cpp,
 	Containers readonly separator,
 	Topt.h,
 	Range.h,

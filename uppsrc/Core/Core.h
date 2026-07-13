@@ -427,6 +427,7 @@ class YamlIO;
 #include "AppLog.h"
 #include "CoreLog.h"
 #include "AppRegistry.h"
+#include "CommandRegistry.h"
 
 #include "Inet.h"
 #include "Daemon.h"

@@ -1,0 +1,85 @@
+#include "CommandRegistry.h"
+
+namespace Upp {
+
+struct EchoCommand {
+	static void Setup(CoreCommand& command)
+	{
+		command.description = "Echoes the 'text' argument.";
+		command.category = "sample";
+		command.tags << "sample" << "json";
+		command.args_schema.Add("text", "string");
+		command.handler = [](CoreCommandContext& context) {
+			CoreCommandResult result;
+			String text = context.Get("text", "");
+			ValueMap out;
+			out.Add("text", text);
+			result.value = out;
+			result.message = "echo: " + text;
+			return result;
+		};
+	}
+};
+
+struct AddCommand {
+	static void Setup(CoreCommand& command)
+	{
+		command.description = "Adds integer arguments 'a' and 'b'.";
+		command.category = "sample";
+		command.tags << "sample" << "math";
+		command.args_schema.Add("a", "int");
+		command.args_schema.Add("b", "int");
+		command.handler = [](CoreCommandContext& context) {
+			int a = context.Get("a", 0);
+			int b = context.Get("b", 0);
+			CoreCommandResult result;
+			ValueMap out;
+			out.Add("a", a);
+			out.Add("b", b);
+			out.Add("sum", a + b);
+			result.value = out;
+			result.message = Format("sum=%d", a + b);
+			return result;
+		};
+	}
+};
+
+struct SamplePipelineCommand {
+	static void Setup(CoreCommand& command)
+	{
+		command.description = "Runs echo and add as a small pipeline.";
+		command.category = "pipeline";
+		command.tags << "sample" << "pipeline";
+		command.handler = [](CoreCommandContext& context) {
+			ValueArray steps;
+
+			ValueMap echo_args;
+			echo_args.Add("text", context.Get("text", "pipeline"));
+			CoreCommandResult echo = context.Run("sample.echo", echo_args);
+			steps.Add(echo.ToValueMap());
+
+			ValueMap add_args;
+			add_args.Add("a", context.Get("a", 2));
+			add_args.Add("b", context.Get("b", 3));
+			CoreCommandResult add = context.Run("sample.add", add_args);
+			steps.Add(add.ToValueMap());
+
+			CoreCommandResult result;
+			result.ok = echo.ok && add.ok;
+			result.code = result.ok ? 0 : 1;
+			result.message = "pipeline completed";
+			ValueMap out;
+			out.Add("steps", steps);
+			result.value = out;
+			return result;
+		};
+	}
+};
+
+INITBLOCK {
+	CoreCommandRegistry::Register<EchoCommand>("sample.echo");
+	CoreCommandRegistry::Register<AddCommand>("sample.add");
+	CoreCommandRegistry::Register<SamplePipelineCommand>("sample.pipeline");
+}
+
+} // namespace Upp

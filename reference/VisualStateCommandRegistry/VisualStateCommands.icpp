@@ -84,6 +84,37 @@ static int VsmCommandIntArg(CoreCommandContext& context, const String& key, int 
 	return value.IsEmpty() ? fallback : max(min_value, StrInt(value));
 }
 
+static bool VsmCommandStrictIntText(const String& text, int min_value, int& out)
+{
+	String trimmed = TrimBoth(text);
+	const char *end = NULL;
+	int value = ScanInt(trimmed, &end);
+	if(trimmed.IsEmpty() || !end || *end || value < min_value)
+		return false;
+	out = value;
+	return true;
+}
+
+static bool VsmCommandStrictIntArg(CoreCommandContext& context, const String& key, int fallback, int min_value, int& out)
+{
+	Value raw = context.Get(key, Null);
+	if(IsNull(raw)) {
+		out = fallback;
+		return true;
+	}
+	if(IsNumber(raw)) {
+		double number = (double)raw;
+		if(number < INT_MIN || number > INT_MAX)
+			return false;
+		int value = (int)number;
+		if(value != number || value < min_value)
+			return false;
+		out = value;
+		return true;
+	}
+	return VsmCommandStrictIntText(AsString(raw), min_value, out);
+}
+
 static ValueMap VsmArtifactValue(const String& role, const String& path)
 {
 	ValueMap artifact;
@@ -121,6 +152,72 @@ static int VsmCountPngFiles(const String& dir)
 	return count;
 }
 
+struct VsmTexasHoldemGroundTruthEvidence {
+	int rows = 0;
+	bool parse_ok = false;
+	bool frame_ids_ok = false;
+	String error;
+};
+
+static VsmTexasHoldemGroundTruthEvidence VsmReadTexasHoldemGroundTruth(const String& path,
+                                                                       int expected_count)
+{
+	VsmTexasHoldemGroundTruthEvidence evidence;
+	if(!FileExists(path)) {
+		evidence.error = "groundtruth file missing";
+		return evidence;
+	}
+
+	evidence.parse_ok = true;
+	Vector<String> rows = Split(LoadFile(path), '\n', false);
+	for(String row : rows) {
+		row = TrimBoth(row);
+		if(row.IsEmpty())
+			continue;
+
+		Value row_value;
+		try {
+			row_value = ParseJSON(row);
+		}
+		catch(...) {
+			evidence.parse_ok = false;
+			if(evidence.error.IsEmpty())
+				evidence.error = Format("groundtruth JSON parse failed at row %d", evidence.rows);
+			continue;
+		}
+		if(!row_value.Is<ValueMap>()) {
+			evidence.parse_ok = false;
+			if(evidence.error.IsEmpty())
+				evidence.error = Format("groundtruth row is not an object at row %d", evidence.rows);
+			evidence.rows++;
+			continue;
+		}
+
+		ValueMap groundtruth = row_value;
+		Value frame_value = groundtruth.Get("frame_id", Null);
+		if(!IsNumber(frame_value)) {
+			evidence.parse_ok = false;
+			if(evidence.error.IsEmpty())
+				evidence.error = Format("groundtruth frame_id missing or invalid at row %d", evidence.rows);
+		}
+		else if((int)frame_value != evidence.rows && evidence.error.IsEmpty())
+			evidence.error = Format("expected frame_id=%d actual=%d", evidence.rows, (int)frame_value);
+		evidence.rows++;
+	}
+
+	evidence.frame_ids_ok = evidence.parse_ok && evidence.rows == expected_count && evidence.error.IsEmpty();
+	if(evidence.frame_ids_ok)
+		evidence.error = Format("frame_id range 0..%d", expected_count - 1);
+	else if(evidence.error.IsEmpty())
+		evidence.error = Format("expected %d sequential frame ids, actual %d", expected_count, evidence.rows);
+	return evidence;
+}
+
+static String VsmTexasHoldemFrameName(int frame_id)
+{
+	return Format("%08d.png", frame_id);
+}
+
 static ValueMap VsmLoadJsonObject(const String& path, bool& ok)
 {
 	ok = false;
@@ -154,13 +251,15 @@ static String VsmRepoFilePath(const String& package_dir, const String& filename)
 static String VsmTexasHoldemCanonicalProvider(const String& provider)
 {
 	String p = ToLower(TrimBoth(provider));
-	if(p == "ps_6p" || p == "ps-6p" || p == "ps 6-player")
+	if(p == "ps6p" || p == "ps_6p" || p == "ps-6p" || p == "ps 6-player")
 		return "PS_6p";
+	if(p == "original")
+		return "Original";
 	if(p == "classic")
 		return "Classic";
 	if(p == "minimal")
 		return "Minimal";
-	return "Original";
+	return String();
 }
 
 static String VsmTexasHoldemFormFile(const String& provider)
@@ -412,18 +511,32 @@ struct VsmTexasHoldemProofCommand {
 		command.args_schema.Add("size", "table size as WxH; default 1024x648");
 		command.args_schema.Add("step_actions", "true/false; default true");
 		command.handler = [](CoreCommandContext& context) {
-			String provider = VsmTexasHoldemCanonicalProvider(context.Get("provider", "PS_6p"));
+			String provider_arg = context.Get("provider", "PS_6p");
+			String provider = VsmTexasHoldemCanonicalProvider(provider_arg);
+			if(provider.IsEmpty())
+				return VsmCommandArgError("provider must be one of: ps6p, ps_6p, original, classic, minimal");
+
+			int frames;
+			if(!VsmCommandStrictIntArg(context, "frames", 8, 1, frames))
+				return VsmCommandArgError("frames must be a positive integer");
+			int seed;
+			if(!VsmCommandStrictIntArg(context, "seed", 77, 0, seed))
+				return VsmCommandArgError("seed must be a non-negative integer");
+
 			ValueMap provider_info = VsmTexasHoldemProviderInfo(provider);
-			int frames = VsmCommandIntArg(context, "frames", 8, 1);
-			int seed = VsmCommandIntArg(context, "seed", 77, 0);
 			bool step_actions = VsmCommandBoolArg(context, "step_actions", true);
 			Size size(1024, 648);
 			String size_arg = context.Get("size", "");
 			if(!size_arg.IsEmpty()) {
 				Vector<String> part = Split(size_arg, 'x');
 				if(part.GetCount() != 2)
-					return VsmCommandArgError("size must use WxH format");
-				size = Size(max(1, StrInt(part[0])), max(1, StrInt(part[1])));
+					return VsmCommandArgError("size must use positive integer WxH format");
+				int width;
+				int height;
+				if(!VsmCommandStrictIntText(part[0], 1, width) ||
+				   !VsmCommandStrictIntText(part[1], 1, height))
+					return VsmCommandArgError("size must use positive integer WxH format");
+				size = Size(width, height);
 			}
 			String size_text = Format("%d`x%d", size.cx, size.cy);
 
@@ -472,6 +585,15 @@ struct VsmTexasHoldemProofCommand {
 			ValueMap metadata = VsmLoadJsonObject(metadata_path, metadata_ok);
 			int gt_rows = VsmCountJsonlRows(gt_path);
 			int frame_files = VsmCountPngFiles(frames_dir);
+			int metadata_frame_count = metadata_ok ? (int)metadata.Get("frame_count", 0) : 0;
+			VsmTexasHoldemGroundTruthEvidence groundtruth =
+				VsmReadTexasHoldemGroundTruth(gt_path, metadata_frame_count);
+			ValueArray missing_frame_files;
+			for(int frame_id = 0; frame_id < metadata_frame_count; frame_id++) {
+				String frame_name = VsmTexasHoldemFrameName(frame_id);
+				if(!FileExists(AppendFileName(frames_dir, frame_name)))
+					missing_frame_files.Add(frame_name);
+			}
 			ValueMap summary;
 			summary.Add("provider_id", provider_info.Get("name", provider));
 			summary.Add("layout_id", provider_info.Get("layout_profile", String()));
@@ -481,11 +603,14 @@ struct VsmTexasHoldemProofCommand {
 			if(metadata_ok) {
 				summary.Add("session_id", metadata.Get("session_id", String()));
 				summary.Add("metadata_provider", metadata.Get("provider", String()));
-				summary.Add("metadata_frame_count", metadata.Get("frame_count", 0));
+				summary.Add("metadata_frame_count", metadata_frame_count);
 				summary.Add("status", metadata.Get("status", String()));
 			}
 			summary.Add("groundtruth_rows", gt_rows);
 			summary.Add("frame_files", frame_files);
+			summary.Add("groundtruth_frame_ids_ok", groundtruth.frame_ids_ok);
+			summary.Add("expected_frame_files", metadata_frame_count);
+			summary.Add("missing_frame_files", missing_frame_files);
 			value.Add("summary", summary);
 
 			ValueArray checks;
@@ -504,8 +629,16 @@ struct VsmTexasHoldemProofCommand {
 			AddCheck("groundtruth_exists", FileExists(gt_path), gt_path);
 			AddCheck("frames_dir_exists", DirectoryExists(frames_dir), frames_dir);
 			AddCheck("metadata_parse", metadata_ok, metadata_ok ? "metadata parsed" : "metadata parse failed");
-			AddCheck("frame_count", frame_files == frames, Format("expected=%d actual=%d", frames, frame_files));
+			AddCheck("metadata_frame_count", metadata_ok && metadata_frame_count == frames,
+			         Format("expected=%d actual=%d", frames, metadata_frame_count));
+			AddCheck("frame_files_metadata", metadata_ok && frame_files == metadata_frame_count,
+			         Format("expected=%d actual=%d", metadata_frame_count, frame_files));
 			AddCheck("groundtruth_count", gt_rows == frames, Format("expected=%d actual=%d", frames, gt_rows));
+			AddCheck("groundtruth_frame_ids", groundtruth.frame_ids_ok,
+			         groundtruth.error);
+			AddCheck("expected_frame_files", metadata_ok && missing_frame_files.IsEmpty(),
+			         missing_frame_files.IsEmpty() ? Format("frame ids 0..%d present", metadata_frame_count - 1)
+			                                         : Format("missing %d expected PNG files", missing_frame_files.GetCount()));
 
 			CoreCommandResult replay;
 			if(record.ok) {
@@ -527,7 +660,10 @@ struct VsmTexasHoldemProofCommand {
 			bool ok = record.ok && (!record.ok || replay.ok) && metadata_ok &&
 			          FileExists(form_path) &&
 			          FileExists(gt_path) && DirectoryExists(frames_dir) &&
-			          frame_files == frames && gt_rows == frames;
+			          metadata_frame_count == frames &&
+			          frame_files == metadata_frame_count &&
+			          gt_rows == frames && groundtruth.frame_ids_ok &&
+			          missing_frame_files.IsEmpty();
 
 			CoreCommandResult result;
 			result.ok = ok;

@@ -69,13 +69,27 @@ evidence under `value`, not only with `ok=true`. The minimum shape is:
     "summary": {
       "frame_files": 3,
       "groundtruth_rows": 3,
-      "metadata_ok": true
+      "metadata_ok": true,
+      "metadata_frame_count": 3,
+      "groundtruth_frame_ids_ok": true,
+      "expected_frame_files": 3,
+      "missing_frame_files": []
     },
     "checks": [
       {
-        "name": "frame_count",
+        "name": "metadata_frame_count",
         "ok": true,
         "message": "expected=3 actual=3"
+      },
+      {
+        "name": "groundtruth_frame_ids",
+        "ok": true,
+        "message": "frame_id range 0..2"
+      },
+      {
+        "name": "expected_frame_files",
+        "ok": true,
+        "message": "frame ids 0..2 present"
       }
     ]
   }
@@ -87,8 +101,14 @@ Required fields for artifact commands:
 - `artifacts`: generated or consumed paths, each with `role`, `path`, and
   `exists`; file artifacts should include `size` when available.
 - `summary`: domain counts and identities, such as provider, session id, frame
-  count, JSONL row count, layout identity, or validation status.
+  count, JSONL row count, layout identity, or validation status. The
+  `vsm.texasholdem-proof` summary also reports `metadata_frame_count`,
+  `groundtruth_frame_ids_ok`, `expected_frame_files`, and
+  `missing_frame_files`.
 - `checks`: named pass/fail checks with `ok` and a diagnostic `message`.
+  TexasHoldem proof checks metadata count against requested frames, frame-file
+  count against metadata, the contiguous ground-truth frame-id range, and the
+  expected zero-padded PNG filenames.
 - `record`, `replay`, or other child results may be included while the command
   remains process-backed; those child results must include child executable path,
   arguments, exit code, and stdout inside the normal `CoreCommandResult` shape.
@@ -119,7 +139,7 @@ Failure behavior:
 | `vsm.annotation-validate` | preferred validation | `VisualStateAnnotationValidate [annotation_file]` | optional `bin_dir`, optional `annotation_file` | No file runs synthetic self-check. |
 | `vsm.groundtruth-init` | preferred template generation | `VisualStateGroundTruthInit [session_dir output_template_path]` | optional `bin_dir`, optional paired `session_dir`, `output_template_path` | Paired args are validated by the host. |
 | `vsm.texasholdem-providers` | preferred M10 provider catalog | in-process registry data | none | Lists provider identities, labels, layout profiles, and `.form` paths visible to the command surface. |
-| `vsm.texasholdem-proof` | preferred M10 provider proof | `TexasHoldem --record-session` + `TexasHoldem --replay-session` | optional `bin_dir`, `provider`, `frames`, `seed`, `size`, `step_actions` | First user-visible M10 command. Produces a session, checks artifact counts, then replays it. |
+| `vsm.texasholdem-proof` | preferred M10 provider proof | `TexasHoldem --record-session` + `TexasHoldem --replay-session` | optional `bin_dir`, `provider`, `frames`, `seed`, `size`, `step_actions` | First user-visible M10 command. Produces a session, checks artifact counts, then replays it. `provider` accepts `ps6p`, `ps_6p`, `original`, `classic`, and `minimal`; `frames` is positive, `seed` is non-negative, and `size` is positive integer `WxH`. Invalid arguments return `code=2` before the child process starts. |
 
 ## Wrapped But Not Yet Preferred
 

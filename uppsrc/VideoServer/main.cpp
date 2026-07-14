@@ -133,10 +133,17 @@ void DumpMediaType(IMFMediaType* pType) {
 }
 
 class WinMFCapture {
+	enum PixelFormat {
+		PIXEL_RGB32,
+		PIXEL_RGB24,
+		PIXEL_NV12
+	};
+
 	IMFSourceReader* reader = nullptr;
 	Size size;
 	int  stride = 0;
 	int  bpp = 4;
+	PixelFormat pixel_format = PIXEL_RGB32;
 	bool opened = false;
 
 public:
@@ -220,11 +227,22 @@ public:
 			size = Size(w, h);
 			GUID sub;
 			pActualType->GetGUID(MF_MT_SUBTYPE, &sub);
-			if (sub == MFVideoFormat_RGB24) bpp = 3;
-			else bpp = 4;
+			if (sub == MFVideoFormat_RGB24) {
+				pixel_format = PIXEL_RGB24;
+				bpp = 3;
+			}
+			else if (sub == MFVideoFormat_NV12) {
+				pixel_format = PIXEL_NV12;
+				bpp = 1;
+			}
+			else {
+				pixel_format = PIXEL_RGB32;
+				bpp = 4;
+			}
 			
 			UINT32 s = 0;
-			if (FAILED(pActualType->GetUINT32(MF_MT_DEFAULT_STRIDE, &s))) stride = size.cx * bpp;
+			if (FAILED(pActualType->GetUINT32(MF_MT_DEFAULT_STRIDE, &s)))
+				stride = pixel_format == PIXEL_NV12 ? size.cx : size.cx * bpp;
 			else stride = (int)s;
 			pActualType->Release();
 		}
@@ -267,22 +285,43 @@ public:
 		int abs_stride = abs(stride);
 		bool bottom_up = stride < 0;
 
-		for (int y = 0; y < size.cy; y++) {
-			const byte* src_row = data + (bottom_up ? (size.cy - 1 - y) : y) * abs_stride;
-			RGBA* dst_row = ib[y];
-			if (bpp == 4) {
+		if (pixel_format == PIXEL_NV12) {
+			const byte* y_plane = data;
+			const byte* uv_plane = data + abs_stride * size.cy;
+			for (int y = 0; y < size.cy; y++) {
+				const byte* y_row = y_plane + y * abs_stride;
+				const byte* uv_row = uv_plane + (y >> 1) * abs_stride;
+				RGBA* dst_row = ib[y];
 				for (int x = 0; x < size.cx; x++) {
-					dst_row[x].r = src_row[x * 4 + 2];
-					dst_row[x].g = src_row[x * 4 + 1];
-					dst_row[x].b = src_row[x * 4 + 0];
+					int yv = (int)y_row[x] - 16;
+					int u = (int)uv_row[(x & ~1) + 0] - 128;
+					int v = (int)uv_row[(x & ~1) + 1] - 128;
+					int c = max(yv, 0);
+					dst_row[x].r = (byte)minmax((298 * c + 409 * v + 128) >> 8, 0, 255);
+					dst_row[x].g = (byte)minmax((298 * c - 100 * u - 208 * v + 128) >> 8, 0, 255);
+					dst_row[x].b = (byte)minmax((298 * c + 516 * u + 128) >> 8, 0, 255);
 					dst_row[x].a = 255;
 				}
-			} else {
-				for (int x = 0; x < size.cx; x++) {
-					dst_row[x].r = src_row[x * 3 + 2];
-					dst_row[x].g = src_row[x * 3 + 1];
-					dst_row[x].b = src_row[x * 3 + 0];
-					dst_row[x].a = 255;
+			}
+		}
+		else {
+			for (int y = 0; y < size.cy; y++) {
+				const byte* src_row = data + (bottom_up ? (size.cy - 1 - y) : y) * abs_stride;
+				RGBA* dst_row = ib[y];
+				if (pixel_format == PIXEL_RGB32) {
+					for (int x = 0; x < size.cx; x++) {
+						dst_row[x].r = src_row[x * 4 + 2];
+						dst_row[x].g = src_row[x * 4 + 1];
+						dst_row[x].b = src_row[x * 4 + 0];
+						dst_row[x].a = 255;
+					}
+				} else {
+					for (int x = 0; x < size.cx; x++) {
+						dst_row[x].r = src_row[x * 3 + 2];
+						dst_row[x].g = src_row[x * 3 + 1];
+						dst_row[x].b = src_row[x * 3 + 0];
+						dst_row[x].a = 255;
+					}
 				}
 			}
 		}

@@ -1,0 +1,13 @@
+description "Video live regression runner reference tool";
+
+uses
+	Core;
+
+file
+	AGENTS.md,
+	VideoLiveRegressionRunner.h,
+	main.cpp;
+
+mainconfig
+	"" = "";
+

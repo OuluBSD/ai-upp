@@ -110,12 +110,61 @@ void CardBoardEditorWindow::PrintDiagnosticsToStdout()
 	Cout() << out;
 }
 
+static int CountReportLines(const String& report)
+{
+	int count = 0;
+	for(int i = 0; i < report.GetCount(); i++)
+		if(report[i] == '\n')
+			count++;
+	return count;
+}
+
+static int CountReportMarker(const String& report, const String& marker)
+{
+	int count = 0;
+	int pos = 0;
+	for(;;) {
+		pos = report.Find(marker, pos);
+		if(pos < 0)
+			return count;
+		count++;
+		pos += marker.GetCount();
+	}
+}
+
+static void RenderSmokeReport(String& out, const CardBoardDocument& document, Size size)
+{
+	CardBoardState state = document.MakePokerSampleState();
+	CardBoardRenderer renderer;
+	SImageDraw surface(size);
+	renderer.Render(surface, RectC(0, 0, size.cx, size.cy), document, state);
+	Image image = surface;
+
+	String report;
+	document.RenderReport(report, size, state);
+	hash_t image_hash = image.GetHashValue();
+	hash_t raw_hash = memhash(image.Begin(), image.GetLength() * sizeof(RGBA));
+
+	out.Cat(Format("RenderSmoke provider=%s game=%s size=%d`x%d image=%d`x%d pixels=%d image_hash=%lld raw_hash=%lld\n",
+	               document.provider_id, document.game_family, size.cx, size.cy,
+	               image.GetWidth(), image.GetHeight(), (int)image.GetLength(),
+	               (int64)image_hash, (int64)raw_hash));
+	out.Cat(Format("RenderSmoke report_lines=%d draw_nodes=%d cards=%d seats=%d buttons=%d chips=%d\n",
+	               CountReportLines(report),
+	               CountReportMarker(report, "draw type="),
+	               CountReportMarker(report, "primitive=playing-card"),
+	               CountReportMarker(report, "type=Seat"),
+	               CountReportMarker(report, "primitive=button"),
+	               CountReportMarker(report, "primitive=chip-stack")));
+}
+
 int RunCardBoardEditorCli(const Vector<String>& args)
 {
 	bool dump_tree = false;
 	bool dump_rects = false;
 	bool render_report = false;
 	bool roundtrip_json = false;
+	bool render_smoke = false;
 	String save_sample_json;
 	String load_json;
 	Size size(610, 438);
@@ -133,6 +182,9 @@ int RunCardBoardEditorCli(const Vector<String>& args)
 		else
 		if(arg == "--roundtrip-json")
 			roundtrip_json = true;
+		else
+		if(arg == "--render-smoke")
+			render_smoke = true;
 		else
 		if(arg.StartsWith("--save-sample-json="))
 			save_sample_json = arg.Mid(19);
@@ -160,6 +212,7 @@ int RunCardBoardEditorCli(const Vector<String>& args)
 			       << "  --dump-sample-rects\n"
 			       << "  --render-report\n"
 			       << "  --roundtrip-json\n"
+			       << "  --render-smoke\n"
 			       << "  --save-sample-json=PATH\n"
 			       << "  --load-json=PATH\n"
 			       << "  --size=WIDTHxHEIGHT\n";
@@ -167,7 +220,7 @@ int RunCardBoardEditorCli(const Vector<String>& args)
 		}
 	}
 
-	if(!dump_tree && !dump_rects && !render_report && !roundtrip_json &&
+	if(!dump_tree && !dump_rects && !render_report && !roundtrip_json && !render_smoke &&
 	   save_sample_json.IsEmpty() && load_json.IsEmpty())
 		return -1;
 
@@ -222,6 +275,8 @@ int RunCardBoardEditorCli(const Vector<String>& args)
 		}
 		out.Cat("roundtrip ok\n");
 	}
+	if(render_smoke)
+		RenderSmokeReport(out, document, size);
 	Cout() << out;
 	return 0;
 }

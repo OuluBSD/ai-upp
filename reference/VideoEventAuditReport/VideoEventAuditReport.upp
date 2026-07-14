@@ -1,0 +1,13 @@
+description "Video event audit markdown report";
+
+uses
+	Core;
+
+file
+	AGENTS.md,
+	VideoEventAuditReport.h,
+	main.cpp;
+
+mainconfig
+	"" = "";
+

@@ -68,6 +68,7 @@ CONSOLE_APP_MAIN
 	String exe_dir = GetFileDirectory(GetExeFilePath());
 	String recorder = AppendFileName(exe_dir, "VideoServerFrameRecorder.exe");
 	String tracker = AppendFileName(exe_dir, "VideoWindowTracker.exe");
+	String audit_report = AppendFileName(exe_dir, "VideoEventAuditReport.exe");
 	String record_dir = AppendFileName(opt.out_root, opt.name);
 	String tracked_dir = opt.name + "_tracked";
 	tracked_dir = AppendFileName(opt.out_root, tracked_dir);
@@ -96,12 +97,28 @@ CONSOLE_APP_MAIN
 		return;
 	}
 
+	String audit_path = AppendFileName(tracked_dir, "event_audit.md");
+	if(FileExists(audit_report)) {
+		Vector<String> audit_args;
+		audit_args << "--tracker-dir" << tracked_dir;
+		if(RunCommand(audit_report, audit_args) != 0) {
+			Cerr() << "ERROR: audit report failed\n";
+			SetExitCode(1);
+			return;
+		}
+	}
+	else {
+		Cout() << "audit_report_tool_missing=" << audit_report << "\n";
+	}
+
 	Cout() << "regression_name=" << opt.name << "\n";
 	Cout() << "record_dir=" << record_dir << "\n";
 	Cout() << "record_summary=" << AppendFileName(record_dir, "summary.json") << "\n";
 	Cout() << "tracked_dir=" << tracked_dir << "\n";
 	Cout() << "tracking_json=" << AppendFileName(tracked_dir, "tracking.json") << "\n";
 	Cout() << "tracking_summary_json=" << AppendFileName(tracked_dir, "tracking_summary.json") << "\n";
+	Cout() << "events_json=" << AppendFileName(tracked_dir, "events.json") << "\n";
+	Cout() << "event_audit_report=" << audit_path << "\n";
 	Cout() << "semantic_dir=" << AppendFileName(tracked_dir, "semantic") << "\n";
 	Cout() << "overlays_dir=" << AppendFileName(tracked_dir, "overlays") << "\n";
 }

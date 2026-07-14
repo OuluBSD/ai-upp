@@ -47,9 +47,14 @@ void CardBoardEditorWindow::MenuFile(Bar& bar)
 	bar.Add("New poker sample", [=] {
 		canvas_.GetDocument().MakePokerSample();
 		selected_path_.Clear();
+		current_file_.Clear();
 		RefreshPanels();
 		canvas_.Refresh();
 	});
+	bar.Separator();
+	bar.Add("Open JSON...", THISBACK(OpenJsonFile));
+	bar.Add("Save JSON", THISBACK(SaveJsonFile));
+	bar.Add("Save JSON As...", THISBACK(SaveJsonFileAs));
 	bar.Separator();
 	bar.Add("Exit", [=] { Close(); });
 }
@@ -77,6 +82,7 @@ void CardBoardEditorWindow::ToolBar(Bar& bar)
 	bar.Add("Sample", [=] {
 		canvas_.GetDocument().MakePokerSample();
 		selected_path_.Clear();
+		current_file_.Clear();
 		RefreshPanels();
 		canvas_.Refresh();
 	});
@@ -115,6 +121,74 @@ void CardBoardEditorWindow::ApplyPropertyChanges()
 	tree_.SetDocument(canvas_.GetDocument(), selected_path_);
 	diagnostics_.SetText(canvas_.GetDiagnostics());
 	canvas_.Refresh();
+}
+
+void CardBoardEditorWindow::OpenJsonFile()
+{
+	FileSel fs;
+	fs.Type("CardBoard JSON", "*.json");
+	fs.AllFilesType();
+	if(!current_file_.IsEmpty())
+		fs.ActiveDir(GetFileDirectory(current_file_));
+	if(fs.ExecuteOpen("Open CardBoard JSON"))
+		LoadJsonFileFrom(~fs);
+}
+
+void CardBoardEditorWindow::SaveJsonFile()
+{
+	if(current_file_.IsEmpty())
+		SaveJsonFileAs();
+	else
+		SaveJsonFileTo(current_file_);
+}
+
+void CardBoardEditorWindow::SaveJsonFileAs()
+{
+	FileSel fs;
+	fs.Type("CardBoard JSON", "*.json");
+	fs.DefaultExt(".json");
+	fs.AllFilesType();
+	if(!current_file_.IsEmpty())
+		fs.ActiveDir(GetFileDirectory(current_file_));
+	if(fs.ExecuteSaveAs("Save CardBoard JSON"))
+		SaveJsonFileTo(~fs);
+}
+
+bool CardBoardEditorWindow::SaveJsonFileTo(const String& path)
+{
+	if(!SaveFile(path, canvas_.GetDocument().StoreJson())) {
+		String message = "Failed to save CardBoard JSON: " + path;
+		LOG(message);
+		Exclamation(message);
+		return false;
+	}
+	current_file_ = path;
+	LOG("Saved CardBoard JSON: " << path);
+	return true;
+}
+
+void CardBoardEditorWindow::LoadJsonFileFrom(const String& path)
+{
+	String json = LoadFile(path);
+	if(json.IsVoid()) {
+		String message = "Failed to read CardBoard JSON: " + path;
+		LOG(message);
+		Exclamation(message);
+		return;
+	}
+	CardBoardDocument loaded;
+	String error;
+	if(!loaded.LoadJson(json, error)) {
+		String message = "Failed to parse CardBoard JSON: " + error;
+		LOG(message);
+		Exclamation(message);
+		return;
+	}
+	canvas_.SetDocument(loaded);
+	current_file_ = path;
+	selected_path_.Clear();
+	RefreshPanels();
+	LOG("Loaded CardBoard JSON: " << path);
 }
 
 void CardBoardEditorWindow::CacheDefaultLayout()

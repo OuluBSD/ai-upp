@@ -18,6 +18,7 @@ private:
 	CardBoardDiagnosticsPanel diagnostics_;
 	String default_layout_data_;
 	String selected_path_;
+	String current_file_;
 	bool loaded_ = false;
 
 	void MainMenu(Bar& bar);
@@ -29,6 +30,11 @@ private:
 	void RefreshPanels();
 	void SelectElement(const String& path);
 	void ApplyPropertyChanges();
+	void OpenJsonFile();
+	void SaveJsonFile();
+	void SaveJsonFileAs();
+	bool SaveJsonFileTo(const String& path);
+	void LoadJsonFileFrom(const String& path);
 	void CacheDefaultLayout();
 	void PrintDiagnosticsToStdout();
 };

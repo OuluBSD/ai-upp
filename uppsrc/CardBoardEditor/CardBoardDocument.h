@@ -15,6 +15,7 @@ struct CardBoardElement : Moveable<CardBoardElement> {
 
 	CardBoardElement& Add(CardBoardElementType type, const String& id, const String& label,
 	                      const CardBoardRect& rect);
+	void Jsonize(JsonIO& json);
 };
 
 struct CardBoardState : Moveable<CardBoardState> {
@@ -24,6 +25,8 @@ struct CardBoardState : Moveable<CardBoardState> {
 struct CardBoardDocument : Moveable<CardBoardDocument> {
 	String provider_id;
 	String game_family;
+	String format_version = "1";
+	String asset_root;
 	Size design_size = Size(610, 438);
 	Vector<CardBoardElement> elements;
 
@@ -35,6 +38,8 @@ struct CardBoardDocument : Moveable<CardBoardDocument> {
 	void DumpTree(String& out) const;
 	void DumpRects(String& out, Size canvas_size) const;
 	void RenderReport(String& out, Size canvas_size, const CardBoardState& state) const;
+	String StoreJson() const;
+	bool LoadJson(const String& json, String& error);
 };
 
 CardBoardElement MakeCardBoardElement(CardBoardElementType type, const String& id,

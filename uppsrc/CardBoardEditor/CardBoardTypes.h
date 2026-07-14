@@ -35,19 +35,31 @@ struct CardBoardRect : Moveable<CardBoardRect> {
 
 	Rect Realize(const Rect& parent) const;
 	String ToString() const;
+	void Jsonize(JsonIO& json);
 };
 
 struct CardBoardStyle : Moveable<CardBoardStyle> {
 	Color fill = Null;
 	Color border = Null;
 	Color text = White();
+	String asset;
 	String font_face;
+	String align = "center";
+	String outline;
+	String shadow;
 	int font_height = 14;
 	int pen = 1;
+	double opacity = 1.0;
+	double rotation = 0.0;
+	double fan_start = -4.0;
+	double fan_end = 4.0;
 	bool ellipse = false;
 	bool rounded = false;
+
+	void Jsonize(JsonIO& json);
 };
 
 String CardBoardElementTypeName(CardBoardElementType type);
+CardBoardElementType CardBoardElementTypeFromName(const String& name);
 
 #endif

@@ -13,6 +13,34 @@ static CardBoardRect Rel(double x, double y, double w, double h)
 	return r;
 }
 
+static String ColorToJsonString(Color color)
+{
+	if(IsNull(color))
+		return "null";
+	return Format("#%02x%02x%02x", color.GetR(), color.GetG(), color.GetB());
+}
+
+static Color JsonStringToColor(const String& text)
+{
+	if(text.IsEmpty() || text == "null")
+		return Null;
+	if(text.GetCount() == 7 && text[0] == '#') {
+		int r = ScanInt("0x" + text.Mid(1, 2));
+		int g = ScanInt("0x" + text.Mid(3, 2));
+		int b = ScanInt("0x" + text.Mid(5, 2));
+		return Color(r, g, b);
+	}
+	return Null;
+}
+
+static void JsonizeColor(JsonIO& json, const char *key, Color& color)
+{
+	String value = ColorToJsonString(color);
+	json(key, value);
+	if(json.IsLoading())
+		color = JsonStringToColor(value);
+}
+
 Rect CardBoardRect::Realize(const Rect& parent) const
 {
 	if(!relative)
@@ -27,6 +55,37 @@ String CardBoardRect::ToString() const
 {
 	return relative ? Format("%.4f %.4f %.4f %.4f rel", x, y, w, h)
 	                : Format("%.1f %.1f %.1f %.1f px", x, y, w, h);
+}
+
+void CardBoardRect::Jsonize(JsonIO& json)
+{
+	json
+		("x", x)
+		("y", y)
+		("w", w)
+		("h", h)
+		("relative", relative);
+}
+
+void CardBoardStyle::Jsonize(JsonIO& json)
+{
+	JsonizeColor(json, "fill", fill);
+	JsonizeColor(json, "border", border);
+	JsonizeColor(json, "text", text);
+	json
+		("asset", asset)
+		("font_face", font_face)
+		("align", align)
+		("outline", outline)
+		("shadow", shadow)
+		("font_height", font_height)
+		("pen", pen)
+		("opacity", opacity)
+		("rotation", rotation)
+		("fan_start", fan_start)
+		("fan_end", fan_end)
+		("ellipse", ellipse)
+		("rounded", rounded);
 }
 
 String CardBoardElementTypeName(CardBoardElementType type)
@@ -58,6 +117,16 @@ String CardBoardElementTypeName(CardBoardElementType type)
 	}
 }
 
+CardBoardElementType CardBoardElementTypeFromName(const String& name)
+{
+	for(int i = CARD_BOARD_WINDOW; i <= CARD_BOARD_CARD; i++) {
+		CardBoardElementType type = (CardBoardElementType)i;
+		if(CardBoardElementTypeName(type) == name)
+			return type;
+	}
+	return CARD_BOARD_TEXT;
+}
+
 CardBoardElement MakeCardBoardElement(CardBoardElementType type, const String& id,
                                       const String& label, const CardBoardRect& rect)
 {
@@ -75,10 +144,30 @@ CardBoardElement& CardBoardElement::Add(CardBoardElementType type, const String&
 	return children.Add(MakeCardBoardElement(type, id, label, rect));
 }
 
+void CardBoardElement::Jsonize(JsonIO& json)
+{
+	String type_name = CardBoardElementTypeName(type);
+	json
+		("id", id)
+		("type", type_name)
+		("label", label)
+		("binding", binding)
+		("template_id", template_id)
+		("rect", rect)
+		("style", style)
+		("children", children)
+		("z", z)
+		("visible", visible);
+	if(json.IsLoading())
+		type = CardBoardElementTypeFromName(type_name);
+}
+
 void CardBoardDocument::Clear()
 {
 	provider_id.Clear();
 	game_family.Clear();
+	format_version = "1";
+	asset_root.Clear();
 	elements.Clear();
 }
 
@@ -87,9 +176,17 @@ static void CopyStyle(CardBoardStyle& target, const CardBoardStyle& source)
 	target.fill = source.fill;
 	target.border = source.border;
 	target.text = source.text;
+	target.asset = source.asset;
 	target.font_face = source.font_face;
+	target.align = source.align;
+	target.outline = source.outline;
+	target.shadow = source.shadow;
 	target.font_height = source.font_height;
 	target.pen = source.pen;
+	target.opacity = source.opacity;
+	target.rotation = source.rotation;
+	target.fan_start = source.fan_start;
+	target.fan_end = source.fan_end;
 	target.ellipse = source.ellipse;
 	target.rounded = source.rounded;
 }
@@ -123,6 +220,8 @@ void CardBoardDocument::CopyFrom(const CardBoardDocument& source)
 {
 	provider_id = source.provider_id;
 	game_family = source.game_family;
+	format_version = source.format_version;
+	asset_root = source.asset_root;
 	design_size = source.design_size;
 	elements.Clear();
 	for(const CardBoardElement& element : source.elements)
@@ -137,7 +236,8 @@ static void StylePanel(CardBoardElement& element, Color fill, Color border, Colo
 }
 
 static void AddSeat(CardBoardElement& window, int seat, const String& name, const String& stack,
-                    const CardBoardRect& rect, Color panel_border, bool hero = false)
+                    const CardBoardRect& rect, Color panel_border, bool hero = false,
+                    const String& action = String())
 {
 	CardBoardElement& s = window.Add(CARD_BOARD_SEAT, Format("seat%d", seat), name, rect);
 	s.template_id = hero ? "hero-seat" : "standard-seat";
@@ -156,11 +256,26 @@ static void AddSeat(CardBoardElement& window, int seat, const String& name, cons
 	CardBoardElement& cards = s.Add(CARD_BOARD_HOLE_CARDS, Format("seat%d.cards", seat), "",
 	                                Rel(0.27, 0.02, 0.46, 0.28));
 	StylePanel(cards, Color(150, 45, 38), White());
+	cards.style.rotation = hero ? 4.0 : 0.0;
+	cards.style.fan_start = -4.0;
+	cards.style.fan_end = 4.0;
+	cards.z = 20;
 
 	CardBoardElement& panel = s.Add(CARD_BOARD_PLAYER_PANEL, Format("seat%d.panel", seat), "",
 	                                Rel(0.12, 0.38, 0.76, 0.46));
 	StylePanel(panel, Color(18, 22, 28), panel_border);
 	panel.style.rounded = true;
+	panel.z = 10;
+
+	if(!action.IsEmpty()) {
+		CardBoardElement& badge = s.Add(CARD_BOARD_ACTION_BADGE, Format("seat%d.action", seat), action,
+		                                Rel(0.25, 0.32, 0.50, 0.16));
+		StylePanel(badge, Color(45, 32, 8), Color(230, 185, 35), Color(255, 225, 70));
+		badge.style.rounded = true;
+		badge.style.font_height = 9;
+		badge.binding = Format("seat%d_action", seat);
+		badge.z = 30;
+	}
 
 	CardBoardElement& number = s.Add(CARD_BOARD_PLAYER_NUMBER, Format("seat%d.number", seat),
 	                                 AsString(20 + seat), Rel(0.07, 0.43, 0.18, 0.18));
@@ -188,6 +303,8 @@ void CardBoardDocument::MakePokerSample()
 	Clear();
 	provider_id = "Original";
 	game_family = "Poker";
+	format_version = "1";
+	asset_root = "share/cardboard/original";
 	design_size = Size(610, 438);
 
 	CardBoardElement& window = elements.Add(MakeCardBoardElement(CARD_BOARD_WINDOW, "window",
@@ -199,6 +316,24 @@ void CardBoardDocument::MakePokerSample()
 	                                       "NLH Original 02 - $5 / $10", Rel(0, 0, 1, 0.075));
 	StylePanel(toolbar, Color(23, 24, 27), Color(45, 45, 48), Color(180, 180, 180));
 	toolbar.style.font_height = 13;
+
+	CardBoardElement& leaderboard = window.Add(CARD_BOARD_BUTTON, "top.leaderboard",
+	                                           "DAILY $50,000 LEADERBOARD", Rel(0.01, 0.075, 0.27, 0.055));
+	StylePanel(leaderboard, Color(28, 70, 38), Color(110, 135, 115), Color(230, 245, 160));
+	leaderboard.style.rounded = true;
+	leaderboard.style.font_height = 8;
+
+	CardBoardElement& top_buttons = window.Add(CARD_BOARD_TOP_TOOLBAR, "top.buttons", "",
+	                                           Rel(0.87, 0.075, 0.12, 0.055));
+	StylePanel(top_buttons, Null, Null);
+	for(int i = 0; i < 3; i++) {
+		CardBoardElement& button = top_buttons.Add(CARD_BOARD_BUTTON, Format("top.button%d", i + 1),
+		                                           i == 0 ? "⌨" : i == 1 ? "+" : "♠",
+		                                           Rel(i * 0.34, 0.02, 0.28, 0.84));
+		StylePanel(button, Color(85, 150, 60), Color(150, 220, 100), White());
+		button.style.rounded = true;
+		button.style.font_height = 12;
+	}
 
 	CardBoardElement& board = window.Add(CARD_BOARD_BOARD, "board", "", Rel(0.07, 0.20, 0.86, 0.57));
 	StylePanel(board, Color(19, 112, 43), Color(28, 30, 28));
@@ -233,12 +368,18 @@ void CardBoardDocument::MakePokerSample()
 	chips.binding = "pot_amount";
 	chips.z = 30;
 
-	AddSeat(window, 1, "Misha Inner", "$930", Rel(0.40, 0.72, 0.20, 0.25), Color(245, 120, 70), true);
+	AddSeat(window, 1, "Misha Inner", "$930", Rel(0.40, 0.70, 0.20, 0.25), Color(245, 120, 70), true, "LIVE");
 	AddSeat(window, 2, "LlenoXX", "$2,934", Rel(0.42, 0.09, 0.16, 0.20), Color(130, 255, 70));
-	AddSeat(window, 3, "cascconss", "$1,048", Rel(0.76, 0.24, 0.17, 0.22), Color(130, 70, 210));
-	AddSeat(window, 4, "H Pesonen", "$1,190", Rel(0.78, 0.62, 0.17, 0.23), Color(130, 70, 210));
-	AddSeat(window, 5, "Denis Chernous", "$1,013", Rel(0.06, 0.62, 0.18, 0.23), Color(130, 70, 210));
-	AddSeat(window, 6, "Majiaz Vogrinec", "$1,974", Rel(0.08, 0.24, 0.17, 0.22), Color(130, 70, 210));
+	AddSeat(window, 3, "cascconss", "$1,048", Rel(0.76, 0.20, 0.17, 0.22), Color(130, 70, 210));
+	AddSeat(window, 4, "H Pesonen", "$1,190", Rel(0.78, 0.61, 0.17, 0.23), Color(130, 70, 210));
+	AddSeat(window, 5, "Denis Chernous", "$1,013", Rel(0.05, 0.61, 0.18, 0.23), Color(130, 70, 210));
+	AddSeat(window, 6, "Majiaz Vogrinec", "$1,974", Rel(0.08, 0.20, 0.17, 0.22), Color(130, 70, 210));
+
+	CardBoardElement& dealer = window.Add(CARD_BOARD_DEALER_BUTTON, "dealer.button", "D",
+	                                      Rel(0.44, 0.31, 0.025, 0.035));
+	StylePanel(dealer, Color(235, 205, 38), Color(80, 75, 10), Color(70, 55, 5));
+	dealer.style.ellipse = true;
+	dealer.style.font_height = 9;
 
 	CardBoardElement& checks = window.Add(CARD_BOARD_CHECKBOXES, "bottom.checks",
 	                                      "Move Table\nStraddle\nGlobal Cash Game Sit-out",
@@ -246,10 +387,35 @@ void CardBoardDocument::MakePokerSample()
 	checks.style.text = Color(185, 185, 185);
 	checks.style.font_height = 10;
 
+	CardBoardElement& rank = window.Add(CARD_BOARD_TEXT, "bottom.rank", "43",
+	                                    Rel(0.22, 0.925, 0.09, 0.075));
+	StylePanel(rank, Color(50, 53, 58), Null, Color(130, 255, 190));
+	rank.style.font_height = 20;
+
+	CardBoardElement& chat = window.Add(CARD_BOARD_BUTTON, "bottom.chat", "●",
+	                                    Rel(0.32, 0.93, 0.04, 0.05));
+	StylePanel(chat, Color(205, 210, 218), Null, Color(80, 85, 95));
+	chat.style.ellipse = true;
+	chat.style.font_height = 12;
+
+	CardBoardElement& emoji = window.Add(CARD_BOARD_BUTTON, "bottom.emoji", "☺",
+	                                     Rel(0.37, 0.925, 0.05, 0.06));
+	StylePanel(emoji, Color(230, 170, 50), Null, Color(95, 55, 10));
+	emoji.style.ellipse = true;
+	emoji.style.font_height = 14;
+
 	CardBoardElement& buttons = window.Add(CARD_BOARD_ACTION_BUTTONS, "bottom.actions",
-	                                       "Fold | Call $10 | Bet", Rel(0.61, 0.84, 0.27, 0.11));
+	                                       "", Rel(0.61, 0.84, 0.27, 0.11));
 	StylePanel(buttons, Color(20, 20, 22), Color(45, 45, 50), Color(225, 225, 225));
 	buttons.style.font_height = 11;
+	for(int i = 0; i < 3; i++) {
+		CardBoardElement& button = buttons.Add(CARD_BOARD_BUTTON, Format("bottom.action%d", i + 1),
+		                                       i == 0 ? "Fold" : i == 1 ? "Call $10" : "Bet",
+		                                       Rel(i * 0.34, 0.10, 0.30, 0.70));
+		StylePanel(button, Color(32, 18, 20), Color(70, 35, 38), Color(230, 210, 210));
+		button.style.rounded = true;
+		button.style.font_height = 10;
+	}
 }
 
 CardBoardState CardBoardDocument::MakePokerSampleState() const
@@ -262,6 +428,7 @@ CardBoardState CardBoardDocument::MakePokerSampleState() const
 	state.values.Add("board_card3", "3");
 	state.values.Add("board_card4", "");
 	state.values.Add("board_card5", "");
+	state.values.Add("seat1_action", "LIVE");
 	return state;
 }
 
@@ -306,6 +473,45 @@ void CardBoardDocument::RenderReport(String& out, Size canvas_size, const CardBo
 {
 	CardBoardRenderer renderer;
 	renderer.RenderReport(out, RectC(0, 0, canvas_size.cx, canvas_size.cy), *this, state);
+}
+
+String CardBoardDocument::StoreJson() const
+{
+	CardBoardDocument copy;
+	copy.CopyFrom(*this);
+	return StoreAsJson(copy, true);
+}
+
+bool CardBoardDocument::LoadJson(const String& json, String& error)
+{
+	CardBoardDocument loaded;
+	if(!LoadFromJson(loaded, json)) {
+		error = "failed to parse CardBoard JSON";
+		return false;
+	}
+	error = loaded.Validate();
+	if(!error.IsEmpty())
+		return false;
+	CopyFrom(loaded);
+	return true;
+}
+
+void Jsonize(JsonIO& json, Size& size)
+{
+	json
+		("cx", size.cx)
+		("cy", size.cy);
+}
+
+void Jsonize(JsonIO& json, CardBoardDocument& document)
+{
+	json
+		("format_version", document.format_version)
+		("provider_id", document.provider_id)
+		("game_family", document.game_family)
+		("asset_root", document.asset_root)
+		("design_size", document.design_size)
+		("elements", document.elements);
 }
 
 END_UPP_NAMESPACE

@@ -115,6 +115,9 @@ int RunCardBoardEditorCli(const Vector<String>& args)
 	bool dump_tree = false;
 	bool dump_rects = false;
 	bool render_report = false;
+	bool roundtrip_json = false;
+	String save_sample_json;
+	String load_json;
 	Size size(610, 438);
 
 	for(int i = 0; i < args.GetCount(); i++) {
@@ -127,6 +130,15 @@ int RunCardBoardEditorCli(const Vector<String>& args)
 		else
 		if(arg == "--render-report")
 			render_report = true;
+		else
+		if(arg == "--roundtrip-json")
+			roundtrip_json = true;
+		else
+		if(arg.StartsWith("--save-sample-json="))
+			save_sample_json = arg.Mid(19);
+		else
+		if(arg.StartsWith("--load-json="))
+			load_json = arg.Mid(12);
 		else
 		if(arg.StartsWith("--size=")) {
 			Vector<String> parts = Split(arg.Mid(7), 'x');
@@ -147,20 +159,43 @@ int RunCardBoardEditorCli(const Vector<String>& args)
 			       << "  --dump-sample-tree\n"
 			       << "  --dump-sample-rects\n"
 			       << "  --render-report\n"
+			       << "  --roundtrip-json\n"
+			       << "  --save-sample-json=PATH\n"
+			       << "  --load-json=PATH\n"
 			       << "  --size=WIDTHxHEIGHT\n";
 			return 0;
 		}
 	}
 
-	if(!dump_tree && !dump_rects && !render_report)
+	if(!dump_tree && !dump_rects && !render_report && !roundtrip_json &&
+	   save_sample_json.IsEmpty() && load_json.IsEmpty())
 		return -1;
 
 	CardBoardDocument document;
 	document.MakePokerSample();
+	if(!load_json.IsEmpty()) {
+		String json = LoadFile(load_json);
+		if(json.IsVoid()) {
+			Cout() << "failed to read JSON file: " << load_json << "\n";
+			return 2;
+		}
+		String load_error;
+		if(!document.LoadJson(json, load_error)) {
+			Cout() << "failed to load CardBoard JSON: " << load_error << "\n";
+			return 2;
+		}
+	}
 	String error = document.Validate();
 	if(!error.IsEmpty()) {
 		Cout() << "validation failed: " << error << "\n";
 		return 1;
+	}
+	if(!save_sample_json.IsEmpty()) {
+		if(!SaveFile(save_sample_json, document.StoreJson())) {
+			Cout() << "failed to save JSON file: " << save_sample_json << "\n";
+			return 2;
+		}
+		Cout() << "saved " << save_sample_json << "\n";
 	}
 	String out;
 	if(dump_tree)
@@ -169,6 +204,24 @@ int RunCardBoardEditorCli(const Vector<String>& args)
 		document.DumpRects(out, size);
 	if(render_report)
 		document.RenderReport(out, size, document.MakePokerSampleState());
+	if(roundtrip_json) {
+		String json = document.StoreJson();
+		CardBoardDocument loaded;
+		String load_error;
+		if(!loaded.LoadJson(json, load_error)) {
+			Cout() << "roundtrip failed: " << load_error << "\n";
+			return 1;
+		}
+		String before;
+		String after;
+		document.RenderReport(before, size, document.MakePokerSampleState());
+		loaded.RenderReport(after, size, loaded.MakePokerSampleState());
+		if(before != after) {
+			Cout() << "roundtrip render report mismatch\n";
+			return 1;
+		}
+		out.Cat("roundtrip ok\n");
+	}
 	Cout() << out;
 	return 0;
 }

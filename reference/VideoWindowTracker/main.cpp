@@ -275,14 +275,14 @@ static Vector<SemanticCrop> GetSemanticCrops(const TrackerWindow& window, const 
 
 	AddSemanticCrop(out, "title", title);
 	AddSemanticCrop(out, "table_area", CropRect(sz, 0, 45, 1000, 1000));
-	AddSemanticCrop(out, "board_cards", CropRect(sz, 340, 360, 660, 520));
-	AddSemanticCrop(out, "pot_label", CropRect(sz, 405, 285, 595, 375));
-	AddSemanticCrop(out, "center_chips", CropRect(sz, 420, 475, 580, 600));
-	AddSemanticCrop(out, "bottom_button", CropRect(sz, 450, 705, 560, 825));
+	AddSemanticCrop(out, "board_cards", CropRect(sz, 340, 350, 660, 485));
+	AddSemanticCrop(out, "pot_label", CropRect(sz, 405, 270, 595, 350));
+	AddSemanticCrop(out, "center_chips", CropRect(sz, 420, 410, 580, 545));
+	AddSemanticCrop(out, "bottom_button", CropRect(sz, 380, 560, 475, 690));
 	AddSemanticCrop(out, "left_seats", CropRect(sz, 35, 190, 310, 810));
 	AddSemanticCrop(out, "right_seats", CropRect(sz, 690, 190, 965, 810));
 	AddSemanticCrop(out, "top_seat", CropRect(sz, 350, 115, 650, 300));
-	AddSemanticCrop(out, "bottom_seat", CropRect(sz, 330, 710, 670, 970));
+	AddSemanticCrop(out, "bottom_seat", CropRect(sz, 330, 650, 670, 870));
 	return out;
 }
 
@@ -311,6 +311,57 @@ static void AppendSemanticCrops(String& out, const Vector<SemanticCrop>& crops)
 		out << "}";
 	}
 	out << "}";
+}
+
+struct SemanticChange : Moveable<SemanticChange> {
+	String name;
+	int    change_blocks = 0;
+	Rect   change_union;
+};
+
+static Vector<SemanticChange> SummarizeSemanticChanges(const Vector<SemanticCrop>& crops,
+                                                       const Vector<TrackerChange>& changes)
+{
+	Vector<SemanticChange> out;
+	for(const SemanticCrop& crop : crops) {
+		SemanticChange& semantic = out.Add();
+		semantic.name = crop.name;
+		for(const TrackerChange& change : changes) {
+			Rect overlap = crop.rect & change.rect;
+			if(overlap.IsEmpty())
+				continue;
+			semantic.change_blocks++;
+			semantic.change_union = semantic.change_blocks == 1 ? overlap : semantic.change_union | overlap;
+		}
+	}
+	return out;
+}
+
+static void AppendSemanticChanges(String& out, const Vector<SemanticChange>& changes)
+{
+	out << "{";
+	for(int i = 0; i < changes.GetCount(); i++) {
+		if(i)
+			out << ", ";
+		out << "\"" << JsonString(changes[i].name) << "\": {\"change_blocks\": "
+		    << changes[i].change_blocks << ", \"union\": ";
+		AppendRect(out, changes[i].change_union);
+		out << "}";
+	}
+	out << "}";
+}
+
+static String FormatSemanticChangesLine(const Vector<SemanticChange>& changes)
+{
+	String out;
+	for(const SemanticChange& change : changes) {
+		if(change.change_blocks <= 0)
+			continue;
+		if(!out.IsEmpty())
+			out << " ";
+		out << change.name << "=" << change.change_blocks;
+	}
+	return out;
 }
 
 static Rect GetChangeUnion(const Vector<TrackerChange>& changes)
@@ -414,12 +465,17 @@ CONSOLE_APP_MAIN
 				change_overlay = AppendFileName(overlays_dir, Format("frame_%06d_table_%d_changes.jpg", fi, w.id));
 				JPGEncoder().Quality(95).SaveFile(change_overlay, MakeChangeOverlay(crop, changes));
 			}
+			Vector<SemanticChange> semantic_changes = SummarizeSemanticChanges(semantic_crops, changes);
+			String semantic_change_line = FormatSemanticChangesLine(semantic_changes);
 			Cout() << "  table=" << w.id
 			       << " rect=" << w.rect.left << "," << w.rect.top
 			       << " " << w.rect.Width() << "x" << w.rect.Height()
 			       << " changes=" << changes.GetCount()
 			       << " semantic=" << semantic_crops.GetCount()
-			       << " crop=" << w.crop_path << "\n";
+			       << " crop=" << w.crop_path;
+			if(!semantic_change_line.IsEmpty())
+				Cout() << " semantic_changes=" << semantic_change_line;
+			Cout() << "\n";
 
 			if(wi)
 				json << ", ";
@@ -451,6 +507,8 @@ CONSOLE_APP_MAIN
 			summary << ", \"change_count\": " << changes.GetCount()
 			        << ", \"change_union\": ";
 			AppendRect(summary, GetChangeUnion(changes));
+			summary << ", \"semantic_changes\": ";
+			AppendSemanticChanges(summary, semantic_changes);
 			summary << ", \"change_overlay\": \"" << JsonString(change_overlay) << "\"}";
 		}
 		json << "]}";

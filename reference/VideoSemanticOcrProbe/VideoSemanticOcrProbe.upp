@@ -1,0 +1,13 @@
+description "Video semantic crop OCR probe";
+
+uses
+	Core;
+
+file
+	AGENTS.md,
+	VideoSemanticOcrProbe.h,
+	main.cpp;
+
+mainconfig
+	"" = "";
+

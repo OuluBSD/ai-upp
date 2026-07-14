@@ -12,6 +12,7 @@ public:
 	void Paint(Draw& draw) override;
 	void LeftDown(Point p, dword keyflags) override;
 	String GetDiagnostics() const;
+	String GetRenderReport() const;
 
 private:
 	CardBoardDocument document_;

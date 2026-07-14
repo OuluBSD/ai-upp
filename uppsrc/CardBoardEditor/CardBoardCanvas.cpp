@@ -47,4 +47,11 @@ String CardBoardCanvas::GetDiagnostics() const
 	return out;
 }
 
+String CardBoardCanvas::GetRenderReport() const
+{
+	String out;
+	document_.RenderReport(out, GetSize(), document_.MakePokerSampleState());
+	return out;
+}
+
 END_UPP_NAMESPACE

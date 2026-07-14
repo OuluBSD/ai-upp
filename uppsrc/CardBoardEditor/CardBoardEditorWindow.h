@@ -27,8 +27,9 @@ private:
 	void ResetLayout();
 	void RefreshPanels();
 	void CacheDefaultLayout();
+	void PrintDiagnosticsToStdout();
 };
 
-bool RunCardBoardEditorCli(const Vector<String>& args);
+int RunCardBoardEditorCli(const Vector<String>& args);
 
 #endif

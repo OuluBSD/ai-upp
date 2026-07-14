@@ -209,6 +209,8 @@ void CardBoardDocument::MakePokerSample()
 	StylePanel(pot, Color(42, 78, 28), Null, Color(255, 214, 71));
 	pot.style.rounded = true;
 	pot.style.font_height = 12;
+	pot.binding = "pot_label";
+	pot.z = 20;
 
 	CardBoardElement& cards = board.Add(CARD_BOARD_BOARD_CARDS, "board.cards", "",
 	                                    Rel(0.31, 0.28, 0.36, 0.30));
@@ -221,12 +223,15 @@ void CardBoardDocument::MakePokerSample()
 		StylePanel(card, i == 1 ? Color(35, 38, 43) : i == 2 ? Color(150, 28, 28) : Color(24, 145, 53),
 		           Color(210, 210, 210));
 		card.style.font_height = 32;
+		card.binding = Format("board_card%d", i + 1);
 	}
 
 	CardBoardElement& chips = board.Add(CARD_BOARD_CHIP_STACK, "board.chips", "$155",
 	                                    Rel(0.46, 0.56, 0.08, 0.12));
 	StylePanel(chips, Color(210, 210, 210), Color(80, 80, 80), White());
 	chips.style.font_height = 10;
+	chips.binding = "pot_amount";
+	chips.z = 30;
 
 	AddSeat(window, 1, "Misha Inner", "$930", Rel(0.40, 0.72, 0.20, 0.25), Color(245, 120, 70), true);
 	AddSeat(window, 2, "LlenoXX", "$2,934", Rel(0.42, 0.09, 0.16, 0.20), Color(130, 255, 70));
@@ -245,6 +250,19 @@ void CardBoardDocument::MakePokerSample()
 	                                       "Fold | Call $10 | Bet", Rel(0.61, 0.84, 0.27, 0.11));
 	StylePanel(buttons, Color(20, 20, 22), Color(45, 45, 50), Color(225, 225, 225));
 	buttons.style.font_height = 11;
+}
+
+CardBoardState CardBoardDocument::MakePokerSampleState() const
+{
+	CardBoardState state;
+	state.values.Add("pot_label", "Total Pot: $155");
+	state.values.Add("pot_amount", "$155");
+	state.values.Add("board_card1", "K");
+	state.values.Add("board_card2", "5");
+	state.values.Add("board_card3", "3");
+	state.values.Add("board_card4", "");
+	state.values.Add("board_card5", "");
+	return state;
 }
 
 String CardBoardDocument::Validate() const
@@ -282,6 +300,12 @@ void CardBoardDocument::DumpRects(String& out, Size canvas_size) const
 {
 	CardBoardRenderer renderer;
 	renderer.DumpRects(out, RectC(0, 0, canvas_size.cx, canvas_size.cy), *this);
+}
+
+void CardBoardDocument::RenderReport(String& out, Size canvas_size, const CardBoardState& state) const
+{
+	CardBoardRenderer renderer;
+	renderer.RenderReport(out, RectC(0, 0, canvas_size.cx, canvas_size.cy), *this, state);
 }
 
 END_UPP_NAMESPACE

@@ -30,9 +30,11 @@ struct CardBoardDocument : Moveable<CardBoardDocument> {
 	void Clear();
 	void CopyFrom(const CardBoardDocument& source);
 	void MakePokerSample();
+	CardBoardState MakePokerSampleState() const;
 	String Validate() const;
 	void DumpTree(String& out) const;
 	void DumpRects(String& out, Size canvas_size) const;
+	void RenderReport(String& out, Size canvas_size, const CardBoardState& state) const;
 };
 
 CardBoardElement MakeCardBoardElement(CardBoardElementType type, const String& id,

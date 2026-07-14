@@ -31,20 +31,22 @@ static void DrawCenteredText(Draw& draw, const Rect& rect, const String& text, F
 }
 
 void CardBoardRenderer::Render(Draw& draw, const Rect& area, const CardBoardDocument& document,
-                               const CardBoardState&) const
+                               const CardBoardState& state) const
 {
 	draw.DrawRect(area, SColorPaper());
 	for(const CardBoardElement& element : document.elements)
-		RenderElement(draw, area, element, 0);
+		RenderElement(draw, area, element, state, 0);
 }
 
 void CardBoardRenderer::RenderElement(Draw& draw, const Rect& parent,
-                                      const CardBoardElement& element, int depth) const
+                                      const CardBoardElement& element,
+                                      const CardBoardState& state, int depth) const
 {
 	if(!element.visible)
 		return;
 
 	Rect rect = element.rect.Realize(parent);
+	String label = ResolveLabel(element, state);
 	Color fill = EffectiveFill(element);
 	Color border = element.style.border;
 	if(!IsNull(fill)) {
@@ -64,9 +66,9 @@ void CardBoardRenderer::RenderElement(Draw& draw, const Rect& parent,
 		}
 	}
 
-	if(!element.label.IsEmpty()) {
+	if(!label.IsEmpty()) {
 		if(element.type == CARD_BOARD_CHECKBOXES) {
-			Vector<String> lines = Split(element.label, '\n');
+			Vector<String> lines = Split(label, '\n');
 			Font font = ElementFont(element, 10);
 			int y = rect.top + 2;
 			for(String line : lines) {
@@ -76,7 +78,7 @@ void CardBoardRenderer::RenderElement(Draw& draw, const Rect& parent,
 			}
 		}
 		else
-			DrawCenteredText(draw, rect, element.label, ElementFont(element, 12), element.style.text);
+			DrawCenteredText(draw, rect, label, ElementFont(element, 12), element.style.text);
 	}
 
 	if(element.type == CARD_BOARD_HOLE_CARDS && element.children.IsEmpty()) {
@@ -95,8 +97,9 @@ void CardBoardRenderer::RenderElement(Draw& draw, const Rect& parent,
 		draw.DrawRect(right.right - 1, right.top, 1, right.GetHeight(), White());
 	}
 
-	for(const CardBoardElement& child : element.children)
-		RenderElement(draw, rect, child, depth + 1);
+	ForEachChildByZ(element.children, [&](const CardBoardElement& child) {
+		RenderElement(draw, rect, child, state, depth + 1);
+	});
 }
 
 void CardBoardRenderer::DumpRects(String& out, const Rect& area, const CardBoardDocument& document) const
@@ -115,6 +118,64 @@ void CardBoardRenderer::DumpElement(String& out, const Rect& parent,
 	               rect.left, rect.top, rect.GetWidth(), rect.GetHeight(), element.label));
 	for(const CardBoardElement& child : element.children)
 		DumpElement(out, rect, child, depth + 1);
+}
+
+void CardBoardRenderer::RenderReport(String& out, const Rect& area,
+                                     const CardBoardDocument& document,
+                                     const CardBoardState& state) const
+{
+	out.Cat(Format("RenderReport provider=%s game=%s area=(%d,%d %d`x%d) design=%d`x%d\n",
+	               document.provider_id, document.game_family, area.left, area.top,
+	               area.GetWidth(), area.GetHeight(), document.design_size.cx,
+	               document.design_size.cy));
+	for(const CardBoardElement& element : document.elements)
+		ReportElement(out, area, element, state, 0);
+}
+
+void CardBoardRenderer::ReportElement(String& out, const Rect& parent,
+                                      const CardBoardElement& element,
+                                      const CardBoardState& state, int depth) const
+{
+	if(!element.visible)
+		return;
+	Rect rect = element.rect.Realize(parent);
+	out.Cat(String(' ', depth * 2));
+	out.Cat(Format("draw type=%s id=%s z=%d rect=(%d,%d %d`x%d) label=%s binding=%s\n",
+	               CardBoardElementTypeName(element.type), element.id, element.z,
+	               rect.left, rect.top, rect.GetWidth(), rect.GetHeight(),
+	               ResolveLabel(element, state), element.binding));
+	ForEachChildByZ(element.children, [&](const CardBoardElement& child) {
+		ReportElement(out, rect, child, state, depth + 1);
+	});
+}
+
+String CardBoardRenderer::ResolveLabel(const CardBoardElement& element,
+                                       const CardBoardState& state) const
+{
+	if(element.binding.IsEmpty())
+		return element.label;
+	int index = state.values.Find(element.binding);
+	if(index < 0)
+		return element.label;
+	Value value = state.values.GetValue(index);
+	if(IsNull(value))
+		return element.label;
+	return AsString(value);
+}
+
+void CardBoardRenderer::ForEachChildByZ(const Vector<CardBoardElement>& children,
+                                        Function<void (const CardBoardElement&)> callback) const
+{
+	Vector<int> order;
+	for(int i = 0; i < children.GetCount(); i++)
+		order.Add(i);
+	Sort(order, [&](int a, int b) {
+		if(children[a].z != children[b].z)
+			return children[a].z < children[b].z;
+		return a < b;
+	});
+	for(int index : order)
+		callback(children[index]);
 }
 
 END_UPP_NAMESPACE

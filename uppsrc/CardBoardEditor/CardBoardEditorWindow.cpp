@@ -66,6 +66,7 @@ void CardBoardEditorWindow::MenuHelp(Bar& bar)
 		canvas_.GetDocument().DumpTree(out);
 		LOG(out);
 	});
+	bar.Add("Dump render report to stdout/log", THISBACK(PrintDiagnosticsToStdout));
 }
 
 void CardBoardEditorWindow::ToolBar(Bar& bar)
@@ -102,10 +103,18 @@ void CardBoardEditorWindow::CacheDefaultLayout()
 	default_layout_data_ = out.GetResult();
 }
 
-bool RunCardBoardEditorCli(const Vector<String>& args)
+void CardBoardEditorWindow::PrintDiagnosticsToStdout()
+{
+	String out = canvas_.GetRenderReport();
+	LOG(out);
+	Cout() << out;
+}
+
+int RunCardBoardEditorCli(const Vector<String>& args)
 {
 	bool dump_tree = false;
 	bool dump_rects = false;
+	bool render_report = false;
 	Size size(610, 438);
 
 	for(int i = 0; i < args.GetCount(); i++) {
@@ -116,44 +125,52 @@ bool RunCardBoardEditorCli(const Vector<String>& args)
 		if(arg == "--dump-sample-rects")
 			dump_rects = true;
 		else
+		if(arg == "--render-report")
+			render_report = true;
+		else
 		if(arg.StartsWith("--size=")) {
 			Vector<String> parts = Split(arg.Mid(7), 'x');
 			if(parts.GetCount() != 2) {
 				Cout() << "invalid --size, expected WIDTHxHEIGHT\n";
-				SetExitCode(2);
-				return true;
+				return 2;
 			}
 			size.cx = ScanInt(parts[0]);
 			size.cy = ScanInt(parts[1]);
+			if(size.cx <= 0 || size.cy <= 0) {
+				Cout() << "invalid --size, dimensions must be positive\n";
+				return 2;
+			}
 		}
 		else
 		if(arg == "--help") {
 			Cout() << "CardBoardEditor options:\n"
 			       << "  --dump-sample-tree\n"
 			       << "  --dump-sample-rects\n"
+			       << "  --render-report\n"
 			       << "  --size=WIDTHxHEIGHT\n";
-			return true;
+			return 0;
 		}
 	}
 
-	if(!dump_tree && !dump_rects)
-		return false;
+	if(!dump_tree && !dump_rects && !render_report)
+		return -1;
 
 	CardBoardDocument document;
 	document.MakePokerSample();
 	String error = document.Validate();
 	if(!error.IsEmpty()) {
 		Cout() << "validation failed: " << error << "\n";
-		SetExitCode(1);
-		return true;
+		return 1;
 	}
 	String out;
 	if(dump_tree)
 		document.DumpTree(out);
 	if(dump_rects)
 		document.DumpRects(out, size);
+	if(render_report)
+		document.RenderReport(out, size, document.MakePokerSampleState());
 	Cout() << out;
-	return true;
+	return 0;
 }
 
 END_UPP_NAMESPACE

@@ -17,6 +17,7 @@ private:
 	CardBoardPropertiesPanel properties_;
 	CardBoardDiagnosticsPanel diagnostics_;
 	String default_layout_data_;
+	String selected_path_;
 	bool loaded_ = false;
 
 	void MainMenu(Bar& bar);
@@ -26,6 +27,8 @@ private:
 	void ToolBar(Bar& bar);
 	void ResetLayout();
 	void RefreshPanels();
+	void SelectElement(const String& path);
+	void ApplyPropertyChanges();
 	void CacheDefaultLayout();
 	void PrintDiagnosticsToStdout();
 };

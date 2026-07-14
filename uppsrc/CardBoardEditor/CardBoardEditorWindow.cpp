@@ -14,6 +14,8 @@ CardBoardEditorWindow::CardBoardEditorWindow()
 	toolbar_.Set(THISBACK(ToolBar));
 
 	canvas_.GetDocument().MakePokerSample();
+	tree_.WhenElementSelected = THISBACK(SelectElement);
+	properties_.WhenChanged = THISBACK(ApplyPropertyChanges);
 	Add(canvas_.SizePos());
 	RefreshPanels();
 }
@@ -44,6 +46,7 @@ void CardBoardEditorWindow::MenuFile(Bar& bar)
 {
 	bar.Add("New poker sample", [=] {
 		canvas_.GetDocument().MakePokerSample();
+		selected_path_.Clear();
 		RefreshPanels();
 		canvas_.Refresh();
 	});
@@ -73,6 +76,7 @@ void CardBoardEditorWindow::ToolBar(Bar& bar)
 {
 	bar.Add("Sample", [=] {
 		canvas_.GetDocument().MakePokerSample();
+		selected_path_.Clear();
 		RefreshPanels();
 		canvas_.Refresh();
 	});
@@ -91,9 +95,26 @@ void CardBoardEditorWindow::ResetLayout()
 
 void CardBoardEditorWindow::RefreshPanels()
 {
-	tree_.SetDocument(canvas_.GetDocument());
-	properties_.SetDocument(canvas_.GetDocument());
+	tree_.SetDocument(canvas_.GetDocument(), selected_path_);
+	if(selected_path_.IsEmpty())
+		properties_.SetDocument(canvas_.GetDocument());
+	else
+		properties_.SetElement(canvas_.GetDocument(), selected_path_);
 	diagnostics_.SetText(canvas_.GetDiagnostics());
+}
+
+void CardBoardEditorWindow::SelectElement(const String& path)
+{
+	selected_path_ = path;
+	properties_.SetElement(canvas_.GetDocument(), selected_path_);
+	diagnostics_.SetText(canvas_.GetDiagnostics());
+}
+
+void CardBoardEditorWindow::ApplyPropertyChanges()
+{
+	tree_.SetDocument(canvas_.GetDocument(), selected_path_);
+	diagnostics_.SetText(canvas_.GetDiagnostics());
+	canvas_.Refresh();
 }
 
 void CardBoardEditorWindow::CacheDefaultLayout()
@@ -130,6 +151,78 @@ static int CountReportMarker(const String& report, const String& marker)
 		count++;
 		pos += marker.GetCount();
 	}
+}
+
+static Color PropertyStringToColorCli(const String& text)
+{
+	String value = TrimBoth(text);
+	if(value.IsEmpty())
+		return Null;
+	if(value.GetCount() == 7 && value[0] == '#') {
+		int r = ScanInt("0x" + value.Mid(1, 2));
+		int g = ScanInt("0x" + value.Mid(3, 2));
+		int b = ScanInt("0x" + value.Mid(5, 2));
+		return Color(r, g, b);
+	}
+	return Null;
+}
+
+static bool ApplyElementProperty(CardBoardDocument& document, const String& spec, String& error)
+{
+	int eq = spec.Find('=');
+	int dot = -1;
+	for(int i = 0; i < eq; i++)
+		if(spec[i] == '.')
+			dot = i;
+	if(eq <= 0 || dot <= 0 || dot > eq) {
+		error = "expected PATH.FIELD=VALUE";
+		return false;
+	}
+	String path = spec.Left(dot);
+	String field = spec.Mid(dot + 1, eq - dot - 1);
+	String value = spec.Mid(eq + 1);
+	CardBoardElement *element = document.FindElementPath(path);
+	if(!element) {
+		error = "element path not found: " + path;
+		return false;
+	}
+	if(field == "id")
+		element->id = value;
+	else
+	if(field == "label")
+		element->label = value;
+	else
+	if(field == "binding")
+		element->binding = value;
+	else
+	if(field == "asset")
+		element->style.asset = value;
+	else
+	if(field == "font_face")
+		element->style.font_face = value;
+	else
+	if(field == "font_height") {
+		int height = ScanInt(value);
+		if(height <= 0) {
+			error = "font_height must be positive";
+			return false;
+		}
+		element->style.font_height = height;
+	}
+	else
+	if(field == "fill")
+		element->style.fill = PropertyStringToColorCli(value);
+	else
+	if(field == "border")
+		element->style.border = PropertyStringToColorCli(value);
+	else
+	if(field == "text")
+		element->style.text = PropertyStringToColorCli(value);
+	else {
+		error = "unknown field: " + field;
+		return false;
+	}
+	return true;
 }
 
 static void RenderSmokeReport(String& out, const CardBoardDocument& document, Size size)
@@ -174,6 +267,7 @@ int RunCardBoardEditorCli(const Vector<String>& args)
 	bool render_smoke = false;
 	String save_sample_json;
 	String load_json;
+	Vector<String> set_elements;
 	Size size(610, 438);
 
 	for(int i = 0; i < args.GetCount(); i++) {
@@ -199,6 +293,9 @@ int RunCardBoardEditorCli(const Vector<String>& args)
 		if(arg.StartsWith("--load-json="))
 			load_json = arg.Mid(12);
 		else
+		if(arg.StartsWith("--set-element="))
+			set_elements.Add(arg.Mid(14));
+		else
 		if(arg.StartsWith("--size=")) {
 			Vector<String> parts = Split(arg.Mid(7), 'x');
 			if(parts.GetCount() != 2) {
@@ -222,12 +319,14 @@ int RunCardBoardEditorCli(const Vector<String>& args)
 			       << "  --render-smoke\n"
 			       << "  --save-sample-json=PATH\n"
 			       << "  --load-json=PATH\n"
+			       << "  --set-element=PATH.FIELD=VALUE\n"
 			       << "  --size=WIDTHxHEIGHT\n";
 			return 0;
 		}
 	}
 
 	if(!dump_tree && !dump_rects && !render_report && !roundtrip_json && !render_smoke &&
+	   set_elements.IsEmpty() &&
 	   save_sample_json.IsEmpty() && load_json.IsEmpty())
 		return -1;
 
@@ -242,6 +341,13 @@ int RunCardBoardEditorCli(const Vector<String>& args)
 		String load_error;
 		if(!document.LoadJson(json, load_error)) {
 			Cout() << "failed to load CardBoard JSON: " << load_error << "\n";
+			return 2;
+		}
+	}
+	for(const String& spec : set_elements) {
+		String set_error;
+		if(!ApplyElementProperty(document, spec, set_error)) {
+			Cout() << "failed to set element property: " << set_error << "\n";
 			return 2;
 		}
 	}

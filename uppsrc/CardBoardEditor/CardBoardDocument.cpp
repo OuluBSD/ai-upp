@@ -228,6 +228,47 @@ void CardBoardDocument::CopyFrom(const CardBoardDocument& source)
 		CopyElement(elements.Add(), element);
 }
 
+static CardBoardElement *FindElementPath(Vector<CardBoardElement>& elements, const Vector<String>& parts, int depth)
+{
+	if(depth >= parts.GetCount())
+		return nullptr;
+	int index = ScanInt(parts[depth]);
+	if(index < 0 || index >= elements.GetCount())
+		return nullptr;
+	CardBoardElement& element = elements[index];
+	if(depth == parts.GetCount() - 1)
+		return &element;
+	return FindElementPath(element.children, parts, depth + 1);
+}
+
+static const CardBoardElement *FindElementPath(const Vector<CardBoardElement>& elements,
+                                               const Vector<String>& parts, int depth)
+{
+	if(depth >= parts.GetCount())
+		return nullptr;
+	int index = ScanInt(parts[depth]);
+	if(index < 0 || index >= elements.GetCount())
+		return nullptr;
+	const CardBoardElement& element = elements[index];
+	if(depth == parts.GetCount() - 1)
+		return &element;
+	return FindElementPath(element.children, parts, depth + 1);
+}
+
+CardBoardElement *CardBoardDocument::FindElementPath(const String& path)
+{
+	if(path.IsEmpty())
+		return nullptr;
+	return Upp::FindElementPath(elements, Split(path, '/'), 0);
+}
+
+const CardBoardElement *CardBoardDocument::FindElementPath(const String& path) const
+{
+	if(path.IsEmpty())
+		return nullptr;
+	return Upp::FindElementPath(elements, Split(path, '/'), 0);
+}
+
 static void StylePanel(CardBoardElement& element, Color fill, Color border, Color text = White())
 {
 	element.style.fill = fill;

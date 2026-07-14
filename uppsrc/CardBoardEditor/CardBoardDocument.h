@@ -32,6 +32,8 @@ struct CardBoardDocument : Moveable<CardBoardDocument> {
 
 	void Clear();
 	void CopyFrom(const CardBoardDocument& source);
+	CardBoardElement *FindElementPath(const String& path);
+	const CardBoardElement *FindElementPath(const String& path) const;
 	void MakePokerSample();
 	CardBoardState MakePokerSampleState() const;
 	String Validate() const;

@@ -459,14 +459,222 @@ void CardBoardDocument::MakePokerSample()
 	}
 }
 
+static void AddPokerGgSeat(CardBoardElement& window, int seat, const String& name, const String& stack,
+                           const String& tag, const String& flag, const CardBoardRect& rect,
+                           Color border, bool hero = false, bool sitting_out = false)
+{
+	CardBoardElement& s = window.Add(CARD_BOARD_SEAT, Format("pgg.seat%d", seat), name, rect);
+	s.template_id = hero ? "pokergg-hero-seat" : "pokergg-seat";
+	s.z = hero ? 35 : 25;
+
+	CardBoardElement& bounty = s.Add(CARD_BOARD_POT_LABEL, Format("pgg.seat%d.bounty", seat), tag,
+	                                 Rel(0.28, -0.02, 0.44, 0.16));
+	StylePanel(bounty, Color(232, 212, 160), Color(120, 85, 30), Color(80, 45, 15));
+	bounty.style.font_height = hero ? 13 : 10;
+	bounty.z = 30;
+
+	CardBoardElement& avatar = s.Add(CARD_BOARD_AVATAR, Format("pgg.seat%d.avatar", seat), "",
+	                                 Rel(0.26, 0.08, 0.48, 0.42));
+	StylePanel(avatar, Color(85 + seat * 12 % 90, 60 + seat * 19 % 120, 45 + seat * 23 % 120),
+	           Color(215, 185, 110));
+	avatar.style.ellipse = true;
+	avatar.z = 5;
+
+	CardBoardElement& ring = s.Add(CARD_BOARD_AVATAR_RING, Format("pgg.seat%d.ring", seat), "",
+	                               Rel(0.22, 0.04, 0.56, 0.50));
+	StylePanel(ring, Null, Color(205, 170, 90));
+	ring.style.ellipse = true;
+	ring.style.pen = 3;
+	ring.z = 6;
+
+	if(hero || seat == 3) {
+		CardBoardElement& cards = s.Add(CARD_BOARD_HOLE_CARDS, Format("pgg.seat%d.cards", seat), "",
+		                                hero ? Rel(0.35, 0.14, 0.42, 0.36) : Rel(0.34, 0.16, 0.44, 0.24));
+		StylePanel(cards, hero ? Color(150, 35, 30) : Color(120, 210, 145), White());
+		cards.z = 25;
+	}
+
+	CardBoardElement& panel = s.Add(CARD_BOARD_PLAYER_PANEL, Format("pgg.seat%d.panel", seat), "",
+	                                Rel(0.12, 0.47, 0.76, 0.43));
+	StylePanel(panel, Color(24, 28, 32), border);
+	panel.style.pen = hero ? 4 : 3;
+	panel.z = 10;
+
+	CardBoardElement& number = s.Add(CARD_BOARD_PLAYER_NUMBER, Format("pgg.seat%d.number", seat),
+	                                 AsString(20 + seat), Rel(0.07, 0.50, 0.17, 0.16));
+	StylePanel(number, Color(78, 32, 34), Color(200, 185, 160), White());
+	number.style.font_height = 10;
+	number.z = 20;
+
+	CardBoardElement& flag_el = s.Add(CARD_BOARD_FLAG, Format("pgg.seat%d.flag", seat), flag,
+	                                  Rel(0.72, 0.50, 0.22, 0.14));
+	StylePanel(flag_el, Color(235, 235, 240), Color(20, 40, 140), Blue());
+	flag_el.style.font_height = 8;
+	flag_el.z = 20;
+
+	CardBoardElement& name_el = s.Add(CARD_BOARD_NAMEPLATE, Format("pgg.seat%d.name", seat),
+	                                  sitting_out ? "Sitting Out\n" + name : name,
+	                                  Rel(0.18, 0.55, 0.64, 0.16));
+	name_el.style.text = sitting_out ? Color(205, 205, 205) : White();
+	name_el.style.font_height = hero ? 13 : 10;
+	name_el.z = 20;
+
+	CardBoardElement& stack_el = s.Add(CARD_BOARD_BALANCE_TEXT, Format("pgg.seat%d.balance", seat), stack,
+	                                   Rel(0.18, 0.72, 0.64, 0.17));
+	stack_el.style.text = Color(110, 190, 245);
+	stack_el.style.font_height = hero ? 18 : 14;
+	stack_el.z = 20;
+
+	if(sitting_out) {
+		CardBoardElement& badge = s.Add(CARD_BOARD_ACTION_BADGE, Format("pgg.seat%d.action", seat), "Sitting Out",
+		                                Rel(0.26, 0.36, 0.48, 0.16));
+		StylePanel(badge, Color(20, 22, 24), Color(220, 220, 220), White());
+		badge.style.font_height = 10;
+		badge.z = 35;
+	}
+}
+
+void CardBoardDocument::MakePokerGg8pSample()
+{
+	Clear();
+	provider_id = "PokerGG8p";
+	game_family = "Poker";
+	format_version = "1";
+	asset_root = "share/cardboard/pokergg_8p";
+	design_size = Size(1371, 1019);
+
+	CardBoardElement& window = elements.Add(MakeCardBoardElement(CARD_BOARD_WINDOW, "window",
+	                                                             "PokerGG 8p table",
+	                                                             Rel(0, 0, 1, 1)));
+	StylePanel(window, Color(34, 20, 12), Null, White());
+
+	CardBoardElement& toolbar = window.Add(CARD_BOARD_TOP_TOOLBAR, "pgg.top.toolbar",
+	                                       "Bounty Hunters Forty Stack $44 --  Game Rules",
+	                                       Rel(0, 0, 1, 0.066));
+	StylePanel(toolbar, Color(20, 20, 22), Color(52, 52, 55), Color(190, 190, 190));
+	toolbar.style.font_height = 28;
+
+	CardBoardElement& hud = window.Add(CARD_BOARD_TOP_TOOLBAR, "pgg.tournament.hud",
+	                                   "Level 17        07:23    Places Paid        216\nAvg Stack      39.2 BB   My Rank           145 / 399",
+	                                   Rel(0.005, 0.068, 0.36, 0.065));
+	StylePanel(hud, Color(10, 34, 70), Color(25, 65, 120), Color(220, 235, 255));
+	hud.style.font_height = 16;
+	hud.z = 40;
+
+	CardBoardElement& room = window.Add(CARD_BOARD_TEXT, "pgg.room.backdrop", "",
+	                                    Rel(0, 0.066, 1, 0.934));
+	StylePanel(room, Color(63, 35, 16), Null);
+	room.z = 0;
+
+	CardBoardElement& board = window.Add(CARD_BOARD_BOARD, "pgg.table", "", Rel(0.10, 0.27, 0.80, 0.53));
+	StylePanel(board, Color(118, 74, 35), Color(55, 32, 18));
+	board.style.pen = 5;
+	board.z = 5;
+
+	CardBoardElement& pot = board.Add(CARD_BOARD_POT_LABEL, "pgg.pot", "Total Pot : 16.7 BB",
+	                                  Rel(0.38, 0.22, 0.24, 0.08));
+	StylePanel(pot, Color(55, 35, 12), Null, Color(255, 215, 55));
+	pot.style.font_height = 22;
+	pot.z = 30;
+
+	CardBoardElement& cards = board.Add(CARD_BOARD_BOARD_CARDS, "pgg.board.cards", "",
+	                                    Rel(0.31, 0.32, 0.27, 0.27));
+	const char *flop[] = { "A♠", "6♠", "8♣" };
+	for(int i = 0; i < 3; i++) {
+		CardBoardElement& card = cards.Add(CARD_BOARD_CARD, Format("pgg.board.card%d", i + 1),
+		                                   flop[i], Rel(i * 0.34, 0, 0.30, 1));
+		StylePanel(card, i == 2 ? Color(20, 140, 55) : Color(28, 30, 32), Color(160, 160, 150));
+		card.style.font_height = 54;
+		card.binding = Format("board_card%d", i + 1);
+	}
+
+	CardBoardElement& chips = board.Add(CARD_BOARD_CHIP_STACK, "pgg.center.chips", "6.6 BB",
+	                                    Rel(0.42, 0.58, 0.19, 0.14));
+	StylePanel(chips, Color(210, 210, 210), Color(80, 80, 80), White());
+	chips.style.font_height = 16;
+	chips.binding = "pot_amount";
+	chips.z = 40;
+
+	AddPokerGgSeat(window, 1, "Daisy Madik", "35.7 BB", "$10", "BE",
+	               Rel(0.42, 0.72, 0.18, 0.25), Color(235, 245, 250), true);
+	AddPokerGgSeat(window, 2, "TBN1", "14.7 BB", "$20", "CN",
+	               Rel(0.43, 0.10, 0.16, 0.22), Color(105, 255, 60));
+	AddPokerGgSeat(window, 3, "mclazz3", "17.1 BB", "$15", "UK",
+	               Rel(0.70, 0.12, 0.17, 0.24), Color(255, 25, 25));
+	AddPokerGgSeat(window, 4, "alcarezD7", "34.4 BB", "$10", "SG",
+	               Rel(0.84, 0.39, 0.15, 0.21), Color(255, 25, 25));
+	AddPokerGgSeat(window, 5, "Pietro Corsi", "34.8 BB", "$10", "IT",
+	               Rel(0.70, 0.62, 0.17, 0.23), Color(35, 205, 110), false, true);
+	AddPokerGgSeat(window, 6, "shlpin2026", "14.4 BB", "$41.25", "PL",
+	               Rel(0.14, 0.62, 0.17, 0.23), Color(40, 205, 105));
+	AddPokerGgSeat(window, 7, "RamiPlayer", "22.4 BB", "$10", "AT",
+	               Rel(0.01, 0.39, 0.15, 0.21), Color(35, 35, 40));
+	AddPokerGgSeat(window, 8, "Mancunderground", "44.3 BB", "$42.50", "PL",
+	               Rel(0.17, 0.13, 0.17, 0.23), Color(35, 35, 40));
+
+	CardBoardElement& dealer = window.Add(CARD_BOARD_DEALER_BUTTON, "pgg.dealer", "D",
+	                                      Rel(0.285, 0.655, 0.025, 0.035));
+	StylePanel(dealer, Color(240, 210, 35), Color(80, 75, 10), Color(70, 55, 5));
+	dealer.style.ellipse = true;
+	dealer.style.font_height = 18;
+	dealer.z = 60;
+
+	CardBoardElement& sitout = window.Add(CARD_BOARD_CHECKBOXES, "pgg.bottom.sitout",
+	                                      "Global Sit-Out", Rel(0.03, 0.86, 0.18, 0.08));
+	sitout.style.text = Color(230, 230, 230);
+	sitout.style.font_height = 18;
+
+	CardBoardElement& icons = window.Add(CARD_BOARD_ACTION_BUTTONS, "pgg.bottom.icons", "",
+	                                     Rel(0.28, 0.885, 0.14, 0.06));
+	for(int i = 0; i < 3; i++) {
+		CardBoardElement& icon = icons.Add(CARD_BOARD_BUTTON, Format("pgg.icon%d", i + 1),
+		                                   i == 0 ? "▶" : i == 1 ? "●" : "☺",
+		                                   Rel(i * 0.34, 0, 0.28, 1));
+		StylePanel(icon, i == 0 ? Color(40, 170, 90) : i == 1 ? Color(210, 220, 230) : Color(230, 180, 45),
+		           Null, i == 1 ? Color(70, 80, 90) : White());
+		icon.style.ellipse = true;
+		icon.style.font_height = 20;
+	}
+
+	CardBoardElement& presets = window.Add(CARD_BOARD_ACTION_BUTTONS, "pgg.bet.presets", "",
+	                                       Rel(0.61, 0.82, 0.22, 0.055));
+	const char *preset[] = { "33%", "50%", "75%", "100%" };
+	for(int i = 0; i < 4; i++) {
+		CardBoardElement& p = presets.Add(CARD_BOARD_BUTTON, Format("pgg.preset%d", i + 1),
+		                                  preset[i], Rel(i * 0.25, 0, 0.23, 1));
+		StylePanel(p, Color(60, 62, 66), Color(35, 35, 38), Color(235, 235, 235));
+		p.style.font_height = 17;
+	}
+
+	CardBoardElement& actions = window.Add(CARD_BOARD_ACTION_BUTTONS, "pgg.bottom.actions", "",
+	                                       Rel(0.61, 0.88, 0.38, 0.11));
+	const char *labels[] = { "Fold", "Call 4.9 BB", "Raise to 12.4 BB" };
+	for(int i = 0; i < 3; i++) {
+		CardBoardElement& action = actions.Add(CARD_BOARD_BUTTON, Format("pgg.action%d", i + 1),
+		                                       labels[i], Rel(i * 0.335, 0, 0.31, 0.95));
+		StylePanel(action, Color(185, 54, 58), Color(120, 35, 38), White());
+		action.style.font_height = 24;
+		action.style.rounded = true;
+	}
+}
+
 CardBoardState CardBoardDocument::MakePokerSampleState() const
 {
 	CardBoardState state;
-	state.values.Add("pot_label", "Total Pot: $155");
-	state.values.Add("pot_amount", "$155");
-	state.values.Add("board_card1", "K");
-	state.values.Add("board_card2", "5");
-	state.values.Add("board_card3", "3");
+	if(provider_id == "PokerGG8p") {
+		state.values.Add("pot_label", "Total Pot : 16.7 BB");
+		state.values.Add("pot_amount", "6.6 BB");
+		state.values.Add("board_card1", "A♠");
+		state.values.Add("board_card2", "6♠");
+		state.values.Add("board_card3", "8♣");
+	}
+	else {
+		state.values.Add("pot_label", "Total Pot: $155");
+		state.values.Add("pot_amount", "$155");
+		state.values.Add("board_card1", "K");
+		state.values.Add("board_card2", "5");
+		state.values.Add("board_card3", "3");
+	}
 	state.values.Add("board_card4", "");
 	state.values.Add("board_card5", "");
 	state.values.Add("seat1_action", "LIVE");

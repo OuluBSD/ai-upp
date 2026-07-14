@@ -171,12 +171,20 @@ void CardBoardRenderer::RenderPrimitive(Draw& draw, const Rect& rect,
 	}
 
 	if(element.type == CARD_BOARD_BOARD) {
-		draw.DrawEllipse(rect, Color(18, 20, 18), 3, Color(8, 8, 8));
+		Color felt_color = IsNull(element.style.fill) ? Color(17, 104, 39) : element.style.fill;
+		Color border_color = IsNull(element.style.border) ? Color(8, 8, 8) : element.style.border;
+		Color rail_color = Color(max(0, felt_color.GetR() - 45),
+		                         max(0, felt_color.GetG() - 35),
+		                         max(0, felt_color.GetB() - 25));
+		Color inner_line = Color(min(255, felt_color.GetR() + 18),
+		                         min(255, felt_color.GetG() + 18),
+		                         min(255, felt_color.GetB() + 18));
+		draw.DrawEllipse(rect, border_color, max(2, element.style.pen), Color(8, 8, 8));
 		Rect rail = DeflateRect(rect, max(4, rect.GetHeight() / 18));
-		draw.DrawEllipse(rail, Color(40, 44, 40), 2, Color(18, 18, 18));
+		draw.DrawEllipse(rail, rail_color, 2, border_color);
 		Rect felt = DeflateRect(rail, max(6, rect.GetHeight() / 14));
-		draw.DrawEllipse(felt, Color(17, 104, 39), 1, Color(22, 125, 48));
-		draw.DrawEllipse(DeflateRect(felt, max(6, felt.GetHeight() / 10)), Null, 1, Color(35, 135, 58));
+		draw.DrawEllipse(felt, felt_color, 1, inner_line);
+		draw.DrawEllipse(DeflateRect(felt, max(6, felt.GetHeight() / 10)), Null, 1, inner_line);
 		return;
 	}
 

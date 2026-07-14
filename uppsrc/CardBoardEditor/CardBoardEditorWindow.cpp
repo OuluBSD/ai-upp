@@ -4,6 +4,19 @@ NAMESPACE_UPP
 
 static bool SaveRenderedPng(String& out, const CardBoardDocument& document, Size size, const String& path);
 
+static bool MakeCardBoardSample(CardBoardDocument& document, const String& sample)
+{
+	if(sample.IsEmpty() || sample == "original" || sample == "pokerok" || sample == "original6p") {
+		document.MakePokerSample();
+		return true;
+	}
+	if(sample == "pokergg8p" || sample == "pokergg_8p") {
+		document.MakePokerGg8pSample();
+		return true;
+	}
+	return false;
+}
+
 CardBoardEditorWindow::CardBoardEditorWindow()
 {
 	Title("CardBoardEditor").Sizeable().Zoomable();
@@ -53,6 +66,13 @@ void CardBoardEditorWindow::MenuFile(Bar& bar)
 		RefreshPanels();
 		canvas_.Refresh();
 	});
+	bar.Add("New PokerGG 8p sample", [=] {
+		canvas_.GetDocument().MakePokerGg8pSample();
+		selected_path_.Clear();
+		current_file_.Clear();
+		RefreshPanels();
+		canvas_.Refresh();
+	});
 	bar.Separator();
 	bar.Add("Open JSON...", THISBACK(OpenJsonFile));
 	bar.Add("Save JSON", THISBACK(SaveJsonFile));
@@ -84,6 +104,13 @@ void CardBoardEditorWindow::ToolBar(Bar& bar)
 {
 	bar.Add("Sample", [=] {
 		canvas_.GetDocument().MakePokerSample();
+		selected_path_.Clear();
+		current_file_.Clear();
+		RefreshPanels();
+		canvas_.Refresh();
+	});
+	bar.Add("PokerGG 8p", [=] {
+		canvas_.GetDocument().MakePokerGg8pSample();
 		selected_path_.Clear();
 		current_file_.Clear();
 		RefreshPanels();
@@ -446,6 +473,7 @@ int RunCardBoardEditorCli(const Vector<String>& args)
 	bool render_report = false;
 	bool roundtrip_json = false;
 	bool render_smoke = false;
+	String sample = "original";
 	String save_sample_json;
 	String load_json;
 	String render_png;
@@ -470,6 +498,9 @@ int RunCardBoardEditorCli(const Vector<String>& args)
 		else
 		if(arg == "--render-smoke")
 			render_smoke = true;
+		else
+		if(arg.StartsWith("--sample="))
+			sample = arg.Mid(9);
 		else
 		if(arg.StartsWith("--save-sample-json="))
 			save_sample_json = arg.Mid(19);
@@ -515,6 +546,7 @@ int RunCardBoardEditorCli(const Vector<String>& args)
 			       << "  --render-report\n"
 			       << "  --roundtrip-json\n"
 			       << "  --render-smoke\n"
+			       << "  --sample=original|pokergg8p\n"
 			       << "  --save-sample-json=PATH\n"
 			       << "  --load-json=PATH\n"
 			       << "  --set-element=PATH.FIELD=VALUE\n"
@@ -533,7 +565,10 @@ int RunCardBoardEditorCli(const Vector<String>& args)
 		return -1;
 
 	CardBoardDocument document;
-	document.MakePokerSample();
+	if(!MakeCardBoardSample(document, sample)) {
+		Cout() << "unknown --sample: " << sample << "\n";
+		return 2;
+	}
 	if(!load_json.IsEmpty()) {
 		String json = LoadFile(load_json);
 		if(json.IsVoid()) {

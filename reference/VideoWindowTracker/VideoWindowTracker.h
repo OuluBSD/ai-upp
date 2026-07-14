@@ -37,6 +37,16 @@ struct TrackerChange : Moveable<TrackerChange> {
 	int  changed_pixels = 0;
 };
 
+struct SemanticEvent : Moveable<SemanticEvent> {
+	int    frame_index = 0;
+	int    table_id = 0;
+	String type;
+	String reason;
+	String semantic;
+	int    change_blocks = 0;
+	double confidence = 0;
+};
+
 END_UPP_NAMESPACE
 
 #endif

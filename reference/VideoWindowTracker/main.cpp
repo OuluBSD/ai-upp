@@ -364,6 +364,108 @@ static String FormatSemanticChangesLine(const Vector<SemanticChange>& changes)
 	return out;
 }
 
+static int SemanticBlocks(const Vector<SemanticChange>& changes, const char *name)
+{
+	for(const SemanticChange& change : changes)
+		if(change.name == name)
+			return change.change_blocks;
+	return 0;
+}
+
+static void AddEvent(Vector<SemanticEvent>& events, int frame_index, int table_id,
+                     const String& type, const String& reason, const String& semantic,
+                     int change_blocks, double confidence)
+{
+	SemanticEvent& event = events.Add();
+	event.frame_index = frame_index;
+	event.table_id = table_id;
+	event.type = type;
+	event.reason = reason;
+	event.semantic = semantic;
+	event.change_blocks = change_blocks;
+	event.confidence = confidence;
+}
+
+static Vector<SemanticEvent> DetectSemanticEvents(int frame_index, int table_id,
+                                                  const Vector<SemanticChange>& changes)
+{
+	Vector<SemanticEvent> events;
+	int board = SemanticBlocks(changes, "board_cards");
+	int pot = SemanticBlocks(changes, "pot_label");
+	int center = SemanticBlocks(changes, "center_chips");
+	int left = SemanticBlocks(changes, "left_seats");
+	int right = SemanticBlocks(changes, "right_seats");
+	int top = SemanticBlocks(changes, "top_seat");
+	int bottom = SemanticBlocks(changes, "bottom_seat");
+	int buttons = SemanticBlocks(changes, "bottom_button");
+	int seat = left + right + top + bottom;
+
+	if(board >= 12 || (board >= 2 && (center >= 1 || pot >= 1)))
+		AddEvent(events, frame_index, table_id, "board_changed",
+		         Format("board_cards=%d center_chips=%d pot_label=%d", board, center, pot),
+		         "board_cards", board, board >= 12 ? 0.75 : 0.55);
+	if(pot >= 2)
+		AddEvent(events, frame_index, table_id, "pot_changed",
+		         Format("pot_label=%d center_chips=%d", pot, center),
+		         "pot_label", pot, 0.55);
+	if(center >= 2)
+		AddEvent(events, frame_index, table_id, "chips_changed",
+		         Format("center_chips=%d pot_label=%d", center, pot),
+		         "center_chips", center, 0.55);
+	if(seat >= 6)
+		AddEvent(events, frame_index, table_id, "seat_activity",
+		         Format("left=%d right=%d top=%d bottom=%d", left, right, top, bottom),
+		         "seat_regions", seat, 0.35);
+	if(buttons >= 2)
+		AddEvent(events, frame_index, table_id, "button_changed",
+		         Format("bottom_button=%d bottom_seat=%d", buttons, bottom),
+		         "bottom_button", buttons, 0.45);
+	return events;
+}
+
+static Vector<SemanticEvent> DebounceEvents(const Vector<SemanticEvent>& events,
+                                            VectorMap<String, int>& last_event_frame)
+{
+	Vector<SemanticEvent> out;
+	for(const SemanticEvent& event : events) {
+		String key = AsString(event.table_id) + ":" + event.type;
+		int ix = last_event_frame.Find(key);
+		if(ix >= 0 && event.frame_index - last_event_frame[ix] <= 3)
+			continue;
+		last_event_frame.GetAdd(key) = event.frame_index;
+		out.Add(event);
+	}
+	return out;
+}
+
+static String FormatEventsLine(const Vector<SemanticEvent>& events)
+{
+	String out;
+	for(const SemanticEvent& event : events) {
+		if(!out.IsEmpty())
+			out << " ";
+		out << event.type;
+	}
+	return out;
+}
+
+static void AppendEvents(String& out, const Vector<SemanticEvent>& events)
+{
+	out << "[";
+	for(int i = 0; i < events.GetCount(); i++) {
+		if(i)
+			out << ", ";
+		out << "{\"frame_index\": " << events[i].frame_index
+		    << ", \"table_id\": " << events[i].table_id
+		    << ", \"type\": \"" << JsonString(events[i].type)
+		    << "\", \"reason\": \"" << JsonString(events[i].reason)
+		    << "\", \"confidence\": " << Format("%.2f", events[i].confidence)
+		    << ", \"evidence\": {\"semantic\": \"" << JsonString(events[i].semantic)
+		    << "\", \"change_blocks\": " << events[i].change_blocks << "}}";
+	}
+	out << "]";
+}
+
 static Rect GetChangeUnion(const Vector<TrackerChange>& changes)
 {
 	Rect out(0, 0, 0, 0);
@@ -425,6 +527,8 @@ CONSOLE_APP_MAIN
 	summary << "  \"frame_count\": " << frames.GetCount() << ",\n";
 	summary << "  \"frames\": [\n";
 
+	Vector<SemanticEvent> all_events;
+	VectorMap<String, int> last_event_frame;
 	for(int fi = 0; fi < frames.GetCount(); fi++) {
 		Image frame = StreamRaster::LoadFileAny(frames[fi]);
 		if(frame.IsEmpty()) {
@@ -466,7 +570,12 @@ CONSOLE_APP_MAIN
 				JPGEncoder().Quality(95).SaveFile(change_overlay, MakeChangeOverlay(crop, changes));
 			}
 			Vector<SemanticChange> semantic_changes = SummarizeSemanticChanges(semantic_crops, changes);
+			Vector<SemanticEvent> events = DebounceEvents(DetectSemanticEvents(fi, w.id, semantic_changes),
+			                                              last_event_frame);
+			for(const SemanticEvent& event : events)
+				all_events.Add(event);
 			String semantic_change_line = FormatSemanticChangesLine(semantic_changes);
+			String event_line = FormatEventsLine(events);
 			Cout() << "  table=" << w.id
 			       << " rect=" << w.rect.left << "," << w.rect.top
 			       << " " << w.rect.Width() << "x" << w.rect.Height()
@@ -475,6 +584,8 @@ CONSOLE_APP_MAIN
 			       << " crop=" << w.crop_path;
 			if(!semantic_change_line.IsEmpty())
 				Cout() << " semantic_changes=" << semantic_change_line;
+			if(!event_line.IsEmpty())
+				Cout() << " events=" << event_line;
 			Cout() << "\n";
 
 			if(wi)
@@ -509,6 +620,8 @@ CONSOLE_APP_MAIN
 			AppendRect(summary, GetChangeUnion(changes));
 			summary << ", \"semantic_changes\": ";
 			AppendSemanticChanges(summary, semantic_changes);
+			summary << ", \"events\": ";
+			AppendEvents(summary, events);
 			summary << ", \"change_overlay\": \"" << JsonString(change_overlay) << "\"}";
 		}
 		json << "]}";
@@ -525,10 +638,21 @@ CONSOLE_APP_MAIN
 	json << "}\n";
 	summary << "  ]\n";
 	summary << "}\n";
+	String events_json;
+	events_json << "{\n";
+	events_json << "  \"input_dir\": \"" << JsonString(opt.input_dir) << "\",\n";
+	events_json << "  \"frame_count\": " << frames.GetCount() << ",\n";
+	events_json << "  \"event_count\": " << all_events.GetCount() << ",\n";
+	events_json << "  \"events\": ";
+	AppendEvents(events_json, all_events);
+	events_json << "\n}\n";
 	String json_path = AppendFileName(opt.out_dir, "tracking.json");
 	String summary_path = AppendFileName(opt.out_dir, "tracking_summary.json");
+	String events_path = AppendFileName(opt.out_dir, "events.json");
 	SaveFile(json_path, json);
 	SaveFile(summary_path, summary);
+	SaveFile(events_path, events_json);
 	Cout() << "tracking_json=" << json_path << "\n";
 	Cout() << "tracking_summary_json=" << summary_path << "\n";
+	Cout() << "events_json=" << events_path << "\n";
 }

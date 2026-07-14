@@ -1,0 +1,15 @@
+description "VideoServer frame recorder reference tool";
+
+uses
+	Core,
+	Draw,
+	plugin/jpg;
+
+file
+	AGENTS.md,
+	VideoServerFrameRecorder.h,
+	main.cpp;
+
+mainconfig
+	"" = "";
+

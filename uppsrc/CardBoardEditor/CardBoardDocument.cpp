@@ -555,18 +555,42 @@ void CardBoardDocument::MakePokerGg8pSample()
 	toolbar.style.font_height = 28;
 
 	CardBoardElement& hud = window.Add(CARD_BOARD_TOP_TOOLBAR, "pgg.tournament.hud",
-	                                   "Level 17        07:23    Places Paid        216\nAvg Stack      39.2 BB   My Rank           145 / 399",
-	                                   Rel(0.005, 0.068, 0.36, 0.065));
+	                                   "", Rel(0.005, 0.068, 0.36, 0.065));
 	StylePanel(hud, Color(10, 34, 70), Color(25, 65, 120), Color(220, 235, 255));
 	hud.style.font_height = 16;
 	hud.z = 40;
+	const char *hud_text[] = {
+		"Level 17     07:23",
+		"Places Paid     216",
+		"Avg Stack     39.2 BB",
+		"My Rank     145 / 399"
+	};
+	for(int i = 0; i < 4; i++) {
+		CardBoardElement& cell = hud.Add(CARD_BOARD_TEXT, Format("pgg.hud.cell%d", i + 1), hud_text[i],
+		                                 Rel((i % 2) * 0.50, (i / 2) * 0.50, 0.50, 0.50));
+		StylePanel(cell, Color(10, 34, 70), Color(25, 65, 120), Color(220, 235, 255));
+		cell.style.font_height = 15;
+		cell.z = 5;
+	}
 
 	CardBoardElement& room = window.Add(CARD_BOARD_TEXT, "pgg.room.backdrop", "",
 	                                    Rel(0, 0.066, 1, 0.934));
 	StylePanel(room, Color(63, 35, 16), Null);
 	room.z = 0;
+	CardBoardElement& back_wall = window.Add(CARD_BOARD_TEXT, "pgg.room.backwall", "",
+	                                         Rel(0, 0.066, 1, 0.22));
+	StylePanel(back_wall, Color(78, 45, 22), Null);
+	back_wall.z = 1;
+	CardBoardElement& left_shadow = window.Add(CARD_BOARD_TEXT, "pgg.room.leftshadow", "",
+	                                           Rel(0, 0.066, 0.16, 0.934));
+	StylePanel(left_shadow, Color(35, 20, 12), Null);
+	left_shadow.z = 2;
+	CardBoardElement& right_shadow = window.Add(CARD_BOARD_TEXT, "pgg.room.rightshadow", "",
+	                                            Rel(0.84, 0.066, 0.16, 0.934));
+	StylePanel(right_shadow, Color(35, 20, 12), Null);
+	right_shadow.z = 2;
 
-	CardBoardElement& board = window.Add(CARD_BOARD_BOARD, "pgg.table", "", Rel(0.10, 0.27, 0.80, 0.53));
+	CardBoardElement& board = window.Add(CARD_BOARD_BOARD, "pgg.table", "", Rel(0.09, 0.24, 0.82, 0.56));
 	StylePanel(board, Color(118, 74, 35), Color(55, 32, 18));
 	board.style.pen = 5;
 	board.z = 5;

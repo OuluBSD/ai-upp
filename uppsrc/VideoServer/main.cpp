@@ -48,6 +48,8 @@ struct LocalCommandLineArguments {
 	bool show_help = false;
 	bool self_test = false;
 	bool test_capture = false;
+	bool capture_after = false;
+	int capture_after_seconds = 0;
 	bool red_test = false;
 	bool no_touch = false;
 	bool stats = false;
@@ -65,6 +67,7 @@ struct LocalCommandLineArguments {
 			else if(args[i] == "-l") list_devices = true;
 			else if(args[i] == "--self-test") self_test = true;
 			else if(args[i] == "--test-capture") test_capture = true;
+			else if(args[i] == "--capture-after" && i + 1 < args.GetCount()) { capture_after = true; capture_after_seconds = max(0, StrInt(args[i+1])); i++; }
 			else if(args[i] == "--red-test") { red_test = true; source = "red"; }
 			else if(args[i] == "--no-touch") no_touch = true;
 			else if(args[i] == "--stats") stats = true;
@@ -92,6 +95,8 @@ struct LocalCommandLineArguments {
 		       << "  --fps <fps>      Set the target FPS (default: 10)\n"
 		       << "  --self-test      Capture one frame from selected source and exit\n"
 		       << "  --test-capture   Capture one frame, save to bin/test_capture.jpg, and exit\n"
+		       << "  --capture-after <seconds>\n"
+		       << "                   Wait, capture one camera frame, save to bin/delayed_capture.jpg, and exit\n"
 		       << "  --red-test       Alias for --source red\n"
 		       << "  --wire-format <mjpeg|yuv>  Payload format for streaming (default: mjpeg)\n"
 		       << "  --no-touch       Skip rescale/extra transforms when possible\n"
@@ -1048,6 +1053,39 @@ CONSOLE_APP_MAIN {
 		}
 		#else
 		Cout() << "Test capture not implemented for this platform.\n";
+		#endif
+		return;
+	}
+
+	if (cla.capture_after) {
+		#ifdef _WIN32
+		if(cla.source != "camera") {
+			Cerr() << "--capture-after currently supports --source camera on Windows\n";
+			Exit(1);
+		}
+		WinMFCapture win_cap;
+		if(!win_cap.Open(cla.device_idx)) {
+			Cerr() << "Failed to open device.\n";
+			Exit(1);
+		}
+		Cout() << "Waiting " << cla.capture_after_seconds << " seconds before capture...\n";
+		Sleep(cla.capture_after_seconds * 1000);
+		Image img = win_cap.GrabFrame();
+		win_cap.Close();
+		if(img.IsEmpty()) {
+			Cerr() << "Failed to grab delayed frame.\n";
+			Exit(1);
+		}
+		String path = AppendFileName(GetFileDirectory(GetExeFilePath()), "delayed_capture.jpg");
+		if(!JPGEncoder().Quality(100).SaveFile(path, img)) {
+			Cerr() << "Failed to save JPEG to " << path << "\n";
+			Exit(1);
+		}
+		Cout() << "Delayed frame captured after " << cla.capture_after_seconds
+		       << " seconds size=" << img.GetWidth() << "x" << img.GetHeight()
+		       << " saved=" << path << "\n";
+		#else
+		Cout() << "Delayed capture not implemented for this platform.\n";
 		#endif
 		return;
 	}

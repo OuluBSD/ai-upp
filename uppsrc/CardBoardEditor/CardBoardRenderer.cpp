@@ -35,12 +35,29 @@ static Font ElementFont(const CardBoardElement& element, int fallback)
 	return font;
 }
 
+static void DrawAlignedText(Draw& draw, const Rect& rect, const String& text, Font font, Color ink, const String& align = "center")
+{
+	Vector<String> lines = Split(text, '\n');
+	int line_height = font.GetHeight();
+	int total_height = line_height * lines.GetCount();
+	int y = rect.top + (rect.GetHeight() - total_height) / 2;
+	int margin = max(2, min(rect.GetWidth(), rect.GetHeight()) / 12);
+	for(const String& line : lines) {
+		Size text_size = GetTextSize(line, font);
+		int x = rect.left + (rect.GetWidth() - text_size.cx) / 2;
+		if(align == "left")
+			x = rect.left + margin;
+		else
+		if(align == "right")
+			x = rect.right - margin - text_size.cx;
+		draw.DrawText(x, y, line, font, ink);
+		y += line_height;
+	}
+}
+
 static void DrawCenteredText(Draw& draw, const Rect& rect, const String& text, Font font, Color ink)
 {
-	Size text_size = GetTextSize(text, font);
-	draw.DrawText(rect.left + (rect.GetWidth() - text_size.cx) / 2,
-	              rect.top + (rect.GetHeight() - text_size.cy) / 2,
-	              text, font, ink);
+	DrawAlignedText(draw, rect, text, font, ink);
 }
 
 static void DrawRectBorder(Draw& draw, const Rect& rect, int pen, Color border)
@@ -213,7 +230,7 @@ void CardBoardRenderer::RenderPrimitive(Draw& draw, const Rect& rect,
 		if(!IsNull(element.style.border))
 			DrawRectBorder(draw, rect, max(1, element.style.pen), element.style.border);
 		if(!label.IsEmpty())
-			DrawCenteredText(draw, rect, label, ElementFont(element, 12), element.style.text);
+			DrawAlignedText(draw, rect, label, ElementFont(element, 12), element.style.text, element.style.align);
 		return;
 	}
 
@@ -253,7 +270,7 @@ void CardBoardRenderer::RenderPrimitive(Draw& draw, const Rect& rect,
 			DrawRectBorder(draw, rect, max(1, element.style.pen), border);
 	}
 	if(!label.IsEmpty())
-		DrawCenteredText(draw, rect, label, ElementFont(element, 12), element.style.text);
+		DrawAlignedText(draw, rect, label, ElementFont(element, 12), element.style.text, element.style.align);
 }
 
 void CardBoardRenderer::DumpRects(String& out, const Rect& area, const CardBoardDocument& document) const

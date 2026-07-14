@@ -495,26 +495,25 @@ static void AddPokerGgSeat(CardBoardElement& window, int seat, const String& nam
 	}
 
 	CardBoardElement& panel = s.Add(CARD_BOARD_PLAYER_PANEL, Format("pgg.seat%d.panel", seat), "",
-	                                Rel(0.12, 0.47, 0.76, 0.43));
+	                                Rel(0.10, 0.48, 0.80, 0.42));
 	StylePanel(panel, Color(24, 28, 32), border);
 	panel.style.pen = hero ? 4 : 3;
 	panel.z = 10;
 
 	CardBoardElement& number = s.Add(CARD_BOARD_PLAYER_NUMBER, Format("pgg.seat%d.number", seat),
-	                                 AsString(20 + seat), Rel(0.07, 0.50, 0.17, 0.16));
+	                                 AsString(20 + seat), Rel(0.05, 0.51, 0.16, 0.15));
 	StylePanel(number, Color(78, 32, 34), Color(200, 185, 160), White());
 	number.style.font_height = 10;
 	number.z = 20;
 
 	CardBoardElement& flag_el = s.Add(CARD_BOARD_FLAG, Format("pgg.seat%d.flag", seat), flag,
-	                                  Rel(0.72, 0.50, 0.22, 0.14));
+	                                  Rel(0.73, 0.51, 0.21, 0.13));
 	StylePanel(flag_el, Color(235, 235, 240), Color(20, 40, 140), Blue());
 	flag_el.style.font_height = 8;
 	flag_el.z = 20;
 
 	CardBoardElement& name_el = s.Add(CARD_BOARD_NAMEPLATE, Format("pgg.seat%d.name", seat),
-	                                  sitting_out ? "Sitting Out\n" + name : name,
-	                                  Rel(0.18, 0.55, 0.64, 0.16));
+	                                  name, Rel(0.18, 0.55, 0.64, 0.16));
 	name_el.style.text = sitting_out ? Color(205, 205, 205) : White();
 	name_el.style.font_height = hero ? 13 : 10;
 	name_el.z = 20;
@@ -672,12 +671,12 @@ void CardBoardDocument::MakePokerGg8pSample()
 
 	CardBoardElement& actions = window.Add(CARD_BOARD_ACTION_BUTTONS, "pgg.bottom.actions", "",
 	                                       Rel(0.61, 0.88, 0.38, 0.11));
-	const char *labels[] = { "Fold", "Call 4.9 BB", "Raise to 12.4 BB" };
+	const char *labels[] = { "Fold", "Call\n4.9 BB", "Raise to\n12.4 BB" };
 	for(int i = 0; i < 3; i++) {
 		CardBoardElement& action = actions.Add(CARD_BOARD_BUTTON, Format("pgg.action%d", i + 1),
 		                                       labels[i], Rel(i * 0.335, 0, 0.31, 0.95));
 		StylePanel(action, Color(185, 54, 58), Color(120, 35, 38), White());
-		action.style.font_height = 24;
+		action.style.font_height = 21;
 		action.style.rounded = true;
 	}
 }

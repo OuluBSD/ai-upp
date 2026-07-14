@@ -344,6 +344,72 @@ static bool SaveRenderedPng(String& out, const CardBoardDocument& document, Size
 	return true;
 }
 
+struct CardBoardImageCompareResult {
+	bool size_match = false;
+	Size rendered_size;
+	Size reference_size;
+	int pixels = 0;
+	int differing_pixels = 0;
+	int max_channel_diff = 0;
+	double mean_abs_rgb = 0.0;
+};
+
+static CardBoardImageCompareResult CompareImages(const Image& rendered, const Image& reference)
+{
+	CardBoardImageCompareResult result;
+	result.rendered_size = rendered.GetSize();
+	result.reference_size = reference.GetSize();
+	if(rendered.IsEmpty() || reference.IsEmpty() || rendered.GetSize() != reference.GetSize())
+		return result;
+
+	result.size_match = true;
+	result.pixels = (int)rendered.GetLength();
+	int64 total = 0;
+	for(int y = 0; y < rendered.GetHeight(); y++) {
+		const RGBA *a = rendered[y];
+		const RGBA *b = reference[y];
+		for(int x = 0; x < rendered.GetWidth(); x++) {
+			int dr = abs((int)a[x].r - (int)b[x].r);
+			int dg = abs((int)a[x].g - (int)b[x].g);
+			int db = abs((int)a[x].b - (int)b[x].b);
+			int max_diff = max(dr, max(dg, db));
+			total += dr + dg + db;
+			if(max_diff > 0)
+				result.differing_pixels++;
+			result.max_channel_diff = max(result.max_channel_diff, max_diff);
+		}
+	}
+	result.mean_abs_rgb = result.pixels > 0 ? (double)total / (double)(result.pixels * 3) : 0.0;
+	return result;
+}
+
+static bool CompareRenderedReference(String& out, const CardBoardDocument& document, Size size,
+                                     const String& reference_path, double threshold)
+{
+	Image reference = StreamRaster::LoadFileAny(reference_path);
+	if(reference.IsEmpty()) {
+		out.Cat("compare-reference failed: cannot load reference " + reference_path + "\n");
+		return false;
+	}
+
+	CardBoardRenderDiagnostics diagnostics;
+	Image rendered = RenderCardBoardImage(document, size, diagnostics);
+	CardBoardImageCompareResult result = CompareImages(rendered, reference);
+	out.Cat(Format("compare-reference path=%s rendered=%d`x%d reference=%d`x%d threshold=%.6f assets_used=%d assets_missing=%d\n",
+	               reference_path, result.rendered_size.cx, result.rendered_size.cy,
+	               result.reference_size.cx, result.reference_size.cy, threshold,
+	               diagnostics.used_assets.GetCount(), diagnostics.missing_assets.GetCount()));
+	if(!result.size_match) {
+		out.Cat("compare-reference verdict=fail reason=size-mismatch\n");
+		return false;
+	}
+	out.Cat(Format("compare-reference pixels=%d differing_pixels=%d max_channel_diff=%d mean_abs_rgb=%.6f\n",
+	               result.pixels, result.differing_pixels, result.max_channel_diff, result.mean_abs_rgb));
+	bool pass = result.mean_abs_rgb <= threshold;
+	out.Cat(String("compare-reference verdict=") + (pass ? "pass" : "fail") + "\n");
+	return pass;
+}
+
 static void RenderSmokeReport(String& out, const CardBoardDocument& document, Size size)
 {
 	CardBoardRenderDiagnostics diagnostics;
@@ -383,6 +449,8 @@ int RunCardBoardEditorCli(const Vector<String>& args)
 	String save_sample_json;
 	String load_json;
 	String render_png;
+	String compare_reference;
+	double compare_threshold = 0.0;
 	Vector<String> set_elements;
 	Size size(610, 438);
 
@@ -415,6 +483,17 @@ int RunCardBoardEditorCli(const Vector<String>& args)
 		if(arg.StartsWith("--render-png="))
 			render_png = arg.Mid(13);
 		else
+		if(arg.StartsWith("--compare-reference="))
+			compare_reference = arg.Mid(20);
+		else
+		if(arg.StartsWith("--compare-threshold=")) {
+			compare_threshold = ScanDouble(arg.Mid(20));
+			if(IsNull(compare_threshold) || compare_threshold < 0) {
+				Cout() << "invalid --compare-threshold, expected non-negative number\n";
+				return 2;
+			}
+		}
+		else
 		if(arg.StartsWith("--size=")) {
 			Vector<String> parts = Split(arg.Mid(7), 'x');
 			if(parts.GetCount() != 2) {
@@ -440,6 +519,8 @@ int RunCardBoardEditorCli(const Vector<String>& args)
 			       << "  --load-json=PATH\n"
 			       << "  --set-element=PATH.FIELD=VALUE\n"
 			       << "  --render-png=PATH\n"
+			       << "  --compare-reference=PATH\n"
+			       << "  --compare-threshold=MEAN_ABS_RGB\n"
 			       << "  --size=WIDTHxHEIGHT\n";
 			return 0;
 		}
@@ -447,7 +528,8 @@ int RunCardBoardEditorCli(const Vector<String>& args)
 
 	if(!dump_tree && !dump_rects && !render_report && !roundtrip_json && !render_smoke &&
 	   set_elements.IsEmpty() &&
-	   save_sample_json.IsEmpty() && load_json.IsEmpty() && render_png.IsEmpty())
+	   save_sample_json.IsEmpty() && load_json.IsEmpty() && render_png.IsEmpty() &&
+	   compare_reference.IsEmpty())
 		return -1;
 
 	CardBoardDocument document;
@@ -513,6 +595,11 @@ int RunCardBoardEditorCli(const Vector<String>& args)
 	if(!render_png.IsEmpty() && !SaveRenderedPng(out, document, size, render_png)) {
 		Cout() << out;
 		return 1;
+	}
+	if(!compare_reference.IsEmpty()) {
+		bool pass = CompareRenderedReference(out, document, size, compare_reference, compare_threshold);
+		Cout() << out;
+		return pass ? 0 : 1;
 	}
 	Cout() << out;
 	return 0;

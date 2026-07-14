@@ -2,6 +2,8 @@
 
 NAMESPACE_UPP
 
+static bool SaveRenderedPng(String& out, const CardBoardDocument& document, Size size, const String& path);
+
 CardBoardEditorWindow::CardBoardEditorWindow()
 {
 	Title("CardBoardEditor").Sizeable().Zoomable();
@@ -55,6 +57,7 @@ void CardBoardEditorWindow::MenuFile(Bar& bar)
 	bar.Add("Open JSON...", THISBACK(OpenJsonFile));
 	bar.Add("Save JSON", THISBACK(SaveJsonFile));
 	bar.Add("Save JSON As...", THISBACK(SaveJsonFileAs));
+	bar.Add("Export PNG...", THISBACK(ExportPngFile));
 	bar.Separator();
 	bar.Add("Exit", [=] { Close(); });
 }
@@ -191,6 +194,20 @@ void CardBoardEditorWindow::LoadJsonFileFrom(const String& path)
 	LOG("Loaded CardBoard JSON: " << path);
 }
 
+void CardBoardEditorWindow::ExportPngFile()
+{
+	FileSel fs;
+	fs.Type("PNG image", "*.png");
+	fs.DefaultExt(".png");
+	fs.AllFilesType();
+	if(fs.ExecuteSaveAs("Export CardBoard PNG")) {
+		String out;
+		if(!SaveRenderedPng(out, canvas_.GetDocument(), canvas_.GetSize(), ~fs))
+			Exclamation(out);
+		LOG(out);
+	}
+}
+
 void CardBoardEditorWindow::CacheDefaultLayout()
 {
 	StringStream out;
@@ -299,17 +316,41 @@ static bool ApplyElementProperty(CardBoardDocument& document, const String& spec
 	return true;
 }
 
-static void RenderSmokeReport(String& out, const CardBoardDocument& document, Size size)
+static Image RenderCardBoardImage(const CardBoardDocument& document, Size size,
+                                  CardBoardRenderDiagnostics& diagnostics)
 {
 	CardBoardState state = document.MakePokerSampleState();
 	CardBoardRenderer renderer;
-	CardBoardRenderDiagnostics diagnostics;
 	SImageDraw surface(size);
 	renderer.Render(surface, RectC(0, 0, size.cx, size.cy), document, state, diagnostics);
-	Image image = surface;
+	return surface;
+}
+
+static bool SaveRenderedPng(String& out, const CardBoardDocument& document, Size size, const String& path)
+{
+	CardBoardRenderDiagnostics diagnostics;
+	Image image = RenderCardBoardImage(document, size, diagnostics);
+	if(image.IsEmpty()) {
+		out.Cat("render-png failed: empty rendered image\n");
+		return false;
+	}
+	if(!PNGEncoder().SaveFile(path, image)) {
+		out.Cat("render-png failed: " + path + "\n");
+		return false;
+	}
+	out.Cat(Format("render-png saved=%s size=%d`x%d pixels=%d assets_used=%d assets_missing=%d\n",
+	               path, image.GetWidth(), image.GetHeight(), (int)image.GetLength(),
+	               diagnostics.used_assets.GetCount(), diagnostics.missing_assets.GetCount()));
+	return true;
+}
+
+static void RenderSmokeReport(String& out, const CardBoardDocument& document, Size size)
+{
+	CardBoardRenderDiagnostics diagnostics;
+	Image image = RenderCardBoardImage(document, size, diagnostics);
 
 	String report;
-	document.RenderReport(report, size, state);
+	document.RenderReport(report, size, document.MakePokerSampleState());
 	hash_t image_hash = image.GetHashValue();
 	hash_t raw_hash = memhash(image.Begin(), image.GetLength() * sizeof(RGBA));
 
@@ -341,6 +382,7 @@ int RunCardBoardEditorCli(const Vector<String>& args)
 	bool render_smoke = false;
 	String save_sample_json;
 	String load_json;
+	String render_png;
 	Vector<String> set_elements;
 	Size size(610, 438);
 
@@ -370,6 +412,9 @@ int RunCardBoardEditorCli(const Vector<String>& args)
 		if(arg.StartsWith("--set-element="))
 			set_elements.Add(arg.Mid(14));
 		else
+		if(arg.StartsWith("--render-png="))
+			render_png = arg.Mid(13);
+		else
 		if(arg.StartsWith("--size=")) {
 			Vector<String> parts = Split(arg.Mid(7), 'x');
 			if(parts.GetCount() != 2) {
@@ -394,6 +439,7 @@ int RunCardBoardEditorCli(const Vector<String>& args)
 			       << "  --save-sample-json=PATH\n"
 			       << "  --load-json=PATH\n"
 			       << "  --set-element=PATH.FIELD=VALUE\n"
+			       << "  --render-png=PATH\n"
 			       << "  --size=WIDTHxHEIGHT\n";
 			return 0;
 		}
@@ -401,7 +447,7 @@ int RunCardBoardEditorCli(const Vector<String>& args)
 
 	if(!dump_tree && !dump_rects && !render_report && !roundtrip_json && !render_smoke &&
 	   set_elements.IsEmpty() &&
-	   save_sample_json.IsEmpty() && load_json.IsEmpty())
+	   save_sample_json.IsEmpty() && load_json.IsEmpty() && render_png.IsEmpty())
 		return -1;
 
 	CardBoardDocument document;
@@ -464,6 +510,10 @@ int RunCardBoardEditorCli(const Vector<String>& args)
 	}
 	if(render_smoke)
 		RenderSmokeReport(out, document, size);
+	if(!render_png.IsEmpty() && !SaveRenderedPng(out, document, size, render_png)) {
+		Cout() << out;
+		return 1;
+	}
 	Cout() << out;
 	return 0;
 }

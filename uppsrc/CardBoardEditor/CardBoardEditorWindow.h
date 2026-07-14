@@ -35,6 +35,7 @@ private:
 	void SaveJsonFileAs();
 	bool SaveJsonFileTo(const String& path);
 	void LoadJsonFileFrom(const String& path);
+	void ExportPngFile();
 	void CacheDefaultLayout();
 	void PrintDiagnosticsToStdout();
 };

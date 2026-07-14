@@ -1,0 +1,15 @@
+description "Video frame window detector reference tool";
+
+uses
+	Core,
+	Draw,
+	plugin/jpg;
+
+file
+	AGENTS.md,
+	VideoFrameWindowDetector.h,
+	main.cpp;
+
+mainconfig
+	"" = "";
+

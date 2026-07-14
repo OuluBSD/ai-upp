@@ -3,7 +3,9 @@ description "Card game board editor and structural renderer";
 uses
 	Core,
 	CtrlLib,
-	Docking;
+	Docking,
+	plugin/png,
+	plugin/jpg;
 
 file
 	AGENTS.md,

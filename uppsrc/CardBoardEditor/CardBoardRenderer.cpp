@@ -2,6 +2,19 @@
 
 NAMESPACE_UPP
 
+struct CardBoardRenderer::RenderContext {
+	const CardBoardDocument& document;
+	const CardBoardState& state;
+	CardBoardRenderDiagnostics *diagnostics = nullptr;
+	VectorMap<String, Image> assets;
+};
+
+void CardBoardRenderDiagnostics::Clear()
+{
+	used_assets.Clear();
+	missing_assets.Clear();
+}
+
 static Color EffectiveFill(const CardBoardElement& element)
 {
 	if(!IsNull(element.style.fill))
@@ -88,34 +101,75 @@ static void DrawFlagPlaceholder(Draw& draw, const Rect& rect, const String& labe
 		DrawCenteredText(draw, rect, label, StdFont(max(6, rect.GetHeight() / 2)), Color(20, 20, 80));
 }
 
+static bool AddUnique(Vector<String>& values, const String& value)
+{
+	for(const String& existing : values)
+		if(existing == value)
+			return false;
+	values.Add(value);
+	return true;
+}
+
 void CardBoardRenderer::Render(Draw& draw, const Rect& area, const CardBoardDocument& document,
                                const CardBoardState& state) const
 {
+	CardBoardRenderDiagnostics diagnostics;
+	Render(draw, area, document, state, diagnostics);
+}
+
+void CardBoardRenderer::Render(Draw& draw, const Rect& area, const CardBoardDocument& document,
+                               const CardBoardState& state, CardBoardRenderDiagnostics& diagnostics) const
+{
+	diagnostics.Clear();
+	RenderContext context { document, state, &diagnostics };
 	draw.DrawRect(area, SColorPaper());
 	for(const CardBoardElement& element : document.elements)
-		RenderElement(draw, area, element, state, 0);
+		RenderElement(draw, area, element, context, 0);
 }
 
 void CardBoardRenderer::RenderElement(Draw& draw, const Rect& parent,
                                       const CardBoardElement& element,
-                                      const CardBoardState& state, int depth) const
+                                      RenderContext& context, int depth) const
 {
 	if(!element.visible)
 		return;
 
 	Rect rect = element.rect.Realize(parent);
-	String label = ResolveLabel(element, state);
-	RenderPrimitive(draw, rect, element, label);
+	String label = ResolveLabel(element, context.state);
+	RenderPrimitive(draw, rect, element, label, context);
 
 	ForEachChildByZ(element.children, [&](const CardBoardElement& child) {
-		RenderElement(draw, rect, child, state, depth + 1);
+		RenderElement(draw, rect, child, context, depth + 1);
 	});
 }
 
 void CardBoardRenderer::RenderPrimitive(Draw& draw, const Rect& rect,
                                         const CardBoardElement& element,
-                                        const String& label) const
+                                        const String& label, RenderContext& context) const
 {
+	String asset_path = ResolveAssetPath(context.document, element);
+	if(!asset_path.IsEmpty()) {
+		Image image;
+		int cached = context.assets.Find(asset_path);
+		if(cached >= 0)
+			image = context.assets[cached];
+		else
+		if(FileExists(asset_path)) {
+			image = StreamRaster::LoadFileAny(asset_path);
+			if(!image.IsEmpty())
+				context.assets.Add(asset_path, image);
+		}
+
+		if(!image.IsEmpty()) {
+			draw.DrawImage(rect.left, rect.top, rect.GetWidth(), rect.GetHeight(), image);
+			if(context.diagnostics)
+				AddUnique(context.diagnostics->used_assets, asset_path);
+			return;
+		}
+		if(context.diagnostics)
+			AddUnique(context.diagnostics->missing_assets, asset_path);
+	}
+
 	if(element.type == CARD_BOARD_BOARD) {
 		draw.DrawEllipse(rect, Color(18, 20, 18), 3, Color(8, 8, 8));
 		Rect rail = DeflateRect(rect, max(4, rect.GetHeight() / 18));
@@ -221,23 +275,28 @@ void CardBoardRenderer::RenderReport(String& out, const Rect& area,
 	               area.GetWidth(), area.GetHeight(), document.design_size.cx,
 	               document.design_size.cy));
 	for(const CardBoardElement& element : document.elements)
-		ReportElement(out, area, element, state, 0);
+		ReportElement(out, area, element, state, document, 0);
 }
 
 void CardBoardRenderer::ReportElement(String& out, const Rect& parent,
                                       const CardBoardElement& element,
-                                      const CardBoardState& state, int depth) const
+                                      const CardBoardState& state, const CardBoardDocument& document, int depth) const
 {
 	if(!element.visible)
 		return;
 	Rect rect = element.rect.Realize(parent);
+	String asset_path = ResolveAssetPath(document, element);
+	String asset_state;
+	if(!asset_path.IsEmpty())
+		asset_state = FileExists(asset_path) ? " asset=used:" + asset_path
+		                                     : " asset=missing:" + asset_path;
 	out.Cat(String(' ', depth * 2));
-	out.Cat(Format("draw type=%s id=%s primitive=%s z=%d rect=(%d,%d %d`x%d) label=%s binding=%s\n",
+	out.Cat(Format("draw type=%s id=%s primitive=%s z=%d rect=(%d,%d %d`x%d) label=%s binding=%s%s\n",
 	               CardBoardElementTypeName(element.type), element.id, PrimitiveName(element), element.z,
 	               rect.left, rect.top, rect.GetWidth(), rect.GetHeight(),
-	               ResolveLabel(element, state), element.binding));
+	               ResolveLabel(element, state), element.binding, asset_state));
 	ForEachChildByZ(element.children, [&](const CardBoardElement& child) {
-		ReportElement(out, rect, child, state, depth + 1);
+		ReportElement(out, rect, child, state, document, depth + 1);
 	});
 }
 
@@ -253,6 +312,19 @@ String CardBoardRenderer::ResolveLabel(const CardBoardElement& element,
 	if(IsNull(value))
 		return element.label;
 	return AsString(value);
+}
+
+String CardBoardRenderer::ResolveAssetPath(const CardBoardDocument& document,
+                                           const CardBoardElement& element) const
+{
+	String asset = element.style.asset;
+	if(asset.IsEmpty())
+		return String();
+	if(IsFullPath(asset))
+		return NormalizePath(asset);
+	if(document.asset_root.IsEmpty())
+		return NormalizePath(asset);
+	return NormalizePath(AppendFileName(document.asset_root, asset));
 }
 
 String CardBoardRenderer::PrimitiveName(const CardBoardElement& element) const

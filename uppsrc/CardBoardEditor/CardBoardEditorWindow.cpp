@@ -136,8 +136,9 @@ static void RenderSmokeReport(String& out, const CardBoardDocument& document, Si
 {
 	CardBoardState state = document.MakePokerSampleState();
 	CardBoardRenderer renderer;
+	CardBoardRenderDiagnostics diagnostics;
 	SImageDraw surface(size);
-	renderer.Render(surface, RectC(0, 0, size.cx, size.cy), document, state);
+	renderer.Render(surface, RectC(0, 0, size.cx, size.cy), document, state, diagnostics);
 	Image image = surface;
 
 	String report;
@@ -156,6 +157,12 @@ static void RenderSmokeReport(String& out, const CardBoardDocument& document, Si
 	               CountReportMarker(report, "type=Seat"),
 	               CountReportMarker(report, "primitive=button"),
 	               CountReportMarker(report, "primitive=chip-stack")));
+	out.Cat(Format("RenderSmoke assets_used=%d assets_missing=%d\n",
+	               diagnostics.used_assets.GetCount(), diagnostics.missing_assets.GetCount()));
+	for(const String& path : diagnostics.used_assets)
+		out.Cat("RenderSmoke asset used " + path + "\n");
+	for(const String& path : diagnostics.missing_assets)
+		out.Cat("RenderSmoke asset missing " + path + "\n");
 }
 
 int RunCardBoardEditorCli(const Vector<String>& args)

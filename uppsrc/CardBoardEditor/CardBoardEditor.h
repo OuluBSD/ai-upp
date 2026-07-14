@@ -3,6 +3,8 @@
 
 #include <CtrlLib/CtrlLib.h>
 #include <Docking/Docking.h>
+#include <plugin/png/png.h>
+#include <plugin/jpg/jpg.h>
 
 NAMESPACE_UPP
 

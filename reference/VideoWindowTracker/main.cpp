@@ -240,6 +240,87 @@ static void AppendRect(String& out, const Rect& r)
 	    << ", \"w\": " << r.Width() << ", \"h\": " << r.Height() << "}";
 }
 
+static int Part(int total, int permille)
+{
+	return total * permille / 1000;
+}
+
+static Rect CropRect(const Size& sz, int left, int top, int right, int bottom)
+{
+	Rect bounds = RectC(0, 0, sz.cx, sz.cy);
+	Rect r(Part(sz.cx, left), Part(sz.cy, top), Part(sz.cx, right), Part(sz.cy, bottom));
+	r = r & bounds;
+	return r.Width() > 0 && r.Height() > 0 ? r : Rect(0, 0, 0, 0);
+}
+
+static void AddSemanticCrop(Vector<SemanticCrop>& crops, const String& name, const Rect& rect)
+{
+	ASSERT(!name.IsEmpty());
+	ASSERT(!rect.IsEmpty());
+	SemanticCrop& crop = crops.Add();
+	crop.name = name;
+	crop.rect = rect;
+}
+
+static Vector<SemanticCrop> GetSemanticCrops(const TrackerWindow& window, const Image& crop)
+{
+	Vector<SemanticCrop> out;
+	Size sz = crop.GetSize();
+	Rect bounds = RectC(0, 0, sz.cx, sz.cy);
+	Rect title(window.title.left - window.rect.left, window.title.top - window.rect.top,
+	           window.title.right - window.rect.left, window.title.bottom - window.rect.top);
+	title = title & bounds;
+	if(title.IsEmpty())
+		title = CropRect(sz, 0, 0, 1000, 45);
+
+	AddSemanticCrop(out, "title", title);
+	AddSemanticCrop(out, "table_area", CropRect(sz, 0, 45, 1000, 1000));
+	AddSemanticCrop(out, "board_cards", CropRect(sz, 340, 360, 660, 520));
+	AddSemanticCrop(out, "pot_label", CropRect(sz, 405, 285, 595, 375));
+	AddSemanticCrop(out, "center_chips", CropRect(sz, 420, 475, 580, 600));
+	AddSemanticCrop(out, "bottom_button", CropRect(sz, 450, 705, 560, 825));
+	AddSemanticCrop(out, "left_seats", CropRect(sz, 35, 190, 310, 810));
+	AddSemanticCrop(out, "right_seats", CropRect(sz, 690, 190, 965, 810));
+	AddSemanticCrop(out, "top_seat", CropRect(sz, 350, 115, 650, 300));
+	AddSemanticCrop(out, "bottom_seat", CropRect(sz, 330, 710, 670, 970));
+	return out;
+}
+
+static Vector<SemanticCrop> SaveSemanticCrops(const Image& crop, const TrackerWindow& window,
+                                              const String& semantic_dir, int frame_index)
+{
+	String table_dir = AppendFileName(semantic_dir, Format("frame_%06d_table_%d", frame_index, window.id));
+	RealizeDirectory(table_dir);
+	Vector<SemanticCrop> crops = GetSemanticCrops(window, crop);
+	for(SemanticCrop& semantic : crops) {
+		semantic.path = AppendFileName(table_dir, semantic.name + ".jpg");
+		JPGEncoder().Quality(95).SaveFile(semantic.path, CropImage(crop, semantic.rect));
+	}
+	return crops;
+}
+
+static void AppendSemanticCrops(String& out, const Vector<SemanticCrop>& crops)
+{
+	out << "{";
+	for(int i = 0; i < crops.GetCount(); i++) {
+		if(i)
+			out << ", ";
+		out << "\"" << JsonString(crops[i].name) << "\": {\"path\": \""
+		    << JsonString(crops[i].path) << "\", \"rect\": ";
+		AppendRect(out, crops[i].rect);
+		out << "}";
+	}
+	out << "}";
+}
+
+static Rect GetChangeUnion(const Vector<TrackerChange>& changes)
+{
+	Rect out(0, 0, 0, 0);
+	for(int i = 0; i < changes.GetCount(); i++)
+		out = i ? out | changes[i].rect : changes[i].rect;
+	return out;
+}
+
 static Vector<String> FindFrames(const String& dir)
 {
 	Vector<String> files;
@@ -275,8 +356,10 @@ CONSOLE_APP_MAIN
 	RealizeDirectory(opt.out_dir);
 	String crops_dir = AppendFileName(opt.out_dir, "crops");
 	String overlays_dir = AppendFileName(opt.out_dir, "overlays");
+	String semantic_dir = AppendFileName(opt.out_dir, "semantic");
 	RealizeDirectory(crops_dir);
 	RealizeDirectory(overlays_dir);
+	RealizeDirectory(semantic_dir);
 
 	Vector<Image> previous_crops;
 	String json;
@@ -284,6 +367,12 @@ CONSOLE_APP_MAIN
 	json << "  \"input_dir\": \"" << JsonString(opt.input_dir) << "\",\n";
 	json << "  \"frame_count\": " << frames.GetCount() << ",\n";
 	json << "  \"frames\": [\n";
+
+	String summary;
+	summary << "{\n";
+	summary << "  \"input_dir\": \"" << JsonString(opt.input_dir) << "\",\n";
+	summary << "  \"frame_count\": " << frames.GetCount() << ",\n";
+	summary << "  \"frames\": [\n";
 
 	for(int fi = 0; fi < frames.GetCount(); fi++) {
 		Image frame = StreamRaster::LoadFileAny(frames[fi]);
@@ -304,6 +393,12 @@ CONSOLE_APP_MAIN
 		     << ", \"overlay\": \"" << JsonString(frame_overlay) << "\""
 		     << ", \"windows\": [";
 
+		summary << "    {\"index\": " << fi
+		        << ", \"path\": \"" << JsonString(frames[fi]) << "\""
+		        << ", \"table_count\": " << windows.GetCount()
+		        << ", \"overlay\": \"" << JsonString(frame_overlay) << "\""
+		        << ", \"tables\": [";
+
 		Vector<Image> current_crops;
 		for(int wi = 0; wi < windows.GetCount(); wi++) {
 			TrackerWindow& w = windows[wi];
@@ -311,6 +406,7 @@ CONSOLE_APP_MAIN
 			current_crops.Add(crop);
 			w.crop_path = AppendFileName(crops_dir, Format("frame_%06d_table_%d.jpg", fi, w.id));
 			JPGEncoder().Quality(95).SaveFile(w.crop_path, crop);
+			Vector<SemanticCrop> semantic_crops = SaveSemanticCrops(crop, w, semantic_dir, fi);
 			Vector<TrackerChange> changes;
 			String change_overlay;
 			if(fi > 0 && wi < previous_crops.GetCount()) {
@@ -322,6 +418,7 @@ CONSOLE_APP_MAIN
 			       << " rect=" << w.rect.left << "," << w.rect.top
 			       << " " << w.rect.Width() << "x" << w.rect.Height()
 			       << " changes=" << changes.GetCount()
+			       << " semantic=" << semantic_crops.GetCount()
 			       << " crop=" << w.crop_path << "\n";
 
 			if(wi)
@@ -329,7 +426,9 @@ CONSOLE_APP_MAIN
 			json << "{\"id\": " << w.id << ", \"rect\": ";
 			AppendRect(json, w.rect);
 			json << ", \"crop\": \"" << JsonString(w.crop_path) << "\""
-			     << ", \"change_count\": " << changes.GetCount();
+			     << ", \"semantic\": ";
+			AppendSemanticCrops(json, semantic_crops);
+			json << ", \"change_count\": " << changes.GetCount();
 			if(!change_overlay.IsEmpty())
 				json << ", \"change_overlay\": \"" << JsonString(change_overlay) << "\"";
 			json << ", \"changes\": [";
@@ -341,17 +440,37 @@ CONSOLE_APP_MAIN
 				json << ", \"changed_pixels\": " << changes[ci].changed_pixels << "}";
 			}
 			json << "]}";
+
+			if(wi)
+				summary << ", ";
+			summary << "{\"id\": " << w.id << ", \"rect\": ";
+			AppendRect(summary, w.rect);
+			summary << ", \"crop\": \"" << JsonString(w.crop_path) << "\""
+			        << ", \"semantic\": ";
+			AppendSemanticCrops(summary, semantic_crops);
+			summary << ", \"change_count\": " << changes.GetCount()
+			        << ", \"change_union\": ";
+			AppendRect(summary, GetChangeUnion(changes));
+			summary << ", \"change_overlay\": \"" << JsonString(change_overlay) << "\"}";
 		}
 		json << "]}";
+		summary << "]}";
 		if(fi + 1 < frames.GetCount())
 			json << ",";
+		if(fi + 1 < frames.GetCount())
+			summary << ",";
 		json << "\n";
+		summary << "\n";
 		previous_crops = pick(current_crops);
 	}
 	json << "  ]\n";
 	json << "}\n";
+	summary << "  ]\n";
+	summary << "}\n";
 	String json_path = AppendFileName(opt.out_dir, "tracking.json");
+	String summary_path = AppendFileName(opt.out_dir, "tracking_summary.json");
 	SaveFile(json_path, json);
+	SaveFile(summary_path, summary);
 	Cout() << "tracking_json=" << json_path << "\n";
+	Cout() << "tracking_summary_json=" << summary_path << "\n";
 }
-

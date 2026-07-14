@@ -25,6 +25,12 @@ struct TrackerWindow : Moveable<TrackerWindow> {
 	String crop_path;
 };
 
+struct SemanticCrop : Moveable<SemanticCrop> {
+	String name;
+	Rect   rect;
+	String path;
+};
+
 struct TrackerChange : Moveable<TrackerChange> {
 	int  window_id = 0;
 	Rect rect;
@@ -34,4 +40,3 @@ struct TrackerChange : Moveable<TrackerChange> {
 END_UPP_NAMESPACE
 
 #endif
-

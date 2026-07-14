@@ -1,0 +1,15 @@
+description "Video window tracker reference tool";
+
+uses
+	Core,
+	Draw,
+	plugin/jpg;
+
+file
+	AGENTS.md,
+	VideoWindowTracker.h,
+	main.cpp;
+
+mainconfig
+	"" = "";
+

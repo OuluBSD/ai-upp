@@ -32,6 +32,13 @@ struct BoardSlotState : Moveable<BoardSlotState> {
 	bool   present = false;
 	double confidence = 0;
 	int    cardlike_pixels = 0;
+	int    sampled_pixels = 0;
+	double cardlike_ratio = 0;
+	Rect   cardlike_bounds;
+	int    component_count = 0;
+	int    largest_component_pixels = 0;
+	double largest_component_ratio = 0;
+	Rect   largest_component_bounds;
 	String crop_path;
 };
 

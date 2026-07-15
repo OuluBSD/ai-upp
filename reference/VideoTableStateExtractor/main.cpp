@@ -177,6 +177,64 @@ static bool IsCardLikePixel(const RGBA& p)
 	return !felt_green && (bright_neutral || saturated);
 }
 
+static int PixelIndex(int x, int y, int width)
+{
+	return y * width + x;
+}
+
+static void AnalyzeComponents(const Vector<byte>& mask, int width, int height,
+                              int& component_count, int& largest_pixels,
+                              Rect& largest_bounds)
+{
+	component_count = 0;
+	largest_pixels = 0;
+	largest_bounds = Rect(0, 0, 0, 0);
+	Vector<byte> seen;
+	seen.SetCount(mask.GetCount(), 0);
+	Vector<int> stack;
+	for(int y = 0; y < height; y++) {
+		for(int x = 0; x < width; x++) {
+			int start = PixelIndex(x, y, width);
+			if(!mask[start] || seen[start])
+				continue;
+			component_count++;
+			int pixels = 0;
+			Rect bounds(0, 0, 0, 0);
+			stack.Clear();
+			stack << start;
+			seen[start] = 1;
+			while(!stack.IsEmpty()) {
+				int at = stack.Top();
+				stack.Drop();
+				int px = at % width;
+				int py = at / width;
+				Rect pixel = RectC(px, py, 1, 1);
+				bounds = pixels == 0 ? pixel : bounds | pixel;
+				pixels++;
+				for(int dy = -1; dy <= 1; dy++) {
+					for(int dx = -1; dx <= 1; dx++) {
+						if(dx == 0 && dy == 0)
+							continue;
+						int nx = px + dx;
+						int ny = py + dy;
+						if(nx < 0 || ny < 0 || nx >= width || ny >= height)
+							continue;
+						int ni = PixelIndex(nx, ny, width);
+						if(mask[ni] && !seen[ni]) {
+							seen[ni] = 1;
+							stack << ni;
+						}
+					}
+				}
+			}
+			if(pixels > largest_pixels) {
+				largest_pixels = pixels;
+				largest_bounds = bounds;
+			}
+		}
+	}
+}
+
 static Image CropImage(const Image& img, const Rect& r)
 {
 	ImageBuffer ib(r.Width(), r.Height());
@@ -205,23 +263,50 @@ static int EstimateBoardCardCount(const String& path, const String& slot_dir,
 	for(int slot = 0; slot < slots; slot++) {
 		int x0 = slot * img.GetWidth() / slots;
 		int x1 = (slot + 1) * img.GetWidth() / slots;
+		int y0 = img.GetHeight() / 8;
+		int y1 = img.GetHeight() * 7 / 8;
+		int slot_width = x1 - x0;
+		int sample_height = y1 - y0;
 		BoardSlotState& slot_state = slots_out.Add();
 		slot_state.index = slot;
 		slot_state.rect = Rect(x0, 0, x1, img.GetHeight());
 		int hit = 0;
 		int total = 0;
-		for(int y = img.GetHeight() / 8; y < img.GetHeight() * 7 / 8; y++) {
+		Rect hit_bounds(0, 0, 0, 0);
+		Vector<byte> mask;
+		mask.SetCount(slot_width * sample_height, 0);
+		for(int y = y0; y < y1; y++) {
 			const RGBA *row = img[y];
 			for(int x = x0 + 2; x < x1 - 2; x++) {
 				total++;
-				if(IsCardLikePixel(row[x]))
+				if(IsCardLikePixel(row[x])) {
 					hit++;
+					Point p(x - x0, y);
+					Rect pixel = RectC(p.x, p.y, 1, 1);
+					hit_bounds = hit == 1 ? pixel : hit_bounds | pixel;
+					mask[PixelIndex(p.x, y - y0, slot_width)] = 1;
+				}
 			}
 		}
 		hits << hit;
 		slot_state.cardlike_pixels = hit;
-		slot_state.present = total > 0 && hit * 100 >= total * 12;
-		slot_state.confidence = slot_state.present ? 0.70 : 0.30;
+		slot_state.sampled_pixels = total;
+		slot_state.cardlike_ratio = total > 0 ? (double)hit / total : 0;
+		slot_state.cardlike_bounds = hit_bounds;
+		AnalyzeComponents(mask, slot_width, sample_height,
+		                  slot_state.component_count,
+		                  slot_state.largest_component_pixels,
+		                  slot_state.largest_component_bounds);
+		slot_state.largest_component_bounds.Offset(0, y0);
+		slot_state.largest_component_ratio = total > 0 ?
+		                                     (double)slot_state.largest_component_pixels / total : 0;
+		bool enough_pixels = total > 0 && hit * 100 >= total * 12;
+		bool enough_component = slot_state.largest_component_pixels * 100 >= total * 12;
+		bool enough_shape = slot_state.largest_component_bounds.Height() >= img.GetHeight() / 2 &&
+		                    slot_state.largest_component_bounds.Width() >= slot_width / 3;
+		slot_state.present = enough_pixels && enough_component && enough_shape;
+		slot_state.confidence = slot_state.present ? min(0.90, 0.60 + slot_state.cardlike_ratio) :
+		                        (enough_pixels ? 0.45 : 0.25);
 		if(!slot_dir.IsEmpty()) {
 			RealizeDirectory(slot_dir);
 			slot_state.crop_path = AppendFileName(slot_dir, Format("slot_%02d.jpg", slot));
@@ -489,6 +574,16 @@ static bool SaveState(const TableStateOptions& opt, const Vector<ExtractedTableS
 			json << ", \"present\": " << (slot.present ? "true" : "false")
 			     << ", \"confidence\": " << Format("%.2f", slot.confidence)
 			     << ", \"cardlike_pixels\": " << slot.cardlike_pixels
+			     << ", \"sampled_pixels\": " << slot.sampled_pixels
+			     << ", \"cardlike_ratio\": " << Format("%.4f", slot.cardlike_ratio)
+			     << ", \"cardlike_bounds\": ";
+			AppendRect(json, slot.cardlike_bounds);
+			json << ", \"component_count\": " << slot.component_count
+			     << ", \"largest_component_pixels\": " << slot.largest_component_pixels
+			     << ", \"largest_component_ratio\": " << Format("%.4f", slot.largest_component_ratio)
+			     << ", \"largest_component_bounds\": ";
+			AppendRect(json, slot.largest_component_bounds);
+			json
 			     << ", \"rank\": null, \"suit\": null"
 			     << ", \"crop_path\": \"" << JsonString(slot.crop_path) << "\"}";
 		}
@@ -538,11 +633,19 @@ static bool RunExtractor(const TableStateOptions& opt)
 	Cout() << "table_state_count=" << states.GetCount()
 	       << " table_mode=" << opt.table_mode << "\n";
 	for(const ExtractedTableState& state : states) {
+		String slot_line;
+		for(const BoardSlotState& slot : state.board_slots) {
+			if(!slot_line.IsEmpty())
+				slot_line << ",";
+			slot_line << slot.index << ":" << (slot.present ? "1" : "0")
+			          << "/" << Format("%.2f", slot.cardlike_ratio);
+		}
 		Cout() << "table_state frame=" << state.frame_index
 		       << " table=" << state.table_id
 		       << " usable=" << (state.usable ? "true" : "false")
 		       << " board_cards=" << state.board_card_count
 		       << " board_slots=" << state.board_slots.GetCount()
+		       << " slot_ratio=" << slot_line
 		       << " seats=" << state.seats.GetCount()
 		       << " observer_nohero=" << (VsmObserverNoHero(state.table_mode) ? "true" : "false")
 		       << " confidence=" << Format("%.2f", state.confidence) << "\n";

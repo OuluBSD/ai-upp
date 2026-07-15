@@ -111,6 +111,31 @@ static String StageStatus(int code, bool available, bool fatal)
 	return fatal ? "failed" : "failed_nonfatal";
 }
 
+static void GetTableCounts(const String& tracking_summary, int& first_frame_tables,
+                           int& max_frame_tables)
+{
+	first_frame_tables = -1;
+	max_frame_tables = -1;
+	String text = LoadFile(tracking_summary);
+	if(text.IsVoid() || text.IsEmpty())
+		return;
+	Value value = ParseJSON(text);
+	if(IsError(value))
+		return;
+	ValueMap root = value;
+	ValueArray frames = root.Get("frames", ValueArray());
+	for(int i = 0; i < frames.GetCount(); i++) {
+		ValueMap frame = frames[i];
+		Value table_count_value = frame.Get("table_count", Value());
+		if(!IsNumber(table_count_value))
+			continue;
+		int table_count = (int)table_count_value;
+		if(first_frame_tables < 0)
+			first_frame_tables = table_count;
+		max_frame_tables = max(max_frame_tables, table_count);
+	}
+}
+
 static bool WritePipelineSummary(const LiveRegressionOptions& opt, const String& record_dir,
                                  const String& tracked_dir, int recorder_code, int tracker_code,
                                  int audit_code, bool audit_available, int ocr_code,
@@ -121,6 +146,9 @@ static bool WritePipelineSummary(const LiveRegressionOptions& opt, const String&
 	String tracking_summary = AppendFileName(tracked_dir, "tracking_summary.json");
 	String events_json_path = AppendFileName(tracked_dir, "events.json");
 	String ocr_json_path = AppendFileName(tracked_dir, "ocr_probe.json");
+	int first_frame_tables = -1;
+	int max_frame_tables = -1;
+	GetTableCounts(tracking_summary, first_frame_tables, max_frame_tables);
 	String json;
 	json << "{\n";
 	json << "  \"runner\": \"VideoLiveRegressionRunner\",\n";
@@ -149,6 +177,8 @@ static bool WritePipelineSummary(const LiveRegressionOptions& opt, const String&
 	json << "    \"frames_recorded\": "
 	     << JsonIntFromFileAny(record_summary, "frame_count", "frames_saved") << ",\n";
 	json << "    \"frames_tracked\": " << JsonIntFromFile(tracking_summary, "frame_count") << ",\n";
+	json << "    \"first_frame_tables\": " << first_frame_tables << ",\n";
+	json << "    \"max_frame_tables\": " << max_frame_tables << ",\n";
 	json << "    \"events\": " << JsonIntFromFile(events_json_path, "event_count") << ",\n";
 	json << "    \"ocr_crop_count\": " << JsonIntFromFile(ocr_json_path, "crop_count") << "\n";
 	json << "  },\n";

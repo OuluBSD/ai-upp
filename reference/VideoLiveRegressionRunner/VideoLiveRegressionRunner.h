@@ -20,6 +20,7 @@ struct LiveRegressionOptions {
 	int    min_events = -1;
 	int    min_ocr_crops = -1;
 	int    min_usable_tables = -1;
+	int    min_table_states = -1;
 	bool   require_ocr_ok = false;
 	bool   help = false;
 	Vector<String> required_events;

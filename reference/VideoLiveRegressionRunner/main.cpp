@@ -20,6 +20,7 @@ static void PrintHelp()
 	       << "  --min-events <n>    Require at least n events after run\n"
 	       << "  --min-ocr-crops <n> Require at least n OCR crops after run\n"
 	       << "  --min-usable-tables <n> Require at least n usable table contents after run\n"
+	       << "  --min-table-states <n> Require at least n extracted table states after run\n"
 	       << "  --require-event <t> Require event type after run; can repeat\n"
 	       << "  --ocr-ok            Require OCR ok=true after run\n"
 	       << "  --require-ocr-text <text> Require OCR text substring; can repeat\n"
@@ -56,6 +57,8 @@ static LiveRegressionOptions ParseOptions(const Vector<String>& args)
 			opt.min_ocr_crops = StrInt(args[++i]);
 		else if(args[i] == "--min-usable-tables" && i + 1 < args.GetCount())
 			opt.min_usable_tables = StrInt(args[++i]);
+		else if(args[i] == "--min-table-states" && i + 1 < args.GetCount())
+			opt.min_table_states = StrInt(args[++i]);
 		else if(args[i] == "--require-event" && i + 1 < args.GetCount())
 			opt.required_events << args[++i];
 		else if(args[i] == "--ocr-ok" || args[i] == "--require-ocr")
@@ -209,7 +212,8 @@ static bool WritePipelineSummary(const LiveRegressionOptions& opt, const String&
                                  const String& tracked_dir, int recorder_code, int tracker_code,
                                  int correlator_code, bool correlator_available, int audit_code,
                                  bool audit_available, int ocr_code, bool ocr_available,
-                                 int quality_code, bool quality_available)
+                                 int quality_code, bool quality_available,
+                                 int table_state_code, bool table_state_available)
 {
 	String summary_path = AppendFileName(tracked_dir, "pipeline_summary.json");
 	String record_summary = AppendFileName(record_dir, "summary.json");
@@ -218,6 +222,7 @@ static bool WritePipelineSummary(const LiveRegressionOptions& opt, const String&
 	String correlated_events_json_path = AppendFileName(tracked_dir, "correlated_events.json");
 	String ocr_json_path = AppendFileName(tracked_dir, "ocr_probe.json");
 	String table_quality_json_path = AppendFileName(tracked_dir, "table_quality.json");
+	String table_state_json_path = AppendFileName(tracked_dir, "table_state.json");
 	int first_frame_tables = -1;
 	int max_frame_tables = -1;
 	GetTableCounts(tracking_summary, first_frame_tables, max_frame_tables);
@@ -252,7 +257,10 @@ static bool WritePipelineSummary(const LiveRegressionOptions& opt, const String&
 	     << "\", \"exit_code\": " << ocr_code << ", \"fatal\": false},\n";
 	json << "    \"table_quality\": {\"available\": " << (quality_available ? "true" : "false")
 	     << ", \"status\": \"" << StageStatus(quality_code, quality_available, true)
-	     << "\", \"exit_code\": " << quality_code << ", \"fatal\": true}\n";
+	     << "\", \"exit_code\": " << quality_code << ", \"fatal\": true},\n";
+	json << "    \"table_state\": {\"available\": " << (table_state_available ? "true" : "false")
+	     << ", \"status\": \"" << StageStatus(table_state_code, table_state_available, true)
+	     << "\", \"exit_code\": " << table_state_code << ", \"fatal\": true}\n";
 	json << "  },\n";
 	json << "  \"observed\": {\n";
 	json << "    \"frames_recorded\": "
@@ -267,7 +275,8 @@ static bool WritePipelineSummary(const LiveRegressionOptions& opt, const String&
 	json << "    \"ocr_error\": \"" << JsonString(JsonStringFromFile(ocr_json_path, "error")) << "\",\n";
 	json << "    \"usable_table_count\": " << JsonIntFromFile(table_quality_json_path, "usable_table_count") << ",\n";
 	json << "    \"max_usable_tables\": " << JsonIntFromFile(table_quality_json_path, "max_usable_tables") << ",\n";
-	json << "    \"obstructed_table_count\": " << JsonIntFromFile(table_quality_json_path, "obstructed_table_count") << "\n";
+	json << "    \"obstructed_table_count\": " << JsonIntFromFile(table_quality_json_path, "obstructed_table_count") << ",\n";
+	json << "    \"table_state_count\": " << JsonIntFromFile(table_state_json_path, "state_count") << "\n";
 	json << "  },\n";
 	json << "  \"artifacts\": {\n";
 	AppendJsonPath(json, "record_summary", record_summary);
@@ -278,6 +287,7 @@ static bool WritePipelineSummary(const LiveRegressionOptions& opt, const String&
 	AppendJsonPath(json, "event_audit_report", AppendFileName(tracked_dir, "event_audit.md"));
 	AppendJsonPath(json, "ocr_probe_json", ocr_json_path);
 	AppendJsonPath(json, "table_quality_json", table_quality_json_path);
+	AppendJsonPath(json, "table_state_json", table_state_json_path);
 	AppendJsonPath(json, "semantic_dir", AppendFileName(tracked_dir, "semantic"));
 	AppendJsonPath(json, "overlays_dir", AppendFileName(tracked_dir, "overlays"), false);
 	json << "  }\n";
@@ -290,7 +300,7 @@ static bool HasAssertions(const LiveRegressionOptions& opt)
 	return opt.expect_frames >= 0 || opt.min_frames >= 0 ||
 	       opt.expect_tables >= 0 || opt.min_tables >= 0 ||
 	       opt.min_events >= 0 || opt.min_ocr_crops >= 0 ||
-	       opt.min_usable_tables >= 0 ||
+	       opt.min_usable_tables >= 0 || opt.min_table_states >= 0 ||
 	       opt.require_ocr_ok || !opt.required_events.IsEmpty() ||
 	       !opt.required_ocr_texts.IsEmpty();
 }
@@ -313,6 +323,8 @@ static Vector<String> MakeAssertArgs(const LiveRegressionOptions& opt, const Str
 		args << "--min-ocr-crops" << AsString(opt.min_ocr_crops);
 	if(opt.min_usable_tables >= 0)
 		args << "--min-usable-tables" << AsString(opt.min_usable_tables);
+	if(opt.min_table_states >= 0)
+		args << "--min-table-states" << AsString(opt.min_table_states);
 	args << "--table-mode" << opt.table_mode;
 	for(const String& type : opt.required_events)
 		args << "--require-event" << type;
@@ -342,6 +354,7 @@ CONSOLE_APP_MAIN
 	String audit_report = AppendFileName(exe_dir, "VideoEventAuditReport.exe");
 	String ocr_probe = AppendFileName(exe_dir, "VideoSemanticOcrProbe.exe");
 	String table_quality = AppendFileName(exe_dir, "VideoTableQuality.exe");
+	String table_state = AppendFileName(exe_dir, "VideoTableStateExtractor.exe");
 	String assertion_tool = AppendFileName(exe_dir, "VideoRegressionAssert.exe");
 	String record_dir = AppendFileName(opt.out_root, opt.name);
 	String tracked_dir = opt.name + "_tracked";
@@ -422,6 +435,23 @@ CONSOLE_APP_MAIN
 		Cout() << "table_quality_tool_missing=" << table_quality << "\n";
 	}
 
+	bool table_state_available = FileExists(table_state);
+	int table_state_code = 0;
+	if(table_state_available) {
+		Vector<String> state_args;
+		state_args << "--tracker-dir" << tracked_dir
+		           << "--table-mode" << opt.table_mode;
+		table_state_code = RunCommand(table_state, state_args);
+		if(table_state_code != 0) {
+			Cerr() << "ERROR: table state extraction failed\n";
+			SetExitCode(1);
+			return;
+		}
+	}
+	else {
+		Cout() << "table_state_tool_missing=" << table_state << "\n";
+	}
+
 	String audit_path = AppendFileName(tracked_dir, "event_audit.md");
 	bool audit_available = FileExists(audit_report);
 	int audit_code = 0;
@@ -442,7 +472,8 @@ CONSOLE_APP_MAIN
 	String pipeline_summary = AppendFileName(tracked_dir, "pipeline_summary.json");
 	if(!WritePipelineSummary(opt, record_dir, tracked_dir, recorder_code, tracker_code,
 	                         correlator_code, correlator_available, audit_code, audit_available,
-	                         ocr_code, ocr_available, quality_code, quality_available)) {
+	                         ocr_code, ocr_available, quality_code, quality_available,
+	                         table_state_code, table_state_available)) {
 		Cerr() << "ERROR: failed to write pipeline summary\n";
 		SetExitCode(1);
 		return;
@@ -485,6 +516,7 @@ CONSOLE_APP_MAIN
 	Cout() << "event_audit_report=" << audit_path << "\n";
 	Cout() << "ocr_probe_json=" << ocr_probe_path << "\n";
 	Cout() << "table_quality_json=" << AppendFileName(tracked_dir, "table_quality.json") << "\n";
+	Cout() << "table_state_json=" << AppendFileName(tracked_dir, "table_state.json") << "\n";
 	Cout() << "pipeline_summary_json=" << pipeline_summary << "\n";
 	Cout() << "semantic_dir=" << AppendFileName(tracked_dir, "semantic") << "\n";
 	Cout() << "overlays_dir=" << AppendFileName(tracked_dir, "overlays") << "\n";

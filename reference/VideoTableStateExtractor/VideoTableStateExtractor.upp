@@ -1,0 +1,15 @@
+description "Video table state extractor reference tool";
+
+uses
+	Core,
+	VisualStateModel,
+	Draw,
+	plugin/jpg;
+
+file
+	AGENTS.md,
+	VideoTableStateExtractor.h,
+	main.cpp;
+
+mainconfig
+	"" = "";

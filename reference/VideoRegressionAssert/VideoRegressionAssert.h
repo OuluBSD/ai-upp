@@ -12,6 +12,7 @@ struct VideoAssertOptions {
 	String events_json;
 	String ocr_json;
 	String table_quality_json;
+	String table_state_json;
 	String table_mode;
 	int    expect_frames = -1;
 	int    min_frames = -1;
@@ -20,6 +21,7 @@ struct VideoAssertOptions {
 	int    min_events = -1;
 	int    min_ocr_crops = -1;
 	int    min_usable_tables = -1;
+	int    min_table_states = -1;
 	bool   require_ocr_ok = false;
 	bool   help = false;
 	bool   parse_error = false;

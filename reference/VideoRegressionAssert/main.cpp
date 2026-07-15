@@ -12,6 +12,7 @@ static void PrintHelp()
 	       << "  --events-json <file>       Override events.json path\n"
 	       << "  --ocr-json <file>          Override ocr_probe.json path\n\n"
 	       << "  --table-quality-json <file> Override table_quality.json path\n\n"
+	       << "  --table-state-json <file>  Override table_state.json path\n\n"
 	       << "  --table-mode <mode>         Require table_mode in pipeline/quality JSON\n\n"
 	       << "Expectations:\n"
 	       << "  --expect-frames <n>        Require exact frames_tracked\n"
@@ -21,6 +22,7 @@ static void PrintHelp()
 	       << "  --min-events <n>           Require at least n events\n"
 	       << "  --min-ocr-crops <n>        Require at least n OCR crops\n"
 	       << "  --min-usable-tables <n>    Require at least n usable table contents\n"
+	       << "  --min-table-states <n>     Require at least n extracted table states\n"
 	       << "  --require-event <type>     Require an event type; can repeat\n"
 	       << "  --ocr-ok, --require-ocr    Require OCR probe ok=true\n"
 	       << "  --require-ocr-text <text>  Require OCR result text substring; can repeat\n"
@@ -41,6 +43,8 @@ static VideoAssertOptions ParseOptions(const Vector<String>& args)
 			opt.ocr_json = args[++i];
 		else if(args[i] == "--table-quality-json" && i + 1 < args.GetCount())
 			opt.table_quality_json = args[++i];
+		else if(args[i] == "--table-state-json" && i + 1 < args.GetCount())
+			opt.table_state_json = args[++i];
 		else if(args[i] == "--table-mode" && i + 1 < args.GetCount())
 			opt.table_mode = VsmNormalizeTableMode(args[++i]);
 		else if(args[i] == "--expect-frames" && i + 1 < args.GetCount())
@@ -57,6 +61,8 @@ static VideoAssertOptions ParseOptions(const Vector<String>& args)
 			opt.min_ocr_crops = StrInt(args[++i]);
 		else if(args[i] == "--min-usable-tables" && i + 1 < args.GetCount())
 			opt.min_usable_tables = StrInt(args[++i]);
+		else if(args[i] == "--min-table-states" && i + 1 < args.GetCount())
+			opt.min_table_states = StrInt(args[++i]);
 		else if(args[i] == "--require-event" && i + 1 < args.GetCount())
 			opt.required_events << args[++i];
 		else if(args[i] == "--ocr-ok" || args[i] == "--require-ocr")
@@ -79,6 +85,8 @@ static VideoAssertOptions ParseOptions(const Vector<String>& args)
 			opt.ocr_json = AppendFileName(opt.tracker_dir, "ocr_probe.json");
 		if(opt.table_quality_json.IsEmpty())
 			opt.table_quality_json = AppendFileName(opt.tracker_dir, "table_quality.json");
+		if(opt.table_state_json.IsEmpty())
+			opt.table_state_json = AppendFileName(opt.tracker_dir, "table_state.json");
 	}
 	opt.table_mode = VsmNormalizeTableMode(opt.table_mode);
 	return opt;
@@ -205,14 +213,19 @@ static bool RunAssertions(const VideoAssertOptions& opt)
 	ValueMap table_quality_root;
 	ctx.table_quality_ok = LoadJsonMap(opt.table_quality_json, ctx.table_quality_text,
 	                                   table_quality_root, "table_quality_json");
+	String table_state_text;
+	ValueMap table_state_root;
+	bool table_state_ok = LoadJsonMap(opt.table_state_json, table_state_text,
+	                                  table_state_root, "table_state_json");
 
-	bool ok = ctx.pipeline_ok && ctx.events_ok && ctx.ocr_ok && ctx.table_quality_ok;
+	bool ok = ctx.pipeline_ok && ctx.events_ok && ctx.ocr_ok && ctx.table_quality_ok && table_state_ok;
 	ValueMap observed = MapValue(ctx.pipeline, "observed");
 	int frames_tracked = IntValue(observed, "frames_tracked");
 	int max_frame_tables = IntValue(observed, "max_frame_tables");
 	int event_count = IntValue(ctx.events_root, "event_count");
 	int ocr_crop_count = IntValue(ctx.ocr_root, "crop_count");
 	int max_usable_tables = IntValue(table_quality_root, "max_usable_tables");
+	int table_state_count = IntValue(table_state_root, "state_count");
 	bool ocr_ok = BoolValue(ctx.ocr_root, "ok");
 	String pipeline_mode = TextValue(ctx.pipeline, "table_mode");
 	String quality_mode = TextValue(table_quality_root, "table_mode");
@@ -224,6 +237,7 @@ static bool RunAssertions(const VideoAssertOptions& opt)
 	ok = CheckIntMin("event_count", event_count, opt.min_events) && ok;
 	ok = CheckIntMin("ocr_crop_count", ocr_crop_count, opt.min_ocr_crops) && ok;
 	ok = CheckIntMin("max_usable_tables", max_usable_tables, opt.min_usable_tables) && ok;
+	ok = CheckIntMin("table_state_count", table_state_count, opt.min_table_states) && ok;
 	ok = CheckTextExact("pipeline_table_mode", pipeline_mode, opt.table_mode) && ok;
 	ok = CheckTextExact("quality_table_mode", quality_mode, opt.table_mode) && ok;
 

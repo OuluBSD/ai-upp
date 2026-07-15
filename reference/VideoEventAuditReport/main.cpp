@@ -132,6 +132,36 @@ static void AppendOcrSummary(String& md, const AuditReportOptions& opt)
 	md << "\n";
 }
 
+static void AppendCorrelatedSummary(String& md, const AuditReportOptions& opt)
+{
+	String path = AppendFileName(opt.tracker_dir, "correlated_events.json");
+	if(!FileExists(path))
+		return;
+	String text = LoadFile(path);
+	if(text.IsVoid() || text.IsEmpty())
+		return;
+	Value value = ParseJSON(text);
+	if(IsError(value))
+		return;
+	ValueMap root = value;
+	ValueArray events = root.Get("events", ValueArray());
+	md << "## Correlated Events\n\n";
+	md << "- correlated_event_count: " << JsonIntValue(root, "correlated_event_count") << "\n";
+	md << "- raw_event_count: " << JsonIntValue(root, "raw_event_count") << "\n";
+	md << "- " << MarkdownLink("correlated_events.json", opt.out_path, path) << "\n";
+	for(int i = 0; i < events.GetCount(); i++) {
+		ValueMap event = events[i];
+		md << "- transition[" << i << "]: kind=`" << JsonTextValue(event, "kind")
+		   << "` table=" << JsonIntValue(event, "table_id")
+		   << " frames=" << JsonIntValue(event, "start_frame")
+		   << ".." << JsonIntValue(event, "end_frame")
+		   << " raw=" << JsonIntValue(event, "raw_event_count")
+		   << " confidence=" << JsonTextValue(event, "confidence")
+		   << " types=`" << OneLine(AsString(event.Get("types", ValueArray()))) << "`\n";
+	}
+	md << "\n";
+}
+
 static String SemanticCropPath(const String& tracker_dir, int frame_index, int table_id,
                                const String& semantic)
 {
@@ -188,6 +218,7 @@ static bool GenerateReport(const AuditReportOptions& opt)
 	if(FileExists(pipeline_summary_path))
 		md << "- " << MarkdownLink("pipeline_summary.json", opt.out_path, pipeline_summary_path) << "\n\n";
 	AppendOcrSummary(md, opt);
+	AppendCorrelatedSummary(md, opt);
 
 	if(events.IsEmpty()) {
 		md << "No event candidates emitted.\n";

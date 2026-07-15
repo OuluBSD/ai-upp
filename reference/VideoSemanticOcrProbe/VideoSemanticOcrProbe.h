@@ -2,6 +2,8 @@
 #define _VideoSemanticOcrProbe_VideoSemanticOcrProbe_h_
 
 #include <Core/Core.h>
+#include <Draw/Draw.h>
+#include <plugin/jpg/jpg.h>
 
 NAMESPACE_UPP
 
@@ -15,6 +17,7 @@ struct OcrProbeOptions {
 	int    max_crops = 40;
 	bool   help = false;
 	bool   tessdata_dir_explicit = false;
+	bool   preprocess = true;
 };
 
 struct OcrCrop : Moveable<OcrCrop> {
@@ -22,6 +25,15 @@ struct OcrCrop : Moveable<OcrCrop> {
 	int    table_id = 0;
 	String semantic;
 	String path;
+};
+
+struct OcrResult : Moveable<OcrResult> {
+	OcrCrop crop;
+	String original_text;
+	String preprocessed_text;
+	String preprocessed_path;
+	int    original_exit_code = -1;
+	int    preprocessed_exit_code = -1;
 };
 
 END_UPP_NAMESPACE

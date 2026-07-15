@@ -200,13 +200,14 @@ static void GetTableCounts(const String& tracking_summary, int& first_frame_tabl
 
 static bool WritePipelineSummary(const LiveRegressionOptions& opt, const String& record_dir,
                                  const String& tracked_dir, int recorder_code, int tracker_code,
-                                 int audit_code, bool audit_available, int ocr_code,
-                                 bool ocr_available)
+                                 int correlator_code, bool correlator_available, int audit_code,
+                                 bool audit_available, int ocr_code, bool ocr_available)
 {
 	String summary_path = AppendFileName(tracked_dir, "pipeline_summary.json");
 	String record_summary = AppendFileName(record_dir, "summary.json");
 	String tracking_summary = AppendFileName(tracked_dir, "tracking_summary.json");
 	String events_json_path = AppendFileName(tracked_dir, "events.json");
+	String correlated_events_json_path = AppendFileName(tracked_dir, "correlated_events.json");
 	String ocr_json_path = AppendFileName(tracked_dir, "ocr_probe.json");
 	int first_frame_tables = -1;
 	int max_frame_tables = -1;
@@ -228,6 +229,9 @@ static bool WritePipelineSummary(const LiveRegressionOptions& opt, const String&
 	     << "\", \"exit_code\": " << recorder_code << ", \"fatal\": true},\n";
 	json << "    \"tracker\": {\"status\": \"" << StageStatus(tracker_code, true, true)
 	     << "\", \"exit_code\": " << tracker_code << ", \"fatal\": true},\n";
+	json << "    \"event_correlator\": {\"available\": " << (correlator_available ? "true" : "false")
+	     << ", \"status\": \"" << StageStatus(correlator_code, correlator_available, true)
+	     << "\", \"exit_code\": " << correlator_code << ", \"fatal\": true},\n";
 	json << "    \"audit_report\": {\"available\": " << (audit_available ? "true" : "false")
 	     << ", \"status\": \"" << StageStatus(audit_code, audit_available, true)
 	     << "\", \"exit_code\": " << audit_code << ", \"fatal\": true},\n";
@@ -242,6 +246,7 @@ static bool WritePipelineSummary(const LiveRegressionOptions& opt, const String&
 	json << "    \"first_frame_tables\": " << first_frame_tables << ",\n";
 	json << "    \"max_frame_tables\": " << max_frame_tables << ",\n";
 	json << "    \"events\": " << JsonIntFromFile(events_json_path, "event_count") << ",\n";
+	json << "    \"correlated_events\": " << JsonIntFromFile(correlated_events_json_path, "correlated_event_count") << ",\n";
 	json << "    \"ocr_crop_count\": " << JsonIntFromFile(ocr_json_path, "crop_count") << ",\n";
 	json << "    \"ocr_ok\": " << (JsonBoolFromFile(ocr_json_path, "ok") ? "true" : "false") << ",\n";
 	json << "    \"ocr_error\": \"" << JsonString(JsonStringFromFile(ocr_json_path, "error")) << "\"\n";
@@ -251,6 +256,7 @@ static bool WritePipelineSummary(const LiveRegressionOptions& opt, const String&
 	AppendJsonPath(json, "tracking_json", AppendFileName(tracked_dir, "tracking.json"));
 	AppendJsonPath(json, "tracking_summary_json", tracking_summary);
 	AppendJsonPath(json, "events_json", events_json_path);
+	AppendJsonPath(json, "correlated_events_json", correlated_events_json_path);
 	AppendJsonPath(json, "event_audit_report", AppendFileName(tracked_dir, "event_audit.md"));
 	AppendJsonPath(json, "ocr_probe_json", ocr_json_path);
 	AppendJsonPath(json, "semantic_dir", AppendFileName(tracked_dir, "semantic"));
@@ -309,6 +315,7 @@ CONSOLE_APP_MAIN
 	String exe_dir = GetFileDirectory(GetExeFilePath());
 	String recorder = AppendFileName(exe_dir, "VideoServerFrameRecorder.exe");
 	String tracker = AppendFileName(exe_dir, "VideoWindowTracker.exe");
+	String correlator = AppendFileName(exe_dir, "VideoEventCorrelator.exe");
 	String audit_report = AppendFileName(exe_dir, "VideoEventAuditReport.exe");
 	String ocr_probe = AppendFileName(exe_dir, "VideoSemanticOcrProbe.exe");
 	String assertion_tool = AppendFileName(exe_dir, "VideoRegressionAssert.exe");
@@ -340,6 +347,22 @@ CONSOLE_APP_MAIN
 		Cerr() << "ERROR: tracker failed\n";
 		SetExitCode(1);
 		return;
+	}
+
+	bool correlator_available = FileExists(correlator);
+	int correlator_code = 0;
+	if(correlator_available) {
+		Vector<String> correlator_args;
+		correlator_args << "--tracker-dir" << tracked_dir;
+		correlator_code = RunCommand(correlator, correlator_args);
+		if(correlator_code != 0) {
+			Cerr() << "ERROR: event correlator failed\n";
+			SetExitCode(1);
+			return;
+		}
+	}
+	else {
+		Cout() << "event_correlator_tool_missing=" << correlator << "\n";
 	}
 
 	String ocr_probe_path = AppendFileName(tracked_dir, "ocr_probe.json");
@@ -376,7 +399,8 @@ CONSOLE_APP_MAIN
 
 	String pipeline_summary = AppendFileName(tracked_dir, "pipeline_summary.json");
 	if(!WritePipelineSummary(opt, record_dir, tracked_dir, recorder_code, tracker_code,
-	                         audit_code, audit_available, ocr_code, ocr_available)) {
+	                         correlator_code, correlator_available, audit_code, audit_available,
+	                         ocr_code, ocr_available)) {
 		Cerr() << "ERROR: failed to write pipeline summary\n";
 		SetExitCode(1);
 		return;
@@ -414,6 +438,7 @@ CONSOLE_APP_MAIN
 	Cout() << "tracking_json=" << AppendFileName(tracked_dir, "tracking.json") << "\n";
 	Cout() << "tracking_summary_json=" << AppendFileName(tracked_dir, "tracking_summary.json") << "\n";
 	Cout() << "events_json=" << AppendFileName(tracked_dir, "events.json") << "\n";
+	Cout() << "correlated_events_json=" << AppendFileName(tracked_dir, "correlated_events.json") << "\n";
 	Cout() << "event_audit_report=" << audit_path << "\n";
 	Cout() << "ocr_probe_json=" << ocr_probe_path << "\n";
 	Cout() << "pipeline_summary_json=" << pipeline_summary << "\n";

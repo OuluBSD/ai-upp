@@ -1,0 +1,13 @@
+description "Video event temporal correlator";
+
+uses
+	Core;
+
+file
+	AGENTS.md,
+	VideoEventCorrelator.h,
+	main.cpp;
+
+mainconfig
+	"" = "";
+

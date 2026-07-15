@@ -14,6 +14,8 @@ static void PrintHelp()
 	       << "  --lang <name>         OCR language (default eng)\n"
 	       << "  --psm <mode>          Tesseract page segmentation mode (default 6)\n"
 	       << "  --max-crops <count>   Maximum crop files to OCR (default 40)\n"
+	       << "  --preprocess          OCR original plus preprocessed crop (default)\n"
+	       << "  --no-preprocess       OCR original crop only\n"
 	       << "  --help, -h            Show help\n";
 }
 
@@ -37,6 +39,10 @@ static OcrProbeOptions ParseOptions(const Vector<String>& args)
 			opt.psm = max(3, StrInt(args[++i]));
 		else if(args[i] == "--max-crops" && i + 1 < args.GetCount())
 			opt.max_crops = max(1, StrInt(args[++i]));
+		else if(args[i] == "--preprocess")
+			opt.preprocess = true;
+		else if(args[i] == "--no-preprocess")
+			opt.preprocess = false;
 		else if(args[i] == "--help" || args[i] == "-h")
 			opt.help = true;
 	}
@@ -112,6 +118,57 @@ static Vector<OcrCrop> FindCrops(const OcrProbeOptions& opt)
 		dir_ff.Next();
 	}
 	return crops;
+}
+
+static int ScaleForSemantic(const String& semantic)
+{
+	if(semantic == "title")
+		return 3;
+	if(semantic == "pot_label")
+		return 4;
+	return 2;
+}
+
+static Image GrayscaleImage(const Image& image)
+{
+	ImageBuffer out(image.GetSize());
+	for(int y = 0; y < image.GetHeight(); y++) {
+		const RGBA *src = image[y];
+		RGBA *dst = out[y];
+		for(int x = 0; x < image.GetWidth(); x++) {
+			byte g = (byte)Grayscale(src[x]);
+			dst[x].r = g;
+			dst[x].g = g;
+			dst[x].b = g;
+			dst[x].a = 255;
+		}
+	}
+	return out;
+}
+
+static String PreprocessCrop(const OcrProbeOptions& opt, const OcrCrop& crop)
+{
+	if(!opt.preprocess)
+		return String();
+	Image image = StreamRaster::LoadFileAny(crop.path);
+	if(IsNull(image)) {
+		Cerr() << "WARNING: failed to load crop for preprocessing: " << crop.path << "\n";
+		return String();
+	}
+	int scale = ScaleForSemantic(crop.semantic);
+	Size target(image.GetWidth() * scale, image.GetHeight() * scale);
+	Image resized = RescaleFilter(image, target, FILTER_BILINEAR);
+	Image gray = GrayscaleImage(resized);
+	String out_dir = AppendFileName(opt.tracker_dir, "ocr_preprocessed");
+	String table_dir = AppendFileName(out_dir, Format("frame_%06d_table_%d",
+	                                                  crop.frame_index, crop.table_id));
+	RealizeDirectory(table_dir);
+	String out_path = AppendFileName(table_dir, crop.semantic + ".jpg");
+	if(!JPGEncoder().Quality(95).SaveFile(out_path, gray)) {
+		Cerr() << "WARNING: failed to save preprocessed crop: " << out_path << "\n";
+		return String();
+	}
+	return out_path;
 }
 
 static String RunTesseract(const OcrProbeOptions& opt, const String& path, int& exit_code)
@@ -229,6 +286,59 @@ static bool VerifyTesseractLanguage(OcrProbeOptions& opt, String& error)
 	return true;
 }
 
+static OcrResult RunCrop(const OcrProbeOptions& opt, const OcrCrop& crop)
+{
+	OcrResult result;
+	result.crop = crop;
+	result.original_text = RunTesseract(opt, crop.path, result.original_exit_code);
+	result.preprocessed_path = PreprocessCrop(opt, crop);
+	if(!result.preprocessed_path.IsEmpty())
+		result.preprocessed_text = RunTesseract(opt, result.preprocessed_path,
+		                                        result.preprocessed_exit_code);
+	return result;
+}
+
+static int TextScore(const String& semantic, const String& text)
+{
+	if(text.IsEmpty())
+		return -1000;
+	int score = text.GetCount() / 8;
+	String lower = ToLower(text);
+	if(semantic == "pot_label") {
+		if(lower.Find("pot") >= 0)
+			score += 100;
+		if(lower.Find("bb") >= 0)
+			score += 20;
+	}
+	else if(semantic == "title") {
+		if(lower.Find("hold") >= 0)
+			score += 60;
+		if(lower.Find("limit") >= 0)
+			score += 40;
+		if(text.Find("$") >= 0)
+			score += 20;
+	}
+	else {
+		if(lower.Find("bb") >= 0)
+			score += 20;
+	}
+	return score;
+}
+
+static String BestText(const OcrResult& result)
+{
+	return TextScore(result.crop.semantic, result.preprocessed_text) >
+	       TextScore(result.crop.semantic, result.original_text) ?
+	       result.preprocessed_text : result.original_text;
+}
+
+static int BestExitCode(const OcrResult& result)
+{
+	return TextScore(result.crop.semantic, result.preprocessed_text) >
+	       TextScore(result.crop.semantic, result.original_text) ?
+	       result.preprocessed_exit_code : result.original_exit_code;
+}
+
 static bool RunProbe(OcrProbeOptions opt)
 {
 	if(!FileExists(opt.tesseract)) {
@@ -250,24 +360,32 @@ static bool RunProbe(OcrProbeOptions opt)
 	json << "  \"tessdata_dir\": \"" << JsonString(opt.tessdata_dir) << "\",\n";
 	json << "  \"lang\": \"" << JsonString(opt.lang) << "\",\n";
 	json << "  \"psm\": " << opt.psm << ",\n";
+	json << "  \"preprocess\": " << (opt.preprocess ? "true" : "false") << ",\n";
 	json << "  \"crop_count\": " << crops.GetCount() << ",\n";
 	json << "  \"results\": [\n";
 	for(int i = 0; i < crops.GetCount(); i++) {
-		int exit_code = -1;
-		String text = RunTesseract(opt, crops[i].path, exit_code);
+		OcrResult result = RunCrop(opt, crops[i]);
+		String best_text = BestText(result);
+		int best_exit_code = BestExitCode(result);
 		Cout() << "ocr frame=" << crops[i].frame_index
 		       << " table=" << crops[i].table_id
 		       << " semantic=" << crops[i].semantic
-		       << " exit=" << exit_code
-		       << " text=\"" << text << "\"\n";
+		       << " original_exit=" << result.original_exit_code
+		       << " preprocessed_exit=" << result.preprocessed_exit_code
+		       << " text=\"" << best_text << "\"\n";
 		if(i)
 			json << ",\n";
 		json << "    {\"frame_index\": " << crops[i].frame_index
 		     << ", \"table_id\": " << crops[i].table_id
 		     << ", \"semantic\": \"" << JsonString(crops[i].semantic)
 		     << "\", \"path\": \"" << JsonString(crops[i].path)
-		     << "\", \"exit_code\": " << exit_code
-		     << ", \"text\": \"" << JsonString(text) << "\"}";
+		     << "\", \"preprocessed_path\": \"" << JsonString(result.preprocessed_path)
+		     << "\", \"exit_code\": " << best_exit_code
+		     << ", \"text\": \"" << JsonString(best_text)
+		     << "\", \"original_exit_code\": " << result.original_exit_code
+		     << ", \"original_text\": \"" << JsonString(result.original_text)
+		     << "\", \"preprocessed_exit_code\": " << result.preprocessed_exit_code
+		     << ", \"preprocessed_text\": \"" << JsonString(result.preprocessed_text) << "\"}";
 	}
 	json << "\n  ]\n";
 	json << "}\n";

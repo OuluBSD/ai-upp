@@ -10,7 +10,13 @@ static void PrintHelp()
 	       << "  --tracker-dir <dir>  Tracker output directory\n"
 	       << "  --ocr-json <file>    Override ocr_probe.json path\n"
 	       << "  --out <file>         Output JSON path (default <dir>/table_quality.json)\n"
+	       << "  --table-mode <mode>  Table perspective: unknown, hero, observer (default unknown)\n"
 	       << "  --help, -h           Show help\n";
+}
+
+static bool IsValidTableMode(const String& mode)
+{
+	return mode == "unknown" || mode == "hero" || mode == "observer";
 }
 
 static TableQualityOptions ParseOptions(const Vector<String>& args)
@@ -23,9 +29,13 @@ static TableQualityOptions ParseOptions(const Vector<String>& args)
 			opt.ocr_json = args[++i];
 		else if(args[i] == "--out" && i + 1 < args.GetCount())
 			opt.out_path = args[++i];
+		else if(args[i] == "--table-mode" && i + 1 < args.GetCount())
+			opt.table_mode = ToLower(args[++i]);
 		else if(args[i] == "--help" || args[i] == "-h")
 			opt.help = true;
 	}
+	if(!IsValidTableMode(opt.table_mode))
+		opt.table_mode = "unknown";
 	if(!opt.tracker_dir.IsEmpty()) {
 		if(opt.ocr_json.IsEmpty())
 			opt.ocr_json = AppendFileName(opt.tracker_dir, "ocr_probe.json");
@@ -175,6 +185,9 @@ static bool SaveQuality(const TableQualityOptions& opt, const Vector<TableQualit
 	json << "{\n";
 	json << "  \"tracker_dir\": \"" << JsonString(opt.tracker_dir) << "\",\n";
 	json << "  \"ocr_json\": \"" << JsonString(opt.ocr_json) << "\",\n";
+	json << "  \"table_mode\": \"" << JsonString(opt.table_mode) << "\",\n";
+	json << "  \"hero_cards_expected\": " << (opt.table_mode == "hero" ? "true" : "false") << ",\n";
+	json << "  \"observer_nohero\": " << (opt.table_mode == "observer" ? "true" : "false") << ",\n";
 	json << "  \"table_quality_count\": " << entries.GetCount() << ",\n";
 	json << "  \"usable_table_count\": " << usable << ",\n";
 	json << "  \"obstructed_table_count\": " << obstructed << ",\n";
@@ -199,6 +212,8 @@ static bool SaveQuality(const TableQualityOptions& opt, const Vector<TableQualit
 	if(!SaveFile(opt.out_path, json))
 		return false;
 	Cout() << "table_quality_json=" << opt.out_path << "\n";
+	Cout() << "table_mode=" << opt.table_mode
+	       << " hero_cards_expected=" << (opt.table_mode == "hero" ? "true" : "false") << "\n";
 	Cout() << "usable_table_count=" << usable << " max_usable_tables=" << max_usable_tables
 	       << " obstructed_table_count=" << obstructed << "\n";
 	return true;
@@ -225,4 +240,3 @@ CONSOLE_APP_MAIN
 	if(!RunQuality(opt))
 		SetExitCode(1);
 }
-

@@ -15,6 +15,7 @@ struct TrackerOptions {
 	int    block = 24;
 	int    pixel_threshold = 35;
 	int    min_changed_pixels = 24;
+	String table_mode = "unknown";
 	bool   help = false;
 };
 

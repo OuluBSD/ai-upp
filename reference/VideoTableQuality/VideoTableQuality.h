@@ -9,6 +9,7 @@ struct TableQualityOptions {
 	String tracker_dir;
 	String ocr_json;
 	String out_path;
+	String table_mode = "unknown";
 	bool   help = false;
 };
 
@@ -27,4 +28,3 @@ struct TableQualityEntry : Moveable<TableQualityEntry> {
 END_UPP_NAMESPACE
 
 #endif
-

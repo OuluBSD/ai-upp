@@ -11,6 +11,7 @@ struct LiveRegressionOptions {
 	int    frames = 10;
 	String name = "live_smoke";
 	String out_root = "tmp";
+	String table_mode = "unknown";
 	int    expect_frames = -1;
 	int    min_frames = -1;
 	int    expect_tables = -1;

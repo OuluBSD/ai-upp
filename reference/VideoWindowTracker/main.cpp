@@ -12,7 +12,13 @@ static void PrintHelp()
 	       << "  --block <px>               Change detection block size (default 24)\n"
 	       << "  --pixel-threshold <v>      RGB diff threshold per pixel (default 35)\n"
 	       << "  --min-changed-pixels <n>   Minimum changed pixels per block (default 24)\n"
+	       << "  --table-mode <mode>        Table perspective: unknown, hero, observer (default unknown)\n"
 	       << "  --help, -h                 Show help\n";
+}
+
+static bool IsValidTableMode(const String& mode)
+{
+	return mode == "unknown" || mode == "hero" || mode == "observer";
 }
 
 static TrackerOptions ParseOptions(const Vector<String>& args)
@@ -29,9 +35,13 @@ static TrackerOptions ParseOptions(const Vector<String>& args)
 			opt.pixel_threshold = max(1, StrInt(args[++i]));
 		else if(args[i] == "--min-changed-pixels" && i + 1 < args.GetCount())
 			opt.min_changed_pixels = max(1, StrInt(args[++i]));
+		else if(args[i] == "--table-mode" && i + 1 < args.GetCount())
+			opt.table_mode = ToLower(args[++i]);
 		else if(args[i] == "--help" || args[i] == "-h")
 			opt.help = true;
 	}
+	if(!IsValidTableMode(opt.table_mode))
+		opt.table_mode = "unknown";
 	if(opt.out_dir.IsEmpty() && !opt.input_dir.IsEmpty())
 		opt.out_dir = opt.input_dir + "_tracked";
 	return opt;
@@ -387,7 +397,8 @@ static void AddEvent(Vector<SemanticEvent>& events, int frame_index, int table_i
 }
 
 static Vector<SemanticEvent> DetectSemanticEvents(int frame_index, int table_id,
-                                                  const Vector<SemanticChange>& changes)
+                                                  const Vector<SemanticChange>& changes,
+                                                  const TrackerOptions& opt)
 {
 	Vector<SemanticEvent> events;
 	int board = SemanticBlocks(changes, "board_cards");
@@ -416,10 +427,16 @@ static Vector<SemanticEvent> DetectSemanticEvents(int frame_index, int table_id,
 		AddEvent(events, frame_index, table_id, "seat_activity",
 		         Format("left=%d right=%d top=%d bottom=%d", left, right, top, bottom),
 		         "seat_regions", seat, 0.35);
-	if(buttons >= 2)
-		AddEvent(events, frame_index, table_id, "button_changed",
-		         Format("bottom_button=%d bottom_seat=%d", buttons, bottom),
-		         "bottom_button", buttons, 0.45);
+	if(buttons >= 2) {
+		if(opt.table_mode == "observer")
+			AddEvent(events, frame_index, table_id, "observer_bottom_region_changed",
+			         Format("observer_nohero bottom_button=%d bottom_seat=%d", buttons, bottom),
+			         "bottom_button", buttons, 0.30);
+		else
+			AddEvent(events, frame_index, table_id, "button_changed",
+			         Format("bottom_button=%d bottom_seat=%d", buttons, bottom),
+			         "bottom_button", buttons, 0.45);
+	}
 	return events;
 }
 
@@ -518,12 +535,18 @@ CONSOLE_APP_MAIN
 	String json;
 	json << "{\n";
 	json << "  \"input_dir\": \"" << JsonString(opt.input_dir) << "\",\n";
+	json << "  \"table_mode\": \"" << JsonString(opt.table_mode) << "\",\n";
+	json << "  \"hero_cards_expected\": " << (opt.table_mode == "hero" ? "true" : "false") << ",\n";
+	json << "  \"observer_nohero\": " << (opt.table_mode == "observer" ? "true" : "false") << ",\n";
 	json << "  \"frame_count\": " << frames.GetCount() << ",\n";
 	json << "  \"frames\": [\n";
 
 	String summary;
 	summary << "{\n";
 	summary << "  \"input_dir\": \"" << JsonString(opt.input_dir) << "\",\n";
+	summary << "  \"table_mode\": \"" << JsonString(opt.table_mode) << "\",\n";
+	summary << "  \"hero_cards_expected\": " << (opt.table_mode == "hero" ? "true" : "false") << ",\n";
+	summary << "  \"observer_nohero\": " << (opt.table_mode == "observer" ? "true" : "false") << ",\n";
 	summary << "  \"frame_count\": " << frames.GetCount() << ",\n";
 	summary << "  \"frames\": [\n";
 
@@ -570,7 +593,7 @@ CONSOLE_APP_MAIN
 				JPGEncoder().Quality(95).SaveFile(change_overlay, MakeChangeOverlay(crop, changes));
 			}
 			Vector<SemanticChange> semantic_changes = SummarizeSemanticChanges(semantic_crops, changes);
-			Vector<SemanticEvent> events = DebounceEvents(DetectSemanticEvents(fi, w.id, semantic_changes),
+			Vector<SemanticEvent> events = DebounceEvents(DetectSemanticEvents(fi, w.id, semantic_changes, opt),
 			                                              last_event_frame);
 			for(const SemanticEvent& event : events)
 				all_events.Add(event);
@@ -641,6 +664,9 @@ CONSOLE_APP_MAIN
 	String events_json;
 	events_json << "{\n";
 	events_json << "  \"input_dir\": \"" << JsonString(opt.input_dir) << "\",\n";
+	events_json << "  \"table_mode\": \"" << JsonString(opt.table_mode) << "\",\n";
+	events_json << "  \"hero_cards_expected\": " << (opt.table_mode == "hero" ? "true" : "false") << ",\n";
+	events_json << "  \"observer_nohero\": " << (opt.table_mode == "observer" ? "true" : "false") << ",\n";
 	events_json << "  \"frame_count\": " << frames.GetCount() << ",\n";
 	events_json << "  \"event_count\": " << all_events.GetCount() << ",\n";
 	events_json << "  \"events\": ";

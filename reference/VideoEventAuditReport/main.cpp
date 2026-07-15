@@ -241,6 +241,15 @@ static bool GenerateReport(const AuditReportOptions& opt)
 	String md;
 	md << "# Video Event Audit\n\n";
 	md << "- tracker_dir: `" << opt.tracker_dir << "`\n";
+	if(FileExists(pipeline_summary_path)) {
+		Value pipeline_value = ParseJSON(LoadFile(pipeline_summary_path));
+		if(!IsError(pipeline_value)) {
+			ValueMap pipeline = pipeline_value;
+			md << "- table_mode: `" << JsonTextValue(pipeline, "table_mode") << "`\n";
+			md << "- hero_cards_expected: `" << JsonTextValue(pipeline, "hero_cards_expected") << "`\n";
+			md << "- observer_nohero: `" << JsonTextValue(pipeline, "observer_nohero") << "`\n";
+		}
+	}
 	md << "- events: " << events.GetCount() << "\n";
 	md << "- " << MarkdownLink("events.json", opt.out_path, events_path) << "\n";
 	md << "- " << MarkdownLink("tracking_summary.json", opt.out_path, summary_path) << "\n\n";

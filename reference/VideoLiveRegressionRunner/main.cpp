@@ -12,6 +12,7 @@ static void PrintHelp()
 	       << "  --frames <count>    Frames to record (default 10)\n"
 	       << "  --name <name>       Regression name (default live_smoke)\n"
 	       << "  --out-root <dir>    Output root (default tmp)\n"
+	       << "  --table-mode <mode> Table perspective: unknown, hero, observer (default unknown)\n"
 	       << "  --expect-frames <n> Require exact frames_tracked after run\n"
 	       << "  --min-frames <n>    Require at least n frames_tracked after run\n"
 	       << "  --expect-tables <n> Require exact max_frame_tables after run\n"
@@ -23,6 +24,11 @@ static void PrintHelp()
 	       << "  --ocr-ok            Require OCR ok=true after run\n"
 	       << "  --require-ocr-text <text> Require OCR text substring; can repeat\n"
 	       << "  --help, -h          Show help\n";
+}
+
+static bool IsValidTableMode(const String& mode)
+{
+	return mode == "unknown" || mode == "hero" || mode == "observer";
 }
 
 static LiveRegressionOptions ParseOptions(const Vector<String>& args)
@@ -39,6 +45,8 @@ static LiveRegressionOptions ParseOptions(const Vector<String>& args)
 			opt.name = args[++i];
 		else if(args[i] == "--out-root" && i + 1 < args.GetCount())
 			opt.out_root = args[++i];
+		else if(args[i] == "--table-mode" && i + 1 < args.GetCount())
+			opt.table_mode = ToLower(args[++i]);
 		else if(args[i] == "--expect-frames" && i + 1 < args.GetCount())
 			opt.expect_frames = StrInt(args[++i]);
 		else if(args[i] == "--min-frames" && i + 1 < args.GetCount())
@@ -66,6 +74,8 @@ static LiveRegressionOptions ParseOptions(const Vector<String>& args)
 		opt.name = "live_smoke";
 	if(opt.out_root.IsEmpty())
 		opt.out_root = "tmp";
+	if(!IsValidTableMode(opt.table_mode))
+		opt.table_mode = "unknown";
 	return opt;
 }
 
@@ -222,6 +232,9 @@ static bool WritePipelineSummary(const LiveRegressionOptions& opt, const String&
 	json << "  \"runner\": \"VideoLiveRegressionRunner\",\n";
 	json << "  \"status\": \"ok\",\n";
 	json << "  \"regression_name\": \"" << JsonString(opt.name) << "\",\n";
+	json << "  \"table_mode\": \"" << JsonString(opt.table_mode) << "\",\n";
+	json << "  \"hero_cards_expected\": " << (opt.table_mode == "hero" ? "true" : "false") << ",\n";
+	json << "  \"observer_nohero\": " << (opt.table_mode == "observer" ? "true" : "false") << ",\n";
 	json << "  \"host\": \"" << JsonString(opt.host) << "\",\n";
 	json << "  \"port\": " << opt.port << ",\n";
 	json << "  \"frames_requested\": " << opt.frames << ",\n";
@@ -306,6 +319,7 @@ static Vector<String> MakeAssertArgs(const LiveRegressionOptions& opt, const Str
 		args << "--min-ocr-crops" << AsString(opt.min_ocr_crops);
 	if(opt.min_usable_tables >= 0)
 		args << "--min-usable-tables" << AsString(opt.min_usable_tables);
+	args << "--table-mode" << opt.table_mode;
 	for(const String& type : opt.required_events)
 		args << "--require-event" << type;
 	if(opt.require_ocr_ok)
@@ -357,7 +371,8 @@ CONSOLE_APP_MAIN
 
 	Vector<String> tracker_args;
 	tracker_args << "--input-dir" << record_dir
-	             << "--out" << tracked_dir;
+	             << "--out" << tracked_dir
+	             << "--table-mode" << opt.table_mode;
 	int tracker_code = RunCommand(tracker, tracker_args);
 	if(tracker_code != 0) {
 		Cerr() << "ERROR: tracker failed\n";
@@ -400,7 +415,8 @@ CONSOLE_APP_MAIN
 	int quality_code = 0;
 	if(quality_available) {
 		Vector<String> quality_args;
-		quality_args << "--tracker-dir" << tracked_dir;
+		quality_args << "--tracker-dir" << tracked_dir
+		             << "--table-mode" << opt.table_mode;
 		quality_code = RunCommand(table_quality, quality_args);
 		if(quality_code != 0) {
 			Cerr() << "ERROR: table quality failed\n";
@@ -464,6 +480,7 @@ CONSOLE_APP_MAIN
 	}
 
 	Cout() << "regression_name=" << opt.name << "\n";
+	Cout() << "table_mode=" << opt.table_mode << "\n";
 	Cout() << "record_dir=" << record_dir << "\n";
 	Cout() << "record_summary=" << AppendFileName(record_dir, "summary.json") << "\n";
 	Cout() << "tracked_dir=" << tracked_dir << "\n";

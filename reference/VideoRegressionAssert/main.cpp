@@ -12,6 +12,7 @@ static void PrintHelp()
 	       << "  --events-json <file>       Override events.json path\n"
 	       << "  --ocr-json <file>          Override ocr_probe.json path\n\n"
 	       << "  --table-quality-json <file> Override table_quality.json path\n\n"
+	       << "  --table-mode <mode>         Require table_mode in pipeline/quality JSON\n\n"
 	       << "Expectations:\n"
 	       << "  --expect-frames <n>        Require exact frames_tracked\n"
 	       << "  --min-frames <n>           Require at least n frames_tracked\n"
@@ -40,6 +41,8 @@ static VideoAssertOptions ParseOptions(const Vector<String>& args)
 			opt.ocr_json = args[++i];
 		else if(args[i] == "--table-quality-json" && i + 1 < args.GetCount())
 			opt.table_quality_json = args[++i];
+		else if(args[i] == "--table-mode" && i + 1 < args.GetCount())
+			opt.table_mode = ToLower(args[++i]);
 		else if(args[i] == "--expect-frames" && i + 1 < args.GetCount())
 			opt.expect_frames = StrInt(args[++i]);
 		else if(args[i] == "--min-frames" && i + 1 < args.GetCount())
@@ -158,6 +161,18 @@ static bool CheckIntMin(const char *name, int actual, int expected)
 	return false;
 }
 
+static bool CheckTextExact(const char *name, const String& actual, const String& expected)
+{
+	if(expected.IsEmpty())
+		return true;
+	if(actual == expected) {
+		Cout() << "PASS " << name << " actual=" << actual << " expected=" << expected << "\n";
+		return true;
+	}
+	Cout() << "FAIL " << name << " actual=" << actual << " expected=" << expected << "\n";
+	return false;
+}
+
 static bool HasEventType(ValueMap events_root, const String& type)
 {
 	ValueArray events = events_root.Get("events", ValueArray());
@@ -198,6 +213,8 @@ static bool RunAssertions(const VideoAssertOptions& opt)
 	int ocr_crop_count = IntValue(ctx.ocr_root, "crop_count");
 	int max_usable_tables = IntValue(table_quality_root, "max_usable_tables");
 	bool ocr_ok = BoolValue(ctx.ocr_root, "ok");
+	String pipeline_mode = TextValue(ctx.pipeline, "table_mode");
+	String quality_mode = TextValue(table_quality_root, "table_mode");
 
 	ok = CheckIntExact("frames_tracked", frames_tracked, opt.expect_frames) && ok;
 	ok = CheckIntMin("frames_tracked", frames_tracked, opt.min_frames) && ok;
@@ -206,6 +223,8 @@ static bool RunAssertions(const VideoAssertOptions& opt)
 	ok = CheckIntMin("event_count", event_count, opt.min_events) && ok;
 	ok = CheckIntMin("ocr_crop_count", ocr_crop_count, opt.min_ocr_crops) && ok;
 	ok = CheckIntMin("max_usable_tables", max_usable_tables, opt.min_usable_tables) && ok;
+	ok = CheckTextExact("pipeline_table_mode", pipeline_mode, opt.table_mode) && ok;
+	ok = CheckTextExact("quality_table_mode", quality_mode, opt.table_mode) && ok;
 
 	for(const String& type : opt.required_events) {
 		if(HasEventType(ctx.events_root, type))

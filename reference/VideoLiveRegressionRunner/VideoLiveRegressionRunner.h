@@ -10,6 +10,7 @@ struct LiveRegressionOptions {
 	String host = "127.0.0.1";
 	int    port = 8082;
 	int    frames = 10;
+	String input_dir;
 	String name = "live_smoke";
 	String out_root = "tmp";
 	String table_mode = "unknown";

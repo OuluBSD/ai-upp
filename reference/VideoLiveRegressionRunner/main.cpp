@@ -10,6 +10,8 @@ static void PrintHelp()
 	       << "  --host <host>       VideoServer host (default 127.0.0.1)\n"
 	       << "  --port <port>       VideoServer port (default 8082)\n"
 	       << "  --frames <count>    Frames to record (default 10)\n"
+	       << "  --input-dir <dir>   Replay existing frame_*.jpg directory instead of recording live\n"
+	       << "  --replay-dir <dir>  Alias for --input-dir\n"
 	       << "  --name <name>       Regression name (default live_smoke)\n"
 	       << "  --out-root <dir>    Output root (default tmp)\n"
 	       << "  --table-mode <mode> Table perspective: unknown, hero, observer (default unknown)\n"
@@ -37,6 +39,8 @@ static LiveRegressionOptions ParseOptions(const Vector<String>& args)
 			opt.port = StrInt(args[++i]);
 		else if(args[i] == "--frames" && i + 1 < args.GetCount())
 			opt.frames = max(1, StrInt(args[++i]));
+		else if((args[i] == "--input-dir" || args[i] == "--replay-dir") && i + 1 < args.GetCount())
+			opt.input_dir = args[++i];
 		else if(args[i] == "--name" && i + 1 < args.GetCount())
 			opt.name = args[++i];
 		else if(args[i] == "--out-root" && i + 1 < args.GetCount())
@@ -208,8 +212,48 @@ static void GetTableCounts(const String& tracking_summary, int& first_frame_tabl
 	}
 }
 
+static Vector<String> FindReplayFrames(const String& dir)
+{
+	Vector<String> frames;
+	FindFile ff(AppendFileName(dir, "frame_*.jpg"));
+	while(ff) {
+		if(ff.IsFile())
+			frames << AppendFileName(dir, ff.GetName());
+		ff.Next();
+	}
+	Sort(frames);
+	return frames;
+}
+
+static bool EnsureReplaySummary(const String& dir)
+{
+	String summary_path = AppendFileName(dir, "summary.json");
+	if(FileExists(summary_path))
+		return true;
+	Vector<String> frames = FindReplayFrames(dir);
+	if(frames.IsEmpty())
+		return false;
+	String json;
+	json << "{\n";
+	json << "  \"tool\": \"VideoLiveRegressionRunner\",\n";
+	json << "  \"source_mode\": \"replay\",\n";
+	json << "  \"frame_count\": " << frames.GetCount() << ",\n";
+	json << "  \"frames_saved\": " << frames.GetCount() << ",\n";
+	json << "  \"frames\": [\n";
+	for(int i = 0; i < frames.GetCount(); i++) {
+		if(i)
+			json << ",\n";
+		json << "    {\"index\": " << i
+		     << ", \"path\": \"" << JsonString(frames[i]) << "\"}";
+	}
+	json << "\n  ]\n";
+	json << "}\n";
+	return SaveFile(summary_path, json);
+}
+
 static bool WritePipelineSummary(const LiveRegressionOptions& opt, const String& record_dir,
-                                 const String& tracked_dir, int recorder_code, int tracker_code,
+                                 const String& tracked_dir, bool recorder_available,
+                                 int recorder_code, int tracker_code,
                                  int correlator_code, bool correlator_available, int audit_code,
                                  bool audit_available, int ocr_code, bool ocr_available,
                                  int quality_code, bool quality_available,
@@ -228,9 +272,11 @@ static bool WritePipelineSummary(const LiveRegressionOptions& opt, const String&
 	int max_frame_tables = -1;
 	GetTableCounts(tracking_summary, first_frame_tables, max_frame_tables);
 	String json;
+	String source_mode = opt.input_dir.IsEmpty() ? "live" : "replay";
 	json << "{\n";
 	json << "  \"runner\": \"VideoLiveRegressionRunner\",\n";
 	json << "  \"status\": \"ok\",\n";
+	json << "  \"source_mode\": \"" << source_mode << "\",\n";
 	json << "  \"regression_name\": \"" << JsonString(opt.name) << "\",\n";
 	json << "  \"table_mode\": \"" << JsonString(opt.table_mode) << "\",\n";
 	json << "  \"hero_cards_expected\": " << (VsmHeroCardsExpected(opt.table_mode) ? "true" : "false") << ",\n";
@@ -238,12 +284,14 @@ static bool WritePipelineSummary(const LiveRegressionOptions& opt, const String&
 	json << "  \"host\": \"" << JsonString(opt.host) << "\",\n";
 	json << "  \"port\": " << opt.port << ",\n";
 	json << "  \"frames_requested\": " << opt.frames << ",\n";
+	json << "  \"input_dir\": \"" << JsonString(opt.input_dir) << "\",\n";
 	json << "  \"record_dir\": \"" << JsonString(record_dir) << "\",\n";
 	json << "  \"tracked_dir\": \"" << JsonString(tracked_dir) << "\",\n";
 	json << "  \"record_dir_abs\": \"" << JsonString(NormalizePath(record_dir)) << "\",\n";
 	json << "  \"tracked_dir_abs\": \"" << JsonString(NormalizePath(tracked_dir)) << "\",\n";
 	json << "  \"stages\": {\n";
-	json << "    \"recorder\": {\"status\": \"" << StageStatus(recorder_code, true, true)
+	json << "    \"recorder\": {\"available\": " << (recorder_available ? "true" : "false")
+	     << ", \"status\": \"" << StageStatus(recorder_code, recorder_available, true)
 	     << "\", \"exit_code\": " << recorder_code << ", \"fatal\": true},\n";
 	json << "    \"tracker\": {\"status\": \"" << StageStatus(tracker_code, true, true)
 	     << "\", \"exit_code\": " << tracker_code << ", \"fatal\": true},\n";
@@ -358,24 +406,51 @@ CONSOLE_APP_MAIN
 	String table_quality = AppendFileName(exe_dir, "VideoTableQuality.exe");
 	String table_state = AppendFileName(exe_dir, "VideoTableStateExtractor.exe");
 	String assertion_tool = AppendFileName(exe_dir, "VideoRegressionAssert.exe");
-	String record_dir = AppendFileName(opt.out_root, opt.name);
+	bool replay_mode = !opt.input_dir.IsEmpty();
+	String record_dir = replay_mode ? opt.input_dir : AppendFileName(opt.out_root, opt.name);
 	String tracked_dir = opt.name + "_tracked";
 	tracked_dir = AppendFileName(opt.out_root, tracked_dir);
 
 	RealizeDirectory(opt.out_root);
-	DeleteFolderDeep(record_dir);
+	if(!replay_mode)
+		DeleteFolderDeep(record_dir);
 	DeleteFolderDeep(tracked_dir);
 
-	Vector<String> recorder_args;
-	recorder_args << "--host" << opt.host
-	              << "--port" << AsString(opt.port)
-	              << "--frames" << AsString(opt.frames)
-	              << "--out" << record_dir;
-	int recorder_code = RunCommand(recorder, recorder_args);
-	if(recorder_code != 0) {
-		Cerr() << "ERROR: recorder failed\n";
-		SetExitCode(1);
-		return;
+	int recorder_code = 0;
+	bool recorder_available = !replay_mode;
+	if(replay_mode) {
+		Cout() << "source_mode=replay input_dir=" << record_dir << "\n";
+		if(!DirectoryExists(record_dir)) {
+			Cerr() << "ERROR: replay input directory missing: " << record_dir << "\n";
+			SetExitCode(1);
+			return;
+		}
+		Vector<String> replay_frames = FindReplayFrames(record_dir);
+		if(replay_frames.IsEmpty()) {
+			Cerr() << "ERROR: replay input directory has no frame_*.jpg files: " << record_dir << "\n";
+			SetExitCode(1);
+			return;
+		}
+		if(!EnsureReplaySummary(record_dir)) {
+			Cerr() << "ERROR: failed to create replay summary in " << record_dir << "\n";
+			SetExitCode(1);
+			return;
+		}
+		Cout() << "replay_frames=" << replay_frames.GetCount()
+		       << " replay_summary=" << AppendFileName(record_dir, "summary.json") << "\n";
+	}
+	else {
+		Vector<String> recorder_args;
+		recorder_args << "--host" << opt.host
+		              << "--port" << AsString(opt.port)
+		              << "--frames" << AsString(opt.frames)
+		              << "--out" << record_dir;
+		recorder_code = RunCommand(recorder, recorder_args);
+		if(recorder_code != 0) {
+			Cerr() << "ERROR: recorder failed\n";
+			SetExitCode(1);
+			return;
+		}
 	}
 
 	Vector<String> tracker_args;
@@ -472,7 +547,8 @@ CONSOLE_APP_MAIN
 	}
 
 	String pipeline_summary = AppendFileName(tracked_dir, "pipeline_summary.json");
-	if(!WritePipelineSummary(opt, record_dir, tracked_dir, recorder_code, tracker_code,
+	if(!WritePipelineSummary(opt, record_dir, tracked_dir, recorder_available,
+	                         recorder_code, tracker_code,
 	                         correlator_code, correlator_available, audit_code, audit_available,
 	                         ocr_code, ocr_available, quality_code, quality_available,
 	                         table_state_code, table_state_available)) {
@@ -507,6 +583,7 @@ CONSOLE_APP_MAIN
 	}
 
 	Cout() << "regression_name=" << opt.name << "\n";
+	Cout() << "source_mode=" << (replay_mode ? "replay" : "live") << "\n";
 	Cout() << "table_mode=" << opt.table_mode << "\n";
 	Cout() << "record_dir=" << record_dir << "\n";
 	Cout() << "record_summary=" << AppendFileName(record_dir, "summary.json") << "\n";

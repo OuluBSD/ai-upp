@@ -336,9 +336,11 @@ static Vector<SemanticCrop> GetSemanticCrops(const TrackerWindow& window, const 
 	AddSemanticCrop(out, "pot_label", CropRect(sz, 405, 270, 595, 350));
 	AddSemanticCrop(out, "center_chips", CropRect(sz, 420, 410, 580, 545));
 	AddSemanticCrop(out, "bottom_button", CropRect(sz, 380, 560, 475, 690));
-	AddSemanticCrop(out, "left_seats", CropRect(sz, 35, 190, 310, 810));
-	AddSemanticCrop(out, "right_seats", CropRect(sz, 690, 190, 965, 810));
 	AddSemanticCrop(out, "top_seat", CropRect(sz, 350, 115, 650, 300));
+	AddSemanticCrop(out, "left_top_seat", CropRect(sz, 35, 190, 310, 500));
+	AddSemanticCrop(out, "left_bottom_seat", CropRect(sz, 35, 500, 310, 810));
+	AddSemanticCrop(out, "right_top_seat", CropRect(sz, 690, 190, 965, 500));
+	AddSemanticCrop(out, "right_bottom_seat", CropRect(sz, 690, 500, 965, 810));
 	AddSemanticCrop(out, "bottom_seat", CropRect(sz, 330, 650, 670, 870));
 	return out;
 }
@@ -451,11 +453,15 @@ static Vector<SemanticEvent> DetectSemanticEvents(int frame_index, int table_id,
 	int board = SemanticBlocks(changes, "board_cards");
 	int pot = SemanticBlocks(changes, "pot_label");
 	int center = SemanticBlocks(changes, "center_chips");
-	int left = SemanticBlocks(changes, "left_seats");
-	int right = SemanticBlocks(changes, "right_seats");
+	int left_top = SemanticBlocks(changes, "left_top_seat");
+	int left_bottom = SemanticBlocks(changes, "left_bottom_seat");
+	int right_top = SemanticBlocks(changes, "right_top_seat");
+	int right_bottom = SemanticBlocks(changes, "right_bottom_seat");
 	int top = SemanticBlocks(changes, "top_seat");
 	int bottom = SemanticBlocks(changes, "bottom_seat");
 	int buttons = SemanticBlocks(changes, "bottom_button");
+	int left = left_top + left_bottom;
+	int right = right_top + right_bottom;
 	int seat = left + right + top + bottom;
 
 	if(board >= 12 || (board >= 2 && (center >= 1 || pot >= 1)))

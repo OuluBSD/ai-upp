@@ -152,22 +152,19 @@ static Rect SemanticRect(ValueMap table, const char *semantic_name)
 	return RectValue(item, "rect");
 }
 
-static int FirstFrameIndex(ValueMap tracking)
+static String TableCropPath(ValueMap table)
 {
-	ValueArray frames = ArrayValue(tracking, "frames");
-	if(frames.IsEmpty())
-		return 0;
-	ValueMap frame = frames[0];
-	return IntValue(frame, "index");
+	return TextValue(table, "crop");
 }
 
-static ValueArray FirstFrameTables(ValueMap tracking)
+static Rect TopHalf(const Rect& r)
 {
-	ValueArray frames = ArrayValue(tracking, "frames");
-	if(frames.IsEmpty())
-		return ValueArray();
-	ValueMap frame = frames[0];
-	return ArrayValue(frame, "tables");
+	return Rect(r.left, r.top, r.right, (r.top + r.bottom) / 2);
+}
+
+static Rect BottomHalf(const Rect& r)
+{
+	return Rect(r.left, (r.top + r.bottom) / 2, r.right, r.bottom);
 }
 
 static bool IsCardLikePixel(const RGBA& p)
@@ -264,19 +261,76 @@ static ExtractedTableState& GetState(Vector<ExtractedTableState>& states, int fr
 static bool IsSeatSemantic(const String& semantic)
 {
 	return semantic == "top_seat" || semantic == "bottom_seat" ||
-	       semantic == "left_seats" || semantic == "right_seats";
+	       semantic == "left_seats" || semantic == "right_seats" ||
+	       semantic == "left_top_seat" || semantic == "left_bottom_seat" ||
+	       semantic == "right_top_seat" || semantic == "right_bottom_seat";
 }
 
-static void AddSeatRegion(ExtractedTableState& state, ValueMap table,
-                          const char *semantic, int index, const String& role)
+static void AddSeatRegion(ExtractedTableState& state, const char *semantic,
+                          int index, const String& role,
+                          const Rect& rect, const String& crop_path)
 {
 	SeatRegionState& seat = state.seats.Add();
 	seat.index = index;
 	seat.semantic = semantic;
-	seat.rect = SemanticRect(table, semantic);
-	seat.crop_path = SemanticPath(table, semantic);
+	seat.rect = rect;
+	seat.crop_path = crop_path;
 	seat.role = role;
 	seat.confidence = seat.rect.IsEmpty() || seat.crop_path.IsEmpty() ? 0.20 : 0.60;
+}
+
+static String SaveSeatCrop(const Image& table_crop, const Rect& rect, const String& out_dir,
+                           int index)
+{
+	if(table_crop.IsEmpty() || rect.IsEmpty() || out_dir.IsEmpty())
+		return String();
+	Rect bounds = RectC(0, 0, table_crop.GetWidth(), table_crop.GetHeight());
+	Rect clipped = rect & bounds;
+	if(clipped.IsEmpty())
+		return String();
+	RealizeDirectory(out_dir);
+	String path = AppendFileName(out_dir, Format("seat_%02d.jpg", index));
+	JPGEncoder().Quality(95).SaveFile(path, CropImage(table_crop, clipped));
+	return path;
+}
+
+static void AddObserverSeats(ExtractedTableState& state, ValueMap table,
+                             const String& seat_dir)
+{
+	String table_crop_path = TableCropPath(table);
+	Image table_crop;
+	if(!table_crop_path.IsEmpty() && FileExists(table_crop_path))
+		table_crop = StreamRaster::LoadFileAny(table_crop_path);
+
+	Rect top = SemanticRect(table, "top_seat");
+	Rect left_top = SemanticRect(table, "left_top_seat");
+	Rect left_bottom = SemanticRect(table, "left_bottom_seat");
+	Rect right_top = SemanticRect(table, "right_top_seat");
+	Rect right_bottom = SemanticRect(table, "right_bottom_seat");
+	Rect right = SemanticRect(table, "right_seats");
+	Rect bottom = SemanticRect(table, "bottom_seat");
+	Rect left = SemanticRect(table, "left_seats");
+	if(left_top.IsEmpty())
+		left_top = TopHalf(left);
+	if(left_bottom.IsEmpty())
+		left_bottom = BottomHalf(left);
+	if(right_top.IsEmpty())
+		right_top = TopHalf(right);
+	if(right_bottom.IsEmpty())
+		right_bottom = BottomHalf(right);
+
+	AddSeatRegion(state, "top_seat", 0, "top",
+	              top, SaveSeatCrop(table_crop, top, seat_dir, 0));
+	AddSeatRegion(state, "right_top_seat", 1, "right_top",
+	              right_top, SaveSeatCrop(table_crop, right_top, seat_dir, 1));
+	AddSeatRegion(state, "right_bottom_seat", 2, "right_bottom",
+	              right_bottom, SaveSeatCrop(table_crop, right_bottom, seat_dir, 2));
+	AddSeatRegion(state, "bottom_seat", 3, "bottom",
+	              bottom, SaveSeatCrop(table_crop, bottom, seat_dir, 3));
+	AddSeatRegion(state, "left_bottom_seat", 4, "left_bottom",
+	              left_bottom, SaveSeatCrop(table_crop, left_bottom, seat_dir, 4));
+	AddSeatRegion(state, "left_top_seat", 5, "left_top",
+	              left_top, SaveSeatCrop(table_crop, left_top, seat_dir, 5));
 }
 
 static void LoadQuality(const TableStateOptions& opt, Vector<ExtractedTableState>& states)
@@ -331,26 +385,30 @@ static void LoadTracking(const TableStateOptions& opt, Vector<ExtractedTableStat
 	String mode = VsmNormalizeTableMode(TextValue(tracking, "table_mode"));
 	if(mode == "unknown")
 		mode = opt.table_mode;
-	int frame_index = FirstFrameIndex(tracking);
-	ValueArray tables = FirstFrameTables(tracking);
-	for(int i = 0; i < tables.GetCount(); i++) {
-		ValueMap table = tables[i];
-		int table_id = IntValue(table, "id");
-		ExtractedTableState& state = GetState(states, frame_index, table_id, mode);
-		state.board_crop_path = SemanticPath(table, "board_cards");
-		String slot_dir = opt.tracker_dir.IsEmpty() ? String() :
-		                  AppendFileName(AppendFileName(opt.tracker_dir, "table_state_slots"),
-		                                 Format("frame_%06d_table_%d", frame_index, table_id));
-		state.board_card_count = EstimateBoardCardCount(state.board_crop_path,
-		                                                 slot_dir,
-		                                                 state.board_slots,
-		                                                 state.board_confidence,
-		                                                 state.board_reason);
-		AddSeatRegion(state, table, "top_seat", 0, "top");
-		AddSeatRegion(state, table, "right_seats", 1, "right_group");
-		AddSeatRegion(state, table, "bottom_seat", 2, "bottom");
-		AddSeatRegion(state, table, "left_seats", 3, "left_group");
-		state.reasons << "board:" + state.board_reason;
+	ValueArray frames = ArrayValue(tracking, "frames");
+	for(int fi = 0; fi < frames.GetCount(); fi++) {
+		ValueMap frame = frames[fi];
+		int frame_index = IntValue(frame, "index", fi);
+		ValueArray tables = ArrayValue(frame, "tables");
+		for(int i = 0; i < tables.GetCount(); i++) {
+			ValueMap table = tables[i];
+			int table_id = IntValue(table, "id");
+			ExtractedTableState& state = GetState(states, frame_index, table_id, mode);
+			state.board_crop_path = SemanticPath(table, "board_cards");
+			String slot_dir = opt.tracker_dir.IsEmpty() ? String() :
+			                  AppendFileName(AppendFileName(opt.tracker_dir, "table_state_slots"),
+			                                 Format("frame_%06d_table_%d", frame_index, table_id));
+			String seat_dir = opt.tracker_dir.IsEmpty() ? String() :
+			                  AppendFileName(AppendFileName(opt.tracker_dir, "table_state_seats"),
+			                                 Format("frame_%06d_table_%d", frame_index, table_id));
+			state.board_card_count = EstimateBoardCardCount(state.board_crop_path,
+			                                                 slot_dir,
+			                                                 state.board_slots,
+			                                                 state.board_confidence,
+			                                                 state.board_reason);
+			AddObserverSeats(state, table, seat_dir);
+			state.reasons << "board:" + state.board_reason;
+		}
 	}
 }
 

@@ -1,0 +1,14 @@
+description "Collect and deduplicate video changed-region crops";
+
+uses
+	Core,
+	Draw,
+	plugin/jpg;
+
+file
+	AGENTS.md,
+	VideoChangedRegionCollector.h,
+	main.cpp;
+
+mainconfig
+	"" = "";

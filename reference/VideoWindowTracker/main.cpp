@@ -133,8 +133,6 @@ static Vector<TrackerWindow> DetectTables(const Image& img, const TrackerOptions
 	Sort(out, [](const TrackerWindow& a, const TrackerWindow& b) {
 		return a.rect.left < b.rect.left;
 	});
-	for(int i = 0; i < out.GetCount(); i++)
-		out[i].id = i;
 	return out;
 }
 
@@ -255,6 +253,19 @@ struct WindowStability : Moveable<WindowStability> {
 	bool stable = true;
 };
 
+struct TrackedCrop : Moveable<TrackedCrop> {
+	int id = 0;
+	Image image;
+};
+
+static int FindCropById(const Vector<TrackedCrop>& crops, int id)
+{
+	for(int i = 0; i < crops.GetCount(); i++)
+		if(crops[i].id == id)
+			return i;
+	return -1;
+}
+
 static int AbsMax4(int a, int b, int c, int d)
 {
 	return max(max(abs(a), abs(b)), max(abs(c), abs(d)));
@@ -265,14 +276,62 @@ static Point RectCenter(const Rect& r)
 	return Point((r.left + r.right) / 2, (r.top + r.bottom) / 2);
 }
 
+static int FindWindowById(const Vector<TrackerWindow>& windows, int id)
+{
+	for(int i = 0; i < windows.GetCount(); i++)
+		if(windows[i].id == id)
+			return i;
+	return -1;
+}
+
+static int WindowMatchScore(const TrackerWindow& a, const TrackerWindow& b)
+{
+	Point ac = RectCenter(a.rect);
+	Point bc = RectCenter(b.rect);
+	int center = abs(ac.x - bc.x) + abs(ac.y - bc.y);
+	int size = abs(a.rect.Width() - b.rect.Width()) + abs(a.rect.Height() - b.rect.Height());
+	return center * 4 + size;
+}
+
+static void AssignStableWindowIds(Vector<TrackerWindow>& current,
+                                  const Vector<TrackerWindow>& previous,
+                                  int& next_id)
+{
+	Vector<byte> used;
+	used.SetCount(previous.GetCount(), 0);
+	for(TrackerWindow& window : current) {
+		int best = -1;
+		int best_score = INT_MAX;
+		for(int i = 0; i < previous.GetCount(); i++) {
+			if(used[i])
+				continue;
+			int score = WindowMatchScore(window, previous[i]);
+			if(score < best_score) {
+				best = i;
+				best_score = score;
+			}
+		}
+		if(best >= 0 && best_score <= 600) {
+			window.id = previous[best].id;
+			used[best] = 1;
+		}
+		else
+			window.id = next_id++;
+	}
+	Sort(current, [](const TrackerWindow& a, const TrackerWindow& b) {
+		return a.rect.left < b.rect.left;
+	});
+}
+
 static WindowStability GetWindowStability(const TrackerWindow& current,
                                           const Vector<TrackerWindow>& previous)
 {
 	WindowStability out;
 	out.table_id = current.id;
-	if(current.id < 0 || current.id >= previous.GetCount())
+	int previous_index = FindWindowById(previous, current.id);
+	if(previous_index < 0)
 		return out;
-	const Rect& before = previous[current.id].rect;
+	const Rect& before = previous[previous_index].rect;
 	out.previous_seen = true;
 	out.dx = current.rect.left - before.left;
 	out.dy = current.rect.top - before.top;
@@ -584,8 +643,9 @@ CONSOLE_APP_MAIN
 	RealizeDirectory(overlays_dir);
 	RealizeDirectory(semantic_dir);
 
-	Vector<Image> previous_crops;
+	Vector<TrackedCrop> previous_crops;
 	Vector<TrackerWindow> previous_windows;
+	int next_window_id = 0;
 	int stable_observations = 0;
 	int unstable_observations = 0;
 	int max_center_distance = 0;
@@ -624,6 +684,7 @@ CONSOLE_APP_MAIN
 			return;
 		}
 		Vector<TrackerWindow> windows = DetectTables(frame, opt);
+		AssignStableWindowIds(windows, previous_windows, next_window_id);
 		String frame_overlay = AppendFileName(overlays_dir, Format("frame_%06d_windows.jpg", fi));
 		JPGEncoder().Quality(95).SaveFile(frame_overlay, MakeFrameOverlay(frame, windows));
 		Cout() << "frame=" << fi << " tables=" << windows.GetCount()
@@ -644,7 +705,7 @@ CONSOLE_APP_MAIN
 		        << ", \"overlay\": \"" << JsonString(frame_overlay) << "\""
 		        << ", \"tables\": [";
 
-		Vector<Image> current_crops;
+		Vector<TrackedCrop> current_crops;
 		for(int wi = 0; wi < windows.GetCount(); wi++) {
 			TrackerWindow& w = windows[wi];
 			WindowStability stability = GetWindowStability(w, previous_windows);
@@ -656,14 +717,17 @@ CONSOLE_APP_MAIN
 				max_center_distance = max(max_center_distance, stability.center_distance);
 			}
 			Image crop = CropImage(frame, w.rect);
-			current_crops.Add(crop);
+			TrackedCrop& tracked_crop = current_crops.Add();
+			tracked_crop.id = w.id;
+			tracked_crop.image = crop;
 			w.crop_path = AppendFileName(crops_dir, Format("frame_%06d_table_%d.jpg", fi, w.id));
 			JPGEncoder().Quality(95).SaveFile(w.crop_path, crop);
 			Vector<SemanticCrop> semantic_crops = SaveSemanticCrops(crop, w, semantic_dir, fi);
 			Vector<TrackerChange> changes;
 			String change_overlay;
-			if(fi > 0 && wi < previous_crops.GetCount()) {
-				changes = DetectChanges(previous_crops[wi], crop, w.id, opt);
+			int previous_crop_index = FindCropById(previous_crops, w.id);
+			if(previous_crop_index >= 0) {
+				changes = DetectChanges(previous_crops[previous_crop_index].image, crop, w.id, opt);
 				change_overlay = AppendFileName(overlays_dir, Format("frame_%06d_table_%d_changes.jpg", fi, w.id));
 				JPGEncoder().Quality(95).SaveFile(change_overlay, MakeChangeOverlay(crop, changes));
 			}

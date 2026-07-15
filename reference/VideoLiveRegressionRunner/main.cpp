@@ -12,6 +12,15 @@ static void PrintHelp()
 	       << "  --frames <count>    Frames to record (default 10)\n"
 	       << "  --name <name>       Regression name (default live_smoke)\n"
 	       << "  --out-root <dir>    Output root (default tmp)\n"
+	       << "  --expect-frames <n> Require exact frames_tracked after run\n"
+	       << "  --min-frames <n>    Require at least n frames_tracked after run\n"
+	       << "  --expect-tables <n> Require exact max_frame_tables after run\n"
+	       << "  --min-tables <n>    Require at least n max_frame_tables after run\n"
+	       << "  --min-events <n>    Require at least n events after run\n"
+	       << "  --min-ocr-crops <n> Require at least n OCR crops after run\n"
+	       << "  --require-event <t> Require event type after run; can repeat\n"
+	       << "  --ocr-ok            Require OCR ok=true after run\n"
+	       << "  --require-ocr-text <text> Require OCR text substring; can repeat\n"
 	       << "  --help, -h          Show help\n";
 }
 
@@ -29,6 +38,24 @@ static LiveRegressionOptions ParseOptions(const Vector<String>& args)
 			opt.name = args[++i];
 		else if(args[i] == "--out-root" && i + 1 < args.GetCount())
 			opt.out_root = args[++i];
+		else if(args[i] == "--expect-frames" && i + 1 < args.GetCount())
+			opt.expect_frames = StrInt(args[++i]);
+		else if(args[i] == "--min-frames" && i + 1 < args.GetCount())
+			opt.min_frames = StrInt(args[++i]);
+		else if(args[i] == "--expect-tables" && i + 1 < args.GetCount())
+			opt.expect_tables = StrInt(args[++i]);
+		else if(args[i] == "--min-tables" && i + 1 < args.GetCount())
+			opt.min_tables = StrInt(args[++i]);
+		else if(args[i] == "--min-events" && i + 1 < args.GetCount())
+			opt.min_events = StrInt(args[++i]);
+		else if(args[i] == "--min-ocr-crops" && i + 1 < args.GetCount())
+			opt.min_ocr_crops = StrInt(args[++i]);
+		else if(args[i] == "--require-event" && i + 1 < args.GetCount())
+			opt.required_events << args[++i];
+		else if(args[i] == "--ocr-ok" || args[i] == "--require-ocr")
+			opt.require_ocr_ok = true;
+		else if(args[i] == "--require-ocr-text" && i + 1 < args.GetCount())
+			opt.required_ocr_texts << args[++i];
 		else if(args[i] == "--help" || args[i] == "-h")
 			opt.help = true;
 	}
@@ -233,6 +260,40 @@ static bool WritePipelineSummary(const LiveRegressionOptions& opt, const String&
 	return SaveFile(summary_path, json);
 }
 
+static bool HasAssertions(const LiveRegressionOptions& opt)
+{
+	return opt.expect_frames >= 0 || opt.min_frames >= 0 ||
+	       opt.expect_tables >= 0 || opt.min_tables >= 0 ||
+	       opt.min_events >= 0 || opt.min_ocr_crops >= 0 ||
+	       opt.require_ocr_ok || !opt.required_events.IsEmpty() ||
+	       !opt.required_ocr_texts.IsEmpty();
+}
+
+static Vector<String> MakeAssertArgs(const LiveRegressionOptions& opt, const String& tracked_dir)
+{
+	Vector<String> args;
+	args << "--tracker-dir" << tracked_dir;
+	if(opt.expect_frames >= 0)
+		args << "--expect-frames" << AsString(opt.expect_frames);
+	if(opt.min_frames >= 0)
+		args << "--min-frames" << AsString(opt.min_frames);
+	if(opt.expect_tables >= 0)
+		args << "--expect-tables" << AsString(opt.expect_tables);
+	if(opt.min_tables >= 0)
+		args << "--min-tables" << AsString(opt.min_tables);
+	if(opt.min_events >= 0)
+		args << "--min-events" << AsString(opt.min_events);
+	if(opt.min_ocr_crops >= 0)
+		args << "--min-ocr-crops" << AsString(opt.min_ocr_crops);
+	for(const String& type : opt.required_events)
+		args << "--require-event" << type;
+	if(opt.require_ocr_ok)
+		args << "--ocr-ok";
+	for(const String& text : opt.required_ocr_texts)
+		args << "--require-ocr-text" << text;
+	return args;
+}
+
 END_UPP_NAMESPACE
 
 using namespace Upp;
@@ -250,6 +311,7 @@ CONSOLE_APP_MAIN
 	String tracker = AppendFileName(exe_dir, "VideoWindowTracker.exe");
 	String audit_report = AppendFileName(exe_dir, "VideoEventAuditReport.exe");
 	String ocr_probe = AppendFileName(exe_dir, "VideoSemanticOcrProbe.exe");
+	String assertion_tool = AppendFileName(exe_dir, "VideoRegressionAssert.exe");
 	String record_dir = AppendFileName(opt.out_root, opt.name);
 	String tracked_dir = opt.name + "_tracked";
 	tracked_dir = AppendFileName(opt.out_root, tracked_dir);
@@ -325,6 +387,21 @@ CONSOLE_APP_MAIN
 		audit_code = RunCommand(audit_report, audit_args);
 		if(audit_code != 0) {
 			Cerr() << "ERROR: final audit report refresh failed\n";
+			SetExitCode(1);
+			return;
+		}
+	}
+
+	if(HasAssertions(opt)) {
+		if(!FileExists(assertion_tool)) {
+			Cerr() << "ERROR: assertion tool missing: " << assertion_tool << "\n";
+			SetExitCode(1);
+			return;
+		}
+		int assertion_code = RunCommand(assertion_tool, MakeAssertArgs(opt, tracked_dir));
+		Cout() << "assertion_exit=" << assertion_code << "\n";
+		if(assertion_code != 0) {
+			Cerr() << "ERROR: regression assertions failed\n";
 			SetExitCode(1);
 			return;
 		}

@@ -1,0 +1,13 @@
+description "Video regression artifact assertion tool";
+
+uses
+	Core;
+
+file
+	AGENTS.md,
+	VideoRegressionAssert.h,
+	main.cpp;
+
+mainconfig
+	"" = "";
+

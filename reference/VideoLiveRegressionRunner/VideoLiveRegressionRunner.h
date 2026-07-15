@@ -11,10 +11,18 @@ struct LiveRegressionOptions {
 	int    frames = 10;
 	String name = "live_smoke";
 	String out_root = "tmp";
+	int    expect_frames = -1;
+	int    min_frames = -1;
+	int    expect_tables = -1;
+	int    min_tables = -1;
+	int    min_events = -1;
+	int    min_ocr_crops = -1;
+	bool   require_ocr_ok = false;
 	bool   help = false;
+	Vector<String> required_events;
+	Vector<String> required_ocr_texts;
 };
 
 END_UPP_NAMESPACE
 
 #endif
-

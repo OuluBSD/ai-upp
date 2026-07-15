@@ -1,0 +1,14 @@
+description "Review changed-region crops by normalized visual signature";
+
+uses
+	Core,
+	Draw,
+	plugin/jpg;
+
+file
+	AGENTS.md,
+	VideoChangedRegionReview.h,
+	main.cpp;
+
+mainconfig
+	"" = "";

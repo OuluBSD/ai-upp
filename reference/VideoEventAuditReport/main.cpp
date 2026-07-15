@@ -56,6 +56,82 @@ static String MarkdownLink(const String& label, const String& report_path, const
 	return "[" + label + "](" + RelPath(report_path, path) + ")";
 }
 
+static String OneLine(String text)
+{
+	text.Replace("\r", " ");
+	text.Replace("\n", " ");
+	text.Replace("\t", " ");
+	while(text.Find("  ") >= 0)
+		text.Replace("  ", " ");
+	return TrimBoth(text);
+}
+
+static String JsonTextValue(ValueMap map, const char *key)
+{
+	return JsonStringValue(map, key);
+}
+
+static bool JsonBoolValue(ValueMap map, const char *key)
+{
+	Value value = map.Get(key, Value());
+	if(IsNumber(value))
+		return (int)value != 0;
+	String text = ToLower(AsString(value));
+	return text == "true" || text == "1";
+}
+
+static void AppendOcrSummary(String& md, const AuditReportOptions& opt)
+{
+	String ocr_path = AppendFileName(opt.tracker_dir, "ocr_probe.json");
+	if(!FileExists(ocr_path)) {
+		md << "## OCR Probe\n\n";
+		md << "- status: missing\n";
+		md << "- " << MarkdownLink("ocr_probe.json", opt.out_path, ocr_path) << "\n\n";
+		return;
+	}
+	String text = LoadFile(ocr_path);
+	if(text.IsVoid() || text.IsEmpty()) {
+		md << "## OCR Probe\n\n";
+		md << "- status: empty\n";
+		md << "- " << MarkdownLink("ocr_probe.json", opt.out_path, ocr_path) << "\n\n";
+		return;
+	}
+	Value value = ParseJSON(text);
+	if(IsError(value)) {
+		md << "## OCR Probe\n\n";
+		md << "- status: parse_error\n";
+		md << "- " << MarkdownLink("ocr_probe.json", opt.out_path, ocr_path) << "\n\n";
+		return;
+	}
+	ValueMap root = value;
+	bool ok = JsonBoolValue(root, "ok");
+	int crop_count = JsonIntValue(root, "crop_count");
+	String error = JsonTextValue(root, "error");
+	ValueArray results = root.Get("results", ValueArray());
+	md << "## OCR Probe\n\n";
+	md << "- status: " << (ok ? "ok" : "failed_nonfatal") << "\n";
+	md << "- crop_count: " << crop_count << "\n";
+	if(!error.IsEmpty())
+		md << "- error: `" << error << "`\n";
+	md << "- " << MarkdownLink("ocr_probe.json", opt.out_path, ocr_path) << "\n";
+	int shown = 0;
+	for(int i = 0; i < results.GetCount() && shown < 8; i++) {
+		ValueMap result = results[i];
+		String result_text = OneLine(JsonTextValue(result, "text"));
+		if(result_text.IsEmpty())
+			continue;
+		md << "- text[" << shown << "]: frame=" << JsonIntValue(result, "frame_index")
+		   << " table=" << JsonIntValue(result, "table_id")
+		   << " semantic=`" << JsonTextValue(result, "semantic")
+		   << "` exit=" << JsonIntValue(result, "exit_code")
+		   << " `" << result_text << "`\n";
+		shown++;
+	}
+	if(ok && shown == 0)
+		md << "- text: no non-empty OCR snippets\n";
+	md << "\n";
+}
+
 static String SemanticCropPath(const String& tracker_dir, int frame_index, int table_id,
                                const String& semantic)
 {
@@ -111,6 +187,7 @@ static bool GenerateReport(const AuditReportOptions& opt)
 	md << "- " << MarkdownLink("tracking_summary.json", opt.out_path, summary_path) << "\n\n";
 	if(FileExists(pipeline_summary_path))
 		md << "- " << MarkdownLink("pipeline_summary.json", opt.out_path, pipeline_summary_path) << "\n\n";
+	AppendOcrSummary(md, opt);
 
 	if(events.IsEmpty()) {
 		md << "No event candidates emitted.\n";

@@ -27,8 +27,10 @@ static OcrProbeOptions ParseOptions(const Vector<String>& args)
 			opt.out_path = args[++i];
 		else if(args[i] == "--tesseract" && i + 1 < args.GetCount())
 			opt.tesseract = args[++i];
-		else if(args[i] == "--tessdata-dir" && i + 1 < args.GetCount())
+		else if(args[i] == "--tessdata-dir" && i + 1 < args.GetCount()) {
 			opt.tessdata_dir = args[++i];
+			opt.tessdata_dir_explicit = true;
+		}
 		else if(args[i] == "--lang" && i + 1 < args.GetCount())
 			opt.lang = args[++i];
 		else if(args[i] == "--psm" && i + 1 < args.GetCount())
@@ -143,11 +145,83 @@ static bool SaveErrorJson(const OcrProbeOptions& opt, const String& error)
 	return true;
 }
 
-static bool VerifyTesseractLanguage(const OcrProbeOptions& opt, String& error)
+static String LanguageDataPath(const String& dir, const String& lang)
 {
-	String trained = AppendFileName(opt.tessdata_dir, opt.lang + ".traineddata");
+	return AppendFileName(dir, lang + ".traineddata");
+}
+
+static bool HasLanguageData(const String& dir, const String& lang)
+{
+	return !dir.IsEmpty() && FileExists(LanguageDataPath(dir, lang));
+}
+
+static Vector<String> GetTessdataCandidates(const OcrProbeOptions& opt)
+{
+	Vector<String> candidates;
+	candidates << opt.tessdata_dir;
+	String env_tessdata = GetEnv("TESSDATA_PREFIX");
+	if(!env_tessdata.IsEmpty()) {
+		candidates << env_tessdata;
+		candidates << AppendFileName(env_tessdata, "tessdata");
+	}
+	String exe_dir = GetFileDirectory(GetExeFilePath());
+	candidates << AppendFileName(exe_dir, "tessdata");
+	candidates << AppendFileName(GetCurrentDirectory(), "tessdata");
+	candidates << AppendFileName(AppendFileName(GetCurrentDirectory(), "tmp"), "tessdata");
+	candidates << AppendFileName(AppendFileName(GetCurrentDirectory(), "share"), "tessdata");
+	String vcpkg_root = GetEnv("VCPKG_ROOT");
+	if(vcpkg_root.IsEmpty() && !GetEnv("USERPROFILE").IsEmpty())
+		vcpkg_root = AppendFileName(GetEnv("USERPROFILE"), "vcpkg");
+	if(!vcpkg_root.IsEmpty()) {
+		String vcpkg_share = AppendFileName(AppendFileName(AppendFileName(vcpkg_root, "installed"),
+		                                                   "x64-windows"),
+		                                    "share");
+		candidates << AppendFileName(vcpkg_share, "tessdata");
+		candidates << AppendFileName(AppendFileName(vcpkg_share, "tesseract"), "tessdata");
+	}
+	Vector<String> unique;
+	for(const String& candidate : candidates) {
+		String normalized = NormalizePath(candidate);
+		bool duplicate = false;
+		for(const String& existing : unique) {
+			if(existing == normalized) {
+				duplicate = true;
+				break;
+			}
+		}
+		if(!normalized.IsEmpty() && !duplicate)
+			unique << normalized;
+	}
+	return unique;
+}
+
+static bool ResolveTessdataDir(OcrProbeOptions& opt, String& error)
+{
+	if(opt.tessdata_dir_explicit) {
+		if(HasLanguageData(opt.tessdata_dir, opt.lang))
+			return true;
+		error = "missing tesseract language data: " + LanguageDataPath(opt.tessdata_dir, opt.lang);
+		return false;
+	}
+	Vector<String> candidates = GetTessdataCandidates(opt);
+	for(const String& candidate : candidates) {
+		if(HasLanguageData(candidate, opt.lang)) {
+			opt.tessdata_dir = candidate;
+			return true;
+		}
+	}
+	error = "missing tesseract language data for '" + opt.lang + "'; checked:";
+	for(const String& candidate : candidates)
+		error << " " << LanguageDataPath(candidate, opt.lang) << ";";
+	return false;
+}
+
+static bool VerifyTesseractLanguage(OcrProbeOptions& opt, String& error)
+{
+	if(ResolveTessdataDir(opt, error))
+		return true;
+	String trained = LanguageDataPath(opt.tessdata_dir, opt.lang);
 	if(!FileExists(trained)) {
-		error = "missing tesseract language data: " + trained;
 		Cerr() << "ERROR: " << error << "\n";
 		Cerr() << "Install the language data or pass --tessdata-dir and --lang.\n";
 		return false;
@@ -155,7 +229,7 @@ static bool VerifyTesseractLanguage(const OcrProbeOptions& opt, String& error)
 	return true;
 }
 
-static bool RunProbe(const OcrProbeOptions& opt)
+static bool RunProbe(OcrProbeOptions opt)
 {
 	if(!FileExists(opt.tesseract)) {
 		Cerr() << "ERROR: missing tesseract executable: " << opt.tesseract << "\n";

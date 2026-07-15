@@ -102,6 +102,41 @@ static int JsonIntFromFileAny(const String& path, const char *key_a, const char 
 	return value != fallback ? value : JsonIntFromFile(path, key_b, fallback);
 }
 
+static String JsonStringFromFile(const String& path, const char *key, const String& fallback = String())
+{
+	String text = LoadFile(path);
+	if(text.IsVoid() || text.IsEmpty())
+		return fallback;
+	Value value = ParseJSON(text);
+	if(IsError(value))
+		return fallback;
+	ValueMap map = value;
+	Value field = map.Get(key, Value());
+	if(IsVoid(field) || IsNull(field))
+		return fallback;
+	return IsString(field) ? String(field) : AsString(field);
+}
+
+static bool JsonBoolFromFile(const String& path, const char *key, bool fallback = false)
+{
+	String text = LoadFile(path);
+	if(text.IsVoid() || text.IsEmpty())
+		return fallback;
+	Value value = ParseJSON(text);
+	if(IsError(value))
+		return fallback;
+	ValueMap map = value;
+	Value field = map.Get(key, Value());
+	if(IsNumber(field))
+		return (int)field != 0;
+	String field_text = ToLower(AsString(field));
+	if(field_text == "true" || field_text == "1")
+		return true;
+	if(field_text == "false" || field_text == "0")
+		return false;
+	return fallback;
+}
+
 static String StageStatus(int code, bool available, bool fatal)
 {
 	if(!available)
@@ -180,7 +215,9 @@ static bool WritePipelineSummary(const LiveRegressionOptions& opt, const String&
 	json << "    \"first_frame_tables\": " << first_frame_tables << ",\n";
 	json << "    \"max_frame_tables\": " << max_frame_tables << ",\n";
 	json << "    \"events\": " << JsonIntFromFile(events_json_path, "event_count") << ",\n";
-	json << "    \"ocr_crop_count\": " << JsonIntFromFile(ocr_json_path, "crop_count") << "\n";
+	json << "    \"ocr_crop_count\": " << JsonIntFromFile(ocr_json_path, "crop_count") << ",\n";
+	json << "    \"ocr_ok\": " << (JsonBoolFromFile(ocr_json_path, "ok") ? "true" : "false") << ",\n";
+	json << "    \"ocr_error\": \"" << JsonString(JsonStringFromFile(ocr_json_path, "error")) << "\"\n";
 	json << "  },\n";
 	json << "  \"artifacts\": {\n";
 	AppendJsonPath(json, "record_summary", record_summary);
@@ -243,6 +280,21 @@ CONSOLE_APP_MAIN
 		return;
 	}
 
+	String ocr_probe_path = AppendFileName(tracked_dir, "ocr_probe.json");
+	bool ocr_available = FileExists(ocr_probe);
+	int ocr_code = 0;
+	if(ocr_available) {
+		Vector<String> ocr_args;
+		ocr_args << "--tracker-dir" << tracked_dir << "--max-crops" << "12";
+		ocr_code = RunCommand(ocr_probe, ocr_args);
+		Cout() << "ocr_probe_exit=" << ocr_code << "\n";
+		if(ocr_code != 0)
+			Cout() << "ocr_probe_nonfatal=true\n";
+	}
+	else {
+		Cout() << "ocr_probe_tool_missing=" << ocr_probe << "\n";
+	}
+
 	String audit_path = AppendFileName(tracked_dir, "event_audit.md");
 	bool audit_available = FileExists(audit_report);
 	int audit_code = 0;
@@ -260,27 +312,22 @@ CONSOLE_APP_MAIN
 		Cout() << "audit_report_tool_missing=" << audit_report << "\n";
 	}
 
-	String ocr_probe_path = AppendFileName(tracked_dir, "ocr_probe.json");
-	bool ocr_available = FileExists(ocr_probe);
-	int ocr_code = 0;
-	if(ocr_available) {
-		Vector<String> ocr_args;
-		ocr_args << "--tracker-dir" << tracked_dir << "--max-crops" << "12";
-		ocr_code = RunCommand(ocr_probe, ocr_args);
-		Cout() << "ocr_probe_exit=" << ocr_code << "\n";
-		if(ocr_code != 0)
-			Cout() << "ocr_probe_nonfatal=true\n";
-	}
-	else {
-		Cout() << "ocr_probe_tool_missing=" << ocr_probe << "\n";
-	}
-
 	String pipeline_summary = AppendFileName(tracked_dir, "pipeline_summary.json");
 	if(!WritePipelineSummary(opt, record_dir, tracked_dir, recorder_code, tracker_code,
 	                         audit_code, audit_available, ocr_code, ocr_available)) {
 		Cerr() << "ERROR: failed to write pipeline summary\n";
 		SetExitCode(1);
 		return;
+	}
+	if(audit_available) {
+		Vector<String> audit_args;
+		audit_args << "--tracker-dir" << tracked_dir;
+		audit_code = RunCommand(audit_report, audit_args);
+		if(audit_code != 0) {
+			Cerr() << "ERROR: final audit report refresh failed\n";
+			SetExitCode(1);
+			return;
+		}
 	}
 
 	Cout() << "regression_name=" << opt.name << "\n";

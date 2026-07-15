@@ -14,6 +14,7 @@ struct OcrProbeOptions {
 	int    psm = 6;
 	int    max_crops = 40;
 	bool   help = false;
+	bool   tessdata_dir_explicit = false;
 };
 
 struct OcrCrop : Moveable<OcrCrop> {

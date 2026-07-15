@@ -257,7 +257,8 @@ static bool WritePipelineSummary(const LiveRegressionOptions& opt, const String&
                                  int correlator_code, bool correlator_available, int audit_code,
                                  bool audit_available, int ocr_code, bool ocr_available,
                                  int quality_code, bool quality_available,
-                                 int table_state_code, bool table_state_available)
+                                 int table_state_code, bool table_state_available,
+                                 int visual_audit_code, bool visual_audit_available)
 {
 	String summary_path = AppendFileName(tracked_dir, "pipeline_summary.json");
 	String record_summary = AppendFileName(record_dir, "summary.json");
@@ -268,6 +269,7 @@ static bool WritePipelineSummary(const LiveRegressionOptions& opt, const String&
 	String ocr_json_path = AppendFileName(tracked_dir, "ocr_probe.json");
 	String table_quality_json_path = AppendFileName(tracked_dir, "table_quality.json");
 	String table_state_json_path = AppendFileName(tracked_dir, "table_state.json");
+	String visual_audit_path = AppendFileName(tracked_dir, "visual_audit.html");
 	int first_frame_tables = -1;
 	int max_frame_tables = -1;
 	GetTableCounts(tracking_summary, first_frame_tables, max_frame_tables);
@@ -309,7 +311,10 @@ static bool WritePipelineSummary(const LiveRegressionOptions& opt, const String&
 	     << "\", \"exit_code\": " << quality_code << ", \"fatal\": true},\n";
 	json << "    \"table_state\": {\"available\": " << (table_state_available ? "true" : "false")
 	     << ", \"status\": \"" << StageStatus(table_state_code, table_state_available, true)
-	     << "\", \"exit_code\": " << table_state_code << ", \"fatal\": true}\n";
+	     << "\", \"exit_code\": " << table_state_code << ", \"fatal\": true},\n";
+	json << "    \"visual_audit\": {\"available\": " << (visual_audit_available ? "true" : "false")
+	     << ", \"status\": \"" << StageStatus(visual_audit_code, visual_audit_available, false)
+	     << "\", \"exit_code\": " << visual_audit_code << ", \"fatal\": false}\n";
 	json << "  },\n";
 	json << "  \"observed\": {\n";
 	json << "    \"frames_recorded\": "
@@ -338,6 +343,7 @@ static bool WritePipelineSummary(const LiveRegressionOptions& opt, const String&
 	AppendJsonPath(json, "ocr_probe_json", ocr_json_path);
 	AppendJsonPath(json, "table_quality_json", table_quality_json_path);
 	AppendJsonPath(json, "table_state_json", table_state_json_path);
+	AppendJsonPath(json, "visual_audit_html", visual_audit_path);
 	AppendJsonPath(json, "semantic_dir", AppendFileName(tracked_dir, "semantic"));
 	AppendJsonPath(json, "overlays_dir", AppendFileName(tracked_dir, "overlays"), false);
 	json << "  }\n";
@@ -405,6 +411,7 @@ CONSOLE_APP_MAIN
 	String ocr_probe = AppendFileName(exe_dir, "VideoSemanticOcrProbe.exe");
 	String table_quality = AppendFileName(exe_dir, "VideoTableQuality.exe");
 	String table_state = AppendFileName(exe_dir, "VideoTableStateExtractor.exe");
+	String visual_audit = AppendFileName(exe_dir, "VideoTableVisualAuditReport.exe");
 	String assertion_tool = AppendFileName(exe_dir, "VideoRegressionAssert.exe");
 	bool replay_mode = !opt.input_dir.IsEmpty();
 	String record_dir = replay_mode ? opt.input_dir : AppendFileName(opt.out_root, opt.name);
@@ -529,6 +536,22 @@ CONSOLE_APP_MAIN
 		Cout() << "table_state_tool_missing=" << table_state << "\n";
 	}
 
+	bool visual_audit_available = FileExists(visual_audit);
+	int visual_audit_code = 0;
+	String visual_audit_path = AppendFileName(tracked_dir, "visual_audit.html");
+	if(visual_audit_available) {
+		Vector<String> visual_args;
+		visual_args << "--tracker-dir" << tracked_dir
+		            << "--out" << visual_audit_path;
+		visual_audit_code = RunCommand(visual_audit, visual_args);
+		Cout() << "visual_audit_exit=" << visual_audit_code << "\n";
+		if(visual_audit_code != 0)
+			Cout() << "visual_audit_nonfatal=true\n";
+	}
+	else {
+		Cout() << "visual_audit_tool_missing=" << visual_audit << "\n";
+	}
+
 	String audit_path = AppendFileName(tracked_dir, "event_audit.md");
 	bool audit_available = FileExists(audit_report);
 	int audit_code = 0;
@@ -551,7 +574,8 @@ CONSOLE_APP_MAIN
 	                         recorder_code, tracker_code,
 	                         correlator_code, correlator_available, audit_code, audit_available,
 	                         ocr_code, ocr_available, quality_code, quality_available,
-	                         table_state_code, table_state_available)) {
+	                         table_state_code, table_state_available,
+	                         visual_audit_code, visual_audit_available)) {
 		Cerr() << "ERROR: failed to write pipeline summary\n";
 		SetExitCode(1);
 		return;
@@ -597,6 +621,7 @@ CONSOLE_APP_MAIN
 	Cout() << "ocr_probe_json=" << ocr_probe_path << "\n";
 	Cout() << "table_quality_json=" << AppendFileName(tracked_dir, "table_quality.json") << "\n";
 	Cout() << "table_state_json=" << AppendFileName(tracked_dir, "table_state.json") << "\n";
+	Cout() << "visual_audit_html=" << visual_audit_path << "\n";
 	Cout() << "pipeline_summary_json=" << pipeline_summary << "\n";
 	Cout() << "semantic_dir=" << AppendFileName(tracked_dir, "semantic") << "\n";
 	Cout() << "overlays_dir=" << AppendFileName(tracked_dir, "overlays") << "\n";

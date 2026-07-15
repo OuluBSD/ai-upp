@@ -1,0 +1,15 @@
+description "VideoServer stream recorder";
+
+uses
+	Core,
+	Draw,
+	plugin/jpg;
+
+file
+	AGENTS.md,
+	VideoRecorder.h,
+	main.cpp;
+
+mainconfig
+	"" = "";
+

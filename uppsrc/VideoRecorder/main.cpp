@@ -281,7 +281,7 @@ struct DirectMp4Writer {
 			error = "av_frame_get_buffer failed: " + AvError(rc);
 			return false;
 		}
-		sws = sws_getContext(size.cx, size.cy, AV_PIX_FMT_RGBA,
+		sws = sws_getContext(size.cx, size.cy, AV_PIX_FMT_BGRA,
 		                     size.cx, size.cy, codec->pix_fmt,
 		                     SWS_BILINEAR, nullptr, nullptr, nullptr);
 		if(!sws) {
@@ -462,7 +462,13 @@ static bool CaptureFrames(const VideoRecorderOptions& opt, Vector<RecordedFrame>
 	int64 started = msecs();
 	int64 next_capture = started;
 	int64 deadline = started + (int64)opt.seconds * 1000;
+	int64 first_frame_ms = -1;
 	int empty_replies = 0;
+	Image cached_image;
+	Size cached_size;
+	String cached_format;
+	uint32 cached_id = 0;
+	bool has_cached = false;
 	Cout() << "recording_mp4_direct seconds=" << opt.seconds
 	       << " fps=" << opt.fps << " out=" << opt.out_path
 	       << " codec=" << opt.codec << "\n";
@@ -484,53 +490,63 @@ static bool CaptureFrames(const VideoRecorderOptions& opt, Vector<RecordedFrame>
 			Cerr() << "ERROR: failed to read frame header\n";
 			return false;
 		}
-		if(size == 0) {
+		if(size == 0 && !has_cached) {
 			empty_replies++;
 			Sleep(opt.poll_ms);
 			continue;
 		}
-		String payload = socket.Timeout(opt.timeout_ms).GetAll((int)size);
-		if(payload.GetCount() != (int)size) {
-			Cerr() << "ERROR: failed to read payload expected=" << size
-			       << " got=" << payload.GetCount() << "\n";
-			return false;
+		if(size > 0) {
+			String payload = socket.Timeout(opt.timeout_ms).GetAll((int)size);
+			if(payload.GetCount() != (int)size) {
+				Cerr() << "ERROR: failed to read payload expected=" << size
+				       << " got=" << payload.GetCount() << "\n";
+				return false;
+			}
+			String error;
+			if(!DecodePayloadFrame(payload, cached_image, cached_size, cached_format, error)) {
+				Cerr() << "ERROR: " << error << "\n";
+				return false;
+			}
+			cached_id = frame_id;
+			has_cached = true;
 		}
-		Image image;
-		Size frame_size;
-		String frame_format;
-		String error;
-		if(!DecodePayloadFrame(payload, image, frame_size, frame_format, error)) {
-			Cerr() << "ERROR: " << error << "\n";
-			return false;
-		}
+		else
+			empty_replies++;
 		int64 elapsed_ms = max<int64>(0, msecs() - started);
+		if(first_frame_ms < 0)
+			first_frame_ms = elapsed_ms;
+		int64 pts_ms = elapsed_ms - first_frame_ms;
 		if(frames.IsEmpty()) {
-			if(!writer.Open(opt, frame_size, error)) {
+			String error;
+			if(!writer.Open(opt, cached_size, error)) {
 				Cerr() << "ERROR: " << error << "\n";
 				return false;
 			}
 			Cout() << "encoder_opened backend=libavcodec codec=" << opt.codec
-			       << " size=" << frame_size.cx << "`x" << frame_size.cy << "\n";
+			       << " size=" << cached_size.cx << "`x" << cached_size.cy
+			       << " source_pix_fmt=bgra"
+			       << " output_pix_fmt=" << opt.pix_fmt << "\n";
 		}
-		if(!writer.Write(image, elapsed_ms, error)) {
+		String error;
+		if(!writer.Write(cached_image, pts_ms, error)) {
 			Cerr() << "ERROR: " << error << "\n";
 			return false;
 		}
 		RecordedFrame& frame = frames.Add();
 		frame.index = frames.GetCount() - 1;
-		frame.id = frame_id;
-		frame.size = frame_size;
-		frame.format = frame_format;
-		frame.elapsed_ms = elapsed_ms;
+		frame.id = cached_id;
+		frame.size = cached_size;
+		frame.format = cached_format;
+		frame.elapsed_ms = pts_ms;
 		if(opt.dump_frames) {
 			RealizeDirectory(opt.work_dir);
 			frame.dump_path = AppendFileName(opt.work_dir, Format("frame_%06d.jpg", frame.index));
-			if(!JPGEncoder().Quality(95).SaveFile(frame.dump_path, image)) {
+			if(!JPGEncoder().Quality(95).SaveFile(frame.dump_path, cached_image)) {
 				Cerr() << "ERROR: failed to save diagnostic frame: " << frame.dump_path << "\n";
 				return false;
 			}
 		}
-		last_id = frame_id;
+		last_id = cached_id;
 		if(frame.index == 0 || (frame.index + 1) % max(1, opt.fps * 5) == 0) {
 			int elapsed = (int)((msecs() - started) / 1000);
 			Cout() << "progress encoded_frames=" << frames.GetCount()

@@ -1,6 +1,53 @@
 #include "VideoRecorder.h"
 
+#ifdef flagWIN32
+#define CY win32_CY_
+#define FAR win32_FAR_
+#include <windows.h>
+#endif
+extern "C" {
+#include <libavcodec/avcodec.h>
+#include <libavformat/avformat.h>
+#include <libavutil/avutil.h>
+#include <libavutil/error.h>
+#include <libavutil/imgutils.h>
+#include <libavutil/opt.h>
+#include <libswscale/swscale.h>
+}
+#ifdef flagWIN32
+#undef CY
+#undef FAR
+#endif
+
 NAMESPACE_UPP
+
+static String GetDefaultFfmpegDllDirectory()
+{
+#ifdef flagWIN32
+	return AppendFileName(AppendFileName(AppendFileName(AppendFileName(GetHomeDirectory(), "vcpkg"),
+	                                                   "installed"),
+	                                    "x64-windows"),
+	                      "bin");
+#else
+	return Null;
+#endif
+}
+
+static bool PrepareFfmpegRuntime(const VideoRecorderOptions& opt, String& error)
+{
+#ifdef flagWIN32
+	String dir = opt.ffmpeg_dll_dir.IsEmpty() ? GetDefaultFfmpegDllDirectory() : opt.ffmpeg_dll_dir;
+	if(!DirectoryExists(dir)) {
+		error = "FFmpeg DLL directory does not exist: " + dir;
+		return false;
+	}
+	if(!SetDllDirectoryA(~dir)) {
+		error = "SetDllDirectoryA failed for: " + dir;
+		return false;
+	}
+#endif
+	return true;
+}
 
 static void PrintHelp()
 {
@@ -11,12 +58,14 @@ static void PrintHelp()
 	       << "  --port <port>       VideoServer port (default 8082)\n"
 	       << "  --seconds <n>       Recording duration in seconds (default 60)\n"
 	       << "  --minutes <n>       Recording duration in minutes\n"
-	       << "  --fps <n>           Target capture/encode FPS (default 10)\n"
+	       << "  --fps <n>           Target capture FPS hint (default 10)\n"
 	       << "  --out <file>        Output video path (default bin/video_record_<timestamp>.mp4)\n"
-	       << "  --work-dir <dir>    Temporary frame directory\n"
-	       << "  --ffmpeg <exe>      ffmpeg executable (default ffmpeg from PATH)\n"
-	       << "  --codec <name>      ffmpeg video codec (default libx264)\n"
-	       << "  --keep-frames       Keep captured JPEG frames after encoding\n"
+	       << "  --work-dir <dir>    Diagnostic frame dump directory\n"
+	       << "  --codec <name>      libavcodec encoder (default mpeg4; libx264 if available)\n"
+	       << "  --bitrate <n>       Video bitrate in bits/s (default 4000000)\n"
+	       << "  --dump-frames       Also dump decoded frames as JPEG diagnostics\n"
+	       << "  --ffmpeg-dll-dir <dir>\n"
+	       << "                      Windows FFmpeg DLL dir (default " << GetDefaultFfmpegDllDirectory() << ")\n"
 	       << "  --help, -h          Show help\n";
 }
 
@@ -42,12 +91,14 @@ static VideoRecorderOptions ParseOptions(const Vector<String>& args)
 			opt.out_path = args[++i];
 		else if(args[i] == "--work-dir" && i + 1 < args.GetCount())
 			opt.work_dir = args[++i];
-		else if(args[i] == "--ffmpeg" && i + 1 < args.GetCount())
-			opt.ffmpeg = args[++i];
 		else if(args[i] == "--codec" && i + 1 < args.GetCount())
 			opt.codec = args[++i];
-		else if(args[i] == "--keep-frames")
-			opt.keep_frames = true;
+		else if(args[i] == "--bitrate" && i + 1 < args.GetCount())
+			opt.bitrate = max(100000, StrInt(args[++i]));
+		else if(args[i] == "--ffmpeg-dll-dir" && i + 1 < args.GetCount())
+			opt.ffmpeg_dll_dir = args[++i];
+		else if(args[i] == "--dump-frames")
+			opt.dump_frames = true;
 		else if(args[i] == "--help" || args[i] == "-h")
 			opt.help = true;
 	}
@@ -112,34 +163,232 @@ static bool DecodeYuv0(const String& payload, Image& out, String& error)
 	return true;
 }
 
-static bool SavePayloadFrame(const String& payload, const String& path, Size& out_size,
-                             String& out_format, String& error)
+static bool DecodePayloadFrame(const String& payload, Image& out, Size& out_size,
+                               String& out_format, String& error)
 {
 	if(payload.GetCount() >= 4 && payload.Mid(0, 4) == "YUV0") {
-		Image img;
-		if(!DecodeYuv0(payload, img, error))
+		if(!DecodeYuv0(payload, out, error))
 			return false;
-		out_size = img.GetSize();
+		out_size = out.GetSize();
 		out_format = "YUV0";
-		if(!JPGEncoder().Quality(95).SaveFile(path, img)) {
-			error = "failed to save decoded YUV0 JPEG: " + path;
-			return false;
-		}
 		return true;
 	}
-	Image img = JPGRaster().LoadString(payload);
-	if(img.IsEmpty()) {
+	out = JPGRaster().LoadString(payload);
+	if(out.IsEmpty()) {
 		error = Format("payload is not decodable JPEG/YUV0, bytes=%d", payload.GetCount());
 		return false;
 	}
-	out_size = img.GetSize();
+	out_size = out.GetSize();
 	out_format = "JPEG";
-	if(!SaveFile(path, payload)) {
-		error = "failed to save JPEG payload: " + path;
-		return false;
-	}
 	return true;
 }
+
+static String AvError(int code)
+{
+	char buffer[AV_ERROR_MAX_STRING_SIZE] = {};
+	av_strerror(code, buffer, sizeof(buffer));
+	return buffer;
+}
+
+struct DirectMp4Writer {
+	AVFormatContext *format = nullptr;
+	AVCodecContext  *codec = nullptr;
+	AVStream        *stream = nullptr;
+	AVFrame         *frame = nullptr;
+	SwsContext      *sws = nullptr;
+	Size             size;
+	String           codec_name;
+	int64            frames = 0;
+	bool             opened = false;
+
+	~DirectMp4Writer()
+	{
+		Close();
+	}
+
+	bool Open(const VideoRecorderOptions& opt, Size frame_size, String& error)
+	{
+		size = frame_size;
+		codec_name = opt.codec;
+		int rc = avformat_alloc_output_context2(&format, nullptr, "mp4", ~opt.out_path);
+		if(rc < 0 || !format) {
+			error = "avformat_alloc_output_context2 failed: " + AvError(rc);
+			return false;
+		}
+
+		const AVCodec *encoder = avcodec_find_encoder_by_name(~opt.codec);
+		if(!encoder) {
+			error = "encoder not found: " + opt.codec;
+			return false;
+		}
+		stream = avformat_new_stream(format, nullptr);
+		if(!stream) {
+			error = "avformat_new_stream failed";
+			return false;
+		}
+		codec = avcodec_alloc_context3(encoder);
+		if(!codec) {
+			error = "avcodec_alloc_context3 failed";
+			return false;
+		}
+		codec->codec_id = encoder->id;
+		codec->codec_type = AVMEDIA_TYPE_VIDEO;
+		codec->width = size.cx;
+		codec->height = size.cy;
+		codec->time_base = AVRational{1, 1000};
+		codec->framerate = AVRational{opt.fps, 1};
+		codec->pix_fmt = AV_PIX_FMT_YUV420P;
+		codec->bit_rate = opt.bitrate;
+		codec->gop_size = max(1, opt.fps * 2);
+		codec->max_b_frames = 0;
+		stream->time_base = codec->time_base;
+		if(format->oformat->flags & AVFMT_GLOBALHEADER)
+			codec->flags |= AV_CODEC_FLAG_GLOBAL_HEADER;
+		if(codec->codec_id == AV_CODEC_ID_H264)
+			av_opt_set(codec->priv_data, "preset", "veryfast", 0);
+
+		rc = avcodec_open2(codec, encoder, nullptr);
+		if(rc < 0) {
+			error = "avcodec_open2 failed for " + opt.codec + ": " + AvError(rc);
+			return false;
+		}
+		rc = avcodec_parameters_from_context(stream->codecpar, codec);
+		if(rc < 0) {
+			error = "avcodec_parameters_from_context failed: " + AvError(rc);
+			return false;
+		}
+		rc = avio_open(&format->pb, ~opt.out_path, AVIO_FLAG_WRITE);
+		if(rc < 0) {
+			error = "avio_open failed for " + opt.out_path + ": " + AvError(rc);
+			return false;
+		}
+		rc = avformat_write_header(format, nullptr);
+		if(rc < 0) {
+			error = "avformat_write_header failed: " + AvError(rc);
+			return false;
+		}
+
+		frame = av_frame_alloc();
+		if(!frame) {
+			error = "av_frame_alloc failed";
+			return false;
+		}
+		frame->format = codec->pix_fmt;
+		frame->width = codec->width;
+		frame->height = codec->height;
+		rc = av_frame_get_buffer(frame, 32);
+		if(rc < 0) {
+			error = "av_frame_get_buffer failed: " + AvError(rc);
+			return false;
+		}
+		sws = sws_getContext(size.cx, size.cy, AV_PIX_FMT_RGBA,
+		                     size.cx, size.cy, codec->pix_fmt,
+		                     SWS_BILINEAR, nullptr, nullptr, nullptr);
+		if(!sws) {
+			error = "sws_getContext failed";
+			return false;
+		}
+		opened = true;
+		return true;
+	}
+
+	bool Write(const Image& image, int64 pts_ms, String& error)
+	{
+		if(!opened) {
+			error = "writer is not open";
+			return false;
+		}
+		if(image.GetSize() != size) {
+			error = Format("frame size changed from %d`x%d to %d`x%d",
+			               size.cx, size.cy, image.GetWidth(), image.GetHeight());
+			return false;
+		}
+		int rc = av_frame_make_writable(frame);
+		if(rc < 0) {
+			error = "av_frame_make_writable failed: " + AvError(rc);
+			return false;
+		}
+		const byte *src_data[4] = {(const byte*)~image, nullptr, nullptr, nullptr};
+		int src_linesize[4] = {image.GetWidth() * (int)sizeof(RGBA), 0, 0, 0};
+		sws_scale(sws, src_data, src_linesize, 0, size.cy, frame->data, frame->linesize);
+		frame->pts = pts_ms;
+		return SendFrame(frame, error);
+	}
+
+	bool SendFrame(AVFrame *input, String& error)
+	{
+		int rc = avcodec_send_frame(codec, input);
+		if(rc < 0) {
+			error = "avcodec_send_frame failed: " + AvError(rc);
+			return false;
+		}
+		for(;;) {
+			AVPacket *packet = av_packet_alloc();
+			if(!packet) {
+				error = "av_packet_alloc failed";
+				return false;
+			}
+			rc = avcodec_receive_packet(codec, packet);
+			if(rc == AVERROR(EAGAIN) || rc == AVERROR_EOF) {
+				av_packet_free(&packet);
+				break;
+			}
+			if(rc < 0) {
+				error = "avcodec_receive_packet failed: " + AvError(rc);
+				av_packet_free(&packet);
+				return false;
+			}
+			av_packet_rescale_ts(packet, codec->time_base, stream->time_base);
+			packet->stream_index = stream->index;
+			rc = av_interleaved_write_frame(format, packet);
+			av_packet_free(&packet);
+			if(rc < 0) {
+				error = "av_interleaved_write_frame failed: " + AvError(rc);
+				return false;
+			}
+			frames++;
+		}
+		return true;
+	}
+
+	bool Finish(String& error)
+	{
+		if(!opened)
+			return true;
+		if(!SendFrame(nullptr, error))
+			return false;
+		int rc = av_write_trailer(format);
+		if(rc < 0) {
+			error = "av_write_trailer failed: " + AvError(rc);
+			return false;
+		}
+		opened = false;
+		return true;
+	}
+
+	void Close()
+	{
+		if(sws) {
+			sws_freeContext(sws);
+			sws = nullptr;
+		}
+		if(frame) {
+			av_frame_free(&frame);
+			frame = nullptr;
+		}
+		if(codec) {
+			avcodec_free_context(&codec);
+			codec = nullptr;
+		}
+		if(format) {
+			if(format->pb)
+				avio_closep(&format->pb);
+			avformat_free_context(format);
+			format = nullptr;
+		}
+		opened = false;
+	}
+};
 
 static String JsonString(const String& s)
 {
@@ -163,21 +412,25 @@ static String JsonString(const String& s)
 }
 
 static String ManifestJson(const VideoRecorderOptions& opt, const Vector<RecordedFrame>& frames,
-                           int ffmpeg_exit, const String& ffmpeg_output)
+                           const DirectMp4Writer& writer)
 {
 	String out;
 	out << "{\n";
 	out << "  \"tool\": \"VideoRecorder\",\n";
+	out << "  \"backend\": \"libavcodec/libavformat\",\n";
 	out << "  \"host\": \"" << JsonString(opt.host) << "\",\n";
 	out << "  \"port\": " << opt.port << ",\n";
 	out << "  \"seconds_requested\": " << opt.seconds << ",\n";
 	out << "  \"fps\": " << opt.fps << ",\n";
-	out << "  \"frames_saved\": " << frames.GetCount() << ",\n";
+	out << "  \"frames_captured\": " << frames.GetCount() << ",\n";
+	out << "  \"packets_written\": " << writer.frames << ",\n";
 	out << "  \"output_video\": \"" << JsonString(opt.out_path) << "\",\n";
 	out << "  \"work_dir\": \"" << JsonString(opt.work_dir) << "\",\n";
-	out << "  \"ffmpeg\": \"" << JsonString(opt.ffmpeg) << "\",\n";
-	out << "  \"ffmpeg_exit\": " << ffmpeg_exit << ",\n";
-	out << "  \"ffmpeg_output\": \"" << JsonString(ffmpeg_output) << "\",\n";
+	out << "  \"dump_frames\": " << (opt.dump_frames ? "true" : "false") << ",\n";
+	out << "  \"codec\": \"" << JsonString(opt.codec) << "\",\n";
+	out << "  \"ffmpeg_dll_dir\": \"" << JsonString(opt.ffmpeg_dll_dir.IsEmpty() ? GetDefaultFfmpegDllDirectory() : opt.ffmpeg_dll_dir) << "\",\n";
+	out << "  \"pixel_format\": \"" << JsonString(opt.pix_fmt) << "\",\n";
+	out << "  \"bitrate\": " << opt.bitrate << ",\n";
 	out << "  \"frames\": [\n";
 	for(int i = 0; i < frames.GetCount(); i++) {
 		const RecordedFrame& f = frames[i];
@@ -186,7 +439,8 @@ static String ManifestJson(const VideoRecorderOptions& opt, const Vector<Recorde
 		    << ", \"width\": " << f.size.cx
 		    << ", \"height\": " << f.size.cy
 		    << ", \"format\": \"" << JsonString(f.format)
-		    << "\", \"path\": \"" << JsonString(f.path) << "\"}";
+		    << "\", \"elapsed_ms\": " << f.elapsed_ms
+		    << ", \"dump_path\": \"" << JsonString(f.dump_path) << "\"}";
 		if(i + 1 < frames.GetCount())
 			out << ",";
 		out << "\n";
@@ -196,20 +450,29 @@ static String ManifestJson(const VideoRecorderOptions& opt, const Vector<Recorde
 	return out;
 }
 
-static bool CaptureFrames(const VideoRecorderOptions& opt, Vector<RecordedFrame>& frames)
+static bool CaptureFrames(const VideoRecorderOptions& opt, Vector<RecordedFrame>& frames,
+                          DirectMp4Writer& writer)
 {
 	TcpSocket socket;
 	if(!socket.Timeout(opt.timeout_ms).Connect(opt.host, opt.port)) {
 		Cerr() << "ERROR: failed to connect VideoServer at " << opt.host << ":" << opt.port << "\n";
 		return false;
 	}
-	int target_frames = max(1, opt.seconds * opt.fps);
 	uint32 last_id = 0;
 	int64 started = msecs();
+	int64 next_capture = started;
+	int64 deadline = started + (int64)opt.seconds * 1000;
 	int empty_replies = 0;
-	Cout() << "recording_frames target=" << target_frames << " seconds=" << opt.seconds
-	       << " fps=" << opt.fps << " work_dir=" << opt.work_dir << "\n";
-	while(frames.GetCount() < target_frames) {
+	Cout() << "recording_mp4_direct seconds=" << opt.seconds
+	       << " fps=" << opt.fps << " out=" << opt.out_path
+	       << " codec=" << opt.codec << "\n";
+	while(msecs() < deadline) {
+		int64 now = msecs();
+		if(now < next_capture) {
+			Sleep((int)min<int64>(opt.poll_ms, next_capture - now));
+			continue;
+		}
+		next_capture = now + max<int64>(1, 1000 / max(1, opt.fps));
 		if(!socket.Timeout(opt.timeout_ms).Put(&last_id, 4)) {
 			Cerr() << "ERROR: failed to send last frame id\n";
 			return false;
@@ -232,42 +495,59 @@ static bool CaptureFrames(const VideoRecorderOptions& opt, Vector<RecordedFrame>
 			       << " got=" << payload.GetCount() << "\n";
 			return false;
 		}
+		Image image;
+		Size frame_size;
+		String frame_format;
+		String error;
+		if(!DecodePayloadFrame(payload, image, frame_size, frame_format, error)) {
+			Cerr() << "ERROR: " << error << "\n";
+			return false;
+		}
+		int64 elapsed_ms = max<int64>(0, msecs() - started);
+		if(frames.IsEmpty()) {
+			if(!writer.Open(opt, frame_size, error)) {
+				Cerr() << "ERROR: " << error << "\n";
+				return false;
+			}
+			Cout() << "encoder_opened backend=libavcodec codec=" << opt.codec
+			       << " size=" << frame_size.cx << "`x" << frame_size.cy << "\n";
+		}
+		if(!writer.Write(image, elapsed_ms, error)) {
+			Cerr() << "ERROR: " << error << "\n";
+			return false;
+		}
 		RecordedFrame& frame = frames.Add();
 		frame.index = frames.GetCount() - 1;
 		frame.id = frame_id;
-		frame.path = AppendFileName(opt.work_dir, Format("frame_%06d.jpg", frame.index));
-		String error;
-		if(!SavePayloadFrame(payload, frame.path, frame.size, frame.format, error)) {
-			Cerr() << "ERROR: " << error << "\n";
-			return false;
+		frame.size = frame_size;
+		frame.format = frame_format;
+		frame.elapsed_ms = elapsed_ms;
+		if(opt.dump_frames) {
+			RealizeDirectory(opt.work_dir);
+			frame.dump_path = AppendFileName(opt.work_dir, Format("frame_%06d.jpg", frame.index));
+			if(!JPGEncoder().Quality(95).SaveFile(frame.dump_path, image)) {
+				Cerr() << "ERROR: failed to save diagnostic frame: " << frame.dump_path << "\n";
+				return false;
+			}
 		}
 		last_id = frame_id;
 		if(frame.index == 0 || (frame.index + 1) % max(1, opt.fps * 5) == 0) {
 			int elapsed = (int)((msecs() - started) / 1000);
-			Cout() << "progress frames=" << frames.GetCount() << "/" << target_frames
+			Cout() << "progress encoded_frames=" << frames.GetCount()
 			       << " elapsed=" << elapsed << "s"
 			       << " empty_replies=" << empty_replies << "\n";
 		}
 	}
+	if(frames.IsEmpty()) {
+		Cerr() << "ERROR: no frames captured\n";
+		return false;
+	}
+	String error;
+	if(!writer.Finish(error)) {
+		Cerr() << "ERROR: " << error << "\n";
+		return false;
+	}
 	return true;
-}
-
-static int EncodeVideo(const VideoRecorderOptions& opt, String& output)
-{
-	RealizeDirectory(GetFileDirectory(opt.out_path));
-	Vector<String> args;
-	args << "-y"
-	     << "-framerate" << AsString(opt.fps)
-	     << "-i" << AppendFileName(opt.work_dir, "frame_%06d.jpg")
-	     << "-c:v" << opt.codec
-	     << "-pix_fmt" << opt.pix_fmt
-	     << opt.out_path;
-	Cout() << "encoding_video output=" << opt.out_path << "\n";
-	int code = Sys(opt.ffmpeg, args, output);
-	if(!output.IsEmpty())
-		Cout() << output;
-	Cout() << "ffmpeg_exit=" << code << "\n";
-	return code;
 }
 
 END_UPP_NAMESPACE
@@ -282,25 +562,28 @@ CONSOLE_APP_MAIN
 		return;
 	}
 
-	RealizeDirectory(opt.work_dir);
+	RealizeDirectory(GetFileDirectory(opt.out_path));
+	String runtime_error;
+	if(!PrepareFfmpegRuntime(opt, runtime_error)) {
+		Cerr() << "ERROR: " << runtime_error << "\n";
+		SetExitCode(1);
+		return;
+	}
 	Vector<RecordedFrame> frames;
-	if(!CaptureFrames(opt, frames)) {
+	DirectMp4Writer writer;
+	if(!CaptureFrames(opt, frames, writer)) {
 		SetExitCode(1);
 		return;
 	}
-	String ffmpeg_output;
-	int ffmpeg_exit = EncodeVideo(opt, ffmpeg_output);
 	String manifest_path = opt.out_path + ".json";
-	SaveFile(manifest_path, ManifestJson(opt, frames, ffmpeg_exit, ffmpeg_output));
+	SaveFile(manifest_path, ManifestJson(opt, frames, writer));
 	Cout() << "manifest=" << manifest_path << "\n";
-	if(ffmpeg_exit != 0 || !FileExists(opt.out_path)) {
-		Cerr() << "ERROR: ffmpeg failed or output video missing: " << opt.out_path << "\n";
+	if(!FileExists(opt.out_path)) {
+		Cerr() << "ERROR: output video missing: " << opt.out_path << "\n";
 		SetExitCode(1);
 		return;
 	}
-	if(!opt.keep_frames)
-		DeleteFolderDeep(opt.work_dir);
-	Cout() << "video_recording_done output=" << opt.out_path
-	       << " frames=" << frames.GetCount() << "\n";
+	Cout() << "video_recording_done backend=libavcodec output=" << opt.out_path
+	       << " frames=" << frames.GetCount()
+	       << " packets=" << writer.frames << "\n";
 }
-

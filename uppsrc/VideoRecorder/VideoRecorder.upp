@@ -5,6 +5,12 @@ uses
 	Draw,
 	plugin/jpg;
 
+options(WIN32 MSC) "/I C:\\Users\\sblo\\vcpkg\\installed\\x64-windows\\include";
+
+library(MSC) "C:/Users/sblo/vcpkg/installed/x64-windows/lib/avformat.lib C:/Users/sblo/vcpkg/installed/x64-windows/lib/avcodec.lib C:/Users/sblo/vcpkg/installed/x64-windows/lib/avutil.lib C:/Users/sblo/vcpkg/installed/x64-windows/lib/swscale.lib delayimp.lib";
+
+link(WIN32 MSC) "/DELAYLOAD:avformat-62.dll /DELAYLOAD:avcodec-62.dll /DELAYLOAD:avutil-60.dll /DELAYLOAD:swscale-9.dll";
+
 file
 	AGENTS.md,
 	VideoRecorder.h,
@@ -12,4 +18,3 @@ file
 
 mainconfig
 	"" = "";
-

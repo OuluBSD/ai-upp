@@ -16,10 +16,11 @@ struct VideoRecorderOptions {
 	int    timeout_ms = 5000;
 	String out_path;
 	String work_dir;
-	String ffmpeg = "ffmpeg";
-	String codec = "libx264";
+	String codec = "mpeg4";
 	String pix_fmt = "yuv420p";
-	bool   keep_frames = false;
+	String ffmpeg_dll_dir;
+	int    bitrate = 4000000;
+	bool   dump_frames = false;
 	bool   help = false;
 };
 
@@ -28,10 +29,10 @@ struct RecordedFrame : Moveable<RecordedFrame> {
 	uint32 id = 0;
 	Size   size;
 	String format;
-	String path;
+	int64  elapsed_ms = 0;
+	String dump_path;
 };
 
 END_UPP_NAMESPACE
 
 #endif
-

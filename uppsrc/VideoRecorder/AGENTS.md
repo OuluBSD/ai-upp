@@ -14,9 +14,9 @@ sidecar manifests.
 
 ## Notes
 
-- The initial implementation intentionally records JPEG frames first and then
-  invokes `ffmpeg` as an external encoder. This keeps the workflow debuggable
-  before moving to direct libav/FFmpeg APIs.
+- The recorder writes MP4 directly through FFmpeg/libavcodec/libavformat.
+- Do not reintroduce the old `JPEG frame sequence -> ffmpeg.exe -> mp4`
+  default path. Per-frame image dumps are allowed only behind explicit
+  diagnostics flags.
 - Keep stdout diagnostics explicit; long captures must show progress.
 - Source files include `VideoRecorder.h` first.
-

@@ -1,7 +1,8 @@
 description "Video regression artifact assertion tool";
 
 uses
-	Core;
+	Core,
+	VisualStateModel;
 
 file
 	AGENTS.md,
@@ -10,4 +11,3 @@ file
 
 mainconfig
 	"" = "";
-

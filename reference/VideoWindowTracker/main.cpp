@@ -16,11 +16,6 @@ static void PrintHelp()
 	       << "  --help, -h                 Show help\n";
 }
 
-static bool IsValidTableMode(const String& mode)
-{
-	return mode == "unknown" || mode == "hero" || mode == "observer";
-}
-
 static TrackerOptions ParseOptions(const Vector<String>& args)
 {
 	TrackerOptions opt;
@@ -36,12 +31,11 @@ static TrackerOptions ParseOptions(const Vector<String>& args)
 		else if(args[i] == "--min-changed-pixels" && i + 1 < args.GetCount())
 			opt.min_changed_pixels = max(1, StrInt(args[++i]));
 		else if(args[i] == "--table-mode" && i + 1 < args.GetCount())
-			opt.table_mode = ToLower(args[++i]);
+			opt.table_mode = VsmNormalizeTableMode(args[++i]);
 		else if(args[i] == "--help" || args[i] == "-h")
 			opt.help = true;
 	}
-	if(!IsValidTableMode(opt.table_mode))
-		opt.table_mode = "unknown";
+	opt.table_mode = VsmNormalizeTableMode(opt.table_mode);
 	if(opt.out_dir.IsEmpty() && !opt.input_dir.IsEmpty())
 		opt.out_dir = opt.input_dir + "_tracked";
 	return opt;
@@ -428,7 +422,7 @@ static Vector<SemanticEvent> DetectSemanticEvents(int frame_index, int table_id,
 		         Format("left=%d right=%d top=%d bottom=%d", left, right, top, bottom),
 		         "seat_regions", seat, 0.35);
 	if(buttons >= 2) {
-		if(opt.table_mode == "observer")
+		if(VsmObserverNoHero(opt.table_mode))
 			AddEvent(events, frame_index, table_id, "observer_bottom_region_changed",
 			         Format("observer_nohero bottom_button=%d bottom_seat=%d", buttons, bottom),
 			         "bottom_button", buttons, 0.30);
@@ -536,8 +530,8 @@ CONSOLE_APP_MAIN
 	json << "{\n";
 	json << "  \"input_dir\": \"" << JsonString(opt.input_dir) << "\",\n";
 	json << "  \"table_mode\": \"" << JsonString(opt.table_mode) << "\",\n";
-	json << "  \"hero_cards_expected\": " << (opt.table_mode == "hero" ? "true" : "false") << ",\n";
-	json << "  \"observer_nohero\": " << (opt.table_mode == "observer" ? "true" : "false") << ",\n";
+	json << "  \"hero_cards_expected\": " << (VsmHeroCardsExpected(opt.table_mode) ? "true" : "false") << ",\n";
+	json << "  \"observer_nohero\": " << (VsmObserverNoHero(opt.table_mode) ? "true" : "false") << ",\n";
 	json << "  \"frame_count\": " << frames.GetCount() << ",\n";
 	json << "  \"frames\": [\n";
 
@@ -545,8 +539,8 @@ CONSOLE_APP_MAIN
 	summary << "{\n";
 	summary << "  \"input_dir\": \"" << JsonString(opt.input_dir) << "\",\n";
 	summary << "  \"table_mode\": \"" << JsonString(opt.table_mode) << "\",\n";
-	summary << "  \"hero_cards_expected\": " << (opt.table_mode == "hero" ? "true" : "false") << ",\n";
-	summary << "  \"observer_nohero\": " << (opt.table_mode == "observer" ? "true" : "false") << ",\n";
+	summary << "  \"hero_cards_expected\": " << (VsmHeroCardsExpected(opt.table_mode) ? "true" : "false") << ",\n";
+	summary << "  \"observer_nohero\": " << (VsmObserverNoHero(opt.table_mode) ? "true" : "false") << ",\n";
 	summary << "  \"frame_count\": " << frames.GetCount() << ",\n";
 	summary << "  \"frames\": [\n";
 
@@ -665,8 +659,8 @@ CONSOLE_APP_MAIN
 	events_json << "{\n";
 	events_json << "  \"input_dir\": \"" << JsonString(opt.input_dir) << "\",\n";
 	events_json << "  \"table_mode\": \"" << JsonString(opt.table_mode) << "\",\n";
-	events_json << "  \"hero_cards_expected\": " << (opt.table_mode == "hero" ? "true" : "false") << ",\n";
-	events_json << "  \"observer_nohero\": " << (opt.table_mode == "observer" ? "true" : "false") << ",\n";
+	events_json << "  \"hero_cards_expected\": " << (VsmHeroCardsExpected(opt.table_mode) ? "true" : "false") << ",\n";
+	events_json << "  \"observer_nohero\": " << (VsmObserverNoHero(opt.table_mode) ? "true" : "false") << ",\n";
 	events_json << "  \"frame_count\": " << frames.GetCount() << ",\n";
 	events_json << "  \"event_count\": " << all_events.GetCount() << ",\n";
 	events_json << "  \"events\": ";

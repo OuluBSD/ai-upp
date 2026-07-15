@@ -26,11 +26,6 @@ static void PrintHelp()
 	       << "  --help, -h          Show help\n";
 }
 
-static bool IsValidTableMode(const String& mode)
-{
-	return mode == "unknown" || mode == "hero" || mode == "observer";
-}
-
 static LiveRegressionOptions ParseOptions(const Vector<String>& args)
 {
 	LiveRegressionOptions opt;
@@ -46,7 +41,7 @@ static LiveRegressionOptions ParseOptions(const Vector<String>& args)
 		else if(args[i] == "--out-root" && i + 1 < args.GetCount())
 			opt.out_root = args[++i];
 		else if(args[i] == "--table-mode" && i + 1 < args.GetCount())
-			opt.table_mode = ToLower(args[++i]);
+			opt.table_mode = VsmNormalizeTableMode(args[++i]);
 		else if(args[i] == "--expect-frames" && i + 1 < args.GetCount())
 			opt.expect_frames = StrInt(args[++i]);
 		else if(args[i] == "--min-frames" && i + 1 < args.GetCount())
@@ -74,8 +69,7 @@ static LiveRegressionOptions ParseOptions(const Vector<String>& args)
 		opt.name = "live_smoke";
 	if(opt.out_root.IsEmpty())
 		opt.out_root = "tmp";
-	if(!IsValidTableMode(opt.table_mode))
-		opt.table_mode = "unknown";
+	opt.table_mode = VsmNormalizeTableMode(opt.table_mode);
 	return opt;
 }
 
@@ -233,8 +227,8 @@ static bool WritePipelineSummary(const LiveRegressionOptions& opt, const String&
 	json << "  \"status\": \"ok\",\n";
 	json << "  \"regression_name\": \"" << JsonString(opt.name) << "\",\n";
 	json << "  \"table_mode\": \"" << JsonString(opt.table_mode) << "\",\n";
-	json << "  \"hero_cards_expected\": " << (opt.table_mode == "hero" ? "true" : "false") << ",\n";
-	json << "  \"observer_nohero\": " << (opt.table_mode == "observer" ? "true" : "false") << ",\n";
+	json << "  \"hero_cards_expected\": " << (VsmHeroCardsExpected(opt.table_mode) ? "true" : "false") << ",\n";
+	json << "  \"observer_nohero\": " << (VsmObserverNoHero(opt.table_mode) ? "true" : "false") << ",\n";
 	json << "  \"host\": \"" << JsonString(opt.host) << "\",\n";
 	json << "  \"port\": " << opt.port << ",\n";
 	json << "  \"frames_requested\": " << opt.frames << ",\n";

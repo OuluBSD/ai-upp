@@ -2,6 +2,7 @@
 #define _VideoLiveRegressionRunner_VideoLiveRegressionRunner_h_
 
 #include <Core/Core.h>
+#include <VisualStateModel/VisualStateModel.h>
 
 NAMESPACE_UPP
 

@@ -2,6 +2,53 @@
 
 namespace Upp {
 
+VsmTableMode VsmParseTableMode(const String& text)
+{
+	String mode = ToLower(TrimBoth(text));
+	if(mode == "hero")
+		return VSM_TABLE_MODE_HERO;
+	if(mode == "observer" || mode == "nohero" || mode == "no-hero")
+		return VSM_TABLE_MODE_OBSERVER;
+	return VSM_TABLE_MODE_UNKNOWN;
+}
+
+String VsmTableModeToString(VsmTableMode mode)
+{
+	switch(mode) {
+	case VSM_TABLE_MODE_HERO:
+		return "hero";
+	case VSM_TABLE_MODE_OBSERVER:
+		return "observer";
+	default:
+		return "unknown";
+	}
+}
+
+String VsmNormalizeTableMode(const String& text)
+{
+	return VsmTableModeToString(VsmParseTableMode(text));
+}
+
+bool VsmHeroCardsExpected(VsmTableMode mode)
+{
+	return mode == VSM_TABLE_MODE_HERO;
+}
+
+bool VsmHeroCardsExpected(const String& mode)
+{
+	return VsmHeroCardsExpected(VsmParseTableMode(mode));
+}
+
+bool VsmObserverNoHero(VsmTableMode mode)
+{
+	return mode == VSM_TABLE_MODE_OBSERVER;
+}
+
+bool VsmObserverNoHero(const String& mode)
+{
+	return VsmObserverNoHero(VsmParseTableMode(mode));
+}
+
 void VsmRegionFingerprint::Jsonize(JsonIO& json)
 {
 	json("hash", hash)

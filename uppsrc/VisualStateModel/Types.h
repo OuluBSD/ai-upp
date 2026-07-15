@@ -9,6 +9,23 @@ namespace Upp {
 typedef String VsmRegionId;
 
 // ---------------------------------------------------------------------------
+// Table perspective
+
+enum VsmTableMode {
+	VSM_TABLE_MODE_UNKNOWN,
+	VSM_TABLE_MODE_HERO,
+	VSM_TABLE_MODE_OBSERVER,
+};
+
+VsmTableMode VsmParseTableMode(const String& text);
+String       VsmTableModeToString(VsmTableMode mode);
+String       VsmNormalizeTableMode(const String& text);
+bool         VsmHeroCardsExpected(VsmTableMode mode);
+bool         VsmHeroCardsExpected(const String& mode);
+bool         VsmObserverNoHero(VsmTableMode mode);
+bool         VsmObserverNoHero(const String& mode);
+
+// ---------------------------------------------------------------------------
 // Region fingerprint
 
 struct VsmRegionFingerprint : Moveable<VsmRegionFingerprint> {

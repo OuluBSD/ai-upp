@@ -42,7 +42,7 @@ static VideoAssertOptions ParseOptions(const Vector<String>& args)
 		else if(args[i] == "--table-quality-json" && i + 1 < args.GetCount())
 			opt.table_quality_json = args[++i];
 		else if(args[i] == "--table-mode" && i + 1 < args.GetCount())
-			opt.table_mode = ToLower(args[++i]);
+			opt.table_mode = VsmNormalizeTableMode(args[++i]);
 		else if(args[i] == "--expect-frames" && i + 1 < args.GetCount())
 			opt.expect_frames = StrInt(args[++i]);
 		else if(args[i] == "--min-frames" && i + 1 < args.GetCount())
@@ -80,6 +80,7 @@ static VideoAssertOptions ParseOptions(const Vector<String>& args)
 		if(opt.table_quality_json.IsEmpty())
 			opt.table_quality_json = AppendFileName(opt.tracker_dir, "table_quality.json");
 	}
+	opt.table_mode = VsmNormalizeTableMode(opt.table_mode);
 	return opt;
 }
 

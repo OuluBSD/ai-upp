@@ -4,6 +4,7 @@
 #include <Core/Core.h>
 #include <Draw/Draw.h>
 #include <plugin/jpg/jpg.h>
+#include <VisualStateModel/VisualStateModel.h>
 
 NAMESPACE_UPP
 

@@ -43,6 +43,9 @@ struct LocalCommandLineArguments {
 	String source = "camera";
 	String image_path;
 	String image_dir;
+	String video_path;
+	String video_work_dir;
+	String ffmpeg = "ffmpeg";
 	String screen_rect;
 	bool list_devices = false;
 	bool show_help = false;
@@ -63,6 +66,9 @@ struct LocalCommandLineArguments {
 			else if(args[i] == "--source" && i + 1 < args.GetCount()) { source = ToLower(args[i+1]); i++; }
 			else if(args[i] == "--image" && i + 1 < args.GetCount()) { image_path = args[i+1]; i++; }
 			else if(args[i] == "--image-dir" && i + 1 < args.GetCount()) { image_dir = args[i+1]; i++; }
+			else if(args[i] == "--video" && i + 1 < args.GetCount()) { video_path = args[i+1]; i++; }
+			else if(args[i] == "--video-work-dir" && i + 1 < args.GetCount()) { video_work_dir = args[i+1]; i++; }
+			else if(args[i] == "--ffmpeg" && i + 1 < args.GetCount()) { ffmpeg = args[i+1]; i++; }
 			else if(args[i] == "--screen-rect" && i + 1 < args.GetCount()) { screen_rect = args[i+1]; i++; }
 			else if(args[i] == "-l") list_devices = true;
 			else if(args[i] == "--self-test") self_test = true;
@@ -74,7 +80,7 @@ struct LocalCommandLineArguments {
 			else if(args[i] == "--wire-format" && i + 1 < args.GetCount()) { wire_format = ToLower(args[i+1]); i++; }
 			else if(args[i] == "--help" || args[i] == "-h") show_help = true;
 		}
-		if(source != "camera" && source != "red" && source != "image" && source != "image-dir" && source != "screen")
+		if(source != "camera" && source != "red" && source != "image" && source != "image-dir" && source != "screen" && source != "video")
 			source = "camera";
 		if (wire_format != "mjpeg" && wire_format != "yuv")
 			wire_format = "mjpeg";
@@ -85,11 +91,14 @@ struct LocalCommandLineArguments {
 		       << "Usage: VideoServer [options]\n\n"
 		       << "Options:\n"
 		       << "  -l               List available video capture devices\n"
-		       << "  --source <camera|red|image|image-dir|screen>\n"
+		       << "  --source <camera|red|image|image-dir|screen|video>\n"
 		       << "                   Set frame source (default: camera)\n"
 		       << "  --device <idx>   Set the capture device index (default: 0)\n"
 		       << "  --image <path>   Source image path (required when --source image)\n"
 		       << "  --image-dir <path>  Directory source for --source image-dir\n"
+		       << "  --video <path>   Video file source for --source video\n"
+		       << "  --video-work-dir <dir>  Extracted frame directory for --source video\n"
+		       << "  --ffmpeg <exe>   ffmpeg executable for --source video\n"
 		       << "  --screen-rect <x,y,w,h>  Screen region (default: full screen)\n"
 		       << "  --port <port>    Set the server port (default: 8082)\n"
 		       << "  --fps <fps>      Set the target FPS (default: 10)\n"
@@ -660,6 +669,49 @@ static bool CollectImageFiles(const String& dir, Vector<String>& files)
 	return !files.IsEmpty();
 }
 
+static bool ExtractVideoFrames(const LocalCommandLineArguments& cla, Vector<String>& files)
+{
+	files.Clear();
+	if(cla.video_path.IsEmpty()) {
+		Cerr() << "--video is required when --source video\n";
+		return false;
+	}
+	if(!FileExists(cla.video_path)) {
+		Cerr() << "Video file does not exist: " << cla.video_path << "\n";
+		return false;
+	}
+	String work_dir = cla.video_work_dir;
+	if(work_dir.IsEmpty()) {
+		String title = GetFileTitle(cla.video_path);
+		work_dir = AppendFileName(GetCurrentDirectory(), AppendFileName("tmp", "video_server_playback_" + title));
+	}
+	DeleteFolderDeep(work_dir);
+	RealizeDirectory(work_dir);
+	String frame_pattern = AppendFileName(work_dir, "frame_%06d.jpg");
+	Vector<String> args;
+	args << "-y"
+	     << "-i" << cla.video_path
+	     << "-vf" << ("fps=" + AsString(cla.fps))
+	     << "-q:v" << "2"
+	     << frame_pattern;
+	Cout() << "extracting_video_frames video=" << cla.video_path
+	       << " work_dir=" << work_dir << " fps=" << cla.fps << "\n";
+	String out;
+	int code = Sys(cla.ffmpeg, args, out);
+	if(!out.IsEmpty())
+		Cout() << out;
+	if(code != 0) {
+		Cerr() << "ffmpeg failed extracting video frames exit=" << code << "\n";
+		return false;
+	}
+	if(!CollectImageFiles(work_dir, files)) {
+		Cerr() << "No extracted frames found in " << work_dir << "\n";
+		return false;
+	}
+	Cout() << "video_playback_frames=" << files.GetCount() << "\n";
+	return true;
+}
+
 #ifdef PLATFORM_LINUX
 static byte ChannelFromMask(unsigned long pixel, unsigned long mask)
 {
@@ -744,6 +796,10 @@ CONSOLE_APP_MAIN {
 		Cerr() << "--image-dir is required when --source image-dir\n";
 		return;
 	}
+	if(cla.source == "video" && cla.video_path.IsEmpty()) {
+		Cerr() << "--video is required when --source video\n";
+		return;
+	}
 #if !defined(PLATFORM_LINUX) && !defined(_WIN32)
 	if(cla.source == "screen") {
 		Cerr() << "--source screen is supported on Linux and Windows only\n";
@@ -765,6 +821,10 @@ CONSOLE_APP_MAIN {
 			Cerr() << "No image files found in --image-dir: " << cla.image_dir << "\n";
 			return;
 		}
+	}
+	else if(cla.source == "video") {
+		if(!ExtractVideoFrames(cla, image_dir_files))
+			return;
 	}
 
 #ifdef PLATFORM_LINUX
@@ -967,7 +1027,7 @@ CONSOLE_APP_MAIN {
 		else if(cla.source == "image") {
 			img = StreamRaster::LoadFileAny(cla.image_path);
 		}
-		else if(cla.source == "image-dir") {
+		else if(cla.source == "image-dir" || cla.source == "video") {
 			img = StreamRaster::LoadFileAny(image_dir_files[0]);
 		}
 		else if(cla.source == "screen") {
@@ -1191,9 +1251,9 @@ CONSOLE_APP_MAIN {
 					g_running = false;
 					break;
 				}
-			} else if(cla.source == "image-dir") {
+			} else if(cla.source == "image-dir" || cla.source == "video") {
 				if(image_dir_files.IsEmpty()) {
-					Cerr() << "No image files available in --image-dir\n";
+					Cerr() << "No image files available in source frame list\n";
 					g_running = false;
 					break;
 				}

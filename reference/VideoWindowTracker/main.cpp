@@ -391,16 +391,16 @@ static Vector<SemanticCrop> GetSemanticCrops(const TrackerWindow& window, const 
 
 	AddSemanticCrop(out, "title", title);
 	AddSemanticCrop(out, "table_area", CropRect(sz, 0, 45, 1000, 1000));
-	AddSemanticCrop(out, "board_cards", CropRect(sz, 340, 350, 660, 485));
+	AddSemanticCrop(out, "board_cards", CropRect(sz, 300, 250, 700, 585));
 	AddSemanticCrop(out, "pot_label", CropRect(sz, 405, 270, 595, 350));
 	AddSemanticCrop(out, "center_chips", CropRect(sz, 420, 410, 580, 545));
 	AddSemanticCrop(out, "bottom_button", CropRect(sz, 380, 560, 475, 690));
-	AddSemanticCrop(out, "top_seat", CropRect(sz, 350, 115, 650, 300));
-	AddSemanticCrop(out, "left_top_seat", CropRect(sz, 35, 190, 310, 500));
-	AddSemanticCrop(out, "left_bottom_seat", CropRect(sz, 35, 500, 310, 810));
-	AddSemanticCrop(out, "right_top_seat", CropRect(sz, 690, 190, 965, 500));
-	AddSemanticCrop(out, "right_bottom_seat", CropRect(sz, 690, 500, 965, 810));
-	AddSemanticCrop(out, "bottom_seat", CropRect(sz, 330, 650, 670, 870));
+	AddSemanticCrop(out, "top_seat", CropRect(sz, 330, 65, 670, 360));
+	AddSemanticCrop(out, "left_top_seat", CropRect(sz, 20, 80, 380, 540));
+	AddSemanticCrop(out, "left_bottom_seat", CropRect(sz, 20, 450, 420, 830));
+	AddSemanticCrop(out, "right_top_seat", CropRect(sz, 610, 80, 985, 540));
+	AddSemanticCrop(out, "right_bottom_seat", CropRect(sz, 570, 450, 985, 830));
+	AddSemanticCrop(out, "bottom_seat", CropRect(sz, 295, 540, 705, 900));
 	return out;
 }
 

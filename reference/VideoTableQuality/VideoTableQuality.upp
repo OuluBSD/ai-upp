@@ -1,0 +1,13 @@
+description "Video table content quality assessor";
+
+uses
+	Core;
+
+file
+	AGENTS.md,
+	VideoTableQuality.h,
+	main.cpp;
+
+mainconfig
+	"" = "";
+

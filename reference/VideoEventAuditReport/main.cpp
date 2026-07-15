@@ -162,6 +162,35 @@ static void AppendCorrelatedSummary(String& md, const AuditReportOptions& opt)
 	md << "\n";
 }
 
+static void AppendTableQualitySummary(String& md, const AuditReportOptions& opt)
+{
+	String path = AppendFileName(opt.tracker_dir, "table_quality.json");
+	if(!FileExists(path))
+		return;
+	String text = LoadFile(path);
+	if(text.IsVoid() || text.IsEmpty())
+		return;
+	Value value = ParseJSON(text);
+	if(IsError(value))
+		return;
+	ValueMap root = value;
+	ValueArray tables = root.Get("tables", ValueArray());
+	md << "## Table Quality\n\n";
+	md << "- usable_table_count: " << JsonIntValue(root, "usable_table_count") << "\n";
+	md << "- max_usable_tables: " << JsonIntValue(root, "max_usable_tables") << "\n";
+	md << "- obstructed_table_count: " << JsonIntValue(root, "obstructed_table_count") << "\n";
+	md << "- " << MarkdownLink("table_quality.json", opt.out_path, path) << "\n";
+	for(int i = 0; i < tables.GetCount(); i++) {
+		ValueMap table = tables[i];
+		md << "- table[" << i << "]: frame=" << JsonIntValue(table, "frame_index")
+		   << " table=" << JsonIntValue(table, "table_id")
+		   << " usable=" << JsonTextValue(table, "usable")
+		   << " reason=`" << JsonTextValue(table, "reason") << "`"
+		   << " pot=`" << OneLine(JsonTextValue(table, "pot_text")) << "`\n";
+	}
+	md << "\n";
+}
+
 static String SemanticCropPath(const String& tracker_dir, int frame_index, int table_id,
                                const String& semantic)
 {
@@ -218,6 +247,7 @@ static bool GenerateReport(const AuditReportOptions& opt)
 	if(FileExists(pipeline_summary_path))
 		md << "- " << MarkdownLink("pipeline_summary.json", opt.out_path, pipeline_summary_path) << "\n\n";
 	AppendOcrSummary(md, opt);
+	AppendTableQualitySummary(md, opt);
 	AppendCorrelatedSummary(md, opt);
 
 	if(events.IsEmpty()) {

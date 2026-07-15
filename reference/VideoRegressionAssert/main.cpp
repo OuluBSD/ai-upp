@@ -11,6 +11,7 @@ static void PrintHelp()
 	       << "  --pipeline-summary <file>  Override pipeline_summary.json path\n"
 	       << "  --events-json <file>       Override events.json path\n"
 	       << "  --ocr-json <file>          Override ocr_probe.json path\n\n"
+	       << "  --table-quality-json <file> Override table_quality.json path\n\n"
 	       << "Expectations:\n"
 	       << "  --expect-frames <n>        Require exact frames_tracked\n"
 	       << "  --min-frames <n>           Require at least n frames_tracked\n"
@@ -18,6 +19,7 @@ static void PrintHelp()
 	       << "  --min-tables <n>           Require at least n max_frame_tables\n"
 	       << "  --min-events <n>           Require at least n events\n"
 	       << "  --min-ocr-crops <n>        Require at least n OCR crops\n"
+	       << "  --min-usable-tables <n>    Require at least n usable table contents\n"
 	       << "  --require-event <type>     Require an event type; can repeat\n"
 	       << "  --ocr-ok, --require-ocr    Require OCR probe ok=true\n"
 	       << "  --require-ocr-text <text>  Require OCR result text substring; can repeat\n"
@@ -36,6 +38,8 @@ static VideoAssertOptions ParseOptions(const Vector<String>& args)
 			opt.events_json = args[++i];
 		else if(args[i] == "--ocr-json" && i + 1 < args.GetCount())
 			opt.ocr_json = args[++i];
+		else if(args[i] == "--table-quality-json" && i + 1 < args.GetCount())
+			opt.table_quality_json = args[++i];
 		else if(args[i] == "--expect-frames" && i + 1 < args.GetCount())
 			opt.expect_frames = StrInt(args[++i]);
 		else if(args[i] == "--min-frames" && i + 1 < args.GetCount())
@@ -48,6 +52,8 @@ static VideoAssertOptions ParseOptions(const Vector<String>& args)
 			opt.min_events = StrInt(args[++i]);
 		else if(args[i] == "--min-ocr-crops" && i + 1 < args.GetCount())
 			opt.min_ocr_crops = StrInt(args[++i]);
+		else if(args[i] == "--min-usable-tables" && i + 1 < args.GetCount())
+			opt.min_usable_tables = StrInt(args[++i]);
 		else if(args[i] == "--require-event" && i + 1 < args.GetCount())
 			opt.required_events << args[++i];
 		else if(args[i] == "--ocr-ok" || args[i] == "--require-ocr")
@@ -68,6 +74,8 @@ static VideoAssertOptions ParseOptions(const Vector<String>& args)
 			opt.events_json = AppendFileName(opt.tracker_dir, "events.json");
 		if(opt.ocr_json.IsEmpty())
 			opt.ocr_json = AppendFileName(opt.tracker_dir, "ocr_probe.json");
+		if(opt.table_quality_json.IsEmpty())
+			opt.table_quality_json = AppendFileName(opt.tracker_dir, "table_quality.json");
 	}
 	return opt;
 }
@@ -178,13 +186,17 @@ static bool RunAssertions(const VideoAssertOptions& opt)
 	ctx.pipeline_ok = LoadJsonMap(opt.pipeline_summary, ctx.pipeline_text, ctx.pipeline, "pipeline_summary");
 	ctx.events_ok = LoadJsonMap(opt.events_json, ctx.events_text, ctx.events_root, "events_json");
 	ctx.ocr_ok = LoadJsonMap(opt.ocr_json, ctx.ocr_text, ctx.ocr_root, "ocr_json");
+	ValueMap table_quality_root;
+	ctx.table_quality_ok = LoadJsonMap(opt.table_quality_json, ctx.table_quality_text,
+	                                   table_quality_root, "table_quality_json");
 
-	bool ok = ctx.pipeline_ok && ctx.events_ok && ctx.ocr_ok;
+	bool ok = ctx.pipeline_ok && ctx.events_ok && ctx.ocr_ok && ctx.table_quality_ok;
 	ValueMap observed = MapValue(ctx.pipeline, "observed");
 	int frames_tracked = IntValue(observed, "frames_tracked");
 	int max_frame_tables = IntValue(observed, "max_frame_tables");
 	int event_count = IntValue(ctx.events_root, "event_count");
 	int ocr_crop_count = IntValue(ctx.ocr_root, "crop_count");
+	int max_usable_tables = IntValue(table_quality_root, "max_usable_tables");
 	bool ocr_ok = BoolValue(ctx.ocr_root, "ok");
 
 	ok = CheckIntExact("frames_tracked", frames_tracked, opt.expect_frames) && ok;
@@ -193,6 +205,7 @@ static bool RunAssertions(const VideoAssertOptions& opt)
 	ok = CheckIntMin("max_frame_tables", max_frame_tables, opt.min_tables) && ok;
 	ok = CheckIntMin("event_count", event_count, opt.min_events) && ok;
 	ok = CheckIntMin("ocr_crop_count", ocr_crop_count, opt.min_ocr_crops) && ok;
+	ok = CheckIntMin("max_usable_tables", max_usable_tables, opt.min_usable_tables) && ok;
 
 	for(const String& type : opt.required_events) {
 		if(HasEventType(ctx.events_root, type))

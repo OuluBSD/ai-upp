@@ -10,12 +10,14 @@ struct VideoAssertOptions {
 	String pipeline_summary;
 	String events_json;
 	String ocr_json;
+	String table_quality_json;
 	int    expect_frames = -1;
 	int    min_frames = -1;
 	int    expect_tables = -1;
 	int    min_tables = -1;
 	int    min_events = -1;
 	int    min_ocr_crops = -1;
+	int    min_usable_tables = -1;
 	bool   require_ocr_ok = false;
 	bool   help = false;
 	bool   parse_error = false;
@@ -27,12 +29,14 @@ struct VideoAssertContext {
 	String pipeline_text;
 	String events_text;
 	String ocr_text;
+	String table_quality_text;
 	ValueMap pipeline;
 	ValueMap events_root;
 	ValueMap ocr_root;
 	bool pipeline_ok = false;
 	bool events_ok = false;
 	bool ocr_ok = false;
+	bool table_quality_ok = false;
 };
 
 END_UPP_NAMESPACE

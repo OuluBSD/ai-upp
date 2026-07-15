@@ -246,6 +246,69 @@ static Image MakeChangeOverlay(const Image& crop, const Vector<TrackerChange>& c
 	return ib;
 }
 
+static bool TouchesOrOverlaps(const Rect& a, const Rect& b)
+{
+	return a.left <= b.right && b.left <= a.right &&
+	       a.top <= b.bottom && b.top <= a.bottom;
+}
+
+static Vector<TrackerChangedRegion> BuildChangedRegions(const Vector<TrackerChange>& changes)
+{
+	Vector<TrackerChangedRegion> regions;
+	Vector<byte> used;
+	used.SetCount(changes.GetCount(), 0);
+	Vector<int> stack;
+	for(int i = 0; i < changes.GetCount(); i++) {
+		if(used[i])
+			continue;
+		TrackerChangedRegion& region = regions.Add();
+		region.index = regions.GetCount() - 1;
+		region.rect = changes[i].rect;
+		stack.Clear();
+		stack << i;
+		used[i] = 1;
+		while(!stack.IsEmpty()) {
+			int at = stack.Top();
+			stack.Drop();
+			const TrackerChange& change = changes[at];
+			region.rect = region.block_count ? region.rect | change.rect : change.rect;
+			region.block_count++;
+			region.changed_pixels += change.changed_pixels;
+			for(int j = 0; j < changes.GetCount(); j++) {
+				if(!used[j] && TouchesOrOverlaps(region.rect, changes[j].rect)) {
+					used[j] = 1;
+					stack << j;
+				}
+			}
+		}
+	}
+	Sort(regions, [](const TrackerChangedRegion& a, const TrackerChangedRegion& b) {
+		if(a.rect.top != b.rect.top)
+			return a.rect.top < b.rect.top;
+		return a.rect.left < b.rect.left;
+	});
+	for(int i = 0; i < regions.GetCount(); i++)
+		regions[i].index = i;
+	return regions;
+}
+
+static void SaveChangedRegionCrops(const Image& crop, Vector<TrackerChangedRegion>& regions,
+                                   const String& region_dir, int frame_index, int table_id)
+{
+	if(crop.IsEmpty() || region_dir.IsEmpty())
+		return;
+	RealizeDirectory(region_dir);
+	Rect bounds = RectC(0, 0, crop.GetWidth(), crop.GetHeight());
+	for(TrackerChangedRegion& region : regions) {
+		Rect rect = region.rect & bounds;
+		if(rect.IsEmpty())
+			continue;
+		region.crop_path = AppendFileName(region_dir,
+			Format("frame_%06d_table_%d_region_%02d.jpg", frame_index, table_id, region.index));
+		JPGEncoder().Quality(95).SaveFile(region.crop_path, CropImage(crop, rect));
+	}
+}
+
 static String JsonString(const String& s)
 {
 	String out;
@@ -500,6 +563,23 @@ static void AppendSemanticChanges(String& out, const Vector<SemanticChange>& cha
 	out << "}";
 }
 
+static void AppendChangedRegions(String& out, const Vector<TrackerChangedRegion>& regions)
+{
+	out << "[";
+	for(int i = 0; i < regions.GetCount(); i++) {
+		if(i)
+			out << ", ";
+		const TrackerChangedRegion& region = regions[i];
+		out << "{\"index\": " << region.index
+		    << ", \"rect\": ";
+		AppendRect(out, region.rect);
+		out << ", \"block_count\": " << region.block_count
+		    << ", \"changed_pixels\": " << region.changed_pixels
+		    << ", \"crop_path\": \"" << JsonString(region.crop_path) << "\"}";
+	}
+	out << "]";
+}
+
 static String FormatSemanticChangesLine(const Vector<SemanticChange>& changes)
 {
 	String out;
@@ -670,9 +750,11 @@ CONSOLE_APP_MAIN
 	String crops_dir = AppendFileName(opt.out_dir, "crops");
 	String overlays_dir = AppendFileName(opt.out_dir, "overlays");
 	String semantic_dir = AppendFileName(opt.out_dir, "semantic");
+	String changed_region_dir = AppendFileName(opt.out_dir, "changed_regions");
 	RealizeDirectory(crops_dir);
 	RealizeDirectory(overlays_dir);
 	RealizeDirectory(semantic_dir);
+	RealizeDirectory(changed_region_dir);
 
 	Vector<TrackedCrop> previous_crops;
 	Vector<TrackerWindow> previous_windows;
@@ -762,6 +844,8 @@ CONSOLE_APP_MAIN
 				change_overlay = AppendFileName(overlays_dir, Format("frame_%06d_table_%d_changes.jpg", fi, w.id));
 				JPGEncoder().Quality(95).SaveFile(change_overlay, MakeChangeOverlay(crop, changes));
 			}
+			Vector<TrackerChangedRegion> changed_regions = BuildChangedRegions(changes);
+			SaveChangedRegionCrops(crop, changed_regions, changed_region_dir, fi, w.id);
 			Vector<SemanticChange> semantic_changes = SummarizeSemanticChanges(semantic_crops, changes);
 			Vector<SemanticEvent> events = DebounceEvents(DetectSemanticEvents(fi, w.id, semantic_changes, opt),
 			                                              last_event_frame);
@@ -776,6 +860,7 @@ CONSOLE_APP_MAIN
 			       << " delta=" << stability.dx << "," << stability.dy
 			       << "," << stability.dw << "," << stability.dh
 			       << " changes=" << changes.GetCount()
+			       << " changed_regions=" << changed_regions.GetCount()
 			       << " semantic=" << semantic_crops.GetCount()
 			       << " crop=" << w.crop_path;
 			if(!semantic_change_line.IsEmpty())
@@ -796,6 +881,8 @@ CONSOLE_APP_MAIN
 			json << ", \"change_count\": " << changes.GetCount();
 			if(!change_overlay.IsEmpty())
 				json << ", \"change_overlay\": \"" << JsonString(change_overlay) << "\"";
+			json << ", \"changed_regions\": ";
+			AppendChangedRegions(json, changed_regions);
 			json << ", \"changes\": [";
 			for(int ci = 0; ci < changes.GetCount(); ci++) {
 				if(ci)
@@ -816,8 +903,11 @@ CONSOLE_APP_MAIN
 			        << ", \"semantic\": ";
 			AppendSemanticCrops(summary, semantic_crops);
 			summary << ", \"change_count\": " << changes.GetCount()
+			        << ", \"changed_region_count\": " << changed_regions.GetCount()
 			        << ", \"change_union\": ";
 			AppendRect(summary, GetChangeUnion(changes));
+			summary << ", \"changed_regions\": ";
+			AppendChangedRegions(summary, changed_regions);
 			summary << ", \"semantic_changes\": ";
 			AppendSemanticChanges(summary, semantic_changes);
 			summary << ", \"events\": ";

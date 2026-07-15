@@ -39,6 +39,14 @@ struct TrackerChange : Moveable<TrackerChange> {
 	int  changed_pixels = 0;
 };
 
+struct TrackerChangedRegion : Moveable<TrackerChangedRegion> {
+	int    index = 0;
+	Rect   rect;
+	int    block_count = 0;
+	int    changed_pixels = 0;
+	String crop_path;
+};
+
 struct SemanticEvent : Moveable<SemanticEvent> {
 	int    frame_index = 0;
 	int    table_id = 0;

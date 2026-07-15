@@ -114,7 +114,15 @@ static ValueMap LoadJsonMap(const String& path)
 	return ValueMap(value);
 }
 
+static ValueMap FindTrackingTable(ValueMap tracking, int frame_index, int table_id);
+
 static String FindTableCrop(ValueMap tracking, int frame_index, int table_id)
+{
+	ValueMap table = FindTrackingTable(tracking, frame_index, table_id);
+	return TextValue(table, "crop");
+}
+
+static ValueMap FindTrackingTable(ValueMap tracking, int frame_index, int table_id)
 {
 	for(Value frame_value : ArrayValue(tracking, "frames")) {
 		ValueMap frame = frame_value;
@@ -123,10 +131,10 @@ static String FindTableCrop(ValueMap tracking, int frame_index, int table_id)
 		for(Value table_value : ArrayValue(frame, "tables")) {
 			ValueMap table = table_value;
 			if(IntValue(table, "id") == table_id)
-				return TextValue(table, "crop");
+				return table;
 		}
 	}
-	return String();
+	return ValueMap();
 }
 
 static String FindFrameOverlay(ValueMap tracking, int frame_index)
@@ -167,12 +175,30 @@ static String SlotSummary(ValueArray slots)
 	return out;
 }
 
+static void AppendChangedRegions(String& html, const VisualAuditOptions& opt, ValueMap tracking_table)
+{
+	ValueArray regions = ArrayValue(tracking_table, "changed_regions");
+	html << "<h4>Changed Regions</h4><div class=\"image-row small changed-regions\">\n";
+	if(regions.IsEmpty())
+		html << "<div class=\"missing\">no changed regions</div>\n";
+	for(Value region_value : regions) {
+		ValueMap region = region_value;
+		String label = Format("region %d blocks=%d pixels=%d",
+		                      IntValue(region, "index"),
+		                      IntValue(region, "block_count"),
+		                      IntValue(region, "changed_pixels"));
+		AppendImage(html, opt.out_path, label, TextValue(region, "crop_path"), "change-region-crop");
+	}
+	html << "</div>\n";
+}
+
 static void AppendTableState(String& html, const VisualAuditOptions& opt, ValueMap tracking,
                              ValueMap table)
 {
 	int frame_index = IntValue(table, "frame_index");
 	int table_id = IntValue(table, "table_id");
-	String table_crop = FindTableCrop(tracking, frame_index, table_id);
+	ValueMap tracking_table = FindTrackingTable(tracking, frame_index, table_id);
+	String table_crop = TextValue(tracking_table, "crop");
 	html << "<section class=\"table-state\">\n";
 	html << "<h3>Frame " << frame_index << " Table " << table_id << "</h3>\n";
 	html << "<p>usable=<code>" << HtmlEscape(TextValue(table, "usable"))
@@ -185,7 +211,9 @@ static void AppendTableState(String& html, const VisualAuditOptions& opt, ValueM
 	html << "<div class=\"image-row\">\n";
 	AppendImage(html, opt.out_path, "table crop", table_crop, "table-crop");
 	AppendImage(html, opt.out_path, "board crop", TextValue(table, "board_crop_path"), "board-crop");
+	AppendImage(html, opt.out_path, "change overlay", TextValue(tracking_table, "change_overlay"), "change-overlay");
 	html << "</div>\n";
+	AppendChangedRegions(html, opt, tracking_table);
 	html << "<h4>Board Slots</h4><div class=\"image-row small\">\n";
 	for(Value slot_value : ArrayValue(table, "board_slots")) {
 		ValueMap slot = slot_value;
@@ -225,7 +253,8 @@ static bool WriteReport(const VisualAuditOptions& opt)
 	     << "a{color:#9cf}.image-row{display:flex;gap:12px;flex-wrap:wrap;align-items:flex-start;}"
 	     << "figure{margin:0 0 12px 0;background:#222;padding:8px;border:1px solid #444;}"
 	     << "figcaption{font-size:12px;color:#ccc;margin-top:4px;}img{max-width:420px;max-height:280px;image-rendering:auto;}"
-	     << ".small img{max-width:160px;max-height:120px}.table-state{border-top:2px solid #555;padding-top:14px;margin-top:18px;}"
+	     << ".small img{max-width:160px;max-height:120px}.changed-regions img{max-width:240px;max-height:180px;}"
+	     << ".table-state{border-top:2px solid #555;padding-top:14px;margin-top:18px;}"
 	     << ".missing{width:160px;height:80px;border:1px dashed #777;color:#f99;padding:8px;}code{color:#ffd27f;}"
 	     << "</style></head><body>\n";
 	html << "<h1>Video Table Visual Audit</h1>\n";

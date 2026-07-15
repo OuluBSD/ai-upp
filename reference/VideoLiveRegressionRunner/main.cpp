@@ -218,6 +218,7 @@ static bool WritePipelineSummary(const LiveRegressionOptions& opt, const String&
 	String summary_path = AppendFileName(tracked_dir, "pipeline_summary.json");
 	String record_summary = AppendFileName(record_dir, "summary.json");
 	String tracking_summary = AppendFileName(tracked_dir, "tracking_summary.json");
+	String stability_json_path = AppendFileName(tracked_dir, "stability.json");
 	String events_json_path = AppendFileName(tracked_dir, "events.json");
 	String correlated_events_json_path = AppendFileName(tracked_dir, "correlated_events.json");
 	String ocr_json_path = AppendFileName(tracked_dir, "ocr_probe.json");
@@ -282,6 +283,7 @@ static bool WritePipelineSummary(const LiveRegressionOptions& opt, const String&
 	AppendJsonPath(json, "record_summary", record_summary);
 	AppendJsonPath(json, "tracking_json", AppendFileName(tracked_dir, "tracking.json"));
 	AppendJsonPath(json, "tracking_summary_json", tracking_summary);
+	AppendJsonPath(json, "stability_json", stability_json_path);
 	AppendJsonPath(json, "events_json", events_json_path);
 	AppendJsonPath(json, "correlated_events_json", correlated_events_json_path);
 	AppendJsonPath(json, "event_audit_report", AppendFileName(tracked_dir, "event_audit.md"));
@@ -511,6 +513,7 @@ CONSOLE_APP_MAIN
 	Cout() << "tracked_dir=" << tracked_dir << "\n";
 	Cout() << "tracking_json=" << AppendFileName(tracked_dir, "tracking.json") << "\n";
 	Cout() << "tracking_summary_json=" << AppendFileName(tracked_dir, "tracking_summary.json") << "\n";
+	Cout() << "stability_json=" << AppendFileName(tracked_dir, "stability.json") << "\n";
 	Cout() << "events_json=" << AppendFileName(tracked_dir, "events.json") << "\n";
 	Cout() << "correlated_events_json=" << AppendFileName(tracked_dir, "correlated_events.json") << "\n";
 	Cout() << "event_audit_report=" << audit_path << "\n";

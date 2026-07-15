@@ -70,6 +70,12 @@ static String JsonString(const String& s)
 	return out;
 }
 
+static void AppendRect(String& out, const Rect& r)
+{
+	out << "{\"x\": " << r.left << ", \"y\": " << r.top
+	    << ", \"w\": " << r.Width() << ", \"h\": " << r.Height() << "}";
+}
+
 static String TextValue(ValueMap map, const char *key)
 {
 	Value value = map.Get(key, Value());
@@ -117,6 +123,15 @@ static ValueMap MapValue(ValueMap map, const char *key)
 	return IsValueMap(value) ? ValueMap(value) : ValueMap();
 }
 
+static Rect RectValue(ValueMap map, const char *key)
+{
+	ValueMap rect = MapValue(map, key);
+	if(rect.IsEmpty())
+		return Rect(0, 0, 0, 0);
+	return RectC(IntValue(rect, "x"), IntValue(rect, "y"),
+	             IntValue(rect, "w"), IntValue(rect, "h"));
+}
+
 static ValueArray ArrayValue(ValueMap map, const char *key)
 {
 	Value value = map.Get(key, ValueArray());
@@ -128,6 +143,13 @@ static String SemanticPath(ValueMap table, const char *semantic_name)
 	ValueMap semantic = MapValue(table, "semantic");
 	ValueMap item = MapValue(semantic, semantic_name);
 	return TextValue(item, "path");
+}
+
+static Rect SemanticRect(ValueMap table, const char *semantic_name)
+{
+	ValueMap semantic = MapValue(table, "semantic");
+	ValueMap item = MapValue(semantic, semantic_name);
+	return RectValue(item, "rect");
 }
 
 static int FirstFrameIndex(ValueMap tracking)
@@ -158,7 +180,17 @@ static bool IsCardLikePixel(const RGBA& p)
 	return !felt_green && (bright_neutral || saturated);
 }
 
-static int EstimateBoardCardCount(const String& path, double& confidence, String& reason)
+static Image CropImage(const Image& img, const Rect& r)
+{
+	ImageBuffer ib(r.Width(), r.Height());
+	for(int y = 0; y < r.Height(); y++)
+		memcpy(ib[y], img[r.top + y] + r.left, r.Width() * sizeof(RGBA));
+	return ib;
+}
+
+static int EstimateBoardCardCount(const String& path, const String& slot_dir,
+                                  Vector<BoardSlotState>& slots_out,
+                                  double& confidence, String& reason)
 {
 	confidence = 0;
 	if(path.IsEmpty() || !FileExists(path)) {
@@ -176,6 +208,9 @@ static int EstimateBoardCardCount(const String& path, double& confidence, String
 	for(int slot = 0; slot < slots; slot++) {
 		int x0 = slot * img.GetWidth() / slots;
 		int x1 = (slot + 1) * img.GetWidth() / slots;
+		BoardSlotState& slot_state = slots_out.Add();
+		slot_state.index = slot;
+		slot_state.rect = Rect(x0, 0, x1, img.GetHeight());
 		int hit = 0;
 		int total = 0;
 		for(int y = img.GetHeight() / 8; y < img.GetHeight() * 7 / 8; y++) {
@@ -187,7 +222,15 @@ static int EstimateBoardCardCount(const String& path, double& confidence, String
 			}
 		}
 		hits << hit;
-		if(total > 0 && hit * 100 >= total * 12)
+		slot_state.cardlike_pixels = hit;
+		slot_state.present = total > 0 && hit * 100 >= total * 12;
+		slot_state.confidence = slot_state.present ? 0.70 : 0.30;
+		if(!slot_dir.IsEmpty()) {
+			RealizeDirectory(slot_dir);
+			slot_state.crop_path = AppendFileName(slot_dir, Format("slot_%02d.jpg", slot));
+			JPGEncoder().Quality(95).SaveFile(slot_state.crop_path, CropImage(img, slot_state.rect));
+		}
+		if(slot_state.present)
 			count++;
 	}
 	confidence = count > 0 ? min(0.95, 0.50 + 0.10 * count) : 0.25;
@@ -222,6 +265,18 @@ static bool IsSeatSemantic(const String& semantic)
 {
 	return semantic == "top_seat" || semantic == "bottom_seat" ||
 	       semantic == "left_seats" || semantic == "right_seats";
+}
+
+static void AddSeatRegion(ExtractedTableState& state, ValueMap table,
+                          const char *semantic, int index, const String& role)
+{
+	SeatRegionState& seat = state.seats.Add();
+	seat.index = index;
+	seat.semantic = semantic;
+	seat.rect = SemanticRect(table, semantic);
+	seat.crop_path = SemanticPath(table, semantic);
+	seat.role = role;
+	seat.confidence = seat.rect.IsEmpty() || seat.crop_path.IsEmpty() ? 0.20 : 0.60;
 }
 
 static void LoadQuality(const TableStateOptions& opt, Vector<ExtractedTableState>& states)
@@ -283,9 +338,18 @@ static void LoadTracking(const TableStateOptions& opt, Vector<ExtractedTableStat
 		int table_id = IntValue(table, "id");
 		ExtractedTableState& state = GetState(states, frame_index, table_id, mode);
 		state.board_crop_path = SemanticPath(table, "board_cards");
+		String slot_dir = opt.tracker_dir.IsEmpty() ? String() :
+		                  AppendFileName(AppendFileName(opt.tracker_dir, "table_state_slots"),
+		                                 Format("frame_%06d_table_%d", frame_index, table_id));
 		state.board_card_count = EstimateBoardCardCount(state.board_crop_path,
+		                                                 slot_dir,
+		                                                 state.board_slots,
 		                                                 state.board_confidence,
 		                                                 state.board_reason);
+		AddSeatRegion(state, table, "top_seat", 0, "top");
+		AddSeatRegion(state, table, "right_seats", 1, "right_group");
+		AddSeatRegion(state, table, "bottom_seat", 2, "bottom");
+		AddSeatRegion(state, table, "left_seats", 3, "left_group");
 		state.reasons << "board:" + state.board_reason;
 	}
 }
@@ -332,10 +396,12 @@ static bool SaveState(const TableStateOptions& opt, const Vector<ExtractedTableS
 	String json;
 	json << "{\n";
 	json << "  \"tool\": \"VideoTableStateExtractor\",\n";
+	json << "  \"schema\": \"observer_table_state_v1\",\n";
 	json << "  \"tracker_dir\": \"" << JsonString(opt.tracker_dir) << "\",\n";
 	json << "  \"table_mode\": \"" << JsonString(opt.table_mode) << "\",\n";
 	json << "  \"hero_cards_expected\": " << (VsmHeroCardsExpected(opt.table_mode) ? "true" : "false") << ",\n";
 	json << "  \"observer_nohero\": " << (VsmObserverNoHero(opt.table_mode) ? "true" : "false") << ",\n";
+	json << "  \"explicit_unknowns\": true,\n";
 	json << "  \"state_count\": " << states.GetCount() << ",\n";
 	json << "  \"tables\": [\n";
 	for(int i = 0; i < states.GetCount(); i++) {
@@ -354,7 +420,36 @@ static bool SaveState(const TableStateOptions& opt, const Vector<ExtractedTableS
 		     << "\", \"board_card_count\": " << state.board_card_count
 		     << ", \"board_confidence\": " << Format("%.2f", state.board_confidence)
 		     << ", \"board_reason\": \"" << JsonString(state.board_reason)
-		     << "\", \"seat_texts\": [";
+		     << "\", \"board_slots\": [";
+		for(int j = 0; j < state.board_slots.GetCount(); j++) {
+			const BoardSlotState& slot = state.board_slots[j];
+			if(j)
+				json << ", ";
+			json << "{\"index\": " << slot.index
+			     << ", \"rect\": ";
+			AppendRect(json, slot.rect);
+			json << ", \"present\": " << (slot.present ? "true" : "false")
+			     << ", \"confidence\": " << Format("%.2f", slot.confidence)
+			     << ", \"cardlike_pixels\": " << slot.cardlike_pixels
+			     << ", \"rank\": null, \"suit\": null"
+			     << ", \"crop_path\": \"" << JsonString(slot.crop_path) << "\"}";
+		}
+		json << "], \"seats\": [";
+		for(int j = 0; j < state.seats.GetCount(); j++) {
+			const SeatRegionState& seat = state.seats[j];
+			if(j)
+				json << ", ";
+			json << "{\"index\": " << seat.index
+			     << ", \"semantic\": \"" << JsonString(seat.semantic)
+			     << "\", \"role\": \"" << JsonString(seat.role)
+			     << "\", \"rect\": ";
+			AppendRect(json, seat.rect);
+			json << ", \"crop_path\": \"" << JsonString(seat.crop_path)
+			     << "\", \"confidence\": " << Format("%.2f", seat.confidence)
+			     << ", \"name\": null, \"stack\": null, \"action\": null"
+			     << ", \"visible_hole_cards\": []}";
+		}
+		json << "], \"seat_texts\": [";
 		for(int j = 0; j < state.seat_texts.GetCount(); j++) {
 			const OcrTextKey& seat = state.seat_texts[j];
 			if(j)
@@ -389,6 +484,9 @@ static bool RunExtractor(const TableStateOptions& opt)
 		       << " table=" << state.table_id
 		       << " usable=" << (state.usable ? "true" : "false")
 		       << " board_cards=" << state.board_card_count
+		       << " board_slots=" << state.board_slots.GetCount()
+		       << " seats=" << state.seats.GetCount()
+		       << " observer_nohero=" << (VsmObserverNoHero(state.table_mode) ? "true" : "false")
 		       << " confidence=" << Format("%.2f", state.confidence) << "\n";
 	}
 	return true;

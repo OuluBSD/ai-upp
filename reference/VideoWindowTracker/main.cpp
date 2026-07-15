@@ -244,6 +244,59 @@ static void AppendRect(String& out, const Rect& r)
 	    << ", \"w\": " << r.Width() << ", \"h\": " << r.Height() << "}";
 }
 
+struct WindowStability : Moveable<WindowStability> {
+	int table_id = 0;
+	int dx = 0;
+	int dy = 0;
+	int dw = 0;
+	int dh = 0;
+	int center_distance = 0;
+	bool previous_seen = false;
+	bool stable = true;
+};
+
+static int AbsMax4(int a, int b, int c, int d)
+{
+	return max(max(abs(a), abs(b)), max(abs(c), abs(d)));
+}
+
+static Point RectCenter(const Rect& r)
+{
+	return Point((r.left + r.right) / 2, (r.top + r.bottom) / 2);
+}
+
+static WindowStability GetWindowStability(const TrackerWindow& current,
+                                          const Vector<TrackerWindow>& previous)
+{
+	WindowStability out;
+	out.table_id = current.id;
+	if(current.id < 0 || current.id >= previous.GetCount())
+		return out;
+	const Rect& before = previous[current.id].rect;
+	out.previous_seen = true;
+	out.dx = current.rect.left - before.left;
+	out.dy = current.rect.top - before.top;
+	out.dw = current.rect.Width() - before.Width();
+	out.dh = current.rect.Height() - before.Height();
+	Point a = RectCenter(current.rect);
+	Point b = RectCenter(before);
+	out.center_distance = abs(a.x - b.x) + abs(a.y - b.y);
+	out.stable = AbsMax4(out.dx, out.dy, out.dw, out.dh) <= 8;
+	return out;
+}
+
+static void AppendStability(String& out, const WindowStability& stability)
+{
+	out << "{\"table_id\": " << stability.table_id
+	    << ", \"previous_seen\": " << (stability.previous_seen ? "true" : "false")
+	    << ", \"stable\": " << (stability.stable ? "true" : "false")
+	    << ", \"dx\": " << stability.dx
+	    << ", \"dy\": " << stability.dy
+	    << ", \"dw\": " << stability.dw
+	    << ", \"dh\": " << stability.dh
+	    << ", \"center_distance\": " << stability.center_distance << "}";
+}
+
 static int Part(int total, int permille)
 {
 	return total * permille / 1000;
@@ -526,6 +579,10 @@ CONSOLE_APP_MAIN
 	RealizeDirectory(semantic_dir);
 
 	Vector<Image> previous_crops;
+	Vector<TrackerWindow> previous_windows;
+	int stable_observations = 0;
+	int unstable_observations = 0;
+	int max_center_distance = 0;
 	String json;
 	json << "{\n";
 	json << "  \"input_dir\": \"" << JsonString(opt.input_dir) << "\",\n";
@@ -544,6 +601,13 @@ CONSOLE_APP_MAIN
 	summary << "  \"frame_count\": " << frames.GetCount() << ",\n";
 	summary << "  \"frames\": [\n";
 
+	String stability_json;
+	stability_json << "{\n";
+	stability_json << "  \"input_dir\": \"" << JsonString(opt.input_dir) << "\",\n";
+	stability_json << "  \"table_mode\": \"" << JsonString(opt.table_mode) << "\",\n";
+	stability_json << "  \"frame_count\": " << frames.GetCount() << ",\n";
+	stability_json << "  \"frames\": [\n";
+
 	Vector<SemanticEvent> all_events;
 	VectorMap<String, int> last_event_frame;
 	for(int fi = 0; fi < frames.GetCount(); fi++) {
@@ -558,6 +622,9 @@ CONSOLE_APP_MAIN
 		JPGEncoder().Quality(95).SaveFile(frame_overlay, MakeFrameOverlay(frame, windows));
 		Cout() << "frame=" << fi << " tables=" << windows.GetCount()
 		       << " overlay=" << frame_overlay << "\n";
+		stability_json << "    {\"index\": " << fi
+		               << ", \"table_count\": " << windows.GetCount()
+		               << ", \"windows\": [";
 
 		json << "    {\"index\": " << fi
 		     << ", \"path\": \"" << JsonString(frames[fi]) << "\""
@@ -574,6 +641,14 @@ CONSOLE_APP_MAIN
 		Vector<Image> current_crops;
 		for(int wi = 0; wi < windows.GetCount(); wi++) {
 			TrackerWindow& w = windows[wi];
+			WindowStability stability = GetWindowStability(w, previous_windows);
+			if(stability.previous_seen) {
+				if(stability.stable)
+					stable_observations++;
+				else
+					unstable_observations++;
+				max_center_distance = max(max_center_distance, stability.center_distance);
+			}
 			Image crop = CropImage(frame, w.rect);
 			current_crops.Add(crop);
 			w.crop_path = AppendFileName(crops_dir, Format("frame_%06d_table_%d.jpg", fi, w.id));
@@ -595,7 +670,10 @@ CONSOLE_APP_MAIN
 			String event_line = FormatEventsLine(events);
 			Cout() << "  table=" << w.id
 			       << " rect=" << w.rect.left << "," << w.rect.top
-			       << " " << w.rect.Width() << "x" << w.rect.Height()
+			       << " " << w.rect.Width() << "`x" << w.rect.Height()
+			       << " stable=" << (stability.stable ? "true" : "false")
+			       << " delta=" << stability.dx << "," << stability.dy
+			       << "," << stability.dw << "," << stability.dh
 			       << " changes=" << changes.GetCount()
 			       << " semantic=" << semantic_crops.GetCount()
 			       << " crop=" << w.crop_path;
@@ -609,6 +687,8 @@ CONSOLE_APP_MAIN
 				json << ", ";
 			json << "{\"id\": " << w.id << ", \"rect\": ";
 			AppendRect(json, w.rect);
+			json << ", \"stability\": ";
+			AppendStability(json, stability);
 			json << ", \"crop\": \"" << JsonString(w.crop_path) << "\""
 			     << ", \"semantic\": ";
 			AppendSemanticCrops(json, semantic_crops);
@@ -629,6 +709,8 @@ CONSOLE_APP_MAIN
 				summary << ", ";
 			summary << "{\"id\": " << w.id << ", \"rect\": ";
 			AppendRect(summary, w.rect);
+			summary << ", \"stability\": ";
+			AppendStability(summary, stability);
 			summary << ", \"crop\": \"" << JsonString(w.crop_path) << "\""
 			        << ", \"semantic\": ";
 			AppendSemanticCrops(summary, semantic_crops);
@@ -640,21 +722,35 @@ CONSOLE_APP_MAIN
 			summary << ", \"events\": ";
 			AppendEvents(summary, events);
 			summary << ", \"change_overlay\": \"" << JsonString(change_overlay) << "\"}";
+
+			if(wi)
+				stability_json << ", ";
+			AppendStability(stability_json, stability);
 		}
 		json << "]}";
 		summary << "]}";
+		stability_json << "]}";
 		if(fi + 1 < frames.GetCount())
 			json << ",";
 		if(fi + 1 < frames.GetCount())
 			summary << ",";
+		if(fi + 1 < frames.GetCount())
+			stability_json << ",";
 		json << "\n";
 		summary << "\n";
+		stability_json << "\n";
 		previous_crops = pick(current_crops);
+		previous_windows = pick(windows);
 	}
 	json << "  ]\n";
 	json << "}\n";
 	summary << "  ]\n";
 	summary << "}\n";
+	stability_json << "  ],\n";
+	stability_json << "  \"stable_observations\": " << stable_observations << ",\n";
+	stability_json << "  \"unstable_observations\": " << unstable_observations << ",\n";
+	stability_json << "  \"max_center_distance\": " << max_center_distance << "\n";
+	stability_json << "}\n";
 	String events_json;
 	events_json << "{\n";
 	events_json << "  \"input_dir\": \"" << JsonString(opt.input_dir) << "\",\n";
@@ -669,10 +765,16 @@ CONSOLE_APP_MAIN
 	String json_path = AppendFileName(opt.out_dir, "tracking.json");
 	String summary_path = AppendFileName(opt.out_dir, "tracking_summary.json");
 	String events_path = AppendFileName(opt.out_dir, "events.json");
+	String stability_path = AppendFileName(opt.out_dir, "stability.json");
 	SaveFile(json_path, json);
 	SaveFile(summary_path, summary);
 	SaveFile(events_path, events_json);
+	SaveFile(stability_path, stability_json);
 	Cout() << "tracking_json=" << json_path << "\n";
 	Cout() << "tracking_summary_json=" << summary_path << "\n";
 	Cout() << "events_json=" << events_path << "\n";
+	Cout() << "stability_json=" << stability_path << "\n";
+	Cout() << "stability stable=" << stable_observations
+	       << " unstable=" << unstable_observations
+	       << " max_center_distance=" << max_center_distance << "\n";
 }

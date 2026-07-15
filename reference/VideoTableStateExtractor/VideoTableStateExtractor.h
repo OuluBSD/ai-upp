@@ -26,6 +26,24 @@ struct OcrTextKey : Moveable<OcrTextKey> {
 	String path;
 };
 
+struct BoardSlotState : Moveable<BoardSlotState> {
+	int    index = 0;
+	Rect   rect;
+	bool   present = false;
+	double confidence = 0;
+	int    cardlike_pixels = 0;
+	String crop_path;
+};
+
+struct SeatRegionState : Moveable<SeatRegionState> {
+	int    index = 0;
+	String semantic;
+	Rect   rect;
+	String crop_path;
+	double confidence = 0;
+	String role;
+};
+
 struct ExtractedTableState : Moveable<ExtractedTableState> {
 	int    frame_index = 0;
 	int    table_id = 0;
@@ -38,6 +56,8 @@ struct ExtractedTableState : Moveable<ExtractedTableState> {
 	int    board_card_count = 0;
 	double board_confidence = 0;
 	String board_reason;
+	Vector<BoardSlotState> board_slots;
+	Vector<SeatRegionState> seats;
 	Vector<OcrTextKey> seat_texts;
 	double confidence = 0;
 	Vector<String> reasons;

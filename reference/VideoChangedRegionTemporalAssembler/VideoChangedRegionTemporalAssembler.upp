@@ -1,0 +1,13 @@
+description "Assemble enriched changed-region occurrences into temporal events";
+
+uses
+	Core;
+
+file
+	AGENTS.md,
+	VideoChangedRegionTemporalAssembler.h,
+	main.cpp;
+
+mainconfig
+	"" = "";
+

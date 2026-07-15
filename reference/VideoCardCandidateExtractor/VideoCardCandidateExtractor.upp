@@ -1,0 +1,14 @@
+description "Extract conservative video card candidates from changed-region events";
+
+uses
+	Core,
+	Draw,
+	plugin/jpg;
+
+file
+	AGENTS.md,
+	VideoCardCandidateExtractor.h,
+	main.cpp;
+
+mainconfig
+	"" = "";

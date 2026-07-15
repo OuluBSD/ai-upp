@@ -1,0 +1,15 @@
+description "Export reproducible changed-region samples for ConvNetCpp";
+
+uses
+	Core,
+	Draw,
+	plugin/jpg;
+
+file
+	AGENTS.md,
+	VideoConvNetCppSampleExport.h,
+	main.cpp;
+
+mainconfig
+	"" = "";
+

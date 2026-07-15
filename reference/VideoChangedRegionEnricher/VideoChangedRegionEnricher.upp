@@ -1,0 +1,15 @@
+description "Enrich changed-region occurrences with semantic crop overlap";
+
+uses
+	Core,
+	Draw,
+	plugin/jpg;
+
+file
+	AGENTS.md,
+	VideoChangedRegionEnricher.h,
+	main.cpp;
+
+mainconfig
+	"" = "";
+

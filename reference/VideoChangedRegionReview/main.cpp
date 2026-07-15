@@ -49,6 +49,9 @@ static String RelativeTo(const String& file, const String& target)
 	String normalized = NormalizePath(target);
 	if(normalized.StartsWith(base))
 		return normalized.Mid(base.GetCount());
+	normalized.Replace("\\", "/");
+	if(normalized.GetCount() > 1 && normalized[1] == ':')
+		return "file:///" + normalized;
 	return normalized;
 }
 

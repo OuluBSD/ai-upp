@@ -492,7 +492,7 @@ CONSOLE_APP_MAIN
 	int ocr_code = 0;
 	if(ocr_available) {
 		Vector<String> ocr_args;
-		ocr_args << "--tracker-dir" << tracked_dir << "--max-crops" << "12";
+		ocr_args << "--tracker-dir" << tracked_dir << "--max-crops" << "40";
 		ocr_code = RunCommand(ocr_probe, ocr_args);
 		Cout() << "ocr_probe_exit=" << ocr_code << "\n";
 		if(ocr_code != 0)

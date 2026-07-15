@@ -180,6 +180,7 @@ static void AppendTableState(String& html, const VisualAuditOptions& opt, ValueM
 	     << "</code> board_cards=<code>" << IntValue(table, "board_card_count")
 	     << "</code> slots=<code>" << HtmlEscape(SlotSummary(ArrayValue(table, "board_slots")))
 	     << "</code> pot=<code>" << HtmlEscape(OneLine(TextValue(table, "pot_text")))
+	     << "</code> pot_amount=<code>" << HtmlEscape(OneLine(TextValue(table, "pot_amount_text")))
 	     << "</code></p>\n";
 	html << "<div class=\"image-row\">\n";
 	AppendImage(html, opt.out_path, "table crop", table_crop, "table-crop");
@@ -196,7 +197,11 @@ static void AppendTableState(String& html, const VisualAuditOptions& opt, ValueM
 	html << "<h4>Seats</h4><div class=\"image-row small\">\n";
 	for(Value seat_value : ArrayValue(table, "seats")) {
 		ValueMap seat = seat_value;
-		String label = Format("seat %d %s", IntValue(seat, "index"), TextValue(seat, "role"));
+		String label = Format("seat %d %s name=%s stack=%s action=%s",
+		                      IntValue(seat, "index"), TextValue(seat, "role"),
+		                      OneLine(TextValue(seat, "name")),
+		                      OneLine(TextValue(seat, "stack_text")),
+		                      OneLine(TextValue(seat, "action")));
 		AppendImage(html, opt.out_path, label, TextValue(seat, "crop_path"), "seat-crop");
 	}
 	html << "</div>\n";

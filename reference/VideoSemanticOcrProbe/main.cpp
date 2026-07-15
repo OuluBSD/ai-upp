@@ -75,7 +75,9 @@ static String JsonString(const String& s)
 static bool IsSelectedSemantic(const String& name)
 {
 	return name == "title" || name == "pot_label" || name == "top_seat" ||
-	       name == "left_seats" || name == "right_seats" || name == "bottom_seat";
+	       name == "bottom_seat" || name == "left_seats" || name == "right_seats" ||
+	       name == "left_top_seat" || name == "left_bottom_seat" ||
+	       name == "right_top_seat" || name == "right_bottom_seat";
 }
 
 static bool ParseSemanticDirName(const String& name, int& frame_index, int& table_id)

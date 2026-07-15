@@ -49,6 +49,10 @@ struct SeatRegionState : Moveable<SeatRegionState> {
 	String crop_path;
 	double confidence = 0;
 	String role;
+	String raw_text;
+	String name;
+	String stack_text;
+	String action;
 };
 
 struct ExtractedTableState : Moveable<ExtractedTableState> {
@@ -59,6 +63,7 @@ struct ExtractedTableState : Moveable<ExtractedTableState> {
 	String quality_reason;
 	String title_text;
 	String pot_text;
+	String pot_amount_text;
 	String board_crop_path;
 	int    board_card_count = 0;
 	double board_confidence = 0;

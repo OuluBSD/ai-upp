@@ -76,6 +76,177 @@ static void AppendRect(String& out, const Rect& r)
 	    << ", \"w\": " << r.Width() << ", \"h\": " << r.Height() << "}";
 }
 
+static void AppendNullableString(String& json, const String& value)
+{
+	if(value.IsEmpty())
+		json << "null";
+	else
+		json << "\"" << JsonString(value) << "\"";
+}
+
+static bool HasDigit(const String& text)
+{
+	for(int i = 0; i < text.GetCount(); i++)
+		if(IsDigit(text[i]))
+			return true;
+	return false;
+}
+
+static bool IsActionText(const String& text)
+{
+	String lower = ToLower(text);
+	return lower.Find("fold") >= 0 || lower.Find("call") >= 0 ||
+	       lower.Find("check") >= 0 || lower.Find("raise") >= 0 ||
+	       lower.Find("bet") >= 0 || lower.Find("all") >= 0;
+}
+
+static Vector<String> CleanOcrLines(String text)
+{
+	text.Replace("\r", "\n");
+	Vector<String> lines = Split(text, '\n');
+	Vector<String> out;
+	for(String line : lines) {
+		line = TrimBoth(line);
+		if(line.GetCount() >= 2)
+			out << line;
+	}
+	return out;
+}
+
+static String ExtractPotAmountText(const String& text)
+{
+	String lower = ToLower(text);
+	int pos = lower.Find("pot");
+	if(pos < 0)
+		return String();
+	String tail = text.Mid(pos);
+	int colon = tail.Find(":");
+	if(colon >= 0)
+		tail = tail.Mid(colon + 1);
+	tail = TrimBoth(tail);
+	Vector<String> parts = Split(tail, ' ');
+	String out;
+	for(String part : parts) {
+		part = TrimBoth(part);
+		if(part.IsEmpty())
+			continue;
+		if(!out.IsEmpty())
+			out << " ";
+		out << part;
+		if(HasDigit(part) && out.GetCount() > 0)
+			break;
+	}
+	return HasDigit(out) ? out : String();
+}
+
+static String NormalizeActionText(const String& text)
+{
+	String lower = ToLower(text);
+	if(lower.Find("fold") >= 0)
+		return "fold";
+	if(lower.Find("check") >= 0)
+		return "check";
+	if(lower.Find("call") >= 0)
+		return "call";
+	if(lower.Find("raise") >= 0)
+		return "raise";
+	if(lower.Find("bet") >= 0)
+		return "bet";
+	if(lower.Find("all") >= 0)
+		return "all_in";
+	return String();
+}
+
+static String ExtractStackText(const Vector<String>& lines)
+{
+	String decimal_stack;
+	String fallback_stack;
+	for(int i = lines.GetCount() - 1; i >= 0; i--) {
+		String lower = ToLower(lines[i]);
+		if(lower.Find("bb") >= 0 && HasDigit(lines[i])) {
+			if(fallback_stack.IsEmpty())
+				fallback_stack = lines[i];
+			if((lines[i].Find(".") >= 0 || lines[i].Find(",") >= 0) && decimal_stack.IsEmpty())
+				decimal_stack = lines[i];
+		}
+	}
+	if(!decimal_stack.IsEmpty())
+		return decimal_stack;
+	if(!fallback_stack.IsEmpty())
+		return fallback_stack;
+	for(int i = lines.GetCount() - 1; i >= 0; i--) {
+		if(HasDigit(lines[i]) && !IsActionText(lines[i]))
+			return lines[i];
+	}
+	return String();
+}
+
+static bool IsNoiseNameLine(const String& line)
+{
+	String lower = ToLower(line);
+	if(lower.Find("responsible") >= 0 || lower.Find("gaming") >= 0 ||
+	   lower.Find("time") >= 0 || lower.Find(" sec") >= 0)
+		return true;
+	int alnum = 0;
+	for(int i = 0; i < line.GetCount(); i++)
+		if(IsAlNum(line[i]) || line[i] == '_' || line[i] == '-')
+			alnum++;
+	return alnum < 3;
+}
+
+static String CleanNameCandidate(String line)
+{
+	int at = line.Find("@");
+	if(at > 0)
+		line = line.Left(at);
+	line = TrimBoth(line);
+	while(!line.IsEmpty() && !IsAlNum(line[0]) && line[0] != '_' && line[0] != '(')
+		line = line.Mid(1);
+	return TrimBoth(line);
+}
+
+static String ExtractNameText(const Vector<String>& lines, const String& stack, const String& action)
+{
+	int stack_index = -1;
+	for(int i = 0; i < lines.GetCount(); i++) {
+		if(lines[i] == stack) {
+			stack_index = i;
+			break;
+		}
+	}
+	int start = stack_index >= 0 ? stack_index - 1 : lines.GetCount() - 1;
+	for(int i = start; i >= 0; i--) {
+		String line = CleanNameCandidate(lines[i]);
+		if(line.IsEmpty() || line == stack)
+			continue;
+		String normalized_action = NormalizeActionText(line);
+		if(!action.IsEmpty() && normalized_action == action)
+			continue;
+		String lower = ToLower(line);
+		if(lower.Find("pot") >= 0 || lower.Find("bb") >= 0)
+			continue;
+		if(HasDigit(line) && line.GetCount() <= 4)
+			continue;
+		if(IsNoiseNameLine(line))
+			continue;
+		return line;
+	}
+	return String();
+}
+
+static void ParseSeatText(SeatRegionState& seat, const String& text)
+{
+	seat.raw_text = text;
+	Vector<String> lines = CleanOcrLines(text);
+	for(String line : lines) {
+		seat.action = NormalizeActionText(line);
+		if(!seat.action.IsEmpty())
+			break;
+	}
+	seat.stack_text = ExtractStackText(lines);
+	seat.name = ExtractNameText(lines, seat.stack_text, seat.action);
+}
+
 static String TextValue(ValueMap map, const char *key)
 {
 	Value value = map.Get(key, Value());
@@ -434,6 +605,7 @@ static void LoadQuality(const TableStateOptions& opt, Vector<ExtractedTableState
 		state.quality_reason = TextValue(table, "reason");
 		state.title_text = TextValue(table, "title_text");
 		state.pot_text = TextValue(table, "pot_text");
+		state.pot_amount_text = ExtractPotAmountText(state.pot_text);
 		state.reasons << "quality:" + state.quality_reason;
 	}
 }
@@ -451,8 +623,10 @@ static void LoadOcr(const TableStateOptions& opt, Vector<ExtractedTableState>& s
 		ExtractedTableState& state = GetState(states, frame_index, table_id, opt.table_mode);
 		if(semantic == "title" && state.title_text.IsEmpty())
 			state.title_text = text;
-		else if(semantic == "pot_label" && state.pot_text.IsEmpty())
+		else if(semantic == "pot_label" && state.pot_text.IsEmpty()) {
 			state.pot_text = text;
+			state.pot_amount_text = ExtractPotAmountText(state.pot_text);
+		}
 		else if(IsSeatSemantic(semantic)) {
 			OcrTextKey& seat = state.seat_texts.Add();
 			seat.frame_index = frame_index;
@@ -460,6 +634,20 @@ static void LoadOcr(const TableStateOptions& opt, Vector<ExtractedTableState>& s
 			seat.semantic = semantic;
 			seat.text = text;
 			seat.path = TextValue(result, "path");
+		}
+	}
+}
+
+static void ApplyStructuredOcr(ExtractedTableState& state)
+{
+	if(state.pot_amount_text.IsEmpty())
+		state.pot_amount_text = ExtractPotAmountText(state.pot_text);
+	for(const OcrTextKey& text : state.seat_texts) {
+		for(SeatRegionState& seat : state.seats) {
+			if(seat.semantic == text.semantic) {
+				ParseSeatText(seat, text.text);
+				break;
+			}
 		}
 	}
 }
@@ -500,6 +688,7 @@ static void LoadTracking(const TableStateOptions& opt, Vector<ExtractedTableStat
 static void Finalize(Vector<ExtractedTableState>& states)
 {
 	for(ExtractedTableState& state : states) {
+		ApplyStructuredOcr(state);
 		int score = 0;
 		if(state.usable)
 			score += 35;
@@ -559,7 +748,9 @@ static bool SaveState(const TableStateOptions& opt, const Vector<ExtractedTableS
 		     << ", \"quality_reason\": \"" << JsonString(state.quality_reason)
 		     << "\", \"title_text\": \"" << JsonString(state.title_text)
 		     << "\", \"pot_text\": \"" << JsonString(state.pot_text)
-		     << "\", \"board_crop_path\": \"" << JsonString(state.board_crop_path)
+		     << "\", \"pot_amount_text\": ";
+		AppendNullableString(json, state.pot_amount_text);
+		json << ", \"board_crop_path\": \"" << JsonString(state.board_crop_path)
 		     << "\", \"board_card_count\": " << state.board_card_count
 		     << ", \"board_confidence\": " << Format("%.2f", state.board_confidence)
 		     << ", \"board_reason\": \"" << JsonString(state.board_reason)
@@ -599,7 +790,15 @@ static bool SaveState(const TableStateOptions& opt, const Vector<ExtractedTableS
 			AppendRect(json, seat.rect);
 			json << ", \"crop_path\": \"" << JsonString(seat.crop_path)
 			     << "\", \"confidence\": " << Format("%.2f", seat.confidence)
-			     << ", \"name\": null, \"stack\": null, \"action\": null"
+			     << ", \"raw_text\": ";
+			AppendNullableString(json, seat.raw_text);
+			json << ", \"name\": ";
+			AppendNullableString(json, seat.name);
+			json << ", \"stack_text\": ";
+			AppendNullableString(json, seat.stack_text);
+			json << ", \"action\": ";
+			AppendNullableString(json, seat.action);
+			json << ", \"stack\": null"
 			     << ", \"visible_hole_cards\": []}";
 		}
 		json << "], \"seat_texts\": [";

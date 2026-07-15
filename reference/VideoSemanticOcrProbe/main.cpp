@@ -134,6 +134,7 @@ static bool SaveErrorJson(const OcrProbeOptions& opt, const String& error)
 	json << "  \"tessdata_dir\": \"" << JsonString(opt.tessdata_dir) << "\",\n";
 	json << "  \"lang\": \"" << JsonString(opt.lang) << "\",\n";
 	json << "  \"error\": \"" << JsonString(error) << "\",\n";
+	json << "  \"crop_count\": 0,\n";
 	json << "  \"results\": []\n";
 	json << "}\n";
 	if(!SaveFile(opt.out_path, json))

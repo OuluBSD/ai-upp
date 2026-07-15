@@ -89,6 +89,7 @@ static bool GenerateReport(const AuditReportOptions& opt)
 {
 	String events_path = AppendFileName(opt.tracker_dir, "events.json");
 	String summary_path = AppendFileName(opt.tracker_dir, "tracking_summary.json");
+	String pipeline_summary_path = AppendFileName(opt.tracker_dir, "pipeline_summary.json");
 	String events_text = LoadFile(events_path);
 	if(events_text.IsVoid() || events_text.IsEmpty()) {
 		Cerr() << "ERROR: missing or empty " << events_path << "\n";
@@ -108,6 +109,8 @@ static bool GenerateReport(const AuditReportOptions& opt)
 	md << "- events: " << events.GetCount() << "\n";
 	md << "- " << MarkdownLink("events.json", opt.out_path, events_path) << "\n";
 	md << "- " << MarkdownLink("tracking_summary.json", opt.out_path, summary_path) << "\n\n";
+	if(FileExists(pipeline_summary_path))
+		md << "- " << MarkdownLink("pipeline_summary.json", opt.out_path, pipeline_summary_path) << "\n\n";
 
 	if(events.IsEmpty()) {
 		md << "No event candidates emitted.\n";

@@ -117,12 +117,43 @@ static Rect InferWindowRect(const Image& img, const Rect& title, int min_window_
 	return r.Height() >= min_window_height ? r : Rect(0, 0, 0, 0);
 }
 
+static bool IsFeltGreenPixel(const RGBA& p)
+{
+	return p.g > 55 && p.g > p.r * 13 / 10 && p.g > p.b * 11 / 10;
+}
+
+static bool IsPokerTableCandidate(const Image& img, const Rect& rect)
+{
+	if(rect.IsEmpty())
+		return false;
+	Rect sample(rect.left + rect.Width() * 15 / 100,
+	            rect.top + rect.Height() * 18 / 100,
+	            rect.left + rect.Width() * 85 / 100,
+	            rect.top + rect.Height() * 75 / 100);
+	sample &= RectC(0, 0, img.GetWidth(), img.GetHeight());
+	if(sample.IsEmpty())
+		return false;
+	int total = 0;
+	int felt = 0;
+	for(int y = sample.top; y < sample.bottom; y += 3) {
+		const RGBA* row = img[y];
+		for(int x = sample.left; x < sample.right; x += 3) {
+			total++;
+			if(IsFeltGreenPixel(row[x]))
+				felt++;
+		}
+	}
+	return total > 0 && felt * 100 >= total * 8;
+}
+
 static Vector<TrackerWindow> DetectTables(const Image& img, const TrackerOptions& opt)
 {
 	Vector<TrackerWindow> out;
 	for(const Rect& title : FindTitleBars(img, opt.min_title_width)) {
 		Rect r = InferWindowRect(img, title, opt.min_window_height);
 		if(r.IsEmpty())
+			continue;
+		if(!IsPokerTableCandidate(img, r))
 			continue;
 		if(r.top <= 40 && r.Height() >= img.GetHeight() / 2) {
 			TrackerWindow& w = out.Add();

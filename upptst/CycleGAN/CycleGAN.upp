@@ -1,0 +1,25 @@
+description "CycleGAN example\377";
+
+uses
+	CtrlLib,
+	ConvNet,
+	ConvNetCtrl,
+	Docking,
+	PlotCtrl,
+	plugin/z;
+
+options
+	"-I.";
+
+file
+	CycleGAN.cpp,
+	CycleGAN.h,
+	CycleGAN.iml,
+	CycleGAN.lay,
+	CycleGANLayer.cpp,
+	CycleGANModule.iml,
+	main.cpp;
+
+mainconfig
+	"" = "GUI",
+	"" = "GUI DEBUG";

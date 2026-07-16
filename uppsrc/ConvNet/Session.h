@@ -1,0 +1,154 @@
+#ifndef _ConvNet_Session_h_
+#define _ConvNet_Session_h_
+
+#include "SessionData.h"
+
+namespace ConvNet {
+
+
+class Session {
+	
+public:
+	// Statistical variables for values during training
+	Window loss_window, reward_window, l1_loss_window, l2_loss_window, train_window, accuracy_window, test_window;
+	
+	// Statistical variables for values for training results
+	Window accuracy_result_window;
+	
+protected:
+	friend class MagicNet;
+	friend class MetaSession;
+	
+	typedef Exc RequiredArg;
+	
+	
+	// Persistent
+	SessionData owned_data;
+	TrainerBase trainer;
+	Net net;
+	Volume x;
+	Vector<double> session_last_input_array;
+	int predict_interval = 0, step_num = 0;
+	int train_iter_limit = 0;
+	int iter = 0;
+	int forward_time = 0, backward_time = 0;
+	int step_cb_interal = 0;
+	int iter_cb_interal = 0;
+	int augmentation = 0;
+	bool is_training = false, is_training_stopped = false;
+	bool test_predict = false;
+	bool augmentation_do_flip = false;
+	
+	
+	// Temp vars
+	TimeStop ts;
+	SessionData* used_data = NULL;
+	Mutex lock;
+	
+	const Value& ChkNotNull(const String& key, const Value& v); Value GetLegacyArg(Value& row, const char* s);
+	void Train();
+	
+public:
+	typedef Session CLASSNAME;
+	Session();
+	~Session();
+	
+	void CopyFrom(Session& session);
+	
+	virtual const Vector<double>& GetLastInput() const {return session_last_input_array;}
+	
+	void StartTraining();
+	void StopTraining();
+	void TrainBegin();
+	void TrainIteration();
+	void TrainEnd();
+	void TrainOnce(Volume& x, const Vector<double>& y);
+	void TrainOnce(Volume& x, int pos, double y = 1.0);
+	void Enter() {lock.Enter();}
+	void Leave() {lock.Leave();}
+	bool TryEnter() {return lock.TryEnter();}
+	void ClearLayers();
+	void Clear();
+	void ClearData();
+	void Reset();
+	void ResetTraining();
+	
+	SessionData& GetData()	{return *used_data;}
+	SessionData& Data()		{return *used_data;}
+	
+	LayerBase&			AddFullyConnLayer(int neuron_count, double l1_decay_mul=0.0, double l2_decay_mul=1.0, double bias_pref=0.0);
+	LayerBase&			AddLrnLayer(double k, int n, double alpha, double beta);
+	LayerBase&			AddDropoutLayer(double drop_prob);
+	LayerBase&			AddInputLayer(int input_width, int input_height, int input_depth);
+	LayerBase&			AddSoftmaxLayer(int class_count);
+	LayerBase&			AddRegressionLayer();
+	LayerBase&			AddHeteroscedasticRegressionLayer();
+	LayerBase&			AddConvLayer(int width, int height, int filter_count, double l1_decay_mul=0.0, double l2_decay_mul=1.0, int stride=1, int pad=0, double bias_pref=0.0);
+	LayerBase&			AddDeconvLayer(int width, int height, int filter_count, double l1_decay_mul=0.0, double l2_decay_mul=1.0, int stride=1, int pad=0, double bias_pref=0.0);
+	LayerBase&			AddPoolLayer(int width, int height, int stride=2, int pad=0);
+	LayerBase&			AddUnpoolLayer(int width, int height, int stride=2, int pad=0);
+	LayerBase&			AddReluLayer();
+	LayerBase&			AddSigmoidLayer();
+	LayerBase&			AddTanhLayer();
+	LayerBase&			AddMaxoutLayer(int group_size);
+	LayerBase&			AddSVMLayer(int class_count);
+	LayerBase&			AddViTPatchEmbeddingLayer(int patch_size, int embed_dim, int num_patches);
+	LayerBase&			AddViTEncoderLayer(int embed_dim, int num_heads, int ff_dim, int num_layers, double dropout_rate=0.1);
+	LayerBase&			AddViTClassifierLayer(int num_classes, int embed_dim);
+	LayerBase&			AddSwinPatchMergingLayer(int dim, int out_dim);
+	LayerBase&			AddWindowAttentionLayer(int window_size, int num_heads, int input_dim);
+	LayerBase&			AddSwinTransformerBlockLayer(int dim, int input_resolution[2], int num_heads, int window_size=7, int shift_size=0, int mlp_ratio=4, bool mlp_bias=true, double mlp_dropout=0.0);
+	LayerBase&			AddMaskedMultiHeadAttentionLayer(int embed_dim, int num_heads);
+	LayerBase&			GetLayer(int i) {return net.GetLayers()[i];}
+	int					GetLayerCount() const {return net.GetLayers().GetCount();}
+	void				Tick();
+	Vector<double>		Predict(const Vector<double>& input);
+	Vector<double>		Predict0(const Vector<double>& input);
+	
+	Net& GetNetwork();
+	LayerBase* GetInput();
+	TrainerBase& GetTrainer() {return trainer;}
+	const Window& GetLossWindow() const {return loss_window;}
+	const Window& GetAccuracyWindow() const {return accuracy_window;}
+	const Window& GetTrainingWindow() const {return train_window;}
+	const Window& GetTestingAccuracyWindow() const {return test_window;}
+	double GetL1DecayLossAverage() const {return l1_loss_window.GetAverage();}
+	double GetL2DecayLossAverage() const {return l2_loss_window.GetAverage();}
+	double GetTrainingAccuracyAverage() const {return accuracy_window.GetAverage();}
+	double GetValidationAccuracyAverage() const {return accuracy_window.GetAverage();}
+	int GetForwardTime() const {return forward_time;}
+	int GetBackwardTime() const {return backward_time;}
+	int GetStepCount() const {return step_num;}
+	int GetIteration() const {return iter;}
+	bool IsTraining() const {return !is_training_stopped || is_training;}
+	
+	virtual double GetLossAverage() const {return loss_window.GetAverage();}
+	virtual double GetRewardAverage() const {return reward_window.GetAverage();}
+	
+	bool MakeLayers(const String& json);
+	void Serialize(Stream& s);
+	void SerializeWeights(Stream& s);
+	void SerializeTrainData(Stream& s);
+	void Xmlize(XmlIO& xml);
+	void SetMaxTrainIters(int count) {train_iter_limit = count;}
+	void SetPredictInterval(int i) {predict_interval = i;}
+	void SetStepCallbackInterval(int i) {step_cb_interal = i;}
+	void SetIterationCallbackInterval(int i) {iter_cb_interal = i;}
+	void SetTestPredict(bool b) {test_predict = b;}
+	
+	int GetStepNum() const {return step_num;}
+	int GetPredictInterval() const {return predict_interval;}
+
+	void SetAugmentation(int i=0, bool flip=false) {augmentation = 0; augmentation_do_flip = flip;}
+	Session& SetWindowSize(int size, int min_size=1);
+	
+	Callback WhenSessionLoaded;
+	Callback1<int> WhenStepInterval, WhenIterationInterval;
+	
+	
+	
+};
+
+}
+
+#endif

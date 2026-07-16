@@ -1,0 +1,24 @@
+description "StyleGAN example\377";
+
+uses
+	CtrlLib,
+	ConvNet,
+	ConvNetCtrl,
+	Docking,
+	PlotCtrl,
+	plugin/z;
+
+options
+	"-I.";
+
+file
+	StyleGAN.cpp,
+	StyleGAN.h,
+	StyleGAN.iml,
+	StyleGAN.lay,
+	StyleGANLayer.cpp,
+	main.cpp;
+
+mainconfig
+	"" = "GUI",
+	"" = "GUI DEBUG";

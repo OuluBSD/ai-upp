@@ -1,0 +1,827 @@
+#include "ConvNet.h"
+#include "TransformerLayers.h"
+#include "GptLayers.h"
+
+namespace ConvNet {
+
+RecurrentSession::RecurrentSession() {
+	mode = MODE_RNN;
+	learning_rate = 0.01;
+	clipval = 5.0;
+	regc = 0.000001;
+	input_size = -1;
+	output_size = -1;
+	letter_size = -1;
+	max_graphs = 100;
+	initial_bias = -4;
+	use_tokenization = false;  // Default to character-level processing
+	
+	// Solver
+	decay_rate = 0.999;
+	smooth_eps = 1e-8;
+	
+	index_sequence.SetCount(max_graphs, 0);
+	graphs.SetCount(max_graphs);
+	hidden_prevs.SetCount(max_graphs+1);
+	cell_prevs.SetCount(max_graphs+1);
+}
+
+RecurrentSession::~RecurrentSession() {
+	
+}
+
+int RecurrentSession::GetMatCount() {
+	int count = 0;
+	if (mode == MODE_RNN)
+		count = rnn_model.GetCount() * RNNModel::GetCount();
+	else if (mode == MODE_LSTM)
+		count = lstm_model.GetCount() * LSTMModel::GetCount();
+	else if (mode == MODE_HIGHWAY)
+		count = hw_model.GetCount() * HighwayModel::GetCount() + 2;
+	else if (mode == MODE_TRANSFORMER)
+		// Transformer parameters count would depend on implementation
+		count = 0;  // Placeholder - will implement properly based on how transformer uses parameters
+	else if (mode == MODE_GPT)
+		// GPT parameters count would depend on implementation
+		count = 0;  // Placeholder - will implement properly based on how GPT uses parameters
+	else
+		Panic("Invalid mode");
+	count += 3;
+	return count;
+}
+
+MatId RecurrentSession::GetMat(int i) {
+	int count = 0, cols = 0, rows = 0;
+	if (mode == MODE_RNN) {
+		rows = rnn_model.GetCount();
+		cols = RNNModel::GetCount();
+	}
+	else if (mode == MODE_LSTM) {
+		rows = lstm_model.GetCount();
+		cols = LSTMModel::GetCount();
+	}
+	else if (mode == MODE_HIGHWAY) {
+		rows = hw_model.GetCount();
+		cols = HighwayModel::GetCount();
+	}
+	else Panic("Invalid mode");
+	
+	int row = i / cols;
+	if (row >= rows) {
+		i = i - rows * cols;
+		switch (i) {
+			case 0: return Whd;
+			case 1: return bd;
+			case 2: return Wil;
+			case 3: return noise_i[0];
+			case 4: return noise_i[1];
+			default: Panic("Invalid id " + IntStr(i));
+		}
+	} else {
+		int col = i % cols;
+		if (mode == MODE_RNN) {
+			return rnn_model[row].GetMat(col);
+		}
+		else if (mode == MODE_LSTM) {
+			return lstm_model[row].GetMat(col);
+		}
+		else if (mode == MODE_HIGHWAY) {
+			return hw_model[row].GetMat(col);
+		}
+		else Panic("Invalid mode");
+	}
+	
+	return Wil;
+}
+
+void RecurrentSession::Init() {
+	ASSERT_(input_size != -1, "Input size must be set");
+	ASSERT_(output_size != -1, "Output size must be set");
+	
+	ClearPool();
+	
+	if (mode == MODE_HIGHWAY)
+		RandMat(input_size, hidden_sizes[0], 0, 0.08, Wil);
+	else
+		RandMat(input_size, letter_size, 0, 0.08, Wil);
+	     
+	
+	if (mode == MODE_RNN) {
+		InitRNN();
+	}
+	else if (mode == MODE_LSTM) {
+		InitLSTM();
+	}
+	else if (mode == MODE_HIGHWAY) {
+		InitHighway();
+	}
+	else if (mode == MODE_TRANSFORMER) {
+		InitTransformer();
+	}
+	else if (mode == MODE_GPT) {
+		InitGPT();
+	}
+	else Panic("Invalid RecurrentSession mode");
+	
+	InitGraphs();
+}
+
+void RecurrentSession::InitGraphs() {
+	ASSERT(mode == MODE_RNN || mode == MODE_LSTM || mode == MODE_HIGHWAY || mode == MODE_TRANSFORMER || mode == MODE_GPT);
+	
+	step_cache.Clear();
+	int hidden_count = hidden_sizes.GetCount();
+	ASSERT_(hidden_count > 0, "Hidden sizes must be set");
+	
+	for (int i = 0; i < hidden_prevs.GetCount(); i++) {
+		Vector<MatId>& hidden_prevs = this->hidden_prevs[i];
+		Vector<MatId>& cell_prevs = this->cell_prevs[i];
+		hidden_prevs.SetCount(hidden_count);
+		cell_prevs.SetCount(hidden_count);
+	}
+	
+	
+	first_hidden.SetCount(hidden_count);
+	first_cell.SetCount(hidden_count);
+	for(int i = 0; i < hidden_count; i++) {
+		InitMat(first_hidden[i], 1, hidden_sizes[i], 0);
+		InitMat(first_cell[i],   1, hidden_sizes[i], 0);
+		hidden_prevs[0][i]	= first_hidden[i];
+		cell_prevs[0][i]	= first_cell[i];
+	}
+	
+	
+	for (int i = 0; i < graphs.GetCount(); i++) {
+		Array<GraphTree>& hidden_graphs = graphs[i];
+		// For Transformer and GPT models, we do not initialize GraphTree-based architectures
+		// since they use different architectural approaches
+		if (mode == MODE_TRANSFORMER || mode == MODE_GPT) {
+			// For now, create empty graphs for Transformer/GPT models to avoid crash
+			// They will have their own training logic outside of the GraphTree-based approach
+			hidden_graphs.SetCount(0); // No GraphTrees for Transformer/GPT
+		} else {
+			hidden_graphs.SetCount(hidden_count);
+			for (int j = 0; j < hidden_count; j++) {
+				hidden_graphs[j].SetPool(*this);
+
+				if (mode == MODE_RNN)
+					InitRNN(i, j, hidden_graphs[j]);
+				else if (mode == MODE_LSTM)
+					InitLSTM(i, j, hidden_graphs[j]);
+				else if (mode == MODE_HIGHWAY)
+					InitHighway(i, j, hidden_graphs[j]);
+			}
+		}
+	}
+}
+
+void RecurrentSession::InitRNN() {
+	int hidden_size = 0;
+	
+	// loop over depths
+	rnn_model.SetCount(hidden_sizes.GetCount());
+	for (int d = 0; d < hidden_sizes.GetCount(); d++) {
+		int prev_size = d == 0 ? letter_size : hidden_sizes[d - 1];
+		hidden_size = hidden_sizes[d];
+		RNNModel& m = rnn_model[d];
+		RandMat(hidden_size, prev_size,		0, 0.08,	m.Wxh);
+		RandMat(hidden_size, hidden_size,	0, 0.08,	m.Whh);
+		InitMat(m.bhh, 1, hidden_size, 0);
+	}
+	
+	// decoder params
+	RandMat(output_size, hidden_size, 0, 0.08,	Whd);
+	InitMat(bd, 1, output_size, 0);
+}
+
+void RecurrentSession::InitRNN(int i, int j, GraphTree& g) {
+	RNNModel& m = rnn_model[j];
+	
+	g.Clear();
+	
+	Vector<MatId>& hidden_prevs = this->hidden_prevs[i];
+	Vector<MatId>& hidden_nexts = this->hidden_prevs[i+1];
+	
+	if (j == 0) {
+		input = g.RowPluck(i, Wil);
+	}
+	
+	MatId input_vector = j == 0 ? input : hidden_nexts[j-1];
+	MatId hidden_prev = hidden_prevs[j];
+	
+	MatId h0 = g.Mul(m.Wxh, input_vector);
+	MatId h1 = g.Mul(m.Whh, hidden_prev);
+	MatId hidden_d = g.Relu(g.Add(g.Add(h0, h1), m.bhh));
+	
+	hidden_nexts[j] = hidden_d;
+	
+	// one decoder to outputs at end
+	if (j == hidden_prevs.GetCount() - 1) {
+		g.Add(g.Mul(Whd, hidden_d), bd);
+	}
+}
+
+// hidden size should be a list
+void RecurrentSession::InitLSTM() {
+	int hidden_size = 0;
+	
+	// loop over depths
+	lstm_model.SetCount(hidden_sizes.GetCount());
+	for (int d = 0; d < hidden_sizes.GetCount(); d++) {
+		// loop over depths
+		LSTMModel& m = lstm_model[d];
+		
+		int prev_size = d == 0 ? letter_size : hidden_sizes[d - 1];
+		hidden_size = hidden_sizes[d];
+		
+		// gates parameters
+		RandMat(hidden_size, prev_size,		0, 0.08,	m.Wix);
+		RandMat(hidden_size, hidden_size,	0, 0.08,	m.Wih);
+		InitMat(m.bi, 1, hidden_size, 0);
+		RandMat(hidden_size, prev_size,		0, 0.08,	m.Wfx);
+		RandMat(hidden_size, hidden_size,	0, 0.08,	m.Wfh);
+		InitMat(m.bf, 1, hidden_size, 0);
+		RandMat(hidden_size, prev_size,		0, 0.08,	m.Wox);
+		RandMat(hidden_size, hidden_size,	0, 0.08,	m.Woh);
+		InitMat(m.bo, 1, hidden_size, 0);
+		
+		// cell write params
+		RandMat(hidden_size, prev_size,		0, 0.08,	m.Wcx);
+		RandMat(hidden_size, hidden_size,	0, 0.08,	m.Wch);
+		InitMat(m.bc, 1, hidden_size, 0);
+	}
+	
+	// decoder params
+	RandMat(output_size, hidden_size,	0, 0.08,	Whd);
+	InitMat(bd, 1, output_size, 0);
+}
+
+void RecurrentSession::InitLSTM(int i, int j, GraphTree& g) {
+	LSTMModel& m = lstm_model[j];
+	
+	g.Clear();
+	
+	Vector<MatId>& hidden_prevs = this->hidden_prevs[i];
+	Vector<MatId>& hidden_nexts = this->hidden_prevs[i+1];
+	Vector<MatId>& cell_prevs = this->cell_prevs[i];
+	Vector<MatId>& cell_nexts = this->cell_prevs[i+1];
+	
+	if (j == 0) {
+		input = g.RowPluck(i, Wil);
+	}
+	
+	MatId input_vector = j == 0 ? input : hidden_nexts[j-1];
+	MatId hidden_prev = hidden_prevs[j];
+	MatId cell_prev = cell_prevs[j];
+	ASSERT(hidden_prev.value != -1 && cell_prev.value != -1);
+	
+	// input gate
+	MatId h0 = g.Mul(m.Wix, input_vector);
+	MatId h1 = g.Mul(m.Wih, hidden_prev);
+	MatId input_gate = g.Sigmoid(g.Add(g.Add(h0, h1), m.bi));
+	
+	// forget gate
+	MatId h2 = g.Mul(m.Wfx, input_vector);
+	MatId h3 = g.Mul(m.Wfh, hidden_prev);
+	MatId forget_gate = g.Sigmoid(g.Add(g.Add(h2, h3), m.bf));
+	
+	// output gate
+	MatId h4 = g.Mul(m.Wox, input_vector);
+	MatId h5 = g.Mul(m.Woh, hidden_prev);
+	MatId output_gate = g.Sigmoid(g.Add(g.Add(h4, h5), m.bo));
+	
+	// write operation on cells
+	MatId h6 = g.Mul(m.Wcx, input_vector);
+	MatId h7 = g.Mul(m.Wch, hidden_prev);
+	MatId cell_write = g.Tanh(g.Add(g.Add(h6, h7), m.bc));
+	
+	// compute new cell activation
+	MatId retain_cell = g.EltMul(forget_gate, cell_prev); // what do we keep from cell
+	MatId write_cell = g.EltMul(input_gate, cell_write); // what do we write to cell
+	MatId cell_d = g.Add(retain_cell, write_cell); // new cell contents
+	
+	// compute hidden state as gated, saturated cell activations
+	MatId hidden_d = g.EltMul(output_gate, g.Tanh(cell_d));
+	
+	hidden_nexts[j] = hidden_d;
+	cell_nexts[j] = cell_d;
+	
+	
+	// one decoder to outputs at end
+	if (j == hidden_prevs.GetCount() - 1) {
+		g.Add(g.Mul(Whd, hidden_d), bd);
+	}
+}
+
+
+/*
+	Recurrent Highway Networks (Zilly and Srivastava et al., 2016)
+		- References:
+		- Zilly, J, Srivastava, R, Koutnik, J, Schmidhuber, J., "Recurrent Highway Networks", 2016
+		- Gal, Y, "A Theoretically Grounded Application of Dropout in Recurrent Neural Networks", 2015.
+		- Zaremba, W, Sutskever, I, Vinyals, O, "Recurrent neural network regularization", 2014.
+	
+	Also helpful: https://github.com/julian121266/RecurrentHighwayNetworks/blob/master/torch_rhn_ptb.lua
+*/
+
+void RecurrentSession::InitHighway() {
+	ASSERT(input_size == output_size);
+	int hidden_size = 0;
+	
+	// loop over depths
+	hw_model.SetCount(hidden_sizes.GetCount());
+	for (int d = 0; d < hidden_sizes.GetCount(); d++) {
+		// loop over depths
+		HighwayModel& m = hw_model[d];
+		
+		hidden_size = hidden_sizes[d];
+		
+		if (d == 0) {
+			RandMat(hidden_size, 1,			0, 0.08,	noise_i[0]);
+			RandMat(hidden_size, 1,			0, 0.08,	noise_i[1]);
+		}
+		RandMat(hidden_size, 1,				0, 0.08,	m.noise_h[0]);
+		RandMat(hidden_size, 1,				0, 0.08,	m.noise_h[1]);
+	}
+	
+	// decoder params
+	RandMat(output_size, hidden_size,	0, 0.08,	Whd);
+	InitMat(bd, 1, output_size, 0);
+}
+
+void RecurrentSession::InitHighway(int i, int j, GraphTree& g) {
+	HighwayModel& m = hw_model[j];
+
+	g.Clear();
+
+	Vector<MatId>& hidden_prevs = this->hidden_prevs[i];
+	Vector<MatId>& hidden_nexts = this->hidden_prevs[i+1];
+	Vector<MatId>& cell_prevs = this->cell_prevs[i];
+	Vector<MatId>& cell_nexts = this->cell_prevs[i+1];
+
+	if (j == 0) {
+		input = g.RowPluck(i, Wil);
+	}
+
+	MatId input_vector = j == 0 ? input : hidden_nexts[j-1];
+	MatId hidden_prev = hidden_prevs[j];
+
+	if (j == 0) {
+		MatId dropped_x0			= g.EltMul(input_vector, noise_i[0]);
+		MatId dropped_h_tab0		= g.EltMul(hidden_prev, m.noise_h[0]);
+
+		MatId dropped_x1			= g.EltMul(input_vector, noise_i[1]);
+		MatId dropped_h_tab1		= g.EltMul(hidden_prev, m.noise_h[1]);
+
+		MatId t_gate_tab			= g.Sigmoid(g.AddConstant(initial_bias, g.Add(dropped_x0, dropped_h_tab0)));
+		MatId in_transform_tab		= g.Tanh(g.Add(dropped_x1, dropped_h_tab1));
+		MatId c_gate_tab			= g.AddConstant(1, g.MulConstant(-1, t_gate_tab));
+		MatId hidden_d				= g.Add(
+										g.EltMul(hidden_prev, c_gate_tab),
+										g.EltMul(in_transform_tab, t_gate_tab));
+
+		hidden_nexts[j] = hidden_d;
+	}
+	else
+	{
+		MatId dropped_h_tab0		= g.EltMul(input_vector, m.noise_h[0]);
+		MatId dropped_h_tab1		= g.EltMul(input_vector, m.noise_h[1]);
+
+		MatId t_gate_tab			= g.Sigmoid(g.AddConstant(initial_bias, dropped_h_tab0));
+		MatId in_transform_tab		= g.Tanh(dropped_h_tab1);
+		MatId c_gate_tab			= g.AddConstant(1, g.MulConstant(-1, t_gate_tab));
+		MatId hidden_d				= g.Add(
+										g.EltMul(input_vector, c_gate_tab),
+										g.EltMul(in_transform_tab, t_gate_tab));
+
+		hidden_nexts[j] = hidden_d;
+	}
+
+
+	// one decoder to outputs at end
+	if (j == hidden_prevs.GetCount() - 1) {
+		g.Add(g.Mul(Whd, hidden_nexts.Top()), bd);
+	}
+}
+
+void RecurrentSession::InitTransformer() {
+	// For now, just initialize basic parameters since the full transformer implementation
+	// might need different architecture than the RNN-based approach
+	// The transformer will be handled differently when the graph initialization is properly addressed
+	ASSERT(input_size == output_size);
+	ASSERT_(hidden_sizes.GetCount() > 0, "Hidden sizes must be set");
+
+	// For now, just initialize basic matrices for decoder
+	RandMat(output_size, hidden_sizes.Top(), 0, 0.08, Whd);
+	InitMat(bd, 1, output_size, 0);
+}
+
+void RecurrentSession::InitGPT() {
+	// For now, just initialize basic parameters since the full GPT implementation
+	// might need different architecture than the RNN-based approach
+	// The GPT model will be handled differently when the graph initialization is properly addressed
+	ASSERT(input_size == output_size);
+	ASSERT_(hidden_sizes.GetCount() > 0, "Hidden sizes must be set");
+
+	// For now, just initialize basic matrices for decoder
+	RandMat(output_size, hidden_sizes.Top(), 0, 0.08, Whd);
+	InitMat(bd, 1, output_size, 0);
+}
+	
+void RecurrentSession::Learn(const Vector<int>& input_sequence) {
+	// For Transformer and GPT models, we need to use their specific training approach
+	if (mode == MODE_TRANSFORMER || mode == MODE_GPT) {
+		// For now, just return and print a warning since full implementation is not ready
+		// In a proper implementation, this would call the transformer/gpt specific training logic
+		if (mode == MODE_TRANSFORMER) {
+			LOG("Transformer training not fully implemented in GraphTree architecture");
+		} else if (mode == MODE_GPT) {
+			LOG("GPT training not fully implemented in GraphTree architecture");
+		}
+		return;
+	}
+
+	double log2ppl = 0.0;
+	double cost = 0.0;
+
+	ASSERT(input_sequence.GetCount() < graphs.GetCount());
+
+	// Copy input sequence. Fixed index_sequence addresses are used in RowPluck.
+	int n = input_sequence.GetCount();
+
+	// start and end tokens are zeros
+	index_sequence[0] = 0; // first step: start with START token
+	for(int i = 0; i < n; i++)
+		index_sequence[i+1] = input_sequence[i]; // this value is used in the RowPluck
+	for(int i = n+1; i < index_sequence.GetCount(); i++)
+		index_sequence[i] = -1; // for debugging
+
+	ResetPrevs();
+
+	for(int i = 0; i <= n; i++) {
+
+		int ix_target = i == n ? 0 : index_sequence[i+1]; // last step: end with END token
+
+		Array<GraphTree>& list = graphs[i];
+		for(int j = 0; j < list.GetCount(); j++) {
+			list[j].Forward();
+		}
+
+		// Check if we have any graphs before accessing them
+		if (list.GetCount() == 0) {
+			return; // No graphs to process, likely transformer/GPT mode
+		}
+
+		MatId logprobs = list.Top().Top().output;
+		Mat& logprobs_mat = Get(logprobs);
+		Softmax(logprobs_mat, probs); // compute the softmax probabilities
+
+		double p = probs.Get(ix_target);
+		log2ppl += -log2(p); // accumulate base 2 log prob and do smoothing
+		cost += -log(p);
+
+		// write gradients into log probabilities
+		int count = logprobs_mat.GetLength();
+		for(int j = 0; j < count; j++)
+			logprobs_mat.SetGradient(j, probs.Get(j));
+		logprobs_mat.AddGradient(ix_target, -1.0);
+	}
+
+	ppl = pow(2, log2ppl / (n - 1));
+	cost = cost;
+
+	Backward(n);
+
+	SolverStep();
+}
+
+void RecurrentSession::Backward(int seq_end_cursor) {
+	for (int i = seq_end_cursor; i >= 0; i--) {
+		Array<GraphTree>& list = graphs[i];
+		for (int j = list.GetCount()-1; j >= 0; j--) {
+			list[j].Backward();
+		}
+	}
+}
+
+void RecurrentSession::SolverStep() {
+	// perform parameter update
+	int num_clipped = 0;
+	int num_tot = 0;
+	int n = GetMatCount();
+	
+	int step_cache_count = step_cache.GetCount();
+	step_cache.SetCount(n);
+	
+	for (int k = 0; k < n; k++) {
+		Mat& m = Get(GetMat(k));
+		Mat& s = step_cache[k];
+		
+		if (k >= step_cache_count) {
+			s.Init(m.GetWidth(), m.GetHeight(), 0.0);
+		}
+		
+		for (int i = 0; i < m.GetLength(); i++) {
+			// rmsprop adaptive learning rate
+			double mdwi = m.GetGradient(i);
+			s.Set(i, s.Get(i) * decay_rate + (1.0 - decay_rate) * mdwi * mdwi);
+			
+			// gradient clip
+			if (mdwi > +clipval) {
+				mdwi = +clipval;
+				num_clipped++;
+			}
+			else if (mdwi < -clipval) {
+				mdwi = -clipval;
+				num_clipped++;
+			}
+			
+			num_tot++;
+			
+			// update (and regularize)
+			m.Add(i, - learning_rate * mdwi / sqrt(s.Get(i) + smooth_eps) - regc * m.Get(i));
+			m.SetGradient(i, 0); // reset gradients for next iteration
+		}
+	}
+	ratio_clipped = num_clipped * 1.0 / num_tot;
+}
+
+void RecurrentSession::ResetPrevs() {
+	int hidden_count = hidden_sizes.GetCount();
+	
+	first_hidden.SetCount(hidden_count);
+	for (int d = 0; d < hidden_count; d++) {
+		InitMat(first_hidden[d], 1, hidden_sizes[d], 0);
+	}
+	
+	first_cell.SetCount(hidden_count);
+	for (int d = 0; d < hidden_count; d++) {
+		InitMat(first_cell[d], 1, hidden_sizes[d], 0);
+	}
+}
+
+void RecurrentSession::Predict(Vector<int>& output_sequence, bool samplei, double temperature, bool continue_sentence, int max_predictions) {
+	// For Transformer and GPT models, we need to use their specific inference approach
+	if (mode == MODE_TRANSFORMER || mode == MODE_GPT) {
+		// For now, just return and print a warning since full implementation is not ready
+		// In a proper implementation, this would call the transformer/gpt specific prediction logic
+		if (mode == MODE_TRANSFORMER) {
+			LOG("Transformer prediction not fully implemented in GraphTree architecture");
+		} else if (mode == MODE_GPT) {
+			LOG("GPT prediction not fully implemented in GraphTree architecture");
+		}
+		return;
+	}
+
+	int begin_write = 0;
+	if (continue_sentence) {
+		begin_write = output_sequence.GetCount();
+	}
+	else {
+		output_sequence.SetCount(0);
+	}
+
+	index_sequence[0] = 0;
+	for(int i = 1; i < index_sequence.GetCount(); i++)
+		index_sequence[i] = -1; // for debugging
+
+	ResetPrevs();
+	int predictions = 0;
+
+	for (int i = 0; ; i++) {
+
+		Array<GraphTree>& list = graphs[i];
+
+		// Check if we have any graphs before processing them
+		if (list.GetCount() == 0) {
+			return; // No graphs to process, likely transformer/GPT mode
+		}
+
+		for(int j = 0; j < list.GetCount(); j++) {
+			GraphTree& g = list[j];
+			g.Forward();
+		}
+
+		// Use given beginning if set
+		if (continue_sentence && i < begin_write) {
+
+			// Set index to variable what was given
+			int ix = output_sequence[i];
+			index_sequence[i+1] = ix;
+		}
+
+		// By default, predict from START token and previous input value
+		else {
+			// sample predicted letter
+			MatId logprobs = list.Top().Top().output;
+			Mat& logprobs_mat = Get(logprobs);
+
+			if (temperature != 1.0 && samplei) {
+				// scale log probabilities by temperature and renormalize
+				// if temperature is high, logprobs will go towards zero
+				// and the softmax outputs will be more diffuse. if temperature is
+				// very low, the softmax outputs will be more peaky
+				for (int q = 0; q < logprobs_mat.GetLength(); q++) {
+					logprobs_mat.Set(q, logprobs_mat.Get(q) / temperature);
+				}
+			}
+
+			Softmax(logprobs_mat, probs);
+
+			int ix = 0;
+			if (samplei) {
+				ix = probs.GetSampledColumn();
+			} else {
+				ix = probs.GetMaxColumn();
+			}
+
+			if (ix == 0) break; // END token predicted, break out
+			if (i+1 >= max_graphs) break; // something is wrong
+
+			output_sequence.Add(ix);
+			predictions++;
+			if (predictions == max_predictions) break;
+
+			// Set index to variable what RowPluck reads
+			index_sequence[i+1] = ix;
+		}
+	}
+}
+
+void RecurrentSession::Load(const ValueMap& js) {
+	#define LOAD(x) if (js.Find(#x) != -1) {x = js.GetValue(js.Find(#x));}
+	
+	String generator;
+	LOAD(generator);
+	if (generator == "lstm") mode = MODE_LSTM;
+	else if (generator == "rnn") mode = MODE_RNN;
+	else if (generator == "transformer") mode = MODE_TRANSFORMER;
+	else if (generator == "gpt") mode = MODE_GPT;
+	else mode = MODE_HIGHWAY;  // Default to highway for backward compatibility
+	
+	if (js.Find("hidden_sizes") != -1) {
+		hidden_sizes.Clear();
+		ValueMap hs = (ValueMap)js.GetValue(js.Find("hidden_sizes"));
+		for(int i = 0; i < hs.GetCount(); i++)
+			hidden_sizes.Add(hs[i]);
+	}
+	
+	LOAD(letter_size);
+	LOAD(regc);
+	LOAD(learning_rate);
+	LOAD(clipval);
+	LOAD(use_tokenization);
+	if (js.Find("model") != -1) {
+		ValueMap model = (ValueMap)js.GetValue(js.Find("model"));
+
+		#define LOADVOL(x) {int idx = model.Find(#x); if (idx >= 0) {ValueMap map = (ValueMap)model.GetValue(idx); Get(x).Load(map);}}
+		LOADVOL(Wil);
+		LOADVOL(Whd);
+		LOADVOL(bd);
+		#undef LOADVOL
+		
+		if      (mode == MODE_LSTM)		{lstm_model.SetCount(hidden_sizes.GetCount());}
+		else if (mode == MODE_RNN)		{rnn_model.SetCount(hidden_sizes.GetCount());}
+		else if (mode == MODE_HIGHWAY)  {hw_model.SetCount(hidden_sizes.GetCount());}
+		else Panic("Invalid mode");
+		
+		for(int i = 0; i < hidden_sizes.GetCount(); i++) {
+			if (mode == MODE_LSTM) {
+				#define LOADMODVOL(x) {ValueMap map = model.GetValue(model.Find(#x + IntStr(i))); Get(lstm_model[i].x).Load(map);}
+				LOADMODVOL(Wix);
+				LOADMODVOL(Wih);
+				LOADMODVOL(bi);
+				LOADMODVOL(Wfx);
+				LOADMODVOL(Wfh);
+				LOADMODVOL(bf);
+				LOADMODVOL(Wox);
+				LOADMODVOL(Woh);
+				LOADMODVOL(bo);
+				LOADMODVOL(Wcx);
+				LOADMODVOL(Wch);
+				LOADMODVOL(bc);
+				#undef LOADMODVOL
+			}
+			else if (mode == MODE_RNN) {
+				#define LOADMODVOL(x) {ValueMap map = model.GetValue(model.Find(#x + IntStr(i))); Get(rnn_model[i].x).Load(map);}
+				LOADMODVOL(Wxh);
+				LOADMODVOL(Whh);
+				LOADMODVOL(bhh);
+				#undef LOADMODVOL
+			}
+			else if (mode == MODE_HIGHWAY) {
+				#define LOADMODVOL(x) {ValueMap map = model.GetValue(model.Find(#x + IntStr(i))); Get(hw_model[i].x).Load(map);}
+				LOADMODVOL(noise_h[0]);
+				LOADMODVOL(noise_h[1]);
+				#undef LOADMODVOL
+			}
+		}
+	}
+	#undef LOAD
+}
+
+void RecurrentSession::Store(ValueMap& js) {
+	#define SAVE(x) js.GetAdd(#x) = x;
+	
+	String generator;
+	if (mode == MODE_LSTM) generator = "lstm";
+	else if (mode == MODE_RNN) generator = "rnn";
+	else if (mode == MODE_TRANSFORMER) generator = "transformer";
+	else if (mode == MODE_GPT) generator = "gpt";
+	else generator = "highway";  // Default to highway for backward compatibility
+	SAVE(generator);
+	
+	ValueMap hs;
+	for(int i = 0; i < hidden_sizes.GetCount(); i++)
+		hs.Add(IntStr(i), hidden_sizes[i]);
+	
+	SAVE(letter_size);
+	SAVE(regc);
+	SAVE(learning_rate);
+	SAVE(clipval);
+	SAVE(use_tokenization);
+	/*
+	ValueMap model;
+	
+	#define SAVEVOL(x) {ValueMap map; this->x.Store(map); model.GetAdd(#x) = map;}
+	SAVEVOL(Wil);
+	SAVEVOL(Whd);
+	SAVEVOL(bd);
+	#undef SAVEVOL
+	
+	for(int i = 0; i < hidden_sizes.GetCount(); i++) {
+		if (mode == MODE_LSTM) {
+			#define SAVEMODVOL(x) {ValueMap map; lstm_model[i].x.Store(map); model.GetAdd(#x + IntStr(i)) = map;}
+			SAVEMODVOL(Wix);
+			SAVEMODVOL(Wih);
+			SAVEMODVOL(bi);
+			SAVEMODVOL(Wfx);
+			SAVEMODVOL(Wfh);
+			SAVEMODVOL(bf);
+			SAVEMODVOL(Wox);
+			SAVEMODVOL(Woh);
+			SAVEMODVOL(bo);
+			SAVEMODVOL(Wcx);
+			SAVEMODVOL(Wch);
+			SAVEMODVOL(bc);
+			#undef SAVEMODVOL
+		}
+		else if (mode == MODE_RNN) {
+			#define SAVEMODVOL(x) {ValueMap map; rnn_model[i].x.Store(map); model.GetAdd(#x + IntStr(i)) = map;}
+			SAVEMODVOL(Wxh);
+			SAVEMODVOL(Whh);
+			SAVEMODVOL(bhh);
+			#undef SAVEMODVOL
+		}
+		else if (mode == MODE_HIGHWAY) {
+			#define SAVEMODVOL(x) {ValueMap map; hw_model[i].x.Store(map); model.GetAdd(#x + IntStr(i)) = map;}
+			SAVEMODVOL(noise_h[0]);
+			SAVEMODVOL(noise_h[1]);
+			#undef SAVEMODVOL
+		}
+	}
+	
+	js.Add("model", model);*/
+}
+
+void RecurrentSession::Serialize(Stream& s) {
+	MatPool::Serialize(s);
+	
+	s % graphs
+	  % hw_model
+	  % lstm_model
+	  % rnn_model
+	  % Whd % bd % Wil
+	  % noise_i[0] % noise_i[1]
+	  % step_cache
+	  % decay_rate
+	  % smooth_eps
+	  % first_hidden % first_cell
+	  % hidden_prevs
+	  % cell_prevs
+	  % hidden_sizes
+	  % input
+	  % probs
+	  % ppl % cost
+	  % regc
+	  % learning_rate
+	  % clipval
+	  % ratio_clipped
+	  % initial_bias
+	  % mode
+	  % input_size
+	  % output_size
+	  % letter_size
+	  % max_graphs;
+	 
+	if (s.IsLoading()) {
+		for(int i = 0; i < graphs.GetCount(); i++) {
+			for(int j = 0; j < graphs[i].GetCount(); j++) {
+				GraphTree& t = graphs[i][j];
+				t.SetPool(*this);
+				t.FixPool();
+			}
+		}
+	}
+}
+}

@@ -1,0 +1,33 @@
+description "Widgets for ConvNet package.\377B28,0,200";
+
+uses
+	CtrlLib,
+	ConvNet,
+	PlotCtrl;
+
+file
+	Copying,
+	ConvNetCtrl.h,
+	TrainingGraph.h,
+	TrainingGraph.cpp,
+	BarView.h,
+	BarView.cpp,
+	HeatmapView.h,
+	HeatmapView.cpp,
+	HeatmapTimeView.h,
+	HeatmapTimeView.cpp,
+	LayerCtrl.h,
+	LayerCtrl.cpp,
+	PointCtrl.h,
+	PointCtrl.cpp,
+	ConvLayerCtrl.h,
+	ConvLayerCtrl.cpp,
+	ImageRegression.h,
+	ImageRegression.cpp,
+	ImagePrediction.h,
+	ImagePrediction.cpp,
+	MetaSessionGraph.h,
+	MetaSessionGraph.cpp,
+	GridWorldCtrl.h,
+	GridWorldCtrl.cpp;
+

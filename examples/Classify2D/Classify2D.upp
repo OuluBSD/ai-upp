@@ -1,0 +1,21 @@
+description "Interactively classify toy 2-D data with a Neural Network \377";
+
+uses
+	ConvNet,
+	CtrlLib,
+	ConvNetCtrl,
+	plugin/z,
+	Docking;
+
+file
+	main.cpp,
+	Classify2D.rc,
+	Classify2D.h,
+	Classify2D.cpp,
+	Classify2D.iml;
+
+mainconfig
+	"" = "MT GUI",
+	"" = "MT GUI USEMALLOC",
+	"" = "GUI";
+

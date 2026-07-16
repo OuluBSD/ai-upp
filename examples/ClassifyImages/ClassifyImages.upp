@@ -1,0 +1,28 @@
+description "Trains a Convolutional Neural Network on the image dataset.\377";
+
+uses
+	CtrlLib,
+	ConvNetCtrl,
+	Docking,
+	PlotCtrl,
+	Node/Ctrl,
+	plugin/z;
+
+library(LINUX) "X11 Xrender Xft Xext Xinerama fontconfig freetype";
+
+file
+	main.cpp,
+	ClassifyImages.h,
+	ClassifyImages.cpp,
+	ClassifyImages.iml,
+	ClassifyImages.rc,
+	Loaders readonly separator,
+	LoaderCIFAR10.h,
+	LoaderCIFAR10.cpp,
+	LoaderMNIST.h,
+	LoaderMNIST.cpp;
+
+mainconfig
+	"" = "GUI",
+	"" = "GUI X11";
+

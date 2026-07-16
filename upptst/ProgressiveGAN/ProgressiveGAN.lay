@@ -1,0 +1,3 @@
+LAYOUT(ProgressiveGANLayout, 800, 600)
+	ITEM(ParentCtrl, panel, LeftPos(0, 300).VSizePos(0, 0))
+END_LAYOUT

@@ -1,0 +1,14 @@
+description "Task 0261 confidence-tiered recognition pipeline: structural / template-match / autoencoder-fallback candidate classification";
+
+uses
+	Core,
+	Draw,
+	plugin/jpg,
+	plugin/png;
+
+file
+	VideoConfidenceTieredCandidates.h,
+	main.cpp;
+
+mainconfig
+	"" = "";

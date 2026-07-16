@@ -1,0 +1,12 @@
+description "Game Engine Synchronization and Transition Validation package\377";
+
+uses
+	Core,
+	TexasHoldem;
+
+file
+	VideoGameEngineSyncer.h,
+	main.cpp;
+
+mainconfig
+	"" = "GUI";

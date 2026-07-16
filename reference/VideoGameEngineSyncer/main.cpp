@@ -72,18 +72,6 @@ public:
 		int fid = state.frame_id;
 		Cout() << "Processing Frame " << fid << "...\n";
 
-		if (fid == 5) {
-			Cout() << "DEBUG Frame 5:\n"
-			       << "  state.board_cards_known: " << (state.board_cards_known ? "true" : "false") << "\n"
-			       << "  IsBoardEmpty(state.board_cards): " << (IsBoardEmpty(state.board_cards) ? "true" : "false") << "\n"
-			       << "  tracked_board_known: " << (tracked_board_known ? "true" : "false") << "\n"
-			       << "  IsBoardEmpty(tracked_board_cards): " << (IsBoardEmpty(tracked_board_cards) ? "true" : "false") << "\n"
-			       << "  state.dealer_seat_known: " << (state.dealer_seat_known ? "true" : "false") << "\n"
-			       << "  tracked_dealer_known: " << (tracked_dealer_known ? "true" : "false") << "\n"
-			       << "  state.dealer_seat: " << state.dealer_seat << "\n"
-			       << "  tracked_dealer_seat: " << tracked_dealer_seat << "\n";
-		}
-
 		// 1. Hand Start / End detection
 		bool new_hand_started = false;
 		if (state.hand_id_known && tracked_hand_id_known && state.hand_id != tracked_hand_id) {
@@ -439,7 +427,6 @@ GUI_APP_MAIN {
 	RLOG("VideoGameEngineSyncer started");
 
 	const Vector<String>& args = CommandLine();
-	SaveFile("C:\\Users\\sblo\\Dev\\ai-upp\\syncer_debug.txt", "syncer started\nargs count: " + AsString(args.GetCount()) + "\n");
 	String logic_jsonl_path;
 	String out_divergences_path;
 
@@ -452,29 +439,21 @@ GUI_APP_MAIN {
 	}
 
 	if (logic_jsonl_path.IsEmpty() || out_divergences_path.IsEmpty()) {
-		SaveFile("C:\\Users\\sblo\\Dev\\ai-upp\\syncer_debug.txt", "args empty\n");
 		Cout() << "VideoGameEngineSyncer CLI\n"
 		       << "Usage: VideoGameEngineSyncer --logic-jsonl <input_file.jsonl> --out-divergences <output_file.json>\n";
 		SetExitCode(1);
 		return;
 	}
 
-	SaveFile("C:\\Users\\sblo\\Dev\\ai-upp\\syncer_debug.txt", "args ok: " + logic_jsonl_path + ", out: " + out_divergences_path + "\n");
-
 	if (!FileExists(logic_jsonl_path)) {
-		SaveFile("C:\\Users\\sblo\\Dev\\ai-upp\\syncer_debug.txt", "file does not exist: " + logic_jsonl_path + "\n");
 		Cerr() << "Input logic-jsonl file does not exist: " << logic_jsonl_path << "\n";
 		SetExitCode(1);
 		return;
 	}
 
-	SaveFile("C:\\Users\\sblo\\Dev\\ai-upp\\syncer_debug.txt", "file exists. loading...\n");
-
 	Cout() << "Loading input records from " << logic_jsonl_path << "...\n";
 	String content = LoadFile(logic_jsonl_path);
 	Vector<String> lines = Split(content, '\n', false);
-
-	SaveFile("C:\\Users\\sblo\\Dev\\ai-upp\\syncer_debug.txt", "loaded " + AsString(lines.GetCount()) + " lines\n");
 
 	GameEngineSyncer syncer;
 	int parsed_count = 0;
@@ -492,7 +471,6 @@ GUI_APP_MAIN {
 			}
 		} else {
 			if (!LoadFromJson(state, line)) {
-				SaveFile("C:\\Users\\sblo\\Dev\\ai-upp\\syncer_debug.txt", "failed to parse line " + AsString(i) + "\n");
 				Cerr() << "Failed to parse JSON line " << i + 1 << ": " << line << "\n";
 				SetExitCode(1);
 				return;
@@ -507,19 +485,15 @@ GUI_APP_MAIN {
 		parsed_count++;
 	}
 
-	SaveFile("C:\\Users\\sblo\\Dev\\ai-upp\\syncer_debug.txt", "processed " + AsString(parsed_count) + " frames. divergences: " + AsString(syncer.divergence_events.GetCount()) + "\n");
-
 	Cout() << "Processed " << parsed_count << " frames.\n";
 	Cout() << "Saving " << syncer.divergence_events.GetCount() << " divergence(s) to " << out_divergences_path << "...\n";
 
 	String out_json = StoreAsJson(syncer.divergence_events);
 	if (!SaveFile(out_divergences_path, out_json)) {
-		SaveFile("C:\\Users\\sblo\\Dev\\ai-upp\\syncer_debug.txt", "failed to save output file to: " + out_divergences_path + "\n");
 		Cerr() << "Failed to write output divergences file: " << out_divergences_path << "\n";
 		SetExitCode(1);
 		return;
 	}
 
-	SaveFile("C:\\Users\\sblo\\Dev\\ai-upp\\syncer_debug.txt", "success! saved divergences file to: " + out_divergences_path + "\n");
 	Cout() << "Verification completed successfully. Total divergences found: " << syncer.divergence_events.GetCount() << "\n";
 }

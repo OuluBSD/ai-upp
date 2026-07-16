@@ -1,0 +1,14 @@
+description "Reviewed-Card Temporal Classifier for U++ VisualStateModel pipeline";
+
+uses
+	Core,
+	Draw,
+	plugin/jpg,
+	ConvNet;
+
+file
+	VideoCardTemporalClassifier.h,
+	main.cpp;
+
+mainconfig
+	"" = "";

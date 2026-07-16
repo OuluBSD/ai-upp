@@ -100,6 +100,37 @@ def render_diagram(section: dict, manifest_dir: Path) -> str:
     return "\n".join(parts)
 
 
+def render_gallery(section: dict, manifest_dir: Path) -> str:
+    """Render a heading + optional intro text + a wrapped grid of thumbnail
+    images, each with its own small caption. Used for cluster-membership
+    galleries where a "diagram" section (single image) is too coarse."""
+    parts = []
+    heading = section.get("heading")
+    if heading:
+        parts.append(f"<h2>{html_escape(heading)}</h2>")
+    intro = section.get("text")
+    if intro:
+        parts.append(f"<p>{html_escape(intro)}</p>")
+    parts.append('<div class="gallery">')
+    for item in section.get("images", []):
+        image_field = item.get("image") or item.get("path")
+        if not image_field:
+            raise ValueError(f"gallery item missing 'image'/'path': {item}")
+        image_path = Path(image_field)
+        if not image_path.is_absolute():
+            image_path = manifest_dir / image_path
+        data_uri = image_to_data_uri(image_path)
+        caption = item.get("caption", "")
+        alt = html_escape(caption or image_path.name)
+        parts.append('<figure class="gallery-item">')
+        parts.append(f'<img src="{data_uri}" alt="{alt}">')
+        if caption:
+            parts.append(f"<figcaption>{html_escape(caption)}</figcaption>")
+        parts.append("</figure>")
+    parts.append("</div>")
+    return "\n".join(parts)
+
+
 def render_pre(section: dict) -> str:
     parts = []
     heading = section.get("heading")
@@ -136,6 +167,7 @@ def render_heading(section: dict) -> str:
 SECTION_RENDERERS = {
     "prose": lambda section, manifest_dir: render_prose(section),
     "diagram": lambda section, manifest_dir: render_diagram(section, manifest_dir),
+    "gallery": lambda section, manifest_dir: render_gallery(section, manifest_dir),
     "pre": lambda section, manifest_dir: render_pre(section),
     "table": lambda section, manifest_dir: render_table(section),
     "heading": lambda section, manifest_dir: render_heading(section),
@@ -164,6 +196,37 @@ img.diagram {
   margin: 1rem 0;
 }
 p.caption { color: #9aa0ab; font-size: 0.9rem; font-style: italic; margin-top: -0.5rem; }
+div.gallery {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin: 1rem 0;
+}
+figure.gallery-item {
+  margin: 0;
+  background: #1b1e26;
+  border: 1px solid #3a3f4b;
+  border-radius: 4px;
+  padding: 0.5rem;
+  max-width: 220px;
+}
+figure.gallery-item img {
+  display: block;
+  max-width: 200px;
+  max-height: 160px;
+  width: auto;
+  height: auto;
+  background: #12141a;
+  border-radius: 2px;
+  margin: 0 auto;
+}
+figure.gallery-item figcaption {
+  color: #9aa0ab;
+  font-size: 0.78rem;
+  margin-top: 0.4rem;
+  word-break: break-word;
+  text-align: center;
+}
 pre {
   background: #1b1e26;
   color: #dcdfe4;

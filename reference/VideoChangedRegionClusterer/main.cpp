@@ -159,25 +159,65 @@ static Vector<Cluster> RunKMeans(const Vector<Point2D>& points, int K) {
 	return clusters;
 }
 
+// Extract real OCR text for a candidate. Must only ever return either an
+// empty string or text that actually came from an OCR string field - never
+// a stringified composite Value (ValueMap/ValueArray AsString() produces a
+// generic "{ key: val, ... }" dump that is byte-identical across unrelated
+// candidates whenever the underlying structure matches, e.g. every
+// "ocr": {"status":"unavailable","reason":"no_matching_semantic_ocr_result"}
+// candidate would otherwise serialize to the exact same placeholder text.
+// That previously caused the OCR-text-equality union-find rule below to
+// spuriously merge candidates from different tables/frames/seats that
+// simply shared the same "no OCR result" status, defeating per-table-slot
+// grouping. Only String-typed values are ever accepted as OCR text.
 static String GetOcrText(const ValueMap& candidate) {
 	String ocr_text;
-	for (const char* key : {"ocr", "text", "ocr_text"}) {
-		if (candidate.Find(key) >= 0) {
+	for (const char* key : {"text", "ocr_text"}) {
+		if (candidate.Find(key) >= 0 && IsString(candidate[key])) {
 			ocr_text = AsString(candidate[key]);
 			if (!ocr_text.IsEmpty()) return ocr_text;
 		}
 	}
 	if (candidate.Find("source") >= 0 && IsValueMap(candidate["source"])) {
 		ValueMap src = candidate["source"];
-		for (const char* key : {"ocr", "text", "ocr_text"}) {
-			if (src.Find(key) >= 0) {
+		for (const char* key : {"text", "ocr_text"}) {
+			if (src.Find(key) >= 0 && IsString(src[key])) {
 				ocr_text = AsString(src[key]);
 				if (!ocr_text.IsEmpty()) return ocr_text;
 			}
 		}
+		// Real schema: source.ocr = {"status":"available"|"unavailable",
+		// "results":[{"text":..., "preprocessed_text":..., ...}, ...]}.
+		// Only pull actual per-result text strings; a status of
+		// "unavailable" (or an empty results array) must yield "" here,
+		// not a stringified status/reason placeholder.
+		if (src.Find("ocr") >= 0 && IsValueMap(src["ocr"])) {
+			ValueMap ocr_map = src["ocr"];
+			if (AsString(ocr_map.Get("status", "")) == "available" &&
+			    ocr_map.Find("results") >= 0 && IsValueArray(ocr_map["results"])) {
+				ValueArray results = ocr_map["results"];
+				String combined;
+				for (int i = 0; i < results.GetCount(); i++) {
+					if (!IsValueMap(results[i])) continue;
+					ValueMap r = results[i];
+					String t;
+					for (const char* key : {"text", "preprocessed_text", "original_text"}) {
+						if (r.Find(key) >= 0 && IsString(r[key])) {
+							t = AsString(r[key]);
+							if (!t.IsEmpty()) break;
+						}
+					}
+					if (!t.IsEmpty()) {
+						if (!combined.IsEmpty()) combined << " | ";
+						combined << t;
+					}
+				}
+				if (!combined.IsEmpty()) return combined;
+			}
+		}
 		if (src.Find("contains_text") >= 0 && IsValueMap(src["contains_text"])) {
 			ValueMap ct = src["contains_text"];
-			if (ct.Find("text") >= 0) {
+			if (ct.Find("text") >= 0 && IsString(ct["text"])) {
 				ocr_text = AsString(ct["text"]);
 				if (!ocr_text.IsEmpty()) return ocr_text;
 			}

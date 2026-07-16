@@ -1,0 +1,15 @@
+description "Video changed region clusterer using Autoencoders and OCR connected components";
+
+uses
+	Core,
+	Draw,
+	plugin/jpg,
+	ConvNet;
+
+file
+	AGENTS.md,
+	VideoChangedRegionClusterer.h,
+	main.cpp;
+
+mainconfig
+	"" = "";

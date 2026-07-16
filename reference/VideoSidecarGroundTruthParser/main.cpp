@@ -421,14 +421,20 @@ static void ApplyEvent(RunningState& rs, const String& rest, int line_no, const 
 			return;
 		}
 		if(verb_part == "call" || verb_part.StartsWith("call ")) {
-			rp.action_known = true; rp.action = 2; // PLAYER_ACTION_CALL
 			if(verb_part == "call") {
+				rp.action_known = true; rp.action = 2; // PLAYER_ACTION_CALL
 				if(!rs.street_high_bet_known)
 					throw Exc(Format("line %d: 'call' with no stated amount, but no current street bet is known to match it against (in: %s)", line_no, raw_line));
 				rp.bet_known = true; rp.bet = rs.street_high_bet;
 			}
 			else {
-				int bet = ParseBBAmountX10(verb_part.Mid((int)strlen("call ")), line_no, raw_line);
+				String amt = verb_part.Mid((int)strlen("call "));
+				bool all_in = false;
+				if(amt.StartsWith("all-in ")) { all_in = true; amt = amt.Mid((int)strlen("all-in ")); }
+				int bet = ParseBBAmountX10(amt, line_no, raw_line);
+				// "call all-in" is coded as ALLIN, mirroring the existing
+				// "raise all-in" -> ALLIN judgment call (see decision above).
+				rp.action_known = true; rp.action = all_in ? 6 : 2; // PLAYER_ACTION_ALLIN : PLAYER_ACTION_CALL
 				rp.bet_known = true; rp.bet = bet;
 				rs.street_high_bet_known = true; rs.street_high_bet = bet;
 			}
@@ -512,12 +518,33 @@ static void ApplyEvent(RunningState& rs, const String& rest, int line_no, const 
 	}
 
 	if(rest.StartsWith("flop ")) {
-		Vector<int> c = ParseCardRun(rest.Mid((int)strlen("flop ")), 3, line_no, raw_line);
+		// Optional trailing "(Y.ZBB)" or "(pot Y.ZBB)" suffix -- some narrated
+		// hands state the post-flop pot inline (two different phrasings seen:
+		// turn/river use "(pot Y.ZBB)", flop uses bare "(Y.ZBB)"), others (the
+		// first hand in this sidecar) don't; only set pot_known when actually
+		// stated, never guessed.
+		String tail = rest.Mid((int)strlen("flop "));
+		String cards_part = tail;
+		int paren = tail.Find(" (");
+		bool have_pot = false;
+		int pot = 0;
+		if(paren >= 0) {
+			if(!tail.EndsWith(")"))
+				throw Exc(Format("line %d: expected 'flop <cards> (Y.ZBB)' or 'flop <cards> (pot Y.ZBB)' (in: %s)", line_no, raw_line));
+			cards_part = tail.Left(paren);
+			String inner = tail.Mid(paren + 2, tail.GetCount() - paren - 2 - 1); // between '(' and ')'
+			if(inner.StartsWith("pot "))
+				inner = inner.Mid(4);
+			pot = ParseBBAmountX10(inner, line_no, raw_line);
+			have_pot = true;
+		}
+		Vector<int> c = ParseCardRun(cards_part, 3, line_no, raw_line);
 		rs.street_known = true; rs.street = 1; // GAME_STATE_FLOP
 		rs.board_cards_known = true;
 		rs.board_cards.Clear();
 		rs.board_cards.SetCount(5, -1);
 		rs.board_cards[0] = c[0]; rs.board_cards[1] = c[1]; rs.board_cards[2] = c[2];
+		if(have_pot) { rs.pot_known = true; rs.pot = pot; }
 		ResetStreetBets(rs);
 		return;
 	}

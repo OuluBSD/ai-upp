@@ -1,0 +1,12 @@
+description "Task 0262: parses a hand-authored real-recording sidecar narration (R HH:MM:SS: <event> lines) into a TexasHoldemLogicState-shaped ground-truth JSONL, so the real recording can be validated by VideoGameEngineSyncer / VideoConfidenceTieredCandidates\377";
+
+uses
+	Core,
+	TexasHoldem;
+
+file
+	VideoSidecarGroundTruthParser.h,
+	main.cpp;
+
+mainconfig
+	"" = "GUI";

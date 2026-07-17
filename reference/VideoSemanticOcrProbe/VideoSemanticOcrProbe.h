@@ -24,6 +24,18 @@ struct OcrProbeOptions {
 	// grayscale (--preprocess). Independently toggleable so callers can
 	// compare with/without it.
 	bool   otsu = true;
+	// Task 0273 Phase 1: word-level bounding boxes via tesseract's built-in
+	// `tsv` config, used both as ground truth for crop-boundary refinement
+	// (Phases 2-3) and as a confidence signal for variant selection
+	// (Phase 5). The `tsv` CONFIG FILE lives in the system Tesseract-OCR
+	// install's tessdata/configs/tsv -- NOT necessarily in whatever
+	// language-data tessdata_dir got resolved above (the local/fallback
+	// tessdata dirs this tool searches only ever contain *.traineddata,
+	// not the configs/ subtree) -- so it is resolved separately, normally
+	// as a sibling of the `tesseract` executable itself
+	// (<tesseract-dir>/tessdata/configs/tsv), overridable via --tsv-config.
+	String tsv_config;
+	bool   tsv_config_explicit = false;
 };
 
 struct OcrCrop : Moveable<OcrCrop> {
@@ -31,6 +43,19 @@ struct OcrCrop : Moveable<OcrCrop> {
 	int    table_id = 0;
 	String semantic;
 	String path;
+};
+
+// Task 0273 Phase 1: one word-level detection from tesseract's `tsv` config
+// output (level==5 rows only; level 1-4 rows are page/block/par/line
+// aggregates and carry conf==-1, so RunTesseractTsv() below filters to
+// level 5 words already).
+struct OcrWordBox : Moveable<OcrWordBox> {
+	int    left = 0;
+	int    top = 0;
+	int    width = 0;
+	int    height = 0;
+	double conf = -1;
+	String text;
 };
 
 struct OcrResult : Moveable<OcrResult> {
@@ -46,6 +71,16 @@ struct OcrResult : Moveable<OcrResult> {
 	int    otsu_exit_code = -1;
 	bool   otsu_invert = false;
 	bool   otsu_confident = false;
+	// Task 0273 Phase 1: word bboxes + avg conf per variant, from the `tsv`
+	// config. avg_conf is the mean of the level-5 word confidences (-1, i.e.
+	// "no words recognized", if the word list is empty) -- used by Phase 5's
+	// confidence-based BestVariant() replacement.
+	Vector<OcrWordBox> original_words;
+	Vector<OcrWordBox> preprocessed_words;
+	Vector<OcrWordBox> otsu_words;
+	double original_avg_conf = -1;
+	double preprocessed_avg_conf = -1;
+	double otsu_avg_conf = -1;
 };
 
 END_UPP_NAMESPACE

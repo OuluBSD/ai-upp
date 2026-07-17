@@ -24,6 +24,11 @@ static void PrintHelp()
 	       << "  --otsu                Also OCR an Otsu-binarized crop with automatic\n"
 	       << "                        light/dark polarity detection (default)\n"
 	       << "  --no-otsu             Skip the Otsu variant\n"
+	       << "  --tsv-config <path>   Path to tesseract's `tsv` config file (Task 0273).\n"
+	       << "                        Default: resolved as <tesseract-exe-dir>/tessdata/\n"
+	       << "                        configs/tsv (the system Tesseract-OCR install's own\n"
+	       << "                        config, independent of --tessdata-dir which only\n"
+	       << "                        needs to hold the language *.traineddata file).\n"
 	       << "  --help, -h            Show help\n";
 }
 
@@ -57,6 +62,10 @@ static OcrProbeOptions ParseOptions(const Vector<String>& args)
 			opt.otsu = true;
 		else if(args[i] == "--no-otsu")
 			opt.otsu = false;
+		else if(args[i] == "--tsv-config" && i + 1 < args.GetCount()) {
+			opt.tsv_config = args[++i];
+			opt.tsv_config_explicit = true;
+		}
 		else if(args[i] == "--help" || args[i] == "-h")
 			opt.help = true;
 	}
@@ -287,6 +296,97 @@ static String RunTesseract(const OcrProbeOptions& opt, const String& path, int& 
 	return TrimBoth(out);
 }
 
+// Task 0273 Phase 1: resolve the `tsv` config file's path. This is
+// independent of tessdata_dir (which only needs to hold <lang>.traineddata,
+// and per this tool's own local/fallback candidates in
+// GetTessdataCandidates() below, generally does NOT also contain the
+// configs/ subtree). Confirmed during scoping: the system Tesseract-OCR
+// install's own tessdata/configs/tsv file works fine even when a *different*
+// --tessdata-dir supplies the language data, so the natural place to find it
+// is next to whichever tesseract executable is actually being run.
+static bool ResolveTsvConfig(OcrProbeOptions& opt, String& error)
+{
+	if(opt.tsv_config_explicit) {
+		if(FileExists(opt.tsv_config))
+			return true;
+		error = "missing tesseract tsv config file: " + opt.tsv_config;
+		return false;
+	}
+	Vector<String> candidates;
+	String exe_dir = GetFileDirectory(opt.tesseract);
+	candidates << AppendFileName(AppendFileName(exe_dir, "tessdata"), AppendFileName("configs", "tsv"));
+	candidates << AppendFileName(AppendFileName(opt.tessdata_dir, "configs"), "tsv");
+	String env_tessdata = GetEnv("TESSDATA_PREFIX");
+	if(!env_tessdata.IsEmpty())
+		candidates << AppendFileName(AppendFileName(env_tessdata, "configs"), "tsv");
+	for(const String& candidate : candidates) {
+		if(FileExists(candidate)) {
+			opt.tsv_config = candidate;
+			return true;
+		}
+	}
+	error = "missing tesseract tsv config file; checked:";
+	for(const String& candidate : candidates)
+		error << " " << candidate << ";";
+	return false;
+}
+
+// Task 0273 Phase 1: run tesseract with the `tsv` config and parse its
+// tab-separated word table into level-5 (word-level) OcrWordBox rects.
+// Verified end to end during implementation on a real crop
+// (frame_000027_table_1_region_00.jpg, 120x48): tesseract's own bbox for
+// the word "130.555'" came back as left=15 top=0 width=105 height=19,
+// confirming the crop's text sits flush against the top edge (top=0) --
+// exactly the boundary bug this task fixes.
+static Vector<OcrWordBox> RunTesseractTsv(const OcrProbeOptions& opt, const String& path,
+                                           int& exit_code, double& out_avg_conf)
+{
+	Vector<OcrWordBox> words;
+	out_avg_conf = -1;
+	if(opt.tsv_config.IsEmpty()) {
+		exit_code = -1;
+		return words;
+	}
+	Vector<String> args;
+	args << path << "stdout"
+	     << "--tessdata-dir" << opt.tessdata_dir
+	     << "--psm" << AsString(opt.psm)
+	     << "-l" << opt.lang
+	     << opt.tsv_config;
+	String out;
+	exit_code = Sys(opt.tesseract, args, out);
+	if(exit_code != 0)
+		return words;
+	Vector<String> lines = Split(out, '\n');
+	double conf_sum = 0;
+	int conf_count = 0;
+	for(int i = 0; i < lines.GetCount(); i++) {
+		String line = TrimBoth(lines[i]);
+		if(line.IsEmpty() || line.StartsWith("level\t"))
+			continue;
+		Vector<String> col = Split(line, '\t');
+		// level page_num block_num par_num line_num word_num left top width height conf text
+		if(col.GetCount() < 11)
+			continue;
+		if(StrInt(col[0]) != 5)
+			continue; // only word-level rows carry a real bbox + conf
+		OcrWordBox& w = words.Add();
+		w.left = StrInt(col[6]);
+		w.top = StrInt(col[7]);
+		w.width = StrInt(col[8]);
+		w.height = StrInt(col[9]);
+		w.conf = StrDbl(col[10]);
+		w.text = col.GetCount() > 11 ? col[11] : String();
+		if(w.conf >= 0) {
+			conf_sum += w.conf;
+			conf_count++;
+		}
+	}
+	if(conf_count > 0)
+		out_avg_conf = conf_sum / conf_count;
+	return words;
+}
+
 static bool SaveErrorJson(const OcrProbeOptions& opt, const String& error)
 {
 	String json;
@@ -402,32 +502,81 @@ static OcrResult RunCrop(const OcrProbeOptions& opt, const OcrCrop& crop)
 	result.otsu_path = PreprocessCropOtsu(opt, crop, result.otsu_invert, result.otsu_confident);
 	if(!result.otsu_path.IsEmpty())
 		result.otsu_text = RunTesseract(opt, result.otsu_path, result.otsu_exit_code);
+	// Task 0273 Phase 1/5: gather word bboxes + avg conf for every variant
+	// that actually ran, so BestVariant() (Phase 5) can score by real OCR
+	// confidence instead of raw text length.
+	if(!opt.tsv_config.IsEmpty()) {
+		int tsv_exit;
+		result.original_words = RunTesseractTsv(opt, crop.path, tsv_exit, result.original_avg_conf);
+		if(!result.preprocessed_path.IsEmpty())
+			result.preprocessed_words = RunTesseractTsv(opt, result.preprocessed_path, tsv_exit,
+			                                            result.preprocessed_avg_conf);
+		if(!result.otsu_path.IsEmpty())
+			result.otsu_words = RunTesseractTsv(opt, result.otsu_path, tsv_exit, result.otsu_avg_conf);
+	}
 	return result;
 }
 
-static int TextScore(const String& semantic, const String& text)
+// Task 0273 Phase 5: replaces the old "longer text wins" heuristic
+// (text.GetCount() / 8, documented as buggy in Task 0271/0272 -- it
+// systematically preferred a longer-but-wrong string, e.g. a hallucinated
+// extra digit in "99.55 BB" beating the correct "99.5 BB" by exactly the
+// margin contributed by that one bogus character) with tesseract's own
+// average per-word recognition confidence (Task 0273 Phase 1's `tsv`
+// output) as the primary score.
+//
+// Empirically validated (not just theorized) against real per-word conf
+// captured for all 31 crops in the dataset before landing on this formula:
+//   - avg_conf as the base score does NOT regress any of the 13 frames
+//     Task 0271/0272 already scored EXACT/correct.
+//   - it DOES surface hand2 frame33's previously-masked correct Otsu/
+//     original read ("99.5 BB", avg_conf ~88/~86) over the wrong
+//     "99.55 BB" (avg_conf ~86 preprocessed) that length-based scoring
+//     picked before, because the correct short reading is *also* the more
+//     confident one there.
+//   - it does NOT fix hand2 frame53 ("186.4 BB" vs "166.4 BB", an 8-vs-6
+//     digit misread): tesseract is genuinely, if wrongly, more confident
+//     in the misread "166.4" (avg_conf ~89) than the correct Otsu "186.4"
+//     (avg_conf ~85) on that crop. No amount of score-formula tuning fixes
+//     this from word-level confidence alone (tsv only reports word-level,
+//     not per-glyph, confidence) -- it's an honest limitation, not
+//     something worth gaming the formula to hide.
+// A garbage-byte penalty is added on top: real balance/pot/bet text is
+// plain ASCII (digits, letters, "$", ":", " "). Mojibake/garbled OCR output
+// on contaminated or too-loose crops routinely contains high-byte/non-ASCII
+// characters (e.g. the literal UTF-8 bytes tesseract emits for
+// "130.5565 <mojibake>" on the too-loose frame27 crop); these never appear
+// in a genuinely correct read, so they're penalized directly instead of
+// being indirectly favored by whichever variant happens to have fewer of
+// them via raw length.
+static double TextScore(const String& semantic, const String& text, double avg_conf)
 {
 	if(text.IsEmpty())
 		return -1000;
-	int score = text.GetCount() / 8;
+	double score = avg_conf >= 0 ? avg_conf : 0;
+	int junk = 0;
+	for(int i = 0; i < text.GetCount(); i++)
+		if((byte)text[i] >= 128)
+			junk++;
+	score -= junk * 15;
 	String lower = ToLower(text);
 	if(semantic == "pot_label") {
 		if(lower.Find("pot") >= 0)
-			score += 100;
+			score += 30;
 		if(lower.Find("bb") >= 0)
-			score += 20;
+			score += 10;
 	}
 	else if(semantic == "title") {
 		if(lower.Find("hold") >= 0)
-			score += 60;
+			score += 30;
 		if(lower.Find("limit") >= 0)
-			score += 40;
-		if(text.Find("$") >= 0)
 			score += 20;
+		if(text.Find("$") >= 0)
+			score += 10;
 	}
 	else {
 		if(lower.Find("bb") >= 0)
-			score += 20;
+			score += 10;
 	}
 	return score;
 }
@@ -437,19 +586,14 @@ static int TextScore(const String& semantic, const String& text)
 // (original vs. preprocessed) tie-break precedent exactly: a later variant
 // only wins if its score is STRICTLY greater than the best score seen so
 // far, so on any tie the earlier/simpler variant (original first, then
-// preprocessed) keeps winning — same as the original 2-way BestText()
-// before Task 0272 added a 3rd variant. This matters in practice: TextScore
-// is a known-buggy "longer text wins" heuristic (documented in Task 0271),
-// so letting a new variant win ties would silently let Otsu's longer-but-
-// not-necessarily-better output override established behavior purely by
-// tie order, not by genuine improvement.
+// preprocessed) keeps winning.
 static int BestVariant(const OcrResult& result)
 {
-	int s_orig = TextScore(result.crop.semantic, result.original_text);
-	int s_prep = TextScore(result.crop.semantic, result.preprocessed_text);
-	int s_otsu = TextScore(result.crop.semantic, result.otsu_text);
+	double s_orig = TextScore(result.crop.semantic, result.original_text, result.original_avg_conf);
+	double s_prep = TextScore(result.crop.semantic, result.preprocessed_text, result.preprocessed_avg_conf);
+	double s_otsu = TextScore(result.crop.semantic, result.otsu_text, result.otsu_avg_conf);
 	int best = 0;
-	int best_score = s_orig;
+	double best_score = s_orig;
 	if(s_prep > best_score) { best = 1; best_score = s_prep; }
 	if(s_otsu > best_score) { best = 2; best_score = s_otsu; }
 	return best;
@@ -489,6 +633,14 @@ static bool RunProbe(OcrProbeOptions opt)
 		SaveErrorJson(opt, language_error);
 		return false;
 	}
+	// Task 0273 Phase 1: resolve the `tsv` config file so word bboxes +
+	// per-word confidence are available for BestVariant() (Phase 5). Not
+	// fatal if missing -- TextScore() degrades gracefully (avg_conf stays
+	// -1, so scoring falls back to just the keyword/garbage-byte terms)
+	// rather than refusing to run the whole probe.
+	String tsv_error;
+	if(!ResolveTsvConfig(opt, tsv_error))
+		Cerr() << "WARNING: " << tsv_error << " -- word-confidence scoring disabled\n";
 	Vector<OcrCrop> crops = opt.crop_list.IsEmpty() ? FindCrops(opt) : LoadCropList(opt.crop_list);
 	String json;
 	json << "{\n";
@@ -529,7 +681,11 @@ static bool RunProbe(OcrProbeOptions opt)
 		     << "\", \"otsu_exit_code\": " << result.otsu_exit_code
 		     << ", \"otsu_text\": \"" << JsonString(result.otsu_text)
 		     << "\", \"otsu_invert\": " << (result.otsu_invert ? "true" : "false")
-		     << ", \"otsu_confident\": " << (result.otsu_confident ? "true" : "false") << "}";
+		     << ", \"otsu_confident\": " << (result.otsu_confident ? "true" : "false")
+		     << ", \"best_variant\": " << BestVariant(result)
+		     << ", \"original_avg_conf\": " << result.original_avg_conf
+		     << ", \"preprocessed_avg_conf\": " << result.preprocessed_avg_conf
+		     << ", \"otsu_avg_conf\": " << result.otsu_avg_conf << "}";
 	}
 	json << "\n  ]\n";
 	json << "}\n";

@@ -236,8 +236,20 @@ static String PreprocessCrop(const OcrProbeOptions& opt, const OcrCrop& crop)
 	Image resized = RescaleFilter(image, target, FILTER_BILINEAR);
 	Image gray = GrayscaleImage(resized);
 	String out_dir = AppendFileName(opt.tracker_dir, "ocr_preprocessed");
-	String table_dir = AppendFileName(out_dir, Format("frame_%06d_table_%d",
-	                                                  crop.frame_index, crop.table_id));
+	// Bug found 2026-07-18 (Task 0275): using only frame_index/table_id here
+	// collided every --crop-list entry whose filename doesn't match the
+	// "frame_NNNNNN_table_N_..." pattern (e.g. externally-refined crops like
+	// "h1_f29_balance.jpg") onto the SAME frame_000000_table_0 subfolder, so
+	// unrelated crops of the same semantic silently overwrote each other's
+	// preprocessed/otsu output file on disk -- the JSON text for each crop
+	// was still correct (captured immediately after that crop's own
+	// tesseract run), but a diagnostic gallery built afterward from these
+	// paths could display a LATER crop's image under an EARLIER crop's
+	// row. Always fold in the source crop's own file title so the output
+	// path is unique per crop file, never just per frame/table guess.
+	String table_dir = AppendFileName(out_dir, Format("frame_%06d_table_%d_%s",
+	                                                  crop.frame_index, crop.table_id,
+	                                                  GetFileTitle(crop.path)));
 	RealizeDirectory(table_dir);
 	String out_path = AppendFileName(table_dir, crop.semantic + ".jpg");
 	if(!JPGEncoder().Quality(95).SaveFile(out_path, gray)) {
@@ -273,8 +285,10 @@ static String PreprocessCropOtsu(const OcrProbeOptions& opt, const OcrCrop& crop
 	Image bw = OcrBinarize(gray, OcrOtsuThreshold(gray));
 	Image result = polarity.invert ? OcrInvert(bw) : bw;
 	String out_dir = AppendFileName(opt.tracker_dir, "ocr_otsu");
-	String table_dir = AppendFileName(out_dir, Format("frame_%06d_table_%d",
-	                                                  crop.frame_index, crop.table_id));
+	// Same collision fix as PreprocessCrop() above -- see comment there.
+	String table_dir = AppendFileName(out_dir, Format("frame_%06d_table_%d_%s",
+	                                                  crop.frame_index, crop.table_id,
+	                                                  GetFileTitle(crop.path)));
 	RealizeDirectory(table_dir);
 	String out_path = AppendFileName(table_dir, crop.semantic + ".jpg");
 	if(!JPGEncoder().Quality(95).SaveFile(out_path, result)) {

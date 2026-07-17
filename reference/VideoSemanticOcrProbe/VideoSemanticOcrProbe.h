@@ -19,6 +19,11 @@ struct OcrProbeOptions {
 	bool   help = false;
 	bool   tessdata_dir_explicit = false;
 	bool   preprocess = true;
+	// Task 0272: Otsu binarization + convolution-based predictive polarity
+	// detection, run as a third preprocessing variant alongside original/
+	// grayscale (--preprocess). Independently toggleable so callers can
+	// compare with/without it.
+	bool   otsu = true;
 };
 
 struct OcrCrop : Moveable<OcrCrop> {
@@ -35,6 +40,12 @@ struct OcrResult : Moveable<OcrResult> {
 	String preprocessed_path;
 	int    original_exit_code = -1;
 	int    preprocessed_exit_code = -1;
+	// Task 0272: Otsu(+auto-polarity) variant.
+	String otsu_text;
+	String otsu_path;
+	int    otsu_exit_code = -1;
+	bool   otsu_invert = false;
+	bool   otsu_confident = false;
 };
 
 END_UPP_NAMESPACE

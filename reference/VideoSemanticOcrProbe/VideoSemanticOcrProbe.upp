@@ -8,6 +8,8 @@ uses
 file
 	AGENTS.md,
 	VideoSemanticOcrProbe.h,
+	OtsuPreprocess.h,
+	OtsuPreprocess.cpp,
 	main.cpp;
 
 mainconfig

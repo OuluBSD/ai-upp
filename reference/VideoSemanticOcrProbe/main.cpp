@@ -1,4 +1,5 @@
 #include "VideoSemanticOcrProbe.h"
+#include "OtsuPreprocess.h"
 
 NAMESPACE_UPP
 
@@ -20,6 +21,9 @@ static void PrintHelp()
 	       << "  --max-crops <count>   Maximum crop files to OCR (default 40)\n"
 	       << "  --preprocess          OCR original plus preprocessed crop (default)\n"
 	       << "  --no-preprocess       OCR original crop only\n"
+	       << "  --otsu                Also OCR an Otsu-binarized crop with automatic\n"
+	       << "                        light/dark polarity detection (default)\n"
+	       << "  --no-otsu             Skip the Otsu variant\n"
 	       << "  --help, -h            Show help\n";
 }
 
@@ -49,6 +53,10 @@ static OcrProbeOptions ParseOptions(const Vector<String>& args)
 			opt.preprocess = true;
 		else if(args[i] == "--no-preprocess")
 			opt.preprocess = false;
+		else if(args[i] == "--otsu")
+			opt.otsu = true;
+		else if(args[i] == "--no-otsu")
+			opt.otsu = false;
 		else if(args[i] == "--help" || args[i] == "-h")
 			opt.help = true;
 	}
@@ -230,6 +238,43 @@ static String PreprocessCrop(const OcrProbeOptions& opt, const OcrCrop& crop)
 	return out_path;
 }
 
+// Task 0272: Otsu-binarize the crop, choosing normal-vs-inverse polarity
+// via OcrDetectPolarity()'s Sobel-gradient predictive method, then save it
+// alongside the existing grayscale/rescale preprocessed variant so both can
+// be OCR'd and compared.
+static String PreprocessCropOtsu(const OcrProbeOptions& opt, const OcrCrop& crop,
+                                  bool& out_invert, bool& out_confident)
+{
+	out_invert = false;
+	out_confident = false;
+	if(!opt.otsu)
+		return String();
+	Image image = StreamRaster::LoadFileAny(crop.path);
+	if(IsNull(image)) {
+		Cerr() << "WARNING: failed to load crop for Otsu preprocessing: " << crop.path << "\n";
+		return String();
+	}
+	int scale = ScaleForSemantic(crop.semantic);
+	Size target(image.GetWidth() * scale, image.GetHeight() * scale);
+	Image resized = RescaleFilter(image, target, FILTER_BILINEAR);
+	Image gray = OcrGrayscale(resized);
+	OcrPolarityResult polarity = OcrDetectPolarity(gray);
+	out_invert = polarity.invert;
+	out_confident = polarity.confident;
+	Image bw = OcrBinarize(gray, OcrOtsuThreshold(gray));
+	Image result = polarity.invert ? OcrInvert(bw) : bw;
+	String out_dir = AppendFileName(opt.tracker_dir, "ocr_otsu");
+	String table_dir = AppendFileName(out_dir, Format("frame_%06d_table_%d",
+	                                                  crop.frame_index, crop.table_id));
+	RealizeDirectory(table_dir);
+	String out_path = AppendFileName(table_dir, crop.semantic + ".jpg");
+	if(!JPGEncoder().Quality(95).SaveFile(out_path, result)) {
+		Cerr() << "WARNING: failed to save Otsu-preprocessed crop: " << out_path << "\n";
+		return String();
+	}
+	return out_path;
+}
+
 static String RunTesseract(const OcrProbeOptions& opt, const String& path, int& exit_code)
 {
 	Vector<String> args;
@@ -354,6 +399,9 @@ static OcrResult RunCrop(const OcrProbeOptions& opt, const OcrCrop& crop)
 	if(!result.preprocessed_path.IsEmpty())
 		result.preprocessed_text = RunTesseract(opt, result.preprocessed_path,
 		                                        result.preprocessed_exit_code);
+	result.otsu_path = PreprocessCropOtsu(opt, crop, result.otsu_invert, result.otsu_confident);
+	if(!result.otsu_path.IsEmpty())
+		result.otsu_text = RunTesseract(opt, result.otsu_path, result.otsu_exit_code);
 	return result;
 }
 
@@ -384,18 +432,45 @@ static int TextScore(const String& semantic, const String& text)
 	return score;
 }
 
+// Picks the best of the up-to-3 OCR variants (original / grayscale-
+// rescaled / Otsu-auto-polarity) by TextScore(). Preserves the pre-existing
+// (original vs. preprocessed) tie-break precedent exactly: a later variant
+// only wins if its score is STRICTLY greater than the best score seen so
+// far, so on any tie the earlier/simpler variant (original first, then
+// preprocessed) keeps winning — same as the original 2-way BestText()
+// before Task 0272 added a 3rd variant. This matters in practice: TextScore
+// is a known-buggy "longer text wins" heuristic (documented in Task 0271),
+// so letting a new variant win ties would silently let Otsu's longer-but-
+// not-necessarily-better output override established behavior purely by
+// tie order, not by genuine improvement.
+static int BestVariant(const OcrResult& result)
+{
+	int s_orig = TextScore(result.crop.semantic, result.original_text);
+	int s_prep = TextScore(result.crop.semantic, result.preprocessed_text);
+	int s_otsu = TextScore(result.crop.semantic, result.otsu_text);
+	int best = 0;
+	int best_score = s_orig;
+	if(s_prep > best_score) { best = 1; best_score = s_prep; }
+	if(s_otsu > best_score) { best = 2; best_score = s_otsu; }
+	return best;
+}
+
 static String BestText(const OcrResult& result)
 {
-	return TextScore(result.crop.semantic, result.preprocessed_text) >
-	       TextScore(result.crop.semantic, result.original_text) ?
-	       result.preprocessed_text : result.original_text;
+	switch(BestVariant(result)) {
+	case 2: return result.otsu_text;
+	case 1: return result.preprocessed_text;
+	default: return result.original_text;
+	}
 }
 
 static int BestExitCode(const OcrResult& result)
 {
-	return TextScore(result.crop.semantic, result.preprocessed_text) >
-	       TextScore(result.crop.semantic, result.original_text) ?
-	       result.preprocessed_exit_code : result.original_exit_code;
+	switch(BestVariant(result)) {
+	case 2: return result.otsu_exit_code;
+	case 1: return result.preprocessed_exit_code;
+	default: return result.original_exit_code;
+	}
 }
 
 static bool RunProbe(OcrProbeOptions opt)
@@ -424,6 +499,7 @@ static bool RunProbe(OcrProbeOptions opt)
 	json << "  \"lang\": \"" << JsonString(opt.lang) << "\",\n";
 	json << "  \"psm\": " << opt.psm << ",\n";
 	json << "  \"preprocess\": " << (opt.preprocess ? "true" : "false") << ",\n";
+	json << "  \"otsu\": " << (opt.otsu ? "true" : "false") << ",\n";
 	json << "  \"crop_count\": " << crops.GetCount() << ",\n";
 	json << "  \"results\": [\n";
 	for(int i = 0; i < crops.GetCount(); i++) {
@@ -448,7 +524,12 @@ static bool RunProbe(OcrProbeOptions opt)
 		     << "\", \"original_exit_code\": " << result.original_exit_code
 		     << ", \"original_text\": \"" << JsonString(result.original_text)
 		     << "\", \"preprocessed_exit_code\": " << result.preprocessed_exit_code
-		     << ", \"preprocessed_text\": \"" << JsonString(result.preprocessed_text) << "\"}";
+		     << ", \"preprocessed_text\": \"" << JsonString(result.preprocessed_text)
+		     << "\", \"otsu_path\": \"" << JsonString(result.otsu_path)
+		     << "\", \"otsu_exit_code\": " << result.otsu_exit_code
+		     << ", \"otsu_text\": \"" << JsonString(result.otsu_text)
+		     << "\", \"otsu_invert\": " << (result.otsu_invert ? "true" : "false")
+		     << ", \"otsu_confident\": " << (result.otsu_confident ? "true" : "false") << "}";
 	}
 	json << "\n  ]\n";
 	json << "}\n";
@@ -460,13 +541,91 @@ static bool RunProbe(OcrProbeOptions opt)
 	return true;
 }
 
+// Task 0272 Phase 2 validation: every real crop in the 31-crop dataset this
+// tool was validated against happens to share the same true polarity
+// (light text on a dark/colored background) -- so on real data alone,
+// "always predict invert=true" would score 100% too, and would be
+// indistinguishable from a genuinely working detector. This synthetic
+// self-test constructs two minimal images with a KNOWN, opposite, and
+// unambiguous true polarity (a solid dark block on a light background,
+// and a solid light block on a dark background -- standing in for a thick
+// glyph stroke) and checks OcrDetectPolarity() picks the correct answer on
+// both, so the algorithm is verified to actually discriminate, not just
+// agree with a dataset that happens to be monotone.
+static bool SelfTestPolarity()
+{
+	bool ok = true;
+
+	// Case A: dark text (block) on a light background -> must NOT invert.
+	{
+		int w = 40, h = 20;
+		ImageBuffer ib(w, h);
+		for(int y = 0; y < h; y++)
+			for(int x = 0; x < w; x++) {
+				RGBA& p = ib[y][x];
+				p.r = p.g = p.b = 230; p.a = 255;
+			}
+		for(int y = 5; y < 15; y++)
+			for(int x = 10; x < 30; x++) {
+				RGBA& p = ib[y][x];
+				p.r = p.g = p.b = 20; p.a = 255;
+			}
+		Image gray = OcrGrayscale((Image)ib);
+		OcrPolarityResult r = OcrDetectPolarity(gray);
+		Cout() << "selftest dark_text_on_light_bg: invert=" << (r.invert ? "true" : "false")
+		       << " confident=" << (r.confident ? "true" : "false")
+		       << " edge_mean=" << r.edge_mean << " background=" << r.background_level
+		       << " edge_pixels=" << r.edge_pixel_count << "\n";
+		if(r.invert || !r.confident) {
+			Cerr() << "SELF-TEST FAILED: expected invert=false, confident=true\n";
+			ok = false;
+		}
+	}
+
+	// Case B: light text (block) on a dark background -> must invert.
+	{
+		int w = 40, h = 20;
+		ImageBuffer ib(w, h);
+		for(int y = 0; y < h; y++)
+			for(int x = 0; x < w; x++) {
+				RGBA& p = ib[y][x];
+				p.r = p.g = p.b = 20; p.a = 255;
+			}
+		for(int y = 5; y < 15; y++)
+			for(int x = 10; x < 30; x++) {
+				RGBA& p = ib[y][x];
+				p.r = p.g = p.b = 230; p.a = 255;
+			}
+		Image gray = OcrGrayscale((Image)ib);
+		OcrPolarityResult r = OcrDetectPolarity(gray);
+		Cout() << "selftest light_text_on_dark_bg: invert=" << (r.invert ? "true" : "false")
+		       << " confident=" << (r.confident ? "true" : "false")
+		       << " edge_mean=" << r.edge_mean << " background=" << r.background_level
+		       << " edge_pixels=" << r.edge_pixel_count << "\n";
+		if(!r.invert || !r.confident) {
+			Cerr() << "SELF-TEST FAILED: expected invert=true, confident=true\n";
+			ok = false;
+		}
+	}
+
+	Cout() << (ok ? "selftest: PASS\n" : "selftest: FAIL\n");
+	return ok;
+}
+
 END_UPP_NAMESPACE
 
 using namespace Upp;
 
 CONSOLE_APP_MAIN
 {
-	OcrProbeOptions opt = ParseOptions(CommandLine());
+	const Vector<String>& args = CommandLine();
+	for(const String& a : args)
+		if(a == "--self-test-polarity") {
+			if(!SelfTestPolarity())
+				SetExitCode(1);
+			return;
+		}
+	OcrProbeOptions opt = ParseOptions(args);
 	if(opt.help || opt.tracker_dir.IsEmpty()) {
 		PrintHelp();
 		if(opt.tracker_dir.IsEmpty() && !opt.help)

@@ -81,6 +81,10 @@ struct OcrResult : Moveable<OcrResult> {
 	double original_avg_conf = -1;
 	double preprocessed_avg_conf = -1;
 	double otsu_avg_conf = -1;
+	// Task 0274 Phase 4: grayscale stddev of the ORIGINAL crop + the derived
+	// blank-crop flag (stddev < kBlankStdDevThreshold, see OtsuPreprocess.h).
+	double crop_stddev = -1;
+	bool   blank_detected = false;
 };
 
 END_UPP_NAMESPACE

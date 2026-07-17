@@ -490,10 +490,25 @@ static bool VerifyTesseractLanguage(OcrProbeOptions& opt, String& error)
 	return true;
 }
 
+// Task 0274 Phase 4: below this grayscale-stddev-of-the-original-crop
+// value, treat the crop as blank (no text at all) rather than trusting
+// whatever OCR guessed on Otsu-amplified noise. Validated against the real
+// 31-crop dataset: the one genuine blank crop measured ~4.4; every crop
+// with real text measured >= 16.08. See OtsuPreprocess.h for detail.
+static const double kBlankStdDevThreshold = 10.0;
+
 static OcrResult RunCrop(const OcrProbeOptions& opt, const OcrCrop& crop)
 {
 	OcrResult result;
 	result.crop = crop;
+	{
+		Image image = StreamRaster::LoadFileAny(crop.path);
+		if(!IsNull(image)) {
+			result.crop_stddev = OcrGrayscaleStdDev(image);
+			result.blank_detected = result.crop_stddev >= 0 &&
+			                         result.crop_stddev < kBlankStdDevThreshold;
+		}
+	}
 	result.original_text = RunTesseract(opt, crop.path, result.original_exit_code);
 	result.preprocessed_path = PreprocessCrop(opt, crop);
 	if(!result.preprocessed_path.IsEmpty())
@@ -599,8 +614,14 @@ static int BestVariant(const OcrResult& result)
 	return best;
 }
 
+// Task 0274 Phase 4: a blank crop should be reported as such, not as
+// whatever OCR hallucinated on Otsu-amplified noise.
+static const char* kNoTextDetected = "(no text detected -- blank crop)";
+
 static String BestText(const OcrResult& result)
 {
+	if(result.blank_detected)
+		return kNoTextDetected;
 	switch(BestVariant(result)) {
 	case 2: return result.otsu_text;
 	case 1: return result.preprocessed_text;
@@ -685,7 +706,9 @@ static bool RunProbe(OcrProbeOptions opt)
 		     << ", \"best_variant\": " << BestVariant(result)
 		     << ", \"original_avg_conf\": " << result.original_avg_conf
 		     << ", \"preprocessed_avg_conf\": " << result.preprocessed_avg_conf
-		     << ", \"otsu_avg_conf\": " << result.otsu_avg_conf << "}";
+		     << ", \"otsu_avg_conf\": " << result.otsu_avg_conf
+		     << ", \"crop_stddev\": " << result.crop_stddev
+		     << ", \"blank_detected\": " << (result.blank_detected ? "true" : "false") << "}";
 	}
 	json << "\n  ]\n";
 	json << "}\n";

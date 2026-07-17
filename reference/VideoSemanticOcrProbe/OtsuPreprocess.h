@@ -71,6 +71,21 @@ struct OcrPolarityResult : Moveable<OcrPolarityResult> {
 
 OcrPolarityResult OcrDetectPolarity(const Image& gray);
 
+// ---------------------------------------------------------------------------
+// Task 0274 Phase 4: blank/uniform-color crop detector. A crop with no text
+// at all (just plain felt background) is nearly a single flat color; Otsu's
+// histogram-based thresholding still finds SOME split point even on that
+// tiny natural variation (JPEG blocking noise, a soft gradient) and produces
+// a noisy-looking binarized image that OCR then hallucinates garbage text
+// on, rather than legitimately failing. Grayscale standard deviation over
+// the whole (original, pre-Otsu) crop is a direct, cheap signal: measured
+// across this project's real 31-crop validation set, the one genuinely
+// blank crop (hand2 frame42 seat_bet_label -- no bet placed, plain green
+// felt) has stddev ~4.4, while every one of the other 30 crops (all of
+// which have real visible text) has stddev >= 16.08 -- a threshold of 10
+// cleanly separates them with no false positives on that set.
+double OcrGrayscaleStdDev(const Image& src);
+
 END_UPP_NAMESPACE
 
 #endif

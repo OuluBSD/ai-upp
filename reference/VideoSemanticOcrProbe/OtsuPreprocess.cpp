@@ -230,4 +230,39 @@ OcrPolarityResult OcrDetectPolarity(const Image& gray)
 	return result;
 }
 
+// Task 0274 Phase 4: see the doc comment on the declaration for validation
+// numbers. Deliberately operates on the ORIGINAL (not Otsu-binarized) crop,
+// since that's where the signal is direct -- a blank crop's grayscale
+// values barely vary at all, whereas Otsu's own output is a forced binary
+// image that always has some black/white split regardless of input.
+double OcrGrayscaleStdDev(const Image& src)
+{
+	Image gray = OcrGrayscale(src);
+	int w = gray.GetWidth();
+	int h = gray.GetHeight();
+	if(w <= 0 || h <= 0)
+		return 0;
+	double sum = 0;
+	int count = 0;
+	for(int y = 0; y < h; y++) {
+		const RGBA* line = gray[y];
+		for(int x = 0; x < w; x++) {
+			sum += line[x].r;
+			count++;
+		}
+	}
+	if(count == 0)
+		return 0;
+	double mean = sum / count;
+	double var_sum = 0;
+	for(int y = 0; y < h; y++) {
+		const RGBA* line = gray[y];
+		for(int x = 0; x < w; x++) {
+			double d = line[x].r - mean;
+			var_sum += d * d;
+		}
+	}
+	return sqrt(var_sum / count);
+}
+
 END_UPP_NAMESPACE

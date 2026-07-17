@@ -10,6 +10,7 @@ NAMESPACE_UPP
 struct OcrProbeOptions {
 	String tracker_dir;
 	String out_path;
+	String crop_list;
 	String tesseract = "C:\\Program Files\\Tesseract-OCR\\tesseract.exe";
 	String tessdata_dir = "C:\\Program Files\\Tesseract-OCR\\tessdata";
 	String lang = "eng";

@@ -8,6 +8,10 @@ static void PrintHelp()
 	       << "Usage: VideoSemanticOcrProbe --tracker-dir <dir> [options]\n\n"
 	       << "Options:\n"
 	       << "  --tracker-dir <dir>   VideoWindowTracker output directory\n"
+	       << "  --crop-list <file>    Tab-separated manifest \"semantic<TAB>path\" per line;\n"
+	       << "                        bypasses the semantic/ directory scan and OCRs exactly\n"
+	       << "                        the listed crop files (e.g. changed_regions/ crops\n"
+	       << "                        selected by an external classifier). Requires --out.\n"
 	       << "  --out <file>          JSON output path (default <dir>/ocr_probe.json)\n"
 	       << "  --tesseract <exe>     Tesseract executable path\n"
 	       << "  --tessdata-dir <dir>  Tesseract tessdata directory\n"
@@ -25,6 +29,8 @@ static OcrProbeOptions ParseOptions(const Vector<String>& args)
 	for(int i = 0; i < args.GetCount(); i++) {
 		if(args[i] == "--tracker-dir" && i + 1 < args.GetCount())
 			opt.tracker_dir = args[++i];
+		else if(args[i] == "--crop-list" && i + 1 < args.GetCount())
+			opt.crop_list = args[++i];
 		else if(args[i] == "--out" && i + 1 < args.GetCount())
 			opt.out_path = args[++i];
 		else if(args[i] == "--tesseract" && i + 1 < args.GetCount())
@@ -88,6 +94,57 @@ static bool ParseSemanticDirName(const String& name, int& frame_index, int& tabl
 	frame_index = StrInt(part[1]);
 	table_id = StrInt(part[3]);
 	return true;
+}
+
+// Parses changed_regions crop filenames of the form
+// "frame_000014_table_1_region_02.jpg" to recover frame_index/table_id.
+// Falls back to 0/0 if the name doesn't match (still OCRs the file; only
+// affects the frame/table fields and the preprocessed-output subfolder name).
+static void ParseChangedRegionFileName(const String& name, int& frame_index, int& table_id)
+{
+	frame_index = 0;
+	table_id = 0;
+	Vector<String> part = Split(GetFileTitle(name), '_');
+	// part: ["frame", "000014", "table", "1", "region", "02"]
+	for(int i = 0; i + 1 < part.GetCount(); i++) {
+		if(part[i] == "frame")
+			frame_index = StrInt(part[i + 1]);
+		else if(part[i] == "table")
+			table_id = StrInt(part[i + 1]);
+	}
+}
+
+static Vector<OcrCrop> LoadCropList(const String& list_path)
+{
+	Vector<OcrCrop> crops;
+	String content = LoadFile(list_path);
+	if(IsNull(content)) {
+		Cerr() << "ERROR: failed to read --crop-list file: " << list_path << "\n";
+		return crops;
+	}
+	Vector<String> lines = Split(content, '\n');
+	for(String line : lines) {
+		line = TrimBoth(line);
+		if(line.IsEmpty())
+			continue;
+		int tab = line.Find('\t');
+		if(tab < 0) {
+			Cerr() << "WARNING: skipping malformed --crop-list line (expected "
+			          "\"semantic<TAB>path\"): " << line << "\n";
+			continue;
+		}
+		String semantic = TrimBoth(line.Left(tab));
+		String path = TrimBoth(line.Mid(tab + 1));
+		if(!FileExists(path)) {
+			Cerr() << "WARNING: --crop-list path does not exist, skipping: " << path << "\n";
+			continue;
+		}
+		OcrCrop& crop = crops.Add();
+		crop.semantic = semantic;
+		crop.path = path;
+		ParseChangedRegionFileName(GetFileName(path), crop.frame_index, crop.table_id);
+	}
+	return crops;
 }
 
 static Vector<OcrCrop> FindCrops(const OcrProbeOptions& opt)
@@ -348,12 +405,16 @@ static bool RunProbe(OcrProbeOptions opt)
 		SaveErrorJson(opt, "missing tesseract executable: " + opt.tesseract);
 		return false;
 	}
+	if(!opt.crop_list.IsEmpty() && opt.out_path.IsEmpty()) {
+		Cerr() << "ERROR: --crop-list requires an explicit --out path\n";
+		return false;
+	}
 	String language_error;
 	if(!VerifyTesseractLanguage(opt, language_error)) {
 		SaveErrorJson(opt, language_error);
 		return false;
 	}
-	Vector<OcrCrop> crops = FindCrops(opt);
+	Vector<OcrCrop> crops = opt.crop_list.IsEmpty() ? FindCrops(opt) : LoadCropList(opt.crop_list);
 	String json;
 	json << "{\n";
 	json << "  \"ok\": true,\n";

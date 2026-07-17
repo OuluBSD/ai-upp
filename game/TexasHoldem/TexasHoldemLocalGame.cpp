@@ -172,6 +172,97 @@ bool TexasHoldemHumanNeedsAutoAct(const std::shared_ptr<Game>& game, const std::
 	       p->getMySet() < bero->getHighestSet();
 }
 
+// -- External (ungated) action injection, task 0270 --
+//
+// Each function below is a line-for-line copy of the math in the matching
+// TexasHoldemApplyHuman* helper above, with the single difference that the
+// target player `p` is supplied explicitly instead of being looked up through
+// TexasHoldemGetHumanOnTurn's human/turn gate. Keeping them as separate
+// functions (rather than refactoring the gated ones to share a core) is a
+// deliberate safety choice for this task: the four gated functions and every
+// GUI/scripted gameplay path that calls them stay byte-for-byte unchanged.
+
+void TexasHoldemApplyActionFoldFor(const std::shared_ptr<Game>& game,
+                                   const std::shared_ptr<PlayerInterface>& p)
+{
+	if (!game || !p)
+		return;
+	auto hand = game->getCurrentHand();
+	if (hand)
+		hand->setPreviousPlayerID(p->getMyID());
+	p->setMyAction(PLAYER_ACTION_FOLD, true);
+}
+
+void TexasHoldemApplyActionCheckCallFor(const std::shared_ptr<Game>& game,
+                                        const std::shared_ptr<BeroInterface>& bero,
+                                        const std::shared_ptr<PlayerInterface>& p)
+{
+	if (!game || !bero || !p)
+		return;
+	const int highest = bero->getHighestSet();
+	const int my_set_before = p->getMySet();
+	int call_value = highest - my_set_before;
+	if (call_value > p->getMyCash()) call_value = p->getMyCash();
+	if (call_value < 0) call_value = 0;
+	p->setMySet(call_value);
+	auto hand = game->getCurrentHand();
+	if (hand)
+		hand->setPreviousPlayerID(p->getMyID());
+	p->setMyAction(highest > my_set_before ? PLAYER_ACTION_CALL : PLAYER_ACTION_CHECK, true);
+}
+
+void TexasHoldemApplyActionRaiseToFor(const std::shared_ptr<Game>& game,
+                                      const std::shared_ptr<BeroInterface>& bero,
+                                      const std::shared_ptr<PlayerInterface>& p, int target_total)
+{
+	if (!game || !bero || !p)
+		return;
+	const int highest = bero->getHighestSet();
+	const int current_total = p->getMySet();
+	const int current_cash = p->getMyCash();
+	const int max_total = current_total + current_cash;
+	target_total = minmax(target_total, current_total, max_total);
+	if (target_total <= current_total)
+		return;
+	p->setMySet(target_total - current_total);
+	if (p->getMySet() > highest)
+		bero->setHighestSet(p->getMySet());
+	auto hand = game->getCurrentHand();
+	if (hand)
+		hand->setPreviousPlayerID(p->getMyID());
+	if (target_total <= highest)
+		p->setMyAction(target_total == highest ? PLAYER_ACTION_CALL : PLAYER_ACTION_CHECK, true);
+	else if (p->getMyCash() == 0)
+		p->setMyAction(PLAYER_ACTION_ALLIN, true);
+	else
+		p->setMyAction(PLAYER_ACTION_RAISE, true);
+}
+
+void TexasHoldemApplyActionAllInFor(const std::shared_ptr<Game>& game,
+                                    const std::shared_ptr<BeroInterface>& bero,
+                                    const std::shared_ptr<PlayerInterface>& p)
+{
+	if (!game || !bero || !p)
+		return;
+	TexasHoldemApplyActionRaiseToFor(game, bero, p, p->getMySet() + p->getMyCash());
+}
+
+bool TexasHoldemApplyExternalAction(const std::shared_ptr<Game>& game,
+                                    const std::shared_ptr<BeroInterface>& bero,
+                                    const std::shared_ptr<PlayerInterface>& p,
+                                    TexasHoldemExternalActionKind kind, int target_total)
+{
+	if (!game || !p)
+		return false;
+	switch (kind) {
+	case TEXAS_EXT_ACTION_FOLD:       TexasHoldemApplyActionFoldFor(game, p); return true;
+	case TEXAS_EXT_ACTION_CHECK_CALL: TexasHoldemApplyActionCheckCallFor(game, bero, p); return true;
+	case TEXAS_EXT_ACTION_RAISE_TO:   TexasHoldemApplyActionRaiseToFor(game, bero, p, target_total); return true;
+	case TEXAS_EXT_ACTION_ALLIN:      TexasHoldemApplyActionAllInFor(game, bero, p); return true;
+	}
+	return false;
+}
+
 bool StepTexasHoldemLocalGameAction(const std::shared_ptr<Game>& game)
 {
 	if (!game)

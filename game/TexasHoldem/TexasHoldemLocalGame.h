@@ -36,6 +36,46 @@ void TexasHoldemApplyHumanAllIn(const std::shared_ptr<Game>& game, const std::sh
 // without touching LocalBero itself).
 bool TexasHoldemHumanNeedsAutoAct(const std::shared_ptr<Game>& game, const std::shared_ptr<BeroInterface>& bero);
 
+// ---------------------------------------------------------------------------
+// External (ungated) action injection -- task 0270.
+//
+// The TexasHoldemApplyHuman* helpers above always act on "the human player
+// whose turn it currently is" (via TexasHoldemGetHumanOnTurn's human/turn
+// gate). The helpers below apply the SAME check/call/raise/fold/all-in math to
+// an EXPLICITLY supplied target player, with no human-type and no on-turn
+// gate. They exist so an offline replay/validation harness (see
+// reference/VideoGameEngineReplayValidator) can feed a pre-recorded,
+// already-ordered real action sequence into a real headless Game for an
+// arbitrary seat.
+//
+// These are ADDITIVE: they do not call TexasHoldemGetHumanOnTurn and are not
+// called by any existing GUI or scripted gameplay path, so the four gated
+// TexasHoldemApplyHuman* functions and every normal human-played game code
+// path behave exactly as before. Callers are responsible for driving the
+// engine's turn flow (BeroInterface::nextPlayer) themselves.
+enum TexasHoldemExternalActionKind {
+	TEXAS_EXT_ACTION_FOLD,
+	TEXAS_EXT_ACTION_CHECK_CALL,
+	TEXAS_EXT_ACTION_RAISE_TO,   // uses target_total (the seat's total set for this street)
+	TEXAS_EXT_ACTION_ALLIN,
+};
+
+void TexasHoldemApplyActionFoldFor(const std::shared_ptr<Game>& game,
+                                   const std::shared_ptr<PlayerInterface>& p);
+void TexasHoldemApplyActionCheckCallFor(const std::shared_ptr<Game>& game,
+                                        const std::shared_ptr<BeroInterface>& bero,
+                                        const std::shared_ptr<PlayerInterface>& p);
+void TexasHoldemApplyActionRaiseToFor(const std::shared_ptr<Game>& game,
+                                      const std::shared_ptr<BeroInterface>& bero,
+                                      const std::shared_ptr<PlayerInterface>& p, int target_total);
+void TexasHoldemApplyActionAllInFor(const std::shared_ptr<Game>& game,
+                                    const std::shared_ptr<BeroInterface>& bero,
+                                    const std::shared_ptr<PlayerInterface>& p);
+bool TexasHoldemApplyExternalAction(const std::shared_ptr<Game>& game,
+                                    const std::shared_ptr<BeroInterface>& bero,
+                                    const std::shared_ptr<PlayerInterface>& p,
+                                    TexasHoldemExternalActionKind kind, int target_total = 0);
+
 struct TexasHoldemLocalGameOptions : Moveable<TexasHoldemLocalGameOptions> {
 	int num_players = 10;
 	int start_cash = 2000;

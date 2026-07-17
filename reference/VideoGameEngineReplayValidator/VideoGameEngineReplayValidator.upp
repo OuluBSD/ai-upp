@@ -1,0 +1,15 @@
+description "Real Game engine replay + video-parsed ground-truth comparison (task 0270)\377";
+
+uses
+	Core,
+	EditorCommon,
+	GameRules,
+	Poker,
+	TexasHoldem;
+
+file
+	VideoGameEngineReplayValidator.h,
+	main.cpp;
+
+mainconfig
+	"" = "GUI";

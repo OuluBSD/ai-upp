@@ -1,4 +1,4 @@
-#include "VideoSemanticOcrProbe.h"
+#include "VisualStateModel.h"
 #include "OtsuPreprocess.h"
 #include <cmath>
 

@@ -96,9 +96,24 @@ struct VsmOcrRequest : Moveable<VsmOcrRequest> {
 	int    frame  = -1;
 	String ts;
 	int    status = VSM_OCR_PENDING; // VsmOcrStatus
+	// Task 0277: neither rule_id (an arbitrary caller-chosen rule identifier,
+	// matched against VsmOcrComparison/VsmModelEvent by exact string, not a
+	// semantic vocabulary member) nor region_id (a structural annotation id,
+	// e.g. "ann-3") carries a clean semantic-type label ("pot_label",
+	// "seat_balance_plate", ...) anywhere callers actually populate them
+	// today (checked PipelineRunner.cpp's RunOcrRules(): req.rule_id =
+	// rule.rule_id, req.region_id = ann_id -- neither is semantic). A real
+	// VsmTesseractOcrEngine needs a semantic label for TextScore()'s
+	// keyword-based scoring bonus (see TesseractOcr.h), so this field is
+	// added rather than misusing rule_id/region_id for a purpose neither was
+	// designed for. No current caller populates it yet (left empty, which
+	// VsmRunTesseractOcr()/TextScore() already treat as a safe "no
+	// classification" fallback) -- wiring a real semantic value in from
+	// VsmOcrRule/RunOcrRules() is a separate, later decision.
+	String semantic;
 	void Jsonize(JsonIO& json) {
 		json("rule_id",rule_id)("region_id",region_id)
-		    ("frame",frame)("ts",ts)("status",status);
+		    ("frame",frame)("ts",ts)("status",status)("semantic",semantic);
 	}
 };
 

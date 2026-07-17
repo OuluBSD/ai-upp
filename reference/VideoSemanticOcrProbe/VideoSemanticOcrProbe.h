@@ -4,6 +4,7 @@
 #include <Core/Core.h>
 #include <Draw/Draw.h>
 #include <plugin/jpg/jpg.h>
+#include <VisualStateModel/VisualStateModel.h>
 
 NAMESPACE_UPP
 
@@ -82,9 +83,18 @@ struct OcrResult : Moveable<OcrResult> {
 	double preprocessed_avg_conf = -1;
 	double otsu_avg_conf = -1;
 	// Task 0274 Phase 4: grayscale stddev of the ORIGINAL crop + the derived
-	// blank-crop flag (stddev < kBlankStdDevThreshold, see OtsuPreprocess.h).
+	// blank-crop flag (stddev < kBlankStdDevThreshold, see
+	// uppsrc/VisualStateModel/OtsuPreprocess.h).
 	double crop_stddev = -1;
 	bool   blank_detected = false;
+
+	// Task 0277: BestVariant()/BestText()/BestExitCode()'s verdict, now
+	// computed once inside VsmRunTesseractOcr() (uppsrc/VisualStateModel/
+	// TesseractOcr.h) and copied straight through by RunCrop() instead of
+	// being recomputed from the fields above by separate local helpers.
+	String best_text;
+	int    best_exit_code = -1;
+	int    best_variant = 0;
 };
 
 END_UPP_NAMESPACE

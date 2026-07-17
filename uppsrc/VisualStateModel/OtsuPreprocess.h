@@ -1,5 +1,5 @@
-#ifndef _VideoSemanticOcrProbe_OtsuPreprocess_h_
-#define _VideoSemanticOcrProbe_OtsuPreprocess_h_
+#ifndef _VisualStateModel_OtsuPreprocess_h_
+#define _VisualStateModel_OtsuPreprocess_h_
 
 #include <Core/Core.h>
 #include <Draw/Draw.h>
@@ -18,15 +18,18 @@ NAMESPACE_UPP
 //     ConvNetCpp/src/OCR/Preprocessing.cpp:39-48 (3x upscale, grayscale,
 //     Binarize(gray, OtsuThreshold(gray)), optionally inverted).
 //
-// Integration point decision: this lives in reference/VideoSemanticOcrProbe
-// (not uppsrc/VisualStateModel/OcrLayer.h/.cpp) because OcrLayer.h/.cpp is
-// purely the rule/comparison data model (VsmOcrRule, VsmOcrExecutor,
-// VsmOcrEngine) — it has no image-manipulation code today. All the actual
-// pixel preprocessing (GrayscaleImage, RescaleFilter, PreprocessCrop) already
-// lives in VideoSemanticOcrProbe/main.cpp, so this is the existing OCR-
-// pixel-processing home in ai-upp; adding a sibling .h/.cpp pair here keeps
-// the port local to where it's used and avoids inventing a new dependency
-// from OcrLayer onto Draw's Image type.
+// Integration point decision (Task 0277, superseding the original decision
+// below): this used to live in reference/VideoSemanticOcrProbe because
+// OcrLayer.h/.cpp was purely the rule/comparison data model (VsmOcrRule,
+// VsmOcrExecutor, VsmOcrEngine) with no image-manipulation code. Task 0277
+// wires a real VsmTesseractOcrEngine (uppsrc/VisualStateModel/
+// TesseractOcrEngine.h) into the production VsmOcrEngine interface, and that
+// engine needs this exact pixel preprocessing (same multi-variant Otsu
+// pipeline already validated on the 31-crop real dataset) -- so the logic is
+// promoted into uppsrc/VisualStateModel proper rather than bypassed or
+// duplicated. reference/VideoSemanticOcrProbe/main.cpp now calls this shared
+// copy via uppsrc/VisualStateModel/TesseractOcr.h instead of carrying its
+// own inline preprocessing.
 
 Image  OcrGrayscale(const Image& src);
 Image  OcrInvert(const Image& src);

@@ -2,14 +2,13 @@ description "Video semantic crop OCR probe";
 
 uses
 	Core,
+	VisualStateModel,
 	Draw,
 	plugin/jpg;
 
 file
 	AGENTS.md,
 	VideoSemanticOcrProbe.h,
-	OtsuPreprocess.h,
-	OtsuPreprocess.cpp,
 	main.cpp;
 
 mainconfig

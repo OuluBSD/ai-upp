@@ -4,7 +4,8 @@ uses
 	Core,
 	Draw,
 	Painter,
-	plugin/png;
+	plugin/png,
+	plugin/jpg;
 
 file
 	VisualStateModel.h options(PCH),
@@ -40,6 +41,12 @@ file
 	TemplateMatch.cpp,
 	OcrLayer.h,
 	OcrLayer.cpp,
+	OtsuPreprocess.h,
+	OtsuPreprocess.cpp,
+	TesseractOcr.h,
+	TesseractOcr.cpp,
+	TesseractOcrEngine.h,
+	TesseractOcrEngine.cpp,
 	ModelRuntime.h,
 	ModelRuntime.cpp,
 	BatchReport.h,

@@ -7,7 +7,20 @@ static int Int(ValueMap m, const char *key) { return IsNumber(V(m, key)) ? (int)
 static String Str(ValueMap m, const char *key) { return AsString(V(m, key)); }
 static Rect R(ValueMap m) { return Rect(Int(m,"x"), Int(m,"y"), Int(m,"x")+Int(m,"w"), Int(m,"y")+Int(m,"h")); }
 static ValueArray A(ValueMap m, const char *key) { return IsValueArray(V(m, key)) ? ValueArray(V(m, key)) : ValueArray(); }
-static void Help() { Cout() << "VideoChangedRegionEnricher --manifest <file> --out-dir <dir>\n"; }
+static void Help() {
+	Cout() << "VideoChangedRegionEnricher --manifest <file> --out-dir <dir> "
+	          "[--ocr-probe-json <path>]\n"
+	          "  --ocr-probe-json <path>  Read OCR results from this exact "
+	          "VideoSemanticOcrProbe JSON\n"
+	          "                           output instead of guessing "
+	          "<tracker_dir>/ocr_probe.json\n"
+	          "                           (Task 0277). Applies to every "
+	          "occurrence in the manifest,\n"
+	          "                           regardless of that occurrence's own "
+	          "tracker_dir. Omit to keep\n"
+	          "                           the previous per-occurrence-tracker_dir "
+	          "guess.\n";
+}
 
 static double Overlap(const Rect& a, const Rect& b)
 {
@@ -45,10 +58,19 @@ static ValueArray Hits(ValueMap table, const Rect& changed)
 	return out;
 }
 
+// Task 0277: `ocr_probe_json_override`, when non-empty, is read verbatim
+// instead of guessing <tracker_dir>/ocr_probe.json -- real
+// VideoSemanticOcrProbe runs write wherever --out says, essentially never
+// the guessed default, so every real enrichment run used to silently report
+// every occurrence "unavailable" unless someone manually copied a probe
+// output into the exact guessed path first (see AGENTS.md).
 static ValueMap OcrEvidence(const String& tracker_dir, int frame_index, int table_id,
-	                          ValueArray hits)
+	                          ValueArray hits, const String& ocr_probe_json_override = String())
 {
-	Value root = ParseJSON(LoadFile(AppendFileName(tracker_dir, "ocr_probe.json")));
+	String probe_path = ocr_probe_json_override.IsEmpty()
+	                         ? AppendFileName(tracker_dir, "ocr_probe.json")
+	                         : ocr_probe_json_override;
+	Value root = ParseJSON(LoadFile(probe_path));
 	if(IsError(root) || !IsValueMap(root)) {
 		ValueMap evidence;
 		evidence("status", "unavailable")("reason", "ocr_probe_json_missing");
@@ -109,7 +131,7 @@ using namespace Upp;
 CONSOLE_APP_MAIN
 {
 	EnricherOptions opt; const Vector<String>& args = CommandLine();
-	for(int i=0;i<args.GetCount();i++) { if(args[i]=="--manifest"&&i+1<args.GetCount()) opt.manifest=args[++i]; else if(args[i]=="--out-dir"&&i+1<args.GetCount()) opt.out_dir=args[++i]; else if(args[i]=="--help"||args[i]=="-h") opt.help=true; }
+	for(int i=0;i<args.GetCount();i++) { if(args[i]=="--manifest"&&i+1<args.GetCount()) opt.manifest=args[++i]; else if(args[i]=="--out-dir"&&i+1<args.GetCount()) opt.out_dir=args[++i]; else if(args[i]=="--ocr-probe-json"&&i+1<args.GetCount()) opt.ocr_probe_json=args[++i]; else if(args[i]=="--help"||args[i]=="-h") opt.help=true; }
 	if(opt.help || opt.manifest.IsEmpty() || opt.out_dir.IsEmpty()) { Help(); if(!opt.help) SetExitCode(1); return; }
 	Value root = ParseJSON(LoadFile(opt.manifest)); if(IsError(root) || !IsValueMap(root)) { Cerr()<<"ERROR: invalid manifest\n"; SetExitCode(1); return; }
 	ValueArray enriched; int occurrences=0, matched=0, missing=0;
@@ -119,14 +141,14 @@ CONSOLE_APP_MAIN
 		if(table.IsEmpty()) missing++; else matched++;
 		ValueArray hits = Hits(table,R(V(o, "rect")));
 		o("semantic_hits", hits);
-		ValueMap ocr = OcrEvidence(dir, Int(o, "frame_index"), Int(o, "table_id"), hits);
+		ValueMap ocr = OcrEvidence(dir, Int(o, "frame_index"), Int(o, "table_id"), hits, opt.ocr_probe_json);
 		String text_hypothesis = Str(ocr, "status") == "available" ? "likely" : "unknown";
 		ValueMap text; text("hypothesis", text_hypothesis)
 			("setting", "semantic-overlap-plus-ocr")
 			("basis", Str(ocr, "status") == "available" ? "ocr_probe" : "semantic-overlap-only");
 		o("contains_text", text);
 		ValueMap ai; ai("status","unknown"); o("ai_classification",ai);
-		o("ocr", OcrEvidence(dir, Int(o, "frame_index"), Int(o, "table_id"), hits));
+		o("ocr", ocr);
 		Diagnostics(o,opt.out_dir,occurrences-1); enriched.Add(o);
 	}
 	RealizeDirectory(opt.out_dir); ValueMap output; output("manifest",opt.manifest)("occurrence_count",occurrences)("matched_count",matched)("missing_tracker_count",missing)("occurrences",enriched);

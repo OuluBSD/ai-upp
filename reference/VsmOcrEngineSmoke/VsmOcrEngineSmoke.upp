@@ -1,0 +1,14 @@
+description "Task 0277 Part B verification: real VsmTesseractOcrEngine end-to-end smoke test";
+
+uses
+	Core,
+	VisualStateModel,
+	Draw,
+	plugin/jpg;
+
+file
+	VsmOcrEngineSmoke.h,
+	main.cpp;
+
+mainconfig
+	"" = "";

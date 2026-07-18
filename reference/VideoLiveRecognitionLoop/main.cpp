@@ -767,15 +767,45 @@ struct GameSnapshot {
 	int    ocr_cache_hits = 0;
 	int    elapsed_s = 0;
 	bool   connected = false;
+	// --- capture-to-render latency (Task 0282) ---
+	// latency_last_ms: msecs() - ts for the frame this snapshot was just built
+	// from, i.e. the same "capture(recv)-to-processed" quantity RunLive already
+	// prints in aggregate (see capture_to_done_sum/n above) -- computed here
+	// per-frame instead so the GUI can show it live. min/avg/max are over a
+	// small rolling window (see kLatencyWindowFrames) so one noisy spike (e.g.
+	// a single OCR call) doesn't dominate a single-frame readout.
+	double latency_last_ms = -1;
+	double latency_avg_ms  = -1;
+	double latency_min_ms  = -1;
+	double latency_max_ms  = -1;
 };
+
+// Rolling-window size (in frames) for the GUI's live latency avg/min/max.
+// Justification (real numbers, not a guess): Task 0280's own benchmark
+// (0280_continuous_recognition_loop.md, real run at VideoServer --fps 8)
+// measured a 673ms mean frame-arrival gap and OCR calls averaging 2196ms
+// (max 2515ms) -- i.e. a single OCR-bearing frame's latency spike spans
+// roughly 3-4 frame-arrival-gaps. 20 frames spans ~20*673ms =~ 13.5s of
+// real wall-clock history at that measured pacing: long enough to average
+// out a single OCR spike without smoothing away a real sustained latency
+// shift over more than ~13s, matching the design direction's suggested
+// 20-30 frame window (picked the low end since the GUI already redraws at
+// ~5Hz -- a shorter window keeps the readout responsive to real change).
+static const int kLatencyWindowFrames = 20;
 
 // Build a snapshot from the live engine + recognition state. Called ONLY on the
 // background recognition thread (it reads the Game); the result is published to
 // the GUI under a mutex by the caller.
 static GameSnapshot BuildSnapshot(const std::shared_ptr<Game>& game, const ResolveState& rs,
-                                  const LoopStats& stats, const OcrCacheState& oc, int64 start_ms)
+                                  const LoopStats& stats, const OcrCacheState& oc, int64 start_ms,
+                                  double latency_last_ms = -1, double latency_avg_ms = -1,
+                                  double latency_min_ms = -1, double latency_max_ms = -1)
 {
 	GameSnapshot s;
+	s.latency_last_ms = latency_last_ms;
+	s.latency_avg_ms = latency_avg_ms;
+	s.latency_min_ms = latency_min_ms;
+	s.latency_max_ms = latency_max_ms;
 	s.frames = stats.frames;
 	s.total_regions = stats.total_regions;
 	s.street_events = rs.street_events;
@@ -1214,6 +1244,21 @@ struct MirrorView : Ctrl {
 		line(Format("OCR cache hits: %d", snap.ocr_cache_hits), sub);
 		line(Format("board resolved: %d/5", snap.board_count), sub);
 		line(Format("engine pot: %d", snap.engine_pot), sub);
+		ty += 4;
+		// capture-to-render latency (Task 0282): msecs()-ts for the frame this
+		// snapshot reflects, plus rolling min/avg/max (see kLatencyWindowFrames)
+		// so a single OCR-call spike doesn't dominate a one-frame readout.
+		if(snap.latency_last_ms >= 0)
+			// NOTE: U++ Format()'s %f id-scan greedily consumes ALL trailing
+			// alpha chars as the format id (so "%.0fms" parses as the unknown
+			// id "fms", not "f" followed by literal "ms") -- a backtick (`)
+			// right after the conversion letter terminates the id explicitly
+			// and is itself consumed/skipped, leaving "ms" as literal text.
+			line(Format("latency: %.0f`ms (avg %.0f, min %.0f, max %.0f)",
+			            snap.latency_last_ms, snap.latency_avg_ms, snap.latency_min_ms, snap.latency_max_ms),
+			     Color(255, 210, 120));
+		else
+			line("latency: (no frame yet)", Color(255, 210, 120));
 		ty += 8;
 		line("LIVE-DRIVEN:", Color(150, 230, 160));
 		line("  board cards, street, pot(OCR)", Color(150, 230, 160));
@@ -1303,6 +1348,31 @@ static void GuiRecognitionWorker(LiveMirrorShared* shared, const String& host, i
 
 	int64 start = msecs();
 
+	// Rolling window of the last kLatencyWindowFrames capture-to-processed
+	// latencies (Task 0282). Declared here (outer scope, above the reconnect
+	// loop below) so it accumulates across reconnects the same way stats/rs/oc
+	// already do -- a transient VideoServer reconnect isn't a reason to reset
+	// the diagnostic latency readout to empty.
+	double latency_window[kLatencyWindowFrames];
+	int    latency_window_count = 0, latency_window_next = 0;
+	double latency_last = -1;
+	auto push_latency = [&](double v) {
+		latency_last = v;
+		latency_window[latency_window_next] = v;
+		latency_window_next = (latency_window_next + 1) % kLatencyWindowFrames;
+		if(latency_window_count < kLatencyWindowFrames) latency_window_count++;
+	};
+	auto latency_stats = [&](double& avg, double& mn, double& mx) {
+		avg = -1; mn = -1; mx = -1;
+		if(latency_window_count == 0) return;
+		double sum = 0; mn = latency_window[0]; mx = latency_window[0];
+		for(int i = 0; i < latency_window_count; i++) {
+			double v = latency_window[i];
+			sum += v; if(v < mn) mn = v; if(v > mx) mx = v;
+		}
+		avg = sum / latency_window_count;
+	};
+
 	// publish an initial (pre-connect) snapshot so the window isn't blank
 	{
 		GameSnapshot s0 = BuildSnapshot(game, rs, stats, oc, start);
@@ -1350,8 +1420,17 @@ static void GuiRecognitionWorker(LiveMirrorShared* shared, const String& host, i
 			ProcessTableFrame(table, prev, has_prev, clf, ocr, ocr_available, cdp, st, stats, rs, oc, game, verbose, ocr_cap);
 			if(!has_prev) { prev.Set(table.width, table.height, ~table.data); has_prev = true; }
 
+			// capture-to-processed latency for this frame (Task 0282), same
+			// quantity RunLive computes in aggregate (capture_to_done_sum/n):
+			// msecs() - ts, from the frame's TCP-receive timestamp to right now,
+			// right after ProcessTableFrame returns and before publishing the
+			// snapshot that reflects it.
+			push_latency((double)(msecs() - ts));
+			double lat_avg, lat_min, lat_max;
+			latency_stats(lat_avg, lat_min, lat_max);
+
 			// publish snapshot for the GUI
-			GameSnapshot s = BuildSnapshot(game, rs, stats, oc, start);
+			GameSnapshot s = BuildSnapshot(game, rs, stats, oc, start, latency_last, lat_avg, lat_min, lat_max);
 			s.connected = true;
 			{ Mutex::Lock __(shared->mtx); shared->snap = s;
 			  shared->status = Format("frame %d, %d regions", stats.frames, stats.total_regions); }

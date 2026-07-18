@@ -47,11 +47,22 @@ using namespace Upp;
 // ===========================================================================
 
 // Fixed PokerStars table window in the 1920x1080 recording. Confirmed static
-// across all 56 tracking frames of the M12 recording (tracking.json: the sole
-// distinct table-0 window rect is (8,1,944,682)). Using a fixed crop matches
-// M12's single-static-table scope; a moving/multi-table feed would need
+// across all 56 tracking frames of the M12 recording (tracking.json).
+// Task 0283 real finding: the table M12's ground truth and the 267-candidate
+// labeled dataset (real_recording_combined_classified_dataset.json) were
+// actually built from is table_1 ("Aludra", rect (968,1,944,682) in
+// tracking.json), NOT table_0 ("Donati", rect (8,1,944,682)) -- confirmed via
+// (a) tracking.json's own table_id assignment, (b) a table_1 crop's "Pot: 4 BB"
+// text matching real_recording_ground_truth.jsonl's pot=40 at the same elapsed
+// time, (c) table_0's frame-0 board (7d,Jc,2h) never appearing anywhere in the
+// ground truth board sequence, while table_1's frame-0 board (2c,3d,8c,9c,7s)
+// and its hand-1 flop (3d,3s,Kh) match the ground truth exactly. The original
+// crop (table_0) was a real, previously-undiscovered bug: the live loop was
+// recognizing an unrelated table's hand, not the one its own reference
+// dataset/ground truth describe. Using a fixed crop matches M12's
+// single-static-table scope; a moving/multi-table feed would need
 // VideoWindowTracker per frame (explicitly out of scope for this task).
-static const Rect kTableRect = RectC(8, 1, 944, 682);
+static const Rect kTableRect = RectC(968, 1, 944, 682);
 
 static const char* kDatasetDefault = "tmp/real_recording_combined_classified_dataset.json";
 

@@ -3,6 +3,7 @@
 #include <plugin/jpg/jpg.h>
 
 #include <TexasHoldem/TexasHoldemLocalGame.h>
+#include <TexasHoldem/TexasHoldemLogicState.h> // card/board art helpers (reuse game/CardRender via GameTable's own encoding)
 #include <Poker/LocalEngineFactory.h>
 #include <GameRules/Game.h>
 #include <GameRules/GameData.h>
@@ -708,6 +709,124 @@ static void ProcessTableFrame(const VsmFrameImage& table, VsmFrameImage& prev, b
 }
 
 // ===========================================================================
+// Task 0281: thread-safe game-state SNAPSHOT for the --gui live-mirror window.
+//
+// The recognition loop mutates the live `Game` on a BACKGROUND thread; the GUI
+// runs a TopWindow on the MAIN thread. U++'s Ctrl tree is not thread-safe and
+// the Game object must not be read by the GUI thread while the background
+// thread mutates it. So the background thread, after each processed frame,
+// copies the fields it wants to render into this plain-old-data snapshot under
+// a Mutex; the GUI thread only ever touches this POD copy (never the Game).
+//
+// Every field here is a scalar / fixed-size array / String, so GameSnapshot is
+// trivially copy-assignable (default operator=) under the lock -- deliberately
+// NO Upp::Vector members, which would need clone()/<<= gymnastics to copy.
+//
+// HONEST SCOPE (carried over from Task 0280, do NOT paper over): the live loop
+// only reliably resolves board cards / street / the OCR pot reading. Per-seat
+// stacks/bets/actions/hole-cards are NOT driven from the live feed -- they are
+// the engine's own seed state (6 seats, 1000 start cash, engine-dealt cards
+// that have nothing to do with the video). The snapshot therefore separates
+// RECOGNIZED fields (board/street/pot-OCR, from ResolveState) from ENGINE-SEED
+// fields (per-seat, from the Game), and the renderer labels them as such rather
+// than presenting engine-seed values as if they were recognized.
+// ===========================================================================
+struct SeatSnap {
+	bool   present = false;
+	int    seat = -1;
+	int    uid = -1;
+	String name;
+	int    stack = 0;
+	int    bet = 0;
+	int    action = 0;   // PlayerAction enum
+	bool   active = false;
+	bool   turn = false;
+	int    button = 0;
+	bool   is_dealer = false;
+};
+
+struct GameSnapshot {
+	bool   valid = false;
+	// --- recognized-from-video fields (ResolveState) ---
+	int    board[5] = { -1, -1, -1, -1, -1 };
+	int    board_count = 0;   // how many board cards the loop has resolved as dealt
+	int    street = 0;        // derived from board_count: 0 preflop,1 flop,2 turn,3 river
+	double last_pot_ocr = -1; // last OCR-read pot value (chips/BB per OCR text), -1 = none yet
+	// --- engine-seed fields (Game), honestly NOT video-driven per-seat ---
+	int    hand_id = 0;
+	int    dealer = -1;
+	int    engine_pot = 0;
+	int    seat_count = 0;
+	SeatSnap seats[9];
+	// --- recognition status counters ---
+	int    frames = 0;
+	int    total_regions = 0;
+	int    street_events = 0;
+	int    value_changes = 0;
+	int    ocr_calls = 0;
+	int    ocr_cache_hits = 0;
+	int    elapsed_s = 0;
+	bool   connected = false;
+};
+
+// Build a snapshot from the live engine + recognition state. Called ONLY on the
+// background recognition thread (it reads the Game); the result is published to
+// the GUI under a mutex by the caller.
+static GameSnapshot BuildSnapshot(const std::shared_ptr<Game>& game, const ResolveState& rs,
+                                  const LoopStats& stats, const OcrCacheState& oc, int64 start_ms)
+{
+	GameSnapshot s;
+	s.frames = stats.frames;
+	s.total_regions = stats.total_regions;
+	s.street_events = rs.street_events;
+	s.value_changes = rs.value_changes;
+	s.ocr_calls = stats.ocr_calls;
+	s.ocr_cache_hits = oc.hits;
+	s.last_pot_ocr = rs.last_pot;
+	s.board_count = rs.board_count;
+	for(int i = 0; i < 5; i++) s.board[i] = rs.board_cards[i];
+	s.street = rs.board_count >= 5 ? 3 : rs.board_count >= 4 ? 2 : rs.board_count >= 3 ? 1 : 0;
+	s.elapsed_s = (int)((msecs() - start_ms) / 1000);
+	if(game) {
+		s.dealer = (int)game->getDealerPosition();
+		s.hand_id = game->getCurrentHandID();
+		if(auto hand = game->getCurrentHand())
+			if(auto board = hand->getBoard())
+				s.engine_pot = board->getPot();
+		// getSeatsList() ALWAYS holds MAX_NUMBER_OF_PLAYERS entries (the engine
+		// pads the vector to the max table size in Game's constructor); only the
+		// first startQuantityPlayers of them are real seated players (the rest
+		// are default-constructed padding with empty names). Render only the
+		// real seats -- this table was seeded with 6 (StartData::numberOfPlayers).
+		int startq = game->getStartQuantityPlayers();
+		PlayerList seats = game->getSeatsList();
+		if(seats) {
+			int n = 0;
+			for(auto& p : *seats) {
+				if(n >= 9 || n >= startq) break;
+				if(!p) continue;
+				SeatSnap& ss = s.seats[n];
+				ss.present = true;
+				ss.seat = p->getMyID();
+				ss.uid = (int)p->getMyUniqueID();
+				ss.name = p->getMyName();
+				ss.stack = p->getMyCash();
+				ss.bet = p->getMySet();
+				ss.action = (int)p->getMyAction();
+				ss.active = p->getMyActiveStatus();
+				ss.turn = p->getMyTurn();
+				ss.button = p->getMyButton();
+				ss.is_dealer = ((int)p->getMyUniqueID() == s.dealer);
+				n++;
+			}
+			s.seat_count = n;
+		}
+	}
+	s.valid = true;
+	return s;
+}
+
+// ===========================================================================
 // Mode 2: offline pipeline over dataset source frames (timing, deterministic).
 // ===========================================================================
 static int RunOfflineFrames(const String& frames_dir, const String& dataset_path,
@@ -938,6 +1057,341 @@ static int RunLive(const String& host, int port, int seconds, const String& data
 	return 0;
 }
 
+// ===========================================================================
+// Task 0281: Mode 4 -- live mirror GUI window.
+//
+// Threading model (verified against this repo's real precedent before
+// choosing): reference/GuiMT/main.cpp is U++'s canonical worker-thread-to-GUI
+// example -- it runs work on Upp::Thread and marshals results to the GUI thread
+// via PostCallback / (its own docstring notes GuiLock+Call as the newer idiom).
+// PostCallback is the right tool when the worker PUSHES discrete results; here
+// the recognition loop instead continuously mutates one long-lived Game object
+// and the GUI just needs the latest state at display cadence, so the natural
+// fit is the pull variant: the worker publishes a POD snapshot under a Mutex
+// after every frame, and the GUI thread's own SetTimeCallback timer (fires ON
+// the GUI thread -- the same mechanism game/TexasHoldem/GameTable.cpp and
+// game/Hearts use for their animation ticks) pulls the latest snapshot and
+// repaints. This keeps ALL Game/Ctrl access single-threaded per object (Game
+// only ever touched by the worker, Ctrls only ever by the GUI thread) with one
+// Mutex-guarded POD hand-off between them -- no Ctrl is ever touched off the
+// GUI thread, exactly the constraint the task spec calls out.
+// ---------------------------------------------------------------------------
+struct LiveMirrorShared {
+	Mutex        mtx;
+	GameSnapshot snap;      // guarded by mtx
+	Atomic       stop;      // GUI sets on close; worker polls it to exit
+	String       status;    // guarded by mtx: worker-side human status line
+	LiveMirrorShared() { stop = 0; }
+};
+
+static String StreetName(int street)
+{
+	switch(street) {
+	case 0: return "Preflop"; case 1: return "Flop";
+	case 2: return "Turn";    case 3: return "River"; default: return "?";
+	}
+}
+
+static String ActionName(int a)
+{
+	switch(a) {
+	case PLAYER_ACTION_CHECK: return "check";
+	case PLAYER_ACTION_CALL:  return "call";
+	case PLAYER_ACTION_BET:   return "bet";
+	case PLAYER_ACTION_RAISE: return "raise";
+	case PLAYER_ACTION_FOLD:  return "fold";
+	case PLAYER_ACTION_ALLIN: return "all-in";
+	case PLAYER_ACTION_SMALL_BLIND: return "SB";
+	case PLAYER_ACTION_BIG_BLIND:   return "BB";
+	default: return "";
+	}
+}
+
+// The paint surface -- renders a POD GameSnapshot only (never the live Game).
+struct MirrorView : Ctrl {
+	GameSnapshot snap;
+	String       status;
+
+	void SetSnapshot(const GameSnapshot& s, const String& st) { snap = s; status = st; Refresh(); }
+
+	void DrawCard(Draw& w, int x, int y, int cw, int ch, const Image& img) {
+		if(!img.IsEmpty()) { w.DrawImage(x, y, cw, ch, img); }
+		else { w.DrawRect(x, y, cw, ch, Color(0, 80, 0)); }
+		w.DrawRect(x, y, cw, 1, Color(0,0,0)); w.DrawRect(x, y + ch - 1, cw, 1, Color(0,0,0));
+		w.DrawRect(x, y, 1, ch, Color(0,0,0)); w.DrawRect(x + cw - 1, y, 1, ch, Color(0,0,0));
+	}
+
+	virtual void Paint(Draw& w) override {
+		Size sz = GetSize();
+		w.DrawRect(sz, Color(22, 58, 38));               // dark felt backdrop
+		Font hf = SansSerif(18).Bold();
+		Font f  = SansSerif(13);
+		Font sf = SansSerif(11);
+		Color ink = White(), sub = Color(200, 220, 205);
+
+		// ---- header ----
+		String conn = snap.connected ? "LIVE" : "connecting...";
+		w.DrawText(16, 12, "Live Mirror -- game/TexasHoldem engine (Task 0281)", hf, ink);
+		w.DrawText(16, 40, Format("%s   hand #%d   recognized street: %s   t+%d s",
+		                          ~conn, snap.hand_id, ~StreetName(snap.street), snap.elapsed_s), f, sub);
+
+		// ---- table oval ----
+		int margin = 60;
+		Rect tbl = RectC(margin, 78, max(200, sz.cx - 2*margin - 260), max(160, sz.cy - 78 - 150));
+		w.DrawEllipse(tbl, Color(30, 96, 58), 6, Color(150, 110, 60));
+		int cx = tbl.left + tbl.Width()/2, cy = tbl.top + tbl.Height()/2;
+
+		// ---- pot (recognized) ----
+		String potstr = snap.last_pot_ocr >= 0
+		    ? Format("Recognized pot (OCR): %.4g", snap.last_pot_ocr)
+		    : String("Recognized pot (OCR): (no reading yet)");
+		Size ps = GetTextSize(potstr, f);
+		w.DrawText(cx - ps.cx/2, cy - 84, potstr, f, White());
+
+		// ---- board cards (recognized) ----
+		const int bcw = 58, bch = 82, gap = 8;
+		int bw = 5*bcw + 4*gap;
+		int bx = cx - bw/2, by = cy - bch/2 + 6;
+		for(int i = 0; i < 5; i++) {
+			int x = bx + i*(bcw + gap);
+			Image img;
+			bool dealt = i < snap.board_count;
+			if(dealt && snap.board[i] >= 0 && snap.board[i] < 52)
+				img = TexasHoldemGetCardReferenceImage(snap.board[i], Size(bcw, bch), "default");
+			else if(dealt)                                  // street dealt but this slot unresolved
+				img = TexasHoldemGetCardBackReferenceImage(Size(bcw, bch), "default");
+			else                                            // not dealt this street -> holder
+				img = TexasHoldemGetBoardHolderReferenceImage(i, Size(bcw, bch), "default");
+			DrawCard(w, x, by, bcw, bch, img);
+		}
+
+		// ---- seats around the oval ----
+		int rx = tbl.Width()/2 + 26, ry = tbl.Height()/2 + 20;
+		int n = max(1, snap.seat_count);
+		const int boxw = 150, boxh = 74, scw = 30, sch = 42;
+		for(int i = 0; i < snap.seat_count; i++) {
+			const SeatSnap& ss = snap.seats[i];
+			if(!ss.present) continue;
+			const double kPi = 3.14159265358979323846;
+			double ang = kPi/2 + (2*kPi * i) / n;    // seat 0 at bottom, clockwise
+			int px = cx + (int)(rx * cos(ang));
+			int py = cy + (int)(ry * sin(ang));
+			int bxx = px - boxw/2, byy = py - boxh/2;
+			// seat plate
+			Color plate = ss.turn ? Color(70, 70, 30) : Color(28, 34, 40);
+			w.DrawRect(bxx, byy, boxw, boxh, plate);
+			w.DrawRect(bxx, byy, boxw, 1, Color(80,90,100));
+			w.DrawRect(bxx, byy+boxh-1, boxw, 1, Color(80,90,100));
+			w.DrawRect(bxx, byy, 1, boxh, Color(80,90,100));
+			w.DrawRect(bxx+boxw-1, byy, 1, boxh, Color(80,90,100));
+			String nm = ss.name.IsEmpty() ? Format("Seat%d", ss.seat) : ss.name;
+			if(ss.is_dealer) nm << " (D)";
+			w.DrawText(bxx + 6, byy + 4, nm, sf, ss.active ? White() : Color(150,150,150));
+			w.DrawText(bxx + 6, byy + 22, Format("stack %d", ss.stack), sf, Color(210,220,180));
+			String br = ss.bet > 0 ? Format("bet %d", ss.bet) : String("");
+			String ac = ActionName(ss.action);
+			if(!ac.IsEmpty()) br = br.IsEmpty() ? ac : br + "  " + ac;
+			w.DrawText(bxx + 6, byy + 40, br, sf, Color(230, 200, 140));
+			// two face-down hole cards (per-seat hole-card RECOGNITION not built --
+			// show realistic backs, never fabricate/reveal engine-dealt faces)
+			Image back = TexasHoldemGetCardBackReferenceImage(Size(scw, sch), "default");
+			DrawCard(w, bxx + boxw - 2*scw - 8, byy + boxh - sch - 4, scw, sch, back);
+			DrawCard(w, bxx + boxw - scw - 4,   byy + boxh - sch - 4, scw, sch, back);
+		}
+
+		// ---- right-hand status / honesty panel ----
+		int panelx = sz.cx - 250, panely = 88;
+		w.DrawRect(panelx, panely, 236, sz.cy - panely - 16, Color(16, 22, 28));
+		int ty = panely + 8;
+		auto line = [&](const String& t, Color c) { w.DrawText(panelx + 10, ty, t, sf, c); ty += 18; };
+		w.DrawText(panelx + 10, ty, "Recognition status", SansSerif(12).Bold(), White()); ty += 20;
+		ty += 2;
+		line(Format("frames processed: %d", snap.frames), sub);
+		line(Format("changed regions: %d", snap.total_regions), sub);
+		line(Format("street events: %d", snap.street_events), sub);
+		line(Format("value changes: %d", snap.value_changes), sub);
+		line(Format("OCR calls: %d", snap.ocr_calls), sub);
+		line(Format("OCR cache hits: %d", snap.ocr_cache_hits), sub);
+		line(Format("board resolved: %d/5", snap.board_count), sub);
+		line(Format("engine pot: %d", snap.engine_pot), sub);
+		ty += 8;
+		line("LIVE-DRIVEN:", Color(150, 230, 160));
+		line("  board cards, street, pot(OCR)", Color(150, 230, 160));
+		ty += 4;
+		line("ENGINE-SEED (not video-driven):", Color(235, 180, 120));
+		line("  per-seat stack/bet/action,", Color(235, 180, 120));
+		line("  hole cards (shown face-down).", Color(235, 180, 120));
+		line("  Per-seat action resolution was", Color(180, 180, 180));
+		line("  left unbuilt in Task 0280.", Color(180, 180, 180));
+		if(!status.IsEmpty()) { ty += 6; line(status, Color(200, 200, 210)); }
+	}
+};
+
+struct MirrorWindow : TopWindow {
+	MirrorView       view;
+	LiveMirrorShared* shared = nullptr;
+
+	MirrorWindow() {
+		Title("Live Mirror -- VideoLiveRecognitionLoop --gui");
+		Sizeable().Zoomable();
+		SetRect(0, 0, 1180, 780);
+		Add(view.SizePos());
+	}
+	void Attach(LiveMirrorShared* sh) {
+		shared = sh;
+		SetTimeCallback(-200, [=] { Tick(); }); // ~5 Hz GUI refresh (>> recognized-action rate)
+	}
+	void Tick() {
+		GameSnapshot s; String st;
+		{ Mutex::Lock __(shared->mtx); s = shared->snap; st = shared->status; }
+		view.SetSnapshot(s, st);
+	}
+	virtual void Close() override {
+		if(shared) shared->stop = 1;   // tell the worker to stop before we tear down
+		TopWindow::Close();
+	}
+};
+
+// Background recognition loop for --gui: same pipeline as RunLive, but runs
+// until the GUI asks it to stop (no fixed --seconds deadline) and publishes a
+// snapshot after every processed frame. Runs on a worker thread; touches the
+// Game but never any Ctrl.
+static void GuiRecognitionWorker(LiveMirrorShared* shared, const String& host, int port,
+                                 const String& dataset_path, bool use_engine, int wait_timeout_ms,
+                                 int ocr_cap, bool ocr_cache_enabled, int ocr_cache_threshold, bool verbose)
+{
+	auto set_status = [&](const String& s) { Mutex::Lock __(shared->mtx); shared->status = s; };
+
+	VsmLiveRegionClassifier clf;
+	if(clf.Load(dataset_path) == 0) { set_status("ERROR: classifier load failed"); Cerr() << "ERROR: classifier load failed\n"; return; }
+	Cout() << "classifier: " << clf.GetCount() << " reference entries\n";
+
+	VsmTesseractOcrEngine ocr;
+	bool ocr_available = ocr.GetInfo().available;
+	Cout() << "tesseract OCR available: " << (ocr_available ? "YES" : "NO") << "\n";
+
+	std::shared_ptr<Game> game;
+	class ConfigFile config(nullptr, false);
+	std::shared_ptr<HeadlessGui> gui;
+	std::shared_ptr<EngineLog> engineLog;
+	if(use_engine) {
+		gui = std::make_shared<HeadlessGui>();
+		engineLog = std::make_shared<EngineLog>(&config);
+		PlayerDataList pd;
+		for(int i = 0; i < 6; i++) {
+			auto d = std::make_shared<PlayerData>(i, i, PLAYER_TYPE_HUMAN,
+			              i == 0 ? PLAYER_RIGHTS_ADMIN : PLAYER_RIGHTS_NORMAL, i == 0);
+			d->SetName(Format("Seat%d", i)); d->SetStartCash(1000);
+			pd.push_back(d);
+		}
+		GameData gd; gd.maxNumberOfPlayers = 6; gd.startMoney = 1000;
+		gd.firstSmallBlind = 5; gd.raiseSmallBlindEveryHandsValue = 100000;
+		StartData sd; sd.numberOfPlayers = 6; sd.startDealerPlayerId = 0;
+		auto factory = std::make_shared<LocalEngineFactory>();
+		game = std::make_shared<Game>(gui.get(), factory, pd, gd, sd, 1, engineLog.get(), &config);
+		game->SetBaseSeed(12345);
+		game->initHand(); game->startHand();
+		Cout() << "engine: real headless Game constructed (6 seats), hand started\n";
+	}
+
+	StageSet st;
+	st.acquire.name = "acquire"; st.crop.name = "crop+conv"; st.change.name = "change_detect";
+	st.classify.name = "classify"; st.ocr.name = "ocr"; st.resolve.name = "resolve"; st.engine.name = "engine";
+	LoopStats stats; ResolveState rs;
+	VsmChangeDetectParams cdp;
+	OcrCacheState oc; oc.enabled = ocr_cache_enabled; oc.threshold = ocr_cache_threshold;
+
+	int64 start = msecs();
+
+	// publish an initial (pre-connect) snapshot so the window isn't blank
+	{
+		GameSnapshot s0 = BuildSnapshot(game, rs, stats, oc, start);
+		s0.connected = false;
+		Mutex::Lock __(shared->mtx); shared->snap = s0; shared->status = "connecting to VideoServer...";
+	}
+
+	// Outer RECONNECT loop: a live mirror must survive a transient VideoServer
+	// disconnect (observed: the server drops the MJPEG client mid-stream) and
+	// keep mirroring for as long as the window is open, rather than exiting on
+	// the first connection reset the way --live's fixed-duration loop does.
+	// Recognition state (stats/rs/oc) accumulates ACROSS reconnects; only the
+	// change-detection baseline (prev) resets per connection.
+	String uri = host + ":" + IntStr(port);
+	int reconnects = 0;
+	while(!shared->stop) {
+		VsmVideoServerFrameSource src;
+		src.SetWaitTimeoutMs(wait_timeout_ms);
+		src.SetPollIntervalMs(20);
+		if(!src.Open(uri)) {
+			set_status(String("waiting for VideoServer (") + src.GetLastError() + ")...");
+			for(int k = 0; k < 10 && !shared->stop; k++) Thread::Sleep(50);
+			continue;
+		}
+		Cout() << "opened " << uri << " size=" << src.GetWidth() << "x" << src.GetHeight()
+		       << (reconnects ? Format(" (reconnect #%d)", reconnects) : String()) << "\n";
+		set_status("connected");
+
+		VsmFrameImage prev; bool has_prev = false;
+		while(!shared->stop) {
+			double fa = NowMs();
+			VsmImageBuffer buf; int64 ts = 0;
+			if(!src.ReadFrame(buf, ts)) {
+				if(src.GetLastErrorKind() == VsmVideoServerFrameSource::VSM_VSFS_ERR_TIMEOUT)
+					continue;                    // recoverable: just wait for the next frame
+				// unrecoverable (connection reset etc.): drop out to reconnect
+				set_status(String("connection lost -- reconnecting (") + src.GetLastError() + ")");
+				Cerr() << "ReadFrame error: " << src.GetLastError() << " -- reconnecting\n";
+				break;
+			}
+			st.acquire.Add(NowMs() - fa);
+			VsmFrameImage table = CropBufferToFrame(buf, kTableRect);
+			if(table.IsEmpty()) continue;
+
+			ProcessTableFrame(table, prev, has_prev, clf, ocr, ocr_available, cdp, st, stats, rs, oc, game, verbose, ocr_cap);
+			if(!has_prev) { prev.Set(table.width, table.height, ~table.data); has_prev = true; }
+
+			// publish snapshot for the GUI
+			GameSnapshot s = BuildSnapshot(game, rs, stats, oc, start);
+			s.connected = true;
+			{ Mutex::Lock __(shared->mtx); shared->snap = s;
+			  shared->status = Format("frame %d, %d regions", stats.frames, stats.total_regions); }
+		}
+		src.Close();
+		if(!shared->stop) { reconnects++; for(int k = 0; k < 6 && !shared->stop; k++) Thread::Sleep(50); }
+	}
+	Cout() << "gui worker stopped: frames=" << stats.frames << " street_events=" << rs.street_events
+	       << " value_changes=" << rs.value_changes << " ocr_calls=" << stats.ocr_calls
+	       << " reconnects=" << reconnects << "\n";
+}
+
+// ===========================================================================
+// Mode 4: live mirror GUI window.
+// ===========================================================================
+static int RunGui(const String& host, int port, const String& dataset_path,
+                  bool verbose, bool use_engine, int wait_timeout_ms, int ocr_cap,
+                  bool ocr_cache_enabled, int ocr_cache_threshold)
+{
+	Cout() << "=== Mode: gui (live mirror against " << host << ":" << port << ") ===\n";
+	Cout() << "close the window to stop.\n";
+
+	LiveMirrorShared shared;
+	MirrorWindow win;
+	win.Attach(&shared);
+
+	Thread worker;
+	worker.Run([&] {
+		GuiRecognitionWorker(&shared, host, port, dataset_path, use_engine, wait_timeout_ms,
+		                     ocr_cap, ocr_cache_enabled, ocr_cache_threshold, verbose);
+	});
+
+	win.Run();                 // main-thread GUI event loop until the window closes
+
+	shared.stop = 1;           // ensure worker exits (Close() also sets this)
+	worker.Wait();             // join before tearing down `shared`/`win`
+	Cout() << "gui closed.\n";
+	return 0;
+}
+
 GUI_APP_MAIN
 {
 #ifdef PLATFORM_WIN32
@@ -962,6 +1416,7 @@ GUI_APP_MAIN
 		if(args[i] == "--classify-selftest") mode = "selftest";
 		else if(args[i] == "--offline-frames" && i + 1 < args.GetCount()) { mode = "offline"; frames_dir = args[++i]; }
 		else if(args[i] == "--live") mode = "live";
+		else if(args[i] == "--gui") mode = "gui";
 		else if(args[i] == "--crop-safety-check") mode = "cropsafety";
 		else if(args[i] == "--crop-list" && i + 1 < args.GetCount()) crop_safety_lists.Add(args[++i]);
 		else if(args[i] == "--host" && i + 1 < args.GetCount()) host = args[++i];
@@ -985,6 +1440,9 @@ GUI_APP_MAIN
 		       << "  --classify-selftest        Leave-one-out classifier accuracy over the dataset\n"
 		       << "  --offline-frames <dir>     Full pipeline over dataset source frames (timing)\n"
 		       << "  --live                     Continuous loop against a running VideoServer\n"
+		       << "  --gui                      Live mirror window of the driven Game (Task 0281);\n"
+		       << "                               background recognition loop + main-thread TopWindow,\n"
+		       << "                               runs until the window is closed\n"
 		       << "  --crop-safety-check         Task 0286: false-hit risk of the OCR cache over the\n"
 		       << "                               31-crop Task 0274 validation set (--crop-list to\n"
 		       << "                               override; defaults to both hand1/hand2 lists)\n"
@@ -1009,6 +1467,7 @@ GUI_APP_MAIN
 	if(mode == "selftest") rc = RunClassifySelfTest(dataset);
 	else if(mode == "offline") rc = RunOfflineFrames(frames_dir, dataset, max_frames, verbose, use_engine, ocr_cap, ocr_cache_enabled, ocr_cache_threshold);
 	else if(mode == "live") rc = RunLive(host, port, seconds, dataset, verbose, use_engine, wait_timeout_ms, ocr_cap, ocr_cache_enabled, ocr_cache_threshold);
+	else if(mode == "gui") rc = RunGui(host, port, dataset, verbose, use_engine, wait_timeout_ms, ocr_cap, ocr_cache_enabled, ocr_cache_threshold);
 	else if(mode == "cropsafety") {
 		if(crop_safety_lists.IsEmpty()) {
 			crop_safety_lists.Add("tmp/_task0274_final_crop_list_hand1.txt");

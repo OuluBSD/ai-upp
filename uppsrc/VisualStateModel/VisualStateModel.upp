@@ -27,6 +27,8 @@ file
 	RegionOverlay.cpp,
 	FrameCrop.h,
 	FrameCrop.cpp,
+	LiveRegionClassifier.h,
+	LiveRegionClassifier.cpp,
 	SessionStorage.h,
 	SessionStorage.cpp,
 	SessionValidator.h,

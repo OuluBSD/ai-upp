@@ -1,0 +1,17 @@
+description "Task 0280: continuous per-frame recognition/resolution loop (change-detect + live classify + OCR + resolve + engine apply)\377";
+
+uses
+	Core,
+	Draw,
+	CtrlCore,
+	VisualStateModel,
+	EditorCommon,
+	GameRules,
+	Poker,
+	TexasHoldem;
+
+file
+	main.cpp;
+
+mainconfig
+	"" = "GUI";

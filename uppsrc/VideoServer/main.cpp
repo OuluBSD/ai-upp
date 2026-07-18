@@ -12,6 +12,17 @@
 #pragma comment(lib, "mfuuid.lib")
 #endif
 
+#ifdef _WIN32
+extern "C" {
+#include <libavcodec/avcodec.h>
+#include <libavformat/avformat.h>
+#include <libavutil/avutil.h>
+#include <libavutil/error.h>
+#include <libavutil/imgutils.h>
+#include <libswscale/swscale.h>
+}
+#endif
+
 #include <Core/Core.h>
 #include <Draw/Draw.h>
 #include <plugin/jpg/jpg.h>
@@ -96,9 +107,9 @@ struct LocalCommandLineArguments {
 		       << "  --device <idx>   Set the capture device index (default: 0)\n"
 		       << "  --image <path>   Source image path (required when --source image)\n"
 		       << "  --image-dir <path>  Directory source for --source image-dir\n"
-		       << "  --video <path>   Video file source for --source video\n"
-		       << "  --video-work-dir <dir>  Extracted frame directory for --source video\n"
-		       << "  --ffmpeg <exe>   ffmpeg executable for --source video\n"
+		       << "  --video <path>   Video file source for --source video (decoded in-process via libavcodec, loops forever)\n"
+		       << "  --video-work-dir <dir>  Deprecated/ignored (no longer extracts frames to disk)\n"
+		       << "  --ffmpeg <exe>   Deprecated/ignored (no external ffmpeg subprocess is used)\n"
 		       << "  --screen-rect <x,y,w,h>  Screen region (default: full screen)\n"
 		       << "  --port <port>    Set the server port (default: 8082)\n"
 		       << "  --fps <fps>      Set the target FPS (default: 10)\n"
@@ -669,48 +680,212 @@ static bool CollectImageFiles(const String& dir, Vector<String>& files)
 	return !files.IsEmpty();
 }
 
-static bool ExtractVideoFrames(const LocalCommandLineArguments& cla, Vector<String>& files)
+#ifdef _WIN32
+// --- libavcodec/libavformat looping video decoder ------------------------
+//
+// Replaces the old ffmpeg.exe subprocess frame-extraction. Opens the input
+// file once, decodes frames on demand, and loops back to the start of the
+// file when it reaches EOF (genuine infinite looping, no disk extraction,
+// no subprocess). Mirrors the RAII/error-string-out-param style of
+// VideoRecorder's DirectMp4Writer (the encode direction of the same API).
+
+static String AvError(int code)
 {
-	files.Clear();
-	if(cla.video_path.IsEmpty()) {
-		Cerr() << "--video is required when --source video\n";
+	char buffer[AV_ERROR_MAX_STRING_SIZE] = {};
+	av_strerror(code, buffer, sizeof(buffer));
+	return buffer;
+}
+
+static String GetDefaultFfmpegDllDirectory()
+{
+	return AppendFileName(AppendFileName(AppendFileName(AppendFileName(GetHomeDirectory(), "vcpkg"),
+	                                                   "installed"),
+	                                    "x64-windows"),
+	                      "bin");
+}
+
+// Points the loader at vcpkg's bin dir so the delay-loaded FFmpeg DLLs
+// (avcodec-62.dll etc.) actually resolve at runtime. Same pattern as
+// VideoRecorder::PrepareFfmpegRuntime().
+static bool PrepareFfmpegRuntime(const String& override_dir, String& error)
+{
+	String dir = override_dir.IsEmpty() ? GetDefaultFfmpegDllDirectory() : override_dir;
+	if(!DirectoryExists(dir)) {
+		error = "FFmpeg DLL directory does not exist: " + dir;
 		return false;
 	}
-	if(!FileExists(cla.video_path)) {
-		Cerr() << "Video file does not exist: " << cla.video_path << "\n";
+	if(!SetDllDirectoryA(~dir)) {
+		error = "SetDllDirectoryA failed for: " + dir;
 		return false;
 	}
-	String work_dir = cla.video_work_dir;
-	if(work_dir.IsEmpty()) {
-		String title = GetFileTitle(cla.video_path);
-		work_dir = AppendFileName(GetCurrentDirectory(), AppendFileName("tmp", "video_server_playback_" + title));
-	}
-	DeleteFolderDeep(work_dir);
-	RealizeDirectory(work_dir);
-	String frame_pattern = AppendFileName(work_dir, "frame_%06d.jpg");
-	Vector<String> args;
-	args << "-y"
-	     << "-i" << cla.video_path
-	     << "-vf" << ("fps=" + AsString(cla.fps))
-	     << "-q:v" << "2"
-	     << frame_pattern;
-	Cout() << "extracting_video_frames video=" << cla.video_path
-	       << " work_dir=" << work_dir << " fps=" << cla.fps << "\n";
-	String out;
-	int code = Sys(cla.ffmpeg, args, out);
-	if(!out.IsEmpty())
-		Cout() << out;
-	if(code != 0) {
-		Cerr() << "ffmpeg failed extracting video frames exit=" << code << "\n";
-		return false;
-	}
-	if(!CollectImageFiles(work_dir, files)) {
-		Cerr() << "No extracted frames found in " << work_dir << "\n";
-		return false;
-	}
-	Cout() << "video_playback_frames=" << files.GetCount() << "\n";
 	return true;
 }
+
+struct LoopingVideoDecoder {
+	AVFormatContext *fmt = nullptr;
+	AVCodecContext  *codec = nullptr;
+	SwsContext      *sws = nullptr;
+	AVFrame         *frame = nullptr;
+	AVPacket        *packet = nullptr;
+	int              video_stream_index = -1;
+	Size             size;
+	int              sws_w = 0;
+	int              sws_h = 0;
+	int              sws_in_fmt = AV_PIX_FMT_NONE;
+	int64            loops = 0;
+	bool             opened = false;
+
+	~LoopingVideoDecoder() { Close(); }
+
+	bool Open(const String& path, String& error)
+	{
+		int rc = avformat_open_input(&fmt, ~path, nullptr, nullptr);
+		if(rc < 0 || !fmt) {
+			error = "avformat_open_input failed for " + path + ": " + AvError(rc);
+			return false;
+		}
+		rc = avformat_find_stream_info(fmt, nullptr);
+		if(rc < 0) {
+			error = "avformat_find_stream_info failed: " + AvError(rc);
+			return false;
+		}
+		const AVCodec *decoder = nullptr;
+		video_stream_index = av_find_best_stream(fmt, AVMEDIA_TYPE_VIDEO, -1, -1, &decoder, 0);
+		if(video_stream_index < 0 || !decoder) {
+			error = "no decodable video stream found in " + path;
+			return false;
+		}
+		codec = avcodec_alloc_context3(decoder);
+		if(!codec) {
+			error = "avcodec_alloc_context3 failed";
+			return false;
+		}
+		rc = avcodec_parameters_to_context(codec, fmt->streams[video_stream_index]->codecpar);
+		if(rc < 0) {
+			error = "avcodec_parameters_to_context failed: " + AvError(rc);
+			return false;
+		}
+		rc = avcodec_open2(codec, decoder, nullptr);
+		if(rc < 0) {
+			error = "avcodec_open2 failed: " + AvError(rc);
+			return false;
+		}
+		frame = av_frame_alloc();
+		packet = av_packet_alloc();
+		if(!frame || !packet) {
+			error = "av_frame_alloc/av_packet_alloc failed";
+			return false;
+		}
+		opened = true;
+		return true;
+	}
+
+	bool SeekStart(String& error)
+	{
+		int rc = av_seek_frame(fmt, video_stream_index, 0, AVSEEK_FLAG_BACKWARD);
+		if(rc < 0)
+			rc = avformat_seek_file(fmt, video_stream_index, INT64_MIN, 0, INT64_MAX, 0);
+		if(rc < 0) {
+			error = "seek-to-start failed: " + AvError(rc);
+			return false;
+		}
+		avcodec_flush_buffers(codec);
+		loops++;
+		return true;
+	}
+
+	bool Convert(Image& out, String& error)
+	{
+		int w = codec->width;
+		int h = codec->height;
+		if(w <= 0 || h <= 0) {
+			error = "invalid decoded frame size";
+			return false;
+		}
+		int in_fmt = frame->format;
+		if(!sws || sws_w != w || sws_h != h || sws_in_fmt != in_fmt) {
+			if(sws) {
+				sws_freeContext(sws);
+				sws = nullptr;
+			}
+			sws = sws_getContext(w, h, (AVPixelFormat)in_fmt,
+			                     w, h, AV_PIX_FMT_BGRA,
+			                     SWS_BILINEAR, nullptr, nullptr, nullptr);
+			if(!sws) {
+				error = "sws_getContext failed";
+				return false;
+			}
+			sws_w = w;
+			sws_h = h;
+			sws_in_fmt = in_fmt;
+		}
+		ImageBuffer ib(w, h);
+		byte *dst_data[4] = {(byte*)ib[0], nullptr, nullptr, nullptr};
+		int dst_linesize[4] = {w * (int)sizeof(RGBA), 0, 0, 0};
+		sws_scale(sws, frame->data, frame->linesize, 0, h, dst_data, dst_linesize);
+		ib.SetKind(IMAGE_OPAQUE);
+		out = ib;
+		size = Size(w, h);
+		return true;
+	}
+
+	// Decode and return the next frame, looping back to the file start on EOF.
+	bool NextFrame(Image& out, String& error)
+	{
+		if(!opened) {
+			error = "decoder is not open";
+			return false;
+		}
+		for(;;) {
+			int rc = avcodec_receive_frame(codec, frame);
+			if(rc == 0)
+				return Convert(out, error);
+			if(rc != AVERROR(EAGAIN) && rc != AVERROR_EOF) {
+				error = "avcodec_receive_frame failed: " + AvError(rc);
+				return false;
+			}
+			av_packet_unref(packet);
+			rc = av_read_frame(fmt, packet);
+			if(rc == AVERROR_EOF) {
+				if(!SeekStart(error))
+					return false;
+				continue;
+			}
+			if(rc < 0) {
+				error = "av_read_frame failed: " + AvError(rc);
+				return false;
+			}
+			if(packet->stream_index != video_stream_index) {
+				av_packet_unref(packet);
+				continue;
+			}
+			rc = avcodec_send_packet(codec, packet);
+			av_packet_unref(packet);
+			if(rc < 0 && rc != AVERROR(EAGAIN)) {
+				error = "avcodec_send_packet failed: " + AvError(rc);
+				return false;
+			}
+		}
+	}
+
+	void Close()
+	{
+		if(sws) {
+			sws_freeContext(sws);
+			sws = nullptr;
+		}
+		if(frame)
+			av_frame_free(&frame);
+		if(packet)
+			av_packet_free(&packet);
+		if(codec)
+			avcodec_free_context(&codec);
+		if(fmt)
+			avformat_close_input(&fmt);
+		opened = false;
+	}
+};
+#endif // _WIN32
 
 #ifdef PLATFORM_LINUX
 static byte ChannelFromMask(unsigned long pixel, unsigned long mask)
@@ -823,8 +998,20 @@ CONSOLE_APP_MAIN {
 		}
 	}
 	else if(cla.source == "video") {
-		if(!ExtractVideoFrames(cla, image_dir_files))
+#ifdef _WIN32
+		if(!FileExists(cla.video_path)) {
+			Cerr() << "Video file does not exist: " << cla.video_path << "\n";
 			return;
+		}
+		String ffrt_error;
+		if(!PrepareFfmpegRuntime(String(), ffrt_error)) {
+			Cerr() << "Failed to prepare FFmpeg runtime: " << ffrt_error << "\n";
+			return;
+		}
+#else
+		Cerr() << "--source video (libavcodec decoding) is only supported on Windows in this build\n";
+		return;
+#endif
 	}
 
 #ifdef PLATFORM_LINUX
@@ -1027,8 +1214,18 @@ CONSOLE_APP_MAIN {
 		else if(cla.source == "image") {
 			img = StreamRaster::LoadFileAny(cla.image_path);
 		}
-		else if(cla.source == "image-dir" || cla.source == "video") {
+		else if(cla.source == "image-dir") {
 			img = StreamRaster::LoadFileAny(image_dir_files[0]);
+		}
+		else if(cla.source == "video") {
+#ifdef _WIN32
+			LoopingVideoDecoder decoder;
+			String derr;
+			if(!decoder.Open(cla.video_path, derr) || !decoder.NextFrame(img, derr)) {
+				Cerr() << "Self-test failed: " << derr << "\n";
+				Exit(1);
+			}
+#endif
 		}
 		else if(cla.source == "screen") {
 #ifdef PLATFORM_LINUX
@@ -1213,6 +1410,19 @@ CONSOLE_APP_MAIN {
 		}
 		#endif
 
+		#ifdef _WIN32
+		LoopingVideoDecoder video_decoder;
+		if(cla.source == "video") {
+			String derr;
+			if(!video_decoder.Open(cla.video_path, derr)) {
+				Cerr() << "Failed to open video source: " << derr << "\n";
+				g_running = false;
+				return;
+			}
+			Cout() << "video_source_opened backend=libavcodec file=" << cla.video_path << "\n";
+		}
+		#endif
+
 		TimeStop ts;
 		TimeStop stats_ts;
 		int image_dir_index = 0;
@@ -1251,7 +1461,7 @@ CONSOLE_APP_MAIN {
 					g_running = false;
 					break;
 				}
-			} else if(cla.source == "image-dir" || cla.source == "video") {
+			} else if(cla.source == "image-dir") {
 				if(image_dir_files.IsEmpty()) {
 					Cerr() << "No image files available in source frame list\n";
 					g_running = false;
@@ -1265,6 +1475,19 @@ CONSOLE_APP_MAIN {
 					g_running = false;
 					break;
 				}
+			} else if(cla.source == "video") {
+			#ifdef _WIN32
+				String derr;
+				if(!video_decoder.NextFrame(img, derr)) {
+					Cerr() << "Failed to decode video frame: " << derr << "\n";
+					g_running = false;
+					break;
+				}
+			#else
+				Cerr() << "--source video is not supported on this platform\n";
+				g_running = false;
+				break;
+			#endif
 	} else if(cla.source == "screen") {
 			#ifdef PLATFORM_LINUX
 				img = CaptureX11Frame(xdisplay, xroot, xrect);

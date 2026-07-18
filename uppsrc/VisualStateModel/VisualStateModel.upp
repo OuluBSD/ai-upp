@@ -57,6 +57,8 @@ file
 	GroundTruthTemplate.cpp,
 	FrameSource.h,
 	FrameSource.cpp,
+	VideoServerFrameSource.h,
+	VideoServerFrameSource.cpp,
 	LiveSession.h,
 	LiveSession.cpp,
 	ImageSequenceImporter.h,

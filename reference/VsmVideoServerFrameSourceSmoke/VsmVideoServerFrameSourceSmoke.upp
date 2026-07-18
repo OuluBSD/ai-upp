@@ -1,0 +1,11 @@
+description "Task 0279 smoke test: VsmVideoServerFrameSource against a real running VideoServer";
+
+uses
+	VisualStateModel;
+
+file
+	AGENTS.md,
+	main.cpp;
+
+mainconfig
+	"" = "";

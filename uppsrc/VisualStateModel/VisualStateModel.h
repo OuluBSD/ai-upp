@@ -29,6 +29,7 @@ using namespace Upp;
 #include "SessionDiff.h"
 #include "GroundTruthTemplate.h"
 #include "FrameSource.h"
+#include "VideoServerFrameSource.h"
 #include "LiveSession.h"
 #include "ImageSequenceImporter.h"
 #include "CaptureSink.h"

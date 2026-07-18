@@ -68,6 +68,8 @@ struct LocalCommandLineArguments {
 	bool no_touch = false;
 	bool stats = false;
 	String wire_format = "mjpeg";
+	bool debug = false;
+	double speed = 1.0;
 
 	void Parse(const Vector<String>& args) {
 		for(int i = 0; i < args.GetCount(); i++) {
@@ -89,12 +91,16 @@ struct LocalCommandLineArguments {
 			else if(args[i] == "--no-touch") no_touch = true;
 			else if(args[i] == "--stats") stats = true;
 			else if(args[i] == "--wire-format" && i + 1 < args.GetCount()) { wire_format = ToLower(args[i+1]); i++; }
+			else if(args[i] == "--debug") debug = true;
+			else if(args[i] == "--speed" && i + 1 < args.GetCount()) { speed = StrDbl(args[i+1]); i++; }
 			else if(args[i] == "--help" || args[i] == "-h") show_help = true;
 		}
 		if(source != "camera" && source != "red" && source != "image" && source != "image-dir" && source != "screen" && source != "video")
 			source = "camera";
 		if (wire_format != "mjpeg" && wire_format != "yuv")
 			wire_format = "mjpeg";
+		if (!(speed > 0))
+			speed = 1.0;
 	}
 
 	void PrintHelp() {
@@ -121,6 +127,15 @@ struct LocalCommandLineArguments {
 		       << "  --wire-format <mjpeg|yuv>  Payload format for streaming (default: mjpeg)\n"
 		       << "  --no-touch       Skip rescale/extra transforms when possible\n"
 		       << "  --stats          Print capture payload stats once per second\n"
+		       << "  --speed <factor> --source video only: decouple content advance rate from\n"
+		       << "                   --fps serving cadence (default: 1.0). At 0.2, the decoder\n"
+		       << "                   advances (decodes a new frame) once every round(1/factor)\n"
+		       << "                   serving iterations; other iterations re-serve the same\n"
+		       << "                   already-encoded frame without bumping the frame id. Values\n"
+		       << "                   > 1.0 fast-forward (advance more than once per iteration).\n"
+		       << "  --debug          --source video only: print per-iteration diagnostics\n"
+		       << "                   (decode ms, encode ms, advance-vs-held, loop count,\n"
+		       << "                   source PTS position)\n"
 		       << "  --help, -h       Show this help message\n";
 	}
 };
@@ -733,7 +748,19 @@ struct LoopingVideoDecoder {
 	int              sws_h = 0;
 	int              sws_in_fmt = AV_PIX_FMT_NONE;
 	int64            loops = 0;
+	int64            frames_decoded = 0;
+	int64            last_pts = AV_NOPTS_VALUE;
 	bool             opened = false;
+
+	// Presentation timestamp (seconds) of the most recently decoded frame,
+	// i.e. how far into the source video content has actually advanced.
+	// -1.0 if nothing decoded yet or the stream has no valid pts.
+	double LastPtsSeconds() const
+	{
+		if(last_pts == AV_NOPTS_VALUE || !fmt || video_stream_index < 0)
+			return -1.0;
+		return last_pts * av_q2d(fmt->streams[video_stream_index]->time_base);
+	}
 
 	~LoopingVideoDecoder() { Close(); }
 
@@ -826,6 +853,8 @@ struct LoopingVideoDecoder {
 		ib.SetKind(IMAGE_OPAQUE);
 		out = ib;
 		size = Size(w, h);
+		last_pts = frame->pts;
+		frames_decoded++;
 		return true;
 	}
 
@@ -1412,6 +1441,17 @@ CONSOLE_APP_MAIN {
 
 		#ifdef _WIN32
 		LoopingVideoDecoder video_decoder;
+		// --speed decouples content advance rate from --fps serving cadence:
+		// speed < 1.0 -> decode-advance only once every video_advance_period
+		// serving iterations (other iterations re-serve the same already-
+		// encoded frame, no id bump); speed >= 1.0 -> decode-advance
+		// video_advance_count times per serving iteration (fast-forward).
+		// speed == 1.0 (default) gives video_advance_period == video_advance_count == 1,
+		// i.e. exactly Task 0278's original one-decode-per-iteration behavior.
+		int video_advance_period = 1;
+		int video_advance_count = 1;
+		int64 video_iter = 0;
+		Image video_held_img;
 		if(cla.source == "video") {
 			String derr;
 			if(!video_decoder.Open(cla.video_path, derr)) {
@@ -1419,7 +1459,14 @@ CONSOLE_APP_MAIN {
 				g_running = false;
 				return;
 			}
-			Cout() << "video_source_opened backend=libavcodec file=" << cla.video_path << "\n";
+			if(cla.speed < 1.0)
+				video_advance_period = max(1, (int)(1.0 / cla.speed + 0.5));
+			else
+				video_advance_count = max(1, (int)(cla.speed + 0.5));
+			Cout() << "video_source_opened backend=libavcodec file=" << cla.video_path
+			       << " speed=" << cla.speed
+			       << " advance_period=" << video_advance_period
+			       << " advance_count=" << video_advance_count << "\n";
 		}
 		#endif
 
@@ -1429,6 +1476,9 @@ CONSOLE_APP_MAIN {
 		while (g_running) {
 			Image img;
 			String payload;
+			bool video_skip_publish = false;
+			bool video_advance_this_iter = true;
+			double video_decode_ms = 0.0;
 			if (cla.source == "red") {
 				if (cla.wire_format == "yuv") {
 					const int w = 1920, h = 1080;
@@ -1477,11 +1527,28 @@ CONSOLE_APP_MAIN {
 				}
 			} else if(cla.source == "video") {
 			#ifdef _WIN32
-				String derr;
-				if(!video_decoder.NextFrame(img, derr)) {
-					Cerr() << "Failed to decode video frame: " << derr << "\n";
-					g_running = false;
-					break;
+				video_advance_this_iter = (video_iter % video_advance_period) == 0;
+				video_iter++;
+				if(video_advance_this_iter) {
+					String derr;
+					TimeStop decode_ts;
+					bool ok = true;
+					for(int k = 0; k < video_advance_count && ok; k++)
+						ok = video_decoder.NextFrame(img, derr);
+					video_decode_ms = decode_ts.Elapsed() / 1000.0;
+					if(!ok) {
+						Cerr() << "Failed to decode video frame: " << derr << "\n";
+						g_running = false;
+						break;
+					}
+					video_held_img = img;
+				} else {
+					// Held iteration (--speed < 1.0): re-serve the same already-
+					// encoded payload, do not decode/advance, do not touch
+					// g_latest_id — clients already correctly interpret an
+					// unchanged id as "nothing new yet".
+					img = video_held_img;
+					video_skip_publish = true;
 				}
 			#else
 				Cerr() << "--source video is not supported on this platform\n";
@@ -1523,12 +1590,15 @@ CONSOLE_APP_MAIN {
 			#endif
 			}
 
-			if (payload.IsEmpty() && !img.IsEmpty()) {
+			double video_encode_ms = 0.0;
+			if (!video_skip_publish && payload.IsEmpty() && !img.IsEmpty()) {
+				TimeStop encode_ts;
 				if (!cla.no_touch && img.GetSize() != Size(1920, 1080))
 					img = Rescale(img, 1920, 1080);
 				payload = JPGEncoder().Quality(100).SaveString(img);
+				video_encode_ms = encode_ts.Elapsed() / 1000.0;
 			}
-			if (!payload.IsEmpty()) {
+			if (!video_skip_publish && !payload.IsEmpty()) {
 				{
 					Mutex::Lock __(g_data_mutex);
 					g_latest_jpeg = payload;
@@ -1536,6 +1606,17 @@ CONSOLE_APP_MAIN {
 				}
 				g_stat_frames.fetch_add(1, std::memory_order_relaxed);
 				g_stat_bytes.fetch_add(payload.GetCount(), std::memory_order_relaxed);
+			}
+			if (cla.debug && cla.source == "video") {
+			#ifdef _WIN32
+				Cout() << "debug video advance=" << (video_advance_this_iter ? 1 : 0)
+				       << " decode_ms=" << Format("%.2f", video_decode_ms)
+				       << " encode_ms=" << Format("%.2f", video_encode_ms)
+				       << " loops=" << video_decoder.loops
+				       << " frames_decoded=" << video_decoder.frames_decoded
+				       << " pts_s=" << Format("%.3f", video_decoder.LastPtsSeconds())
+				       << " id=" << g_latest_id << "\n";
+			#endif
 			}
 			if (cla.stats && stats_ts.Elapsed() >= 1000000) {
 				static int64 last_frames = 0;

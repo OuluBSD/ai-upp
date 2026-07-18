@@ -179,6 +179,30 @@ static bool ParseChipValue(const String& text, double& out)
 	return true;
 }
 
+// Task 0288 fix 3: distinguish a real player name from a chip value that was
+// OCR'd off a balance/bet plate the classifier mislabelled as a name plate.
+// A real player name in this recording ALWAYS contains alphabetic characters
+// (isarpires98, kolyamaster02, wegohigh, ...) -- crucially, ParseChipValue()
+// alone is NOT a sufficient test, because it happily extracts "98" out of
+// "isarpires98". The discriminator is: a plate whose text is PURELY numeric
+// (digits + separators, plus at most a trailing BB/SB unit) is a chip value,
+// not a name. Letters other than the unit tokens b/s mean it's a real name.
+static bool IsPureChipText(const String& s)
+{
+	String t = TrimBoth(s);
+	if(t.IsEmpty()) return false;
+	int digits = 0, letters = 0;
+	for(int i = 0; i < t.GetCount(); i++) {
+		int c = t[i];
+		if(c >= '0' && c <= '9') digits++;
+		else if((c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z')) {
+			int lc = c | 0x20;               // to-lower for ASCII letters
+			if(lc != 'b' && lc != 's') letters++; // allow only BB/SB unit letters
+		}
+	}
+	return digits > 0 && letters == 0;
+}
+
 static bool IsOcrCategory(const String& cat)
 {
 	// Task 0287: seat_name_plate added -- the classifier already identifies name
@@ -732,8 +756,26 @@ static void ProcessTableFrame(const VsmFrameImage& table, VsmFrameImage& prev, b
 			if(!nm.IsEmpty()) {
 				int seat = RegionToSeat(r.left, r.top, r.Width(), r.Height());
 				if(seat >= 0 && seat < 6) {
-					if(rs.seat_name[seat] != nm) rs.value_changes++;
-					rs.seat_name[seat] = nm;
+					// Task 0288 fix 3: the classifier's measured accuracy on
+					// seat_balance_plate (~62%) is far lower than on
+					// seat_name_plate (~97%), so a balance plate genuinely gets
+					// misclassified as a name plate sometimes -- its numeric OCR
+					// text would then be stored as if it were the player's NAME
+					// (the user's "balance näkyy monien nimessä" report). Reject a
+					// purely-numeric "name": it is almost certainly a misclassified
+					// chip plate, not a real name. Discarded (not stored as a name,
+					// and NOT rerouted to the stack slot -- we cannot be sure it was
+					// a balance vs. a bet plate, and a wrong stack value would be a
+					// new lie; the seat keeps whatever real name it already had).
+					if(IsPureChipText(nm)) {
+						if(verbose)
+							Cout() << Format("    [reject-name] seat %d name-plate OCR \"%s\" is purely numeric -- "
+							                 "misclassified chip plate, not stored as a name\n", seat, ~nm);
+					}
+					else {
+						if(rs.seat_name[seat] != nm) rs.value_changes++;
+						rs.seat_name[seat] = nm;
+					}
 				}
 			}
 		}
@@ -777,11 +819,21 @@ static void ProcessTableFrame(const VsmFrameImage& table, VsmFrameImage& prev, b
 	// Structural street events + engine application from board region count.
 	t = NowMs();
 	if(board_regions_this_frame > 0) {
-		int new_count = rs.board_count;
-		// The board grows to 3 (flop), 4 (turn), 5 (river). We infer growth
-		// from how many distinct board-card regions we can currently resolve.
+		// The board grows to 3 (flop), 4 (turn), 5 (river) -- it can NEVER
+		// legitimately show exactly 1 or 2 cards. We infer growth from how many
+		// distinct board-card regions we can currently resolve this frame.
 		int resolved_cards = new_board_cards.GetCount();
-		if(resolved_cards > new_count) new_count = min(5, resolved_cards);
+		// Task 0288 fix 2: gate the transition to ONLY the real valid jumps.
+		// The pre-0288 code accepted ANY increase (`resolved_cards > board_count`),
+		// so a single classifier false-positive board_card at preflop forced the
+		// board into an impossible 1-card state (the user's "preflop näyttää yhden
+		// kortin Kh" report) and stuck there. Now: 0->3 needs >=3 resolved cards
+		// THIS frame, 3->4 needs >=4, 4->5 needs >=5; anything else is rejected as
+		// implausible recognition noise (logged when verbose, not silently eaten).
+		int new_count = rs.board_count;
+		if(rs.board_count == 0 && resolved_cards >= 3)      new_count = 3;
+		else if(rs.board_count == 3 && resolved_cards >= 4) new_count = 4;
+		else if(rs.board_count == 4 && resolved_cards >= 5) new_count = 5;
 		if(new_count > rs.board_count) {
 			// merge resolved cards into board_cards (positionally best-effort)
 			for(int i = 0; i < new_board_cards.GetCount() && i < 5; i++)
@@ -801,6 +853,13 @@ static void ProcessTableFrame(const VsmFrameImage& table, VsmFrameImage& prev, b
 			}
 			if(verbose)
 				Cout() << Format("    [structural] board %d -> %d dealt; engine board forced\n", from, to);
+		}
+		else if(verbose && resolved_cards != rs.board_count && resolved_cards > 0) {
+			// Real, visible diagnostic signal: a board-card count that does not
+			// correspond to a valid street transition from the current state.
+			Cout() << Format("    [reject-board] %d board_card region(s) resolved this frame at board_count=%d -- "
+			                 "not a valid 0->3/3->4/4->5 jump, ignored as implausible\n",
+			                 resolved_cards, rs.board_count);
 		}
 	}
 	st.engine.Add(NowMs() - t);
@@ -952,7 +1011,14 @@ static GameSnapshot BuildSnapshot(const std::shared_ptr<Game>& game, const Resol
 				ss.active = p->getMyActiveStatus();
 				ss.turn = p->getMyTurn();
 				ss.button = p->getMyButton();
-				ss.is_dealer = ((int)p->getMyUniqueID() == s.dealer);
+				// Task 0288 fix 4: mark the dealer from the engine's OWN authoritative
+				// button assignment (LocalHand::assignButtons() sets exactly one seat's
+				// button to GBUTTON_DEALER each hand) rather than
+				// getMyUniqueID()==getDealerPosition(). The latter happens to work in
+				// this flat 0..5 setup (uniqueID==dealerPosition space), but the button
+				// field is the direct, unambiguous engine signal for "this seat has the
+				// dealer button" and does not depend on the two id-spaces coinciding.
+				ss.is_dealer = (p->getMyButton() == GBUTTON_DEALER);
 				// Task 0287: override name/stack/bet with the real per-seat OCR
 				// values WHEN AVAILABLE (RegionToSeat-attributed), keeping the
 				// engine-seed value only where nothing has been recognized yet.
@@ -1018,6 +1084,20 @@ static int RunOfflineFrames(const String& frames_dir, const String& dataset_path
 		game->SetBaseSeed(12345);
 		game->initHand(); game->startHand();
 		Cout() << "engine: real headless Game constructed (6 seats), hand started\n";
+		// Task 0288 fix-4 diagnostic: confirm the dealer-button id-space question
+		// for real. Prints the engine's dealerPosition and every seat's
+		// uniqueID/button so we can see whether GBUTTON_DEALER is actually set on a
+		// seat and whether uniqueID==dealerPosition coincides with it.
+		if(verbose) {
+			Cout() << Format("dealer diag: getDealerPosition()=%d\n", (int)game->getDealerPosition());
+			if(auto seats = game->getSeatsList())
+				for(auto& p : *seats) {
+					if(!p) continue;
+					Cout() << Format("  seat id=%d uid=%d button=%d name=%s cash=%d\n",
+					                 p->getMyID(), (int)p->getMyUniqueID(), p->getMyButton(),
+					                 ~p->getMyName(), p->getMyCash());
+				}
+		}
 	}
 
 	StageSet st;
@@ -1330,20 +1410,50 @@ struct MirrorView : Ctrl {
 			w.DrawRect(bxx, byy+boxh-1, boxw, 1, Color(80,90,100));
 			w.DrawRect(bxx, byy, 1, boxh, Color(80,90,100));
 			w.DrawRect(bxx+boxw-1, byy, 1, boxh, Color(80,90,100));
+			// Task 0288 fix 4: the dealer USED to be a bare " (D)" suffix appended
+			// to the name text -- easy to miss, and clipped off the 150px box once
+			// real OCR'd names (Task 0287) fill the line. Draw an unmistakable
+			// dealer button instead: a gold disc with a black "D" at the box's
+			// top-right corner, plus a gold seat-plate border. is_dealer now comes
+			// from the engine's own GBUTTON_DEALER assignment (fix in BuildSnapshot).
+			if(ss.is_dealer) {
+				const int dd = 22, dcx = bxx + boxw - dd/2 - 3, dcy = byy + dd/2 + 3;
+				w.DrawRect(bxx, byy, boxw, 2, Color(230, 200, 60));       // gold top edge
+				w.DrawRect(bxx, byy+boxh-2, boxw, 2, Color(230, 200, 60));
+				w.DrawRect(bxx, byy, 2, boxh, Color(230, 200, 60));
+				w.DrawRect(bxx+boxw-2, byy, 2, boxh, Color(230, 200, 60));
+				w.DrawEllipse(RectC(dcx - dd/2, dcy - dd/2, dd, dd),
+				              Color(235, 205, 70), 2, Color(120, 90, 10)); // gold disc
+				Font df = SansSerif(13).Bold();
+				Size ds = GetTextSize("D", df);
+				w.DrawText(dcx - ds.cx/2, dcy - ds.cy/2, "D", df, Color(20, 20, 20));
+			}
 			// Task 0287: colour per-seat fields by provenance -- LIVE-DRIVEN
 			// green (Color(150,230,160)) when the value came from real video
 			// OCR this run, ENGINE-SEED amber (Color(235,180,120)) otherwise,
 			// matching the right-hand legend's colour convention.
 			const Color kLive = Color(150, 230, 160), kSeed = Color(235, 180, 120);
 			String nm = ss.name.IsEmpty() ? Format("Seat%d", ss.seat) : ss.name;
-			if(ss.is_dealer) nm << " (D)";
 			Color namec = ss.name_live ? kLive : (ss.active ? White() : Color(150,150,150));
 			w.DrawText(bxx + 6, byy + 4, nm, sf, namec);
-			w.DrawText(bxx + 6, byy + 22, Format("stack %d", ss.stack), sf,
-			           ss.stack_live ? kLive : kSeed);
-			String betstr = ss.bet > 0 ? Format("bet %d", ss.bet) : String();
+			// Task 0288 fix 1: the stack fallback USED to render the engine's own
+			// internal cash (post-blind-deduction from a flat 1000-chip placeholder
+			// economy, e.g. "990"/"995") -- a real-but-meaningless number that
+			// looked like a genuine OCR reading and fooled two prior review passes.
+			// Only show a specific number when it is a real per-seat OCR value;
+			// otherwise render an explicit "unknown" placeholder, exactly as the
+			// hole cards already show face-down backs instead of fabricated faces.
+			if(ss.stack_live)
+				w.DrawText(bxx + 6, byy + 22, Format("stack %d", ss.stack), sf, kLive);
+			else
+				w.DrawText(bxx + 6, byy + 22, "stack ?", sf, kSeed);
+			// Task 0288 fix 1 (bet): same problem -- the pre-0288 fallback showed
+			// the engine's internal per-seat bet. Only ever show a bet number when
+			// it is a real OCR reading for this seat; when it is not live, show
+			// nothing (a fabricated engine bet is worse than an empty bet line).
+			String betstr = (ss.bet_live && ss.bet > 0) ? Format("bet %d", ss.bet) : String();
 			if(!betstr.IsEmpty())
-				w.DrawText(bxx + 6, byy + 40, betstr, sf, ss.bet_live ? kLive : kSeed);
+				w.DrawText(bxx + 6, byy + 40, betstr, sf, kLive);
 			String ac = ActionName(ss.action);         // action stays engine-seed
 			if(!ac.IsEmpty()) {
 				int axoff = betstr.IsEmpty() ? 0 : GetTextSize(betstr, sf).cx + 10;
@@ -1394,8 +1504,10 @@ struct MirrorView : Ctrl {
 		ty += 4;
 		line("ENGINE-SEED (not video-driven):", Color(235, 180, 120));
 		line("  per-seat action; hole cards", Color(235, 180, 120));
-		line("  (face-down). Amber seat fields", Color(235, 180, 120));
-		line("  = not yet OCR'd this run.", Color(235, 180, 120));
+		line("  (face-down). \"stack ?\" = balance", Color(235, 180, 120));
+		line("  not yet read -- no fabricated", Color(235, 180, 120));
+		line("  number (Task 0288 fix).", Color(235, 180, 120));
+		line("  Gold \"D\" disc = dealer button.", Color(230, 200, 60));
 		line("  Per-seat action resolution was", Color(180, 180, 180));
 		line("  left unbuilt in Task 0280.", Color(180, 180, 180));
 		if(!status.IsEmpty()) { ty += 6; line(status, Color(200, 200, 210)); }

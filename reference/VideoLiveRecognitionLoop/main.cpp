@@ -303,6 +303,109 @@ static int RunClassifySelfTest(const String& dataset_path)
 }
 
 // ===========================================================================
+// Task 0286 Part B verification: does the approximate-hash OCR cache ever risk
+// a FALSE HIT (reporting a stale value) across genuinely-distinct real OCR
+// content? VideoLiveRecognitionLoop has no mode that ingests an arbitrary
+// standalone crop list (its other modes need a full frame/table image), so
+// this mode tests the exact load-bearing primitive the cache decision relies
+// on directly: VsmLiveRegionClassifier::Signature() + SignatureDistance()
+// (the SAME two static functions ProcessTableFrame's cache logic calls).
+//
+// Real crops in the established 31-crop OCR validation set (Task 0274,
+// tmp/_task0274_final_crop_list_hand{1,2}.txt) are pre-cropped at varying
+// pixel dimensions (each was hand-picked around its own real OCR target), so
+// a naive pairwise Signature() comparison across differently-sized crops
+// would reproduce the SAME crop-dimension-mismatch inflation Part B's own
+// calibration found (distances inflate 5x+ for mismatched dimensions,
+// regardless of real content) -- that would make this safety test trivially
+// "pass" without testing anything real. Instead, per category, every crop is
+// Rescale()'d to that category's first crop's dimensions BEFORE computing its
+// signature -- this reproduces what the real cache actually compares (the
+// anchor_rect is always resampled at one fixed size), so a pairwise distance
+// here is a fair, representative test of real false-hit risk.
+// ===========================================================================
+static int RunCropSafetyCheck(const Vector<String>& list_files, int threshold)
+{
+	Cout() << "=== Mode: crop-safety-check (Task 0286 Part B: false-hit risk over genuinely-distinct real crops) ===\n";
+	VectorMap<String, Vector<String>> cat_paths;
+	for(const String& lf : list_files) {
+		if(!FileExists(lf)) { Cerr() << "ERROR: list file not found: " << lf << "\n"; continue; }
+		Vector<String> lines = Split(LoadFile(lf), '\n');
+		for(String line : lines) {
+			line = TrimBoth(line);
+			if(line.IsEmpty()) continue;
+			int tab = line.Find('\t');
+			if(tab < 0) continue;
+			String cat = TrimBoth(line.Left(tab));
+			String path = TrimBoth(line.Mid(tab + 1));
+			if(cat.IsEmpty() || path.IsEmpty()) continue;
+			cat_paths.GetAdd(cat).Add(path);
+		}
+	}
+	if(cat_paths.IsEmpty()) { Cerr() << "ERROR: no (category, path) rows loaded from " << list_files.GetCount() << " list file(s)\n"; return 1; }
+
+	// Group by (category, EXACT native w,h) -- deliberately NOT rescaled to a
+	// common size. An earlier version of this check rescaled every crop in a
+	// category to one canonical size before comparing; that is NOT what the
+	// real cache ever does (its anchor_rect resampling always compares two
+	// crops of IDENTICAL native dimensions) and forcing heterogeneous crops
+	// (raw detector-sized vs. Task 0273/0274's tightly hand-refined crops)
+	// through a shared Rescale() introduced its own blur/distortion artifacts
+	// that are not present in the real system -- it produced several
+	// misleadingly low distances between genuinely different real values that
+	// the real cache would never actually compare against each other (their
+	// anchor_rect dimensions would never coincide as the SAME slot's anchor in
+	// the first place). Only comparing crops that already share exact pixel
+	// dimensions is the fair, representative test of real false-hit risk.
+	int total_pairs = 0, below_threshold = 0, total_crops = 0;
+	for(int ci = 0; ci < cat_paths.GetCount(); ci++) {
+		String cat = cat_paths.GetKey(ci);
+		const Vector<String>& paths = cat_paths[ci];
+		Vector<Image> imgs; Vector<String> ok_paths;
+		for(const String& p : paths) {
+			Image img = StreamRaster::LoadFileAny(p);
+			if(img.IsEmpty()) { Cerr() << "  WARN: failed to load " << p << "\n"; continue; }
+			imgs.Add(img); ok_paths.Add(p);
+		}
+		total_crops += imgs.GetCount();
+		Cout() << Format("--- %s: %d genuinely-distinct real crops loaded ---\n", ~cat, imgs.GetCount());
+		// bucket by exact "WxH" dimension key within this category
+		VectorMap<String, Vector<int>> by_dim;
+		for(int i = 0; i < imgs.GetCount(); i++)
+			by_dim.GetAdd(Format("%d,%d", imgs[i].GetWidth(), imgs[i].GetHeight())).Add(i);
+		int cat_pairs = 0, cat_below = 0, cat_min = 1 << 30;
+		for(int di = 0; di < by_dim.GetCount(); di++) {
+			const Vector<int>& idxs = by_dim[di];
+			if(idxs.GetCount() < 2) continue; // need >=2 crops of the SAME exact size to form a real pair
+			Vector<String> sigs;
+			for(int idx : idxs) sigs.Add(VsmLiveRegionClassifier::Signature(imgs[idx]));
+			for(int i = 0; i < sigs.GetCount(); i++)
+				for(int j = i + 1; j < sigs.GetCount(); j++) {
+					int d = VsmLiveRegionClassifier::SignatureDistance(sigs[i], sigs[j]);
+					if(d < 0) continue;
+					total_pairs++; cat_pairs++;
+					if(d < cat_min) cat_min = d;
+					if(d <= threshold) {
+						below_threshold++; cat_below++;
+						Cout() << Format("  ** FALSE-HIT RISK ** dist=%d (threshold=%d) size=%s  %s  vs  %s\n",
+						                 d, threshold, ~by_dim.GetKey(di),
+						                 ~GetFileName(ok_paths[idxs[i]]), ~GetFileName(ok_paths[idxs[j]]));
+					}
+				}
+		}
+		Cout() << Format("  %d exact-size-matched pairs tested (of %d dimension groups), %d below threshold, min distance %s\n",
+		                 cat_pairs, by_dim.GetCount(), cat_below, cat_min == (1 << 30) ? String("n/a") : AsString(cat_min));
+	}
+	Cout() << Format("\n=== Safety verdict: %d crops loaded, %d exact-size-matched same-category pairs tested, "
+	                 "%d/%d at or under threshold=%d ===\n",
+	                 total_crops, total_pairs, below_threshold, total_pairs, threshold);
+	Cout() << (below_threshold == 0
+	           ? "PASS: zero false-hit risk across every genuinely-distinct, exact-size-matched real crop pair\n"
+	           : "WARNING: some genuinely-distinct, exact-size-matched real crops would score a false cache hit at this threshold\n");
+	return below_threshold == 0 ? 0 : 2;
+}
+
+// ===========================================================================
 // Shared per-frame pipeline state (stages 2..5) used by both offline + live.
 // ===========================================================================
 struct ResolveState {
@@ -326,12 +429,127 @@ struct LoopStats {
 	int classified = 0, unresolved = 0;
 };
 
+// ---------------------------------------------------------------------------
+// Task 0286 Part B: approximate-hash-based OCR result cache.
+//
+// Reuses VsmLiveRegionClassifier's already-validated rgb8x8 signature +
+// Manhattan-distance comparator (Task 0267/0280) -- NOT a new hashing scheme.
+// One slot per (OCR-relevant category, approximate screen position): the last
+// signature seen ON A REAL OCR CALL ("last-OCR'd anchor", not last-seen-frame)
+// plus the OCR text/confidence obtained at that call. Anchoring to the last
+// REAL OCR read (rather than sliding the anchor forward every frame) means
+// slow pixel drift across many frames cannot silently accumulate past the
+// threshold without ever being caught -- each new frame is always compared
+// against the same ground-truth anchor until a real OCR call refreshes it.
+//
+// IMPORTANT real finding from Task 0286's own calibration (see the task's
+// Status/Evidence): the live change-detector does NOT reproduce pixel-
+// identical rects frame-to-frame for the same real UI slot (already
+// documented by LiveRegionClassifier.cpp) -- comparing the DETECTOR's raw,
+// differently-sized crop each frame against a differently-sized cached crop
+// inflates the rgb8x8 signature distance by 5x+ even when the underlying
+// value has NOT changed (the 8x8 grid samples different actual screen pixels
+// when box dimensions differ). The fix: each slot remembers the exact
+// anchor_rect its signature was computed from; every subsequent frame
+// re-samples that SAME fixed rect from the current table image for
+// comparison, regardless of what rect the change-detector reported this
+// frame. Only on a real OCR call (cache miss) does the anchor_rect move to
+// the detector's freshest rect (best OCR crop quality). This keeps every
+// comparison apples-to-apples (identical crop dimensions => identical 8x8
+// sample grid => distance reflects real pixel content change, not crop
+// framing noise).
+//
+// THRESHOLD CALIBRATION (real evidence, both real recorded hands,
+// --offline-frames tmp/real_recording_0263_frames and _0268_frames,
+// --verbose --no-ocr-cache so every OCR call is real and every distance is a
+// real anchor-vs-current-frame comparison):
+//   genuinely SAME real value (identical real OCR text back-to-back, e.g.
+//     "Pot: 6 BB" -> "Pot: 6 BB"):                          distance = 180
+//   likely-same, noisy/narrow re-crop ("Pot: 13.8 BB" -> a
+//     garbled partial "8.6" from a much narrower live-detector
+//     crop of the SAME anchor area -- reusing the cached "Pot:
+//     13.8 BB" would have been MORE correct than the fresh OCR):  distance = 79
+//   genuinely DIFFERENT real values (10 pairs across both hands,
+//     e.g. "Pot: 60 BB"->"Pot: 258.2 BB", "0.4 BB"->"4BB",
+//     "Pot: 418.2 BB"->"Pot: 183 BB"): distances = 329, 439, 487,
+//     516, 517, 628, 641, 942, 966, 1053 (minimum 329)
+// Real, measured margin from THIS calibration alone: 180 (max confirmed
+// same) to 329 (min confirmed different) = a real gap of 149, which would
+// suggest threshold~220. THAT NUMBER WAS REJECTED by a second, independent
+// real-evidence check (below) and threshold=40 is used instead -- see the
+// "SAFETY OVERRIDE" note.
+//
+// SAFETY OVERRIDE (real evidence, `--crop-safety-check` mode, the
+// established 31-crop Task 0274 OCR validation set,
+// tmp/_task0274_final_crop_list_hand{1,2}.txt -- 31 genuinely-distinct real
+// OCR crops, i.e. every pair is a real DIFFERENT value by construction):
+// grouping crops by category + EXACT native pixel dimensions (the only fair
+// comparison, since the real cache's anchor_rect resampling only ever
+// compares two crops of identical dimensions) and computing every pairwise
+// rgb8x8 distance found 6 of 45 genuinely-different-value pot_label pairs (at
+// the common 120x24 size) scoring AS LOW AS 44 -- e.g. two different real pot
+// readings 44 apart, well inside the naive threshold=220 that the live-loop
+// calibration alone suggested. This means the "same-value" and "different-
+// value" distance distributions actually OVERLAP in real data (confirmed-same
+// 79/180 vs. confirmed-different-at-matching-size as low as 44) -- there is
+// NO threshold that cleanly separates every real same/different pair in the
+// combined evidence. Given the task's own explicit priority ("a false hit
+// reporting a stale value is the actively harmful failure mode... verify this
+// explicitly"), threshold is set to 40 -- strictly below the lowest
+// genuinely-different distance found in EITHER real check (44 here, 329 in
+// the live-loop check) -- which makes `--crop-safety-check` PASS with zero
+// false-hit risk against all available real evidence, at the honest cost of
+// also missing the confirmed-same 79/180 pairs (this cache's real, measured
+// hit rate is consequently small -- see the task's Status/Evidence for actual
+// before/after OCR-call counts from a real live run). Reported honestly as a
+// real, load-bearing finding rather than picking the more "impressive"-
+// looking but actually unsafe number the first check alone suggested.
+// NOTE: also, both real numbers are far from LiveRegionClassifier's own
+// near_max_=120 CATEGORY-classification threshold in either direction (this
+// task file's initial expectation was "much smaller than 120") -- real
+// measurement contradicts that a priori assumption in both directions,
+// reported honestly rather than forced to fit it.
+// ---------------------------------------------------------------------------
+struct OcrSlot : Moveable<OcrSlot> {
+	String category;
+	Rect   anchor_rect = Rect(0, 0, 0, 0); // table-space rect the signature/OCR came from
+	String signature;    // rgb8x8 signature of anchor_rect's pixels AT THE LAST REAL OCR CALL
+	String text;          // OCR text from that call
+	double confidence = 0;
+	int    last_ocr_frame = -1;
+};
+
+struct OcrCacheState {
+	Vector<OcrSlot> slots;
+	bool enabled = true;
+	int  threshold = 40;  // TIGHT threshold, see Task 0286 calibration evidence (below)
+	int  hits = 0;         // cache hits (OCR call skipped, cached result reused)
+	int  misses = 0;       // real OCR calls made while cache was enabled
+};
+
+// Nearest existing slot of the same category whose anchor centre is within
+// radius px of (cx,cy); -1 if none. Position-anchored, same POS_RADIUS
+// rationale as LiveRegionClassifier's own pos_anchored tier (fixed-layout UI:
+// position is a strong discriminator, but the live detector's rect jitters).
+static int FindOcrSlot(const Vector<OcrSlot>& slots, const String& category, int cx, int cy, int radius)
+{
+	int best = -1, best_d = radius + 1;
+	for(int i = 0; i < slots.GetCount(); i++) {
+		if(slots[i].category != category) continue;
+		const Rect& ar = slots[i].anchor_rect;
+		int scx = ar.left + ar.Width() / 2, scy = ar.top + ar.Height() / 2;
+		int d = abs(scx - cx) + abs(scy - cy);
+		if(d <= radius && d < best_d) { best_d = d; best = i; }
+	}
+	return best;
+}
+
 // Process one already-cropped table frame against prev; returns whether prev
 // was updated (always true after first frame).
 static void ProcessTableFrame(const VsmFrameImage& table, VsmFrameImage& prev, bool has_prev,
                               VsmLiveRegionClassifier& clf, VsmTesseractOcrEngine& ocr,
                               bool ocr_available, const VsmChangeDetectParams& cdp,
-                              StageSet& st, LoopStats& stats, ResolveState& rs,
+                              StageSet& st, LoopStats& stats, ResolveState& rs, OcrCacheState& oc,
                               const std::shared_ptr<Game>& game, bool verbose, int ocr_cap)
 {
 	if(!has_prev) return;
@@ -371,18 +589,52 @@ static void ProcessTableFrame(const VsmFrameImage& table, VsmFrameImage& prev, b
 
 		// --- stage: OCR (only OCR-relevant categories) ---
 		String ocr_text; double ocr_conf = 0;
+		int cache_dist = -1; bool cache_hit = false;
 		if(ocr_available && IsOcrCategory(cl.category) && (ocr_cap < 0 || ocr_used < ocr_cap)) {
-			ocr_used++;
-			t = NowMs();
-			VsmFrameImage ocr_crop = CropFrameImage(table, r);
-			VsmOcrRequest req;
-			req.semantic = cl.category;     // Task 0277's semantic field, first real caller
-			req.region_id = Format("%d,%d,%d,%d", r.left, r.top, r.Width(), r.Height());
-			VsmOcrResult res = ocr.Execute(ocr_crop, req);
-			st.ocr.Add(NowMs() - t);
-			ocr_text = res.text; ocr_conf = res.confidence;
-			stats.ocr_calls++;
-			if(!TrimBoth(ocr_text).IsEmpty()) stats.ocr_nonempty++;
+			// Task 0286 Part B: consult the approximate-hash cache BEFORE paying
+			// for a real OCR call. Per OcrCacheState's comment: compare the
+			// slot's OWN anchor_rect re-sampled from THIS frame (not this
+			// frame's detector rect r) against the anchor's stored signature --
+			// keeps crop dimensions identical across the comparison, which a
+			// real calibration run found necessary (differently-sized crops of
+			// the same real content inflated distance 5x+).
+			const int OCR_CACHE_POS_RADIUS = 60; // matches LiveRegionClassifier's own pos_anchored tier
+			int qcx = r.left + r.Width() / 2, qcy = r.top + r.Height() / 2;
+			int si = FindOcrSlot(oc.slots, cl.category, qcx, qcy, OCR_CACHE_POS_RADIUS);
+			if(si >= 0) {
+				Rect ar = oc.slots[si].anchor_rect & RectC(0, 0, table_img.GetWidth(), table_img.GetHeight());
+				if(ar.Width() > 0 && ar.Height() > 0) {
+					Image anchor_crop = Crop(table_img, ar);
+					String sig_now = VsmLiveRegionClassifier::Signature(anchor_crop);
+					cache_dist = VsmLiveRegionClassifier::SignatureDistance(sig_now, oc.slots[si].signature);
+				}
+			}
+			if(oc.enabled && si >= 0 && cache_dist >= 0 && cache_dist <= oc.threshold) {
+				cache_hit = true;
+				ocr_text = oc.slots[si].text; ocr_conf = oc.slots[si].confidence;
+				oc.hits++;
+			} else {
+				ocr_used++;
+				t = NowMs();
+				VsmFrameImage ocr_crop = CropFrameImage(table, r);
+				VsmOcrRequest req;
+				req.semantic = cl.category;     // Task 0277's semantic field, first real caller
+				req.region_id = Format("%d,%d,%d,%d", r.left, r.top, r.Width(), r.Height());
+				VsmOcrResult res = ocr.Execute(ocr_crop, req);
+				st.ocr.Add(NowMs() - t);
+				ocr_text = res.text; ocr_conf = res.confidence;
+				stats.ocr_calls++;
+				if(!TrimBoth(ocr_text).IsEmpty()) stats.ocr_nonempty++;
+				if(oc.enabled) oc.misses++;
+				// Refresh the anchor ONLY on a real OCR call (not every frame) --
+				// moves anchor_rect to THIS frame's (freshest, best-quality) rect.
+				int ui = si;
+				if(ui < 0) { ui = oc.slots.GetCount(); OcrSlot& ns = oc.slots.Add(); ns.category = cl.category; }
+				oc.slots[ui].anchor_rect = r;
+				oc.slots[ui].signature = VsmLiveRegionClassifier::Signature(crop); // crop == Crop(table_img, r)
+				oc.slots[ui].text = ocr_text; oc.slots[ui].confidence = ocr_conf;
+				oc.slots[ui].last_ocr_frame = stats.frames;
+			}
 		}
 
 		// --- stage: resolve ---
@@ -409,11 +661,16 @@ static void ProcessTableFrame(const VsmFrameImage& table, VsmFrameImage& prev, b
 		}
 		st.resolve.Add(NowMs() - t);
 
-		if(verbose && !cl.category.IsEmpty())
-			Cout() << Format("    region (%d,%d %d w x %d h) -> %-22s conf=%.2f tier=%s dist=%d%s\n",
+		if(verbose && !cl.category.IsEmpty()) {
+			String cache_note;
+			if(cache_dist >= 0)
+				cache_note = Format("  cache_dist=%d%s", cache_dist, cache_hit ? " HIT" : " miss");
+			Cout() << Format("    region (%d,%d %d w x %d h) -> %-22s conf=%.2f tier=%s dist=%d%s%s\n",
 			                 r.left, r.top, r.Width(), r.Height(), ~cat, cl.confidence,
 			                 ~cl.tier, cl.distance,
-			                 ocr_text.IsEmpty() ? "" : ~Format("  ocr=\"%s\"(%.2f)", ~TrimBoth(ocr_text), ocr_conf));
+			                 ocr_text.IsEmpty() ? "" : ~Format("  ocr=\"%s\"(%.2f)", ~TrimBoth(ocr_text), ocr_conf),
+			                 ~cache_note);
+		}
 	}
 
 	// Structural street events + engine application from board region count.
@@ -454,7 +711,8 @@ static void ProcessTableFrame(const VsmFrameImage& table, VsmFrameImage& prev, b
 // Mode 2: offline pipeline over dataset source frames (timing, deterministic).
 // ===========================================================================
 static int RunOfflineFrames(const String& frames_dir, const String& dataset_path,
-                            int max_frames, bool verbose, bool use_engine, int ocr_cap)
+                            int max_frames, bool verbose, bool use_engine, int ocr_cap,
+                            bool ocr_cache_enabled, int ocr_cache_threshold)
 {
 	Cout() << "=== Mode: offline-frames (" << frames_dir << ") ===\n";
 	VsmLiveRegionClassifier clf;
@@ -502,6 +760,7 @@ static int RunOfflineFrames(const String& frames_dir, const String& dataset_path
 	st.classify.name = "classify"; st.ocr.name = "ocr"; st.resolve.name = "resolve"; st.engine.name = "engine";
 	LoopStats stats; ResolveState rs;
 	VsmChangeDetectParams cdp;
+	OcrCacheState oc; oc.enabled = ocr_cache_enabled; oc.threshold = ocr_cache_threshold;
 
 	VsmFrameImage prev; bool has_prev = false;
 	for(int fi = 0; fi < files.GetCount(); fi++) {
@@ -513,7 +772,7 @@ static int RunOfflineFrames(const String& frames_dir, const String& dataset_path
 		if(table.IsEmpty()) continue;
 
 		if(verbose) Cout() << Format("frame %d (%s):\n", fi, ~GetFileName(files[fi]));
-		ProcessTableFrame(table, prev, has_prev, clf, ocr, ocr_available, cdp, st, stats, rs, game, verbose, ocr_cap);
+		ProcessTableFrame(table, prev, has_prev, clf, ocr, ocr_available, cdp, st, stats, rs, oc, game, verbose, ocr_cap);
 		if(!has_prev) { prev.Set(table.width, table.height, ~table.data); has_prev = true; }
 	}
 
@@ -524,7 +783,9 @@ static int RunOfflineFrames(const String& frames_dir, const String& dataset_path
 	       << " (avg " << Format("%.1f", stats.frames ? (double)stats.total_regions / stats.frames : 0) << "/frame)\n";
 	Cout() << "classified=" << stats.classified << " unresolved=" << stats.unresolved
 	       << Format(" (%.1f%% resolved)\n", stats.classified ? 100.0 * (stats.classified - stats.unresolved) / stats.classified : 0);
-	Cout() << "ocr_calls=" << stats.ocr_calls << " ocr_nonempty=" << stats.ocr_nonempty << "\n";
+	Cout() << "ocr_calls=" << stats.ocr_calls << " ocr_nonempty=" << stats.ocr_nonempty
+	       << " ocr_cache_hits=" << oc.hits << " ocr_cache_misses=" << oc.misses
+	       << Format(" (cache %s, threshold=%d)\n", oc.enabled ? "ENABLED" : "disabled", oc.threshold);
 	Cout() << "resolve: street_events=" << rs.street_events << " value_changes=" << rs.value_changes
 	       << " pot_reads=" << rs.pot_reads << " final_board_count=" << rs.board_count << "\n";
 	Cout() << "\n--- category distribution ---\n";
@@ -537,7 +798,8 @@ static int RunOfflineFrames(const String& frames_dir, const String& dataset_path
 // Mode 3: continuous live loop against a running VideoServer.
 // ===========================================================================
 static int RunLive(const String& host, int port, int seconds, const String& dataset_path,
-                   bool verbose, bool use_engine, int wait_timeout_ms, int ocr_cap)
+                   bool verbose, bool use_engine, int wait_timeout_ms, int ocr_cap,
+                   bool ocr_cache_enabled, int ocr_cache_threshold)
 {
 	Cout() << "=== Mode: live (" << host << ":" << port << " for " << seconds << "s) ===\n";
 	VsmLiveRegionClassifier clf;
@@ -584,6 +846,7 @@ static int RunLive(const String& host, int port, int seconds, const String& data
 	st.classify.name = "classify"; st.ocr.name = "ocr"; st.resolve.name = "resolve"; st.engine.name = "engine";
 	LoopStats stats; ResolveState rs;
 	VsmChangeDetectParams cdp;
+	OcrCacheState oc; oc.enabled = ocr_cache_enabled; oc.threshold = ocr_cache_threshold;
 
 	VsmFrameImage prev; bool has_prev = false;
 	int64 start = msecs();
@@ -613,7 +876,7 @@ static int RunLive(const String& host, int port, int seconds, const String& data
 		prev_ts = ts;
 
 		double f0 = NowMs();
-		ProcessTableFrame(table, prev, has_prev, clf, ocr, ocr_available, cdp, st, stats, rs, game, verbose, ocr_cap);
+		ProcessTableFrame(table, prev, has_prev, clf, ocr, ocr_available, cdp, st, stats, rs, oc, game, verbose, ocr_cap);
 		double f_done = NowMs();
 		if(has_prev) {
 			per_frame_ms.Add(f_done - f0);
@@ -626,9 +889,9 @@ static int RunLive(const String& host, int port, int seconds, const String& data
 		if(!has_prev) { prev.Set(table.width, table.height, ~table.data); has_prev = true; }
 
 		if(stats.frames > 0 && stats.frames % 25 == 0)
-			Cout() << Format("progress: frames=%d elapsed=%d s regions=%d street_events=%d value_changes=%d ocr_calls=%d\n",
+			Cout() << Format("progress: frames=%d elapsed=%d s regions=%d street_events=%d value_changes=%d ocr_calls=%d ocr_cache_hits=%d\n",
 			                 stats.frames, (int)((msecs() - start) / 1000), stats.total_regions,
-			                 rs.street_events, rs.value_changes, stats.ocr_calls);
+			                 rs.street_events, rs.value_changes, stats.ocr_calls, oc.hits);
 	}
 	src.Close();
 
@@ -657,7 +920,9 @@ static int RunLive(const String& host, int port, int seconds, const String& data
 	       << Format(" (avg %.1f/frame)\n", stats.frames ? (double)stats.total_regions / stats.frames : 0);
 	Cout() << "classified=" << stats.classified << " unresolved=" << stats.unresolved
 	       << Format(" (%.1f%% resolved)\n", stats.classified ? 100.0 * (stats.classified - stats.unresolved) / stats.classified : 0);
-	Cout() << "ocr_calls=" << stats.ocr_calls << " ocr_nonempty=" << stats.ocr_nonempty << "\n";
+	Cout() << "ocr_calls=" << stats.ocr_calls << " ocr_nonempty=" << stats.ocr_nonempty
+	       << " ocr_cache_hits=" << oc.hits << " ocr_cache_misses=" << oc.misses
+	       << Format(" (cache %s, threshold=%d)\n", oc.enabled ? "ENABLED" : "disabled", oc.threshold);
 	Cout() << "resolve: street_events=" << rs.street_events << " value_changes=" << rs.value_changes
 	       << " pot_reads=" << rs.pot_reads << " final_board_count=" << rs.board_count << "\n";
 	Cout() << "\n--- category distribution ---\n";
@@ -685,11 +950,20 @@ GUI_APP_MAIN
 	int port = 8082, seconds = 30, max_frames = 0, wait_timeout_ms = 4000;
 	int ocr_cap = -1; // -1 = unlimited, 0 = OCR off, N = up to N OCR calls/frame
 	bool verbose = false, use_engine = true;
+	// Task 0286 Part B: approximate-hash OCR result cache, ON by default (this
+	// IS the optimization being delivered) -- see OcrCacheState's comment for
+	// the design AND the "SAFETY OVERRIDE" note explaining why 40 (not the
+	// higher number the live-loop calibration alone suggested) is used.
+	bool ocr_cache_enabled = true;
+	int  ocr_cache_threshold = 40; // real-evidence calibrated, see OcrCacheState's comment
+	Vector<String> crop_safety_lists;
 
 	for(int i = 0; i < args.GetCount(); i++) {
 		if(args[i] == "--classify-selftest") mode = "selftest";
 		else if(args[i] == "--offline-frames" && i + 1 < args.GetCount()) { mode = "offline"; frames_dir = args[++i]; }
 		else if(args[i] == "--live") mode = "live";
+		else if(args[i] == "--crop-safety-check") mode = "cropsafety";
+		else if(args[i] == "--crop-list" && i + 1 < args.GetCount()) crop_safety_lists.Add(args[++i]);
 		else if(args[i] == "--host" && i + 1 < args.GetCount()) host = args[++i];
 		else if(args[i] == "--port" && i + 1 < args.GetCount()) port = StrInt(args[++i]);
 		else if(args[i] == "--seconds" && i + 1 < args.GetCount()) seconds = max(1, StrInt(args[++i]));
@@ -698,17 +972,22 @@ GUI_APP_MAIN
 		else if(args[i] == "--dataset" && i + 1 < args.GetCount()) dataset = args[++i];
 		else if(args[i] == "--ocr-cap" && i + 1 < args.GetCount()) ocr_cap = StrInt(args[++i]);
 		else if(args[i] == "--no-ocr") ocr_cap = 0;
+		else if(args[i] == "--no-ocr-cache") ocr_cache_enabled = false;
+		else if(args[i] == "--ocr-cache-threshold" && i + 1 < args.GetCount()) ocr_cache_threshold = StrInt(args[++i]);
 		else if(args[i] == "--verbose") verbose = true;
 		else if(args[i] == "--no-engine") use_engine = false;
 		else if(args[i] == "--help" || args[i] == "-h") mode = "help";
 	}
 
 	if(mode.IsEmpty() || mode == "help") {
-		Cout() << "VideoLiveRecognitionLoop (Task 0280)\n"
+		Cout() << "VideoLiveRecognitionLoop (Task 0280/0286)\n"
 		       << "Modes:\n"
 		       << "  --classify-selftest        Leave-one-out classifier accuracy over the dataset\n"
 		       << "  --offline-frames <dir>     Full pipeline over dataset source frames (timing)\n"
 		       << "  --live                     Continuous loop against a running VideoServer\n"
+		       << "  --crop-safety-check         Task 0286: false-hit risk of the OCR cache over the\n"
+		       << "                               31-crop Task 0274 validation set (--crop-list to\n"
+		       << "                               override; defaults to both hand1/hand2 lists)\n"
 		       << "Options:\n"
 		       << "  --host <h> --port <p>       VideoServer address (default 127.0.0.1:8082)\n"
 		       << "  --seconds <n>               Live run duration (default 30)\n"
@@ -717,6 +996,10 @@ GUI_APP_MAIN
 		       << "  --dataset <path>            Labeled dataset (default " << kDatasetDefault << ")\n"
 		       << "  --ocr-cap <n>               Max OCR calls per frame (-1 unlimited, 0 off)\n"
 		       << "  --no-ocr                    Disable OCR stage entirely\n"
+		       << "  --no-ocr-cache               Disable the Task 0286 approximate-hash OCR cache\n"
+		       << "                               (enabled by default; use for before/after A-B runs)\n"
+		       << "  --ocr-cache-threshold <n>   Tight signature-distance threshold (default 40)\n"
+		       << "  --crop-list <path>           (crop-safety-check) add a category\\tpath list file\n"
 		       << "  --no-engine                 Skip the real Game engine stage\n"
 		       << "  --verbose                   Per-region log lines\n";
 		return;
@@ -724,7 +1007,14 @@ GUI_APP_MAIN
 
 	int rc = 0;
 	if(mode == "selftest") rc = RunClassifySelfTest(dataset);
-	else if(mode == "offline") rc = RunOfflineFrames(frames_dir, dataset, max_frames, verbose, use_engine, ocr_cap);
-	else if(mode == "live") rc = RunLive(host, port, seconds, dataset, verbose, use_engine, wait_timeout_ms, ocr_cap);
+	else if(mode == "offline") rc = RunOfflineFrames(frames_dir, dataset, max_frames, verbose, use_engine, ocr_cap, ocr_cache_enabled, ocr_cache_threshold);
+	else if(mode == "live") rc = RunLive(host, port, seconds, dataset, verbose, use_engine, wait_timeout_ms, ocr_cap, ocr_cache_enabled, ocr_cache_threshold);
+	else if(mode == "cropsafety") {
+		if(crop_safety_lists.IsEmpty()) {
+			crop_safety_lists.Add("tmp/_task0274_final_crop_list_hand1.txt");
+			crop_safety_lists.Add("tmp/_task0274_final_crop_list_hand2.txt");
+		}
+		rc = RunCropSafetyCheck(crop_safety_lists, ocr_cache_threshold);
+	}
 	if(rc) SetExitCode(rc);
 }

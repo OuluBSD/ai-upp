@@ -181,7 +181,67 @@ static bool ParseChipValue(const String& text, double& out)
 
 static bool IsOcrCategory(const String& cat)
 {
-	return cat == "pot_label" || cat == "seat_balance_plate" || cat == "seat_bet_label";
+	// Task 0287: seat_name_plate added -- the classifier already identifies name
+	// plates, but no text extraction ran on them before, so the live mirror only
+	// ever showed generic "SeatN". Balance/bet were already OCR'd; names are the
+	// one new OCR category here.
+	return cat == "pot_label" || cat == "seat_balance_plate"
+	    || cat == "seat_bet_label" || cat == "seat_name_plate";
+}
+
+// ---------------------------------------------------------------------------
+// Task 0287: map a classified region's table-space rect to a seat index (0-5).
+//
+// This is a fixed-layout 6-max PokerStars table (same premise as kTableRect
+// being a fixed empirical constant). The 267-candidate labeled dataset
+// (real_recording_combined_classified_dataset.json) carries real
+// seat_name_plate / seat_balance_plate / seat_bet_label rects; grouping their
+// centroids (NOT the noisy semantic_hits zone labels, which overlap heavily)
+// yields six clean rail clusters. Their centroids and the oval centre below are
+// the real derived evidence (see the task's Status/Evidence writeup):
+//
+//   BOTTOM        cx~500 cy~492      LEFT_BOTTOM   cx~ 84 cy~372
+//   LEFT_TOP      cx~110 cy~170      TOP           cx~444 cy~108
+//   RIGHT_TOP     cx~828 cy~168      RIGHT_BOTTOM  cx~852 cy~372
+//   oval centre   (470, 280)  (mean of the six rail centroids)
+//
+// Assignment is by ANGLE from the oval centre, not a rectangular grid: a bet
+// chip amount is drawn pulled IN toward the pot (e.g. the bottom seat's bet at
+// cy~420, well above its name plate at cy~492), so a radial/angular test is
+// far more robust than axis-aligned zone boxes -- validated on all 21 distinct
+// real seat rects, it agrees with the most-specific dataset zone label in every
+// case, including the center-pulled bets the zone boxes would misplace.
+//
+// The seat INDEX each zone maps to matches BuildSnapshot()/Paint()'s existing
+// render convention (ang = pi/2 + 2*pi*i/n, seat 0 at bottom, clockwise):
+//   i=0 bottom, i=1 left-bottom, i=2 left-top, i=3 top, i=4 right-top,
+//   i=5 right-bottom -- so a region OCR'd from the top of the real video lands
+// on seat index 3, which the mirror also draws at the top: the mirror's spatial
+// layout mirrors the video's, making per-seat correctness visually checkable.
+struct SeatAnchor { int cx, cy, seat; };
+static const int kTableCenterX = 470, kTableCenterY = 280;
+static const SeatAnchor kSeatAnchors[6] = {
+	{ 500, 492, 0 }, // BOTTOM
+	{  84, 372, 1 }, // LEFT_BOTTOM
+	{ 110, 170, 2 }, // LEFT_TOP
+	{ 444, 108, 3 }, // TOP
+	{ 828, 168, 4 }, // RIGHT_TOP
+	{ 852, 372, 5 }, // RIGHT_BOTTOM
+};
+
+static int RegionToSeat(int left, int top, int w, int h)
+{
+	const double kPi = 3.14159265358979323846;
+	double cx = left + w / 2.0, cy = top + h / 2.0;
+	double a = atan2(cy - kTableCenterY, cx - kTableCenterX);
+	int best = -1; double best_d = 1e18;
+	for(const SeatAnchor& sa : kSeatAnchors) {
+		double aa = atan2((double)(sa.cy - kTableCenterY), (double)(sa.cx - kTableCenterX));
+		double d = fabs(a - aa);
+		if(d > kPi) d = 2 * kPi - d; // shortest circular angular distance
+		if(d < best_d) { best_d = d; best = sa.seat; }
+	}
+	return best;
 }
 
 // ---------------------------------------------------------------------------
@@ -421,7 +481,10 @@ static int RunCropSafetyCheck(const Vector<String>& list_files, int threshold)
 // Shared per-frame pipeline state (stages 2..5) used by both offline + live.
 // ===========================================================================
 struct ResolveState {
-	ResolveState() { for(int i = 0; i < 5; i++) board_cards.Add(-1); }
+	ResolveState() {
+		for(int i = 0; i < 5; i++) board_cards.Add(-1);
+		for(int i = 0; i < 6; i++) { seat_stack[i] = -1; seat_bet[i] = -1; }
+	}
 	// board tracking (structural tier)
 	int  board_count = 0;
 	Vector<int> board_cards;
@@ -431,6 +494,12 @@ struct ResolveState {
 	int  value_changes = 0;
 	int  pot_reads = 0;
 	double last_pot = -1;
+	// Task 0287: per-seat OCR'd values, attributed via RegionToSeat(). -1 /
+	// empty means "not resolved from video yet for this seat" -> BuildSnapshot
+	// falls back to the engine-seed value and labels the field engine-seed.
+	double seat_stack[6]; // last OCR'd balance-plate value per seat index
+	double seat_bet[6];   // last OCR'd bet-label value per seat index
+	String seat_name[6];  // last OCR'd name-plate text per seat index
 };
 
 struct LoopStats {
@@ -656,6 +725,18 @@ static void ProcessTableFrame(const VsmFrameImage& table, VsmFrameImage& prev, b
 			int ci = CardIndex(cl.rank, cl.suit);
 			if(ci >= 0) new_board_cards.Add(ci);
 		}
+		else if(cl.category == "seat_name_plate") {
+			// Task 0287: name plates carry text, not a chip value -- store the
+			// trimmed OCR string, attributed to a seat by rect position.
+			String nm = TrimBoth(ocr_text);
+			if(!nm.IsEmpty()) {
+				int seat = RegionToSeat(r.left, r.top, r.Width(), r.Height());
+				if(seat >= 0 && seat < 6) {
+					if(rs.seat_name[seat] != nm) rs.value_changes++;
+					rs.seat_name[seat] = nm;
+				}
+			}
+		}
 		else if(IsOcrCategory(cl.category)) {
 			double val;
 			if(ParseChipValue(ocr_text, val)) {
@@ -668,6 +749,14 @@ static void ProcessTableFrame(const VsmFrameImage& table, VsmFrameImage& prev, b
 					int q = rs.slot_value.Find(slot);
 					if(q >= 0 && fabs(rs.slot_value[q] - val) > 0.001) rs.value_changes++;
 					rs.slot_value.GetAdd(slot) = val;
+					// Task 0287: also attribute to a seat index so BuildSnapshot
+					// can render it on the right seat (previously the position
+					// key was stored but the seat identity was discarded).
+					int seat = RegionToSeat(r.left, r.top, r.Width(), r.Height());
+					if(seat >= 0 && seat < 6) {
+						if(cl.category == "seat_balance_plate") rs.seat_stack[seat] = val;
+						else if(cl.category == "seat_bet_label")  rs.seat_bet[seat]   = val;
+					}
 				}
 			}
 		}
@@ -754,6 +843,12 @@ struct SeatSnap {
 	bool   turn = false;
 	int    button = 0;
 	bool   is_dealer = false;
+	// Task 0287: which per-seat fields are driven by real video OCR (vs. the
+	// engine-seed fallback). Renderer colours live fields as LIVE-DRIVEN and
+	// falls back / labels engine-seed otherwise.
+	bool   name_live = false;
+	bool   stack_live = false;
+	bool   bet_live = false;
 };
 
 struct GameSnapshot {
@@ -858,6 +953,16 @@ static GameSnapshot BuildSnapshot(const std::shared_ptr<Game>& game, const Resol
 				ss.turn = p->getMyTurn();
 				ss.button = p->getMyButton();
 				ss.is_dealer = ((int)p->getMyUniqueID() == s.dealer);
+				// Task 0287: override name/stack/bet with the real per-seat OCR
+				// values WHEN AVAILABLE (RegionToSeat-attributed), keeping the
+				// engine-seed value only where nothing has been recognized yet.
+				// The render index n matches RegionToSeat's seat convention (both
+				// 0=bottom..5=right-bottom), so rs.*[n] lines up with seats[n].
+				if(n < 6) {
+					if(!rs.seat_name[n].IsEmpty()) { ss.name = rs.seat_name[n]; ss.name_live = true; }
+					if(rs.seat_stack[n] >= 0)      { ss.stack = (int)(rs.seat_stack[n] + 0.5); ss.stack_live = true; }
+					if(rs.seat_bet[n] >= 0)        { ss.bet = (int)(rs.seat_bet[n] + 0.5); ss.bet_live = true; }
+				}
 				n++;
 			}
 			s.seat_count = n;
@@ -1225,14 +1330,25 @@ struct MirrorView : Ctrl {
 			w.DrawRect(bxx, byy+boxh-1, boxw, 1, Color(80,90,100));
 			w.DrawRect(bxx, byy, 1, boxh, Color(80,90,100));
 			w.DrawRect(bxx+boxw-1, byy, 1, boxh, Color(80,90,100));
+			// Task 0287: colour per-seat fields by provenance -- LIVE-DRIVEN
+			// green (Color(150,230,160)) when the value came from real video
+			// OCR this run, ENGINE-SEED amber (Color(235,180,120)) otherwise,
+			// matching the right-hand legend's colour convention.
+			const Color kLive = Color(150, 230, 160), kSeed = Color(235, 180, 120);
 			String nm = ss.name.IsEmpty() ? Format("Seat%d", ss.seat) : ss.name;
 			if(ss.is_dealer) nm << " (D)";
-			w.DrawText(bxx + 6, byy + 4, nm, sf, ss.active ? White() : Color(150,150,150));
-			w.DrawText(bxx + 6, byy + 22, Format("stack %d", ss.stack), sf, Color(210,220,180));
-			String br = ss.bet > 0 ? Format("bet %d", ss.bet) : String("");
-			String ac = ActionName(ss.action);
-			if(!ac.IsEmpty()) br = br.IsEmpty() ? ac : br + "  " + ac;
-			w.DrawText(bxx + 6, byy + 40, br, sf, Color(230, 200, 140));
+			Color namec = ss.name_live ? kLive : (ss.active ? White() : Color(150,150,150));
+			w.DrawText(bxx + 6, byy + 4, nm, sf, namec);
+			w.DrawText(bxx + 6, byy + 22, Format("stack %d", ss.stack), sf,
+			           ss.stack_live ? kLive : kSeed);
+			String betstr = ss.bet > 0 ? Format("bet %d", ss.bet) : String();
+			if(!betstr.IsEmpty())
+				w.DrawText(bxx + 6, byy + 40, betstr, sf, ss.bet_live ? kLive : kSeed);
+			String ac = ActionName(ss.action);         // action stays engine-seed
+			if(!ac.IsEmpty()) {
+				int axoff = betstr.IsEmpty() ? 0 : GetTextSize(betstr, sf).cx + 10;
+				w.DrawText(bxx + 6 + axoff, byy + 40, ac, sf, kSeed);
+			}
 			// two face-down hole cards (per-seat hole-card RECOGNITION not built --
 			// show realistic backs, never fabricate/reveal engine-dealt faces)
 			Image back = TexasHoldemGetCardBackReferenceImage(Size(scw, sch), "default");
@@ -1272,11 +1388,14 @@ struct MirrorView : Ctrl {
 			line("latency: (no frame yet)", Color(255, 210, 120));
 		ty += 8;
 		line("LIVE-DRIVEN:", Color(150, 230, 160));
-		line("  board cards, street, pot(OCR)", Color(150, 230, 160));
+		line("  board cards, street, pot(OCR),", Color(150, 230, 160));
+		line("  per-seat name/stack/bet (OCR),", Color(150, 230, 160));
+		line("  green when read (Task 0287).", Color(150, 230, 160));
 		ty += 4;
 		line("ENGINE-SEED (not video-driven):", Color(235, 180, 120));
-		line("  per-seat stack/bet/action,", Color(235, 180, 120));
-		line("  hole cards (shown face-down).", Color(235, 180, 120));
+		line("  per-seat action; hole cards", Color(235, 180, 120));
+		line("  (face-down). Amber seat fields", Color(235, 180, 120));
+		line("  = not yet OCR'd this run.", Color(235, 180, 120));
 		line("  Per-seat action resolution was", Color(180, 180, 180));
 		line("  left unbuilt in Task 0280.", Color(180, 180, 180));
 		if(!status.IsEmpty()) { ty += 6; line(status, Color(200, 200, 210)); }

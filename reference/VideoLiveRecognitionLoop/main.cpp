@@ -578,7 +578,11 @@ struct CardTemplates {
 // Load the real PokerStars rank-glyph library from <dir>/ranks/{rank}.png. Each
 // glyph is tight-cropped to its bright (white) pixels then pre-rescaled to every
 // calibrated scale, so per-frame recognition is a fixed set of MatchTemplate calls.
-static CardTemplates LoadCardTemplates(const String& dir)
+// Task 0291a: scale set is now a parameter so hole-card recognition (smaller
+// on-screen glyphs than board cards) can pass a wider set without disturbing the
+// board path. Board callers pass no scales -> the original kRankScales set, so
+// board recognition is byte-for-byte unchanged (still 12/12).
+static CardTemplates LoadCardTemplates(const String& dir, const Vector<double>& scales)
 {
 	CardTemplates ct;
 	static const char* names[] = { "2","3","4","5","6","7","8","9","T","J","Q","K","A" };
@@ -600,9 +604,9 @@ static CardTemplates LoadCardTemplates(const String& dir)
 		Image tight = Crop(im, RectC(minx, miny, maxx - minx + 1, maxy - miny + 1));
 		RankTemplate& rt = ct.ranks.Add();
 		rt.rank = nm;
-		for(int s = 0; s < kNumRankScales; s++) {
-			int nw = max(1, (int)(tight.GetWidth()  * kRankScales[s] + 0.5));
-			int nh = max(1, (int)(tight.GetHeight() * kRankScales[s] + 0.5));
+		for(double sc : scales) {
+			int nw = max(1, (int)(tight.GetWidth()  * sc + 0.5));
+			int nh = max(1, (int)(tight.GetHeight() * sc + 0.5));
 			Image scg = Rescale(tight, nw, nh);
 			ByteMat bm; ImageToGrayByteMat(scg, bm);
 			rt.scaled.Add() = pick(bm);
@@ -613,12 +617,25 @@ static CardTemplates LoadCardTemplates(const String& dir)
 	return ct;
 }
 
+// Board-card default: the original 3-point calibrated scale set (unchanged).
+static CardTemplates LoadCardTemplates(const String& dir)
+{
+	Vector<double> scales;
+	for(int s = 0; s < kNumRankScales; s++) scales.Add(kRankScales[s]);
+	return LoadCardTemplates(dir, scales);
+}
+
 // Suit from dominant card background colour (4-colour deck). Samples the card
 // interior, skipping near-white glyph pixels. Returns "c"/"d"/"h"/"s" or "".
+// Task 0291a: made rect-driven (samples card.top/card.Height() instead of the
+// fixed board-band constants) so the SAME pipeline serves both board cards AND
+// hole cards. Behaviour-preserving for board cards: SplitBoardBand() already
+// emits rects with top==kBoardCardTop and height==(kBoardCardBot-kBoardCardTop),
+// so card.top+8 == kBoardCardTop+8 and card.Height()-20 == kBoardCardBot-kBoardCardTop-20.
 static String ClassifySuitByColor(const VsmFrameImage& table, const Rect& card)
 {
-	Rect r = RectC(card.left + 6, kBoardCardTop + 8,
-	               max(1, card.Width() - 12), kBoardCardBot - kBoardCardTop - 20)
+	Rect r = RectC(card.left + 6, card.top + 8,
+	               max(1, card.Width() - 12), max(1, card.Height() - 20))
 	         & RectC(0, 0, table.width, table.height);
 	if(r.Width() <= 0 || r.Height() <= 0) return "";
 	long rs = 0, gs = 0, bs = 0, n = 0;
@@ -646,7 +663,10 @@ static String RecognizeRank(const VsmFrameImage& table, const Rect& card,
                             const CardTemplates& ct, double& out_score)
 {
 	out_score = -2;
-	Rect band = RectC(card.left - 2, kBoardCardTop, card.Width() + 4, kBoardCardBot - kBoardCardTop);
+	// Task 0291a: rect-driven vertical band (card.top/card.Height()) so hole cards
+	// reuse this unchanged; behaviour-preserving for board cards (SplitBoardBand
+	// emits top==kBoardCardTop, height==kBoardCardBot-kBoardCardTop).
+	Rect band = RectC(card.left - 2, card.top, card.Width() + 4, card.Height());
 	ByteMat img = TableRegionToGray(table, band);
 	if(img.IsEmpty()) return "";
 	String best; double bestv = -2;
@@ -2758,70 +2778,301 @@ static int RunGui(const String& host, int port, const String& dataset_path,
 }
 
 // ===========================================================================
+// Task 0291a: SIDECAR GROUND-TRUTH PARSER (shared by all real-frame test modes).
+//
+// Why this exists: Task 0290a/0290c HARD-CODED hand-1's board/dealer/turn frame
+// numbers, so their tests silently never touched hand 2's real action even when
+// pointed at hand-2 frames. This parser reads the real sidecar
+// (bin/video_record_25min_20260716_203356.txt, both hands, 65 lines) and DERIVES
+// every scored frame from the sidecar's own event timestamps -- so a test always
+// covers exactly the real action the sidecar describes, for whatever frame
+// directory it is given, with no hand-specific frame numbers baked in.
+//
+// FRAME<->SECOND: both real frame directories were extracted at fps=1 with the
+// output filename number set to the real video second (0263: frame_000000..56 =
+// sec 0..56; 0268: frame_000052..105 = sec 52..105, ffmpeg -start_number 52), so
+// throughout these tests  frame_%06d.jpg's number == video second == sidecar
+// HH:MM:SS in seconds. (See each dir's FRAME_TIME_MAPPING.md.)
+// ===========================================================================
+static const char* kSidecarPath = "bin/video_record_25min_20260716_203356.txt";
+
+// sidecar seat (1..6, per the file's own header) -> mirror seat index (0..5,
+// the kSeatAnchors / RegionToSeat convention). Same mapping Task 0290c encoded
+// inline (bottom=seat4=0, leftbot=seat5=1, lefttop=seat6=2, top=seat1=3,
+// righttop=seat2=4, rightbot=seat3=5) -- centralized here.
+static int SidecarSeatToMirror(int s)
+{
+	switch(s) { case 4: return 0; case 5: return 1; case 6: return 2;
+	            case 1: return 3; case 2: return 4; case 3: return 5; }
+	return -1;
+}
+static int ParseHmsToSec(const String& hms) // "00:01:27" -> 87
+{
+	Vector<String> p = Split(hms, ':');
+	if(p.GetCount() != 3) return -1;
+	return StrInt(p[0]) * 3600 + StrInt(p[1]) * 60 + StrInt(p[2]);
+}
+// Split a run of card characters ("3d3sKh5c") into engine card indices.
+static Vector<int> ParseCardRun(const String& s)
+{
+	Vector<int> out;
+	for(int i = 0; i + 1 < s.GetCount(); i += 2)
+		out.Add(CardIndex(s.Mid(i, 1), s.Mid(i + 1, 1)));
+	return out;
+}
+
+struct SidecarGT {
+	// board timeline: change points (second, board-string) across BOTH hands;
+	// board resets to "" at each "new hand". BoardAt(sec) returns the board in
+	// effect at that second (last change <= sec).
+	struct BoardPt : Moveable<BoardPt> { int sec; String board; };
+	Vector<BoardPt> board_pts;
+	// showdown reveals: seat's hole cards shown face-up at `sec`.
+	struct Show : Moveable<Show> { int sec; int mirror; String cards; };
+	Vector<Show> shows;
+	// derived per-second acting seat (turn), from action-line timestamps.
+	VectorMap<int, int> turn_by_second; // video second -> acting mirror seat
+	// dealer mirror seat per new-hand second (both hands: seat4 -> mirror 0).
+	VectorMap<int, int> dealer_by_hand_sec;
+	Vector<int> new_hand_seconds;
+	// hand-start seat labels: (hand index -> mirror -> name / starting balanceBB).
+	struct SeatInfo : Moveable<SeatInfo> { String name; double balance = -1; };
+	Vector<VectorMap<int, SeatInfo>> hands; // hands[h][mirror] = SeatInfo
+
+	String BoardAt(int sec) const {
+		String b;
+		for(const BoardPt& p : board_pts) { if(p.sec <= sec) b = p.board; else break; }
+		return b;
+	}
+	int HandIndexOf(int sec) const { // 0-based hand this second belongs to, or -1
+		int h = -1;
+		for(int i = 0; i < new_hand_seconds.GetCount(); i++)
+			if(new_hand_seconds[i] <= sec) h = i;
+		return h;
+	}
+};
+
+static bool IsActionVerb(const String& w)
+{
+	return w == "fold" || w == "call" || w == "raise" || w == "check"
+	    || w == "bet"  || w == "shows"; // "shows" handled separately, excluded below
+}
+
+static SidecarGT ParseSidecarGT(const String& path)
+{
+	SidecarGT gt;
+	String txt = LoadFile(path);
+	Vector<String> lines = Split(txt, '\n');
+	String cur_board;               // accumulates within a hand
+	int    cur_hand = -1;
+	int    prev_action_sec = -1;    // for turn-window derivation
+	struct PendingSeat : Moveable<PendingSeat> { int sec; int mirror; String name; double balance; };
+	Vector<PendingSeat> pend;       // seat name/balance lines, hand resolved post-parse
+	for(String raw : lines) {
+		String line = TrimBoth(raw);
+		if(!line.StartsWith("R ")) continue;
+		int colon = line.Find(':', 2);
+		// the HH:MM:SS itself has colons; find the ": " AFTER the timestamp
+		int sep = line.Find(": ", 2);
+		if(sep < 0) continue;
+		String hms = TrimBoth(line.Mid(2, sep - 2));
+		int sec = ParseHmsToSec(hms);
+		if(sec < 0) continue;
+		String rest = TrimBoth(line.Mid(sep + 2));
+		Vector<String> tok = Split(rest, ' ');
+		if(tok.IsEmpty()) continue;
+
+		if(rest.StartsWith("new hand")) {
+			// The sidecar ends with a duplicate "new hand @53" artifact (a known
+			// trailing dup, see FRAME_TIME_MAPPING.md). Ignore any repeat of a
+			// second we've already opened a hand at, so it neither resets a later
+			// hand's board nor adds a phantom empty hand.
+			if(FindIndex(gt.new_hand_seconds, sec) >= 0) continue;
+			cur_board.Clear();
+			SidecarGT::BoardPt& bp = gt.board_pts.Add(); bp.sec = sec; bp.board = "";
+			gt.new_hand_seconds.Add(sec);
+			cur_hand = gt.hands.GetCount();
+			gt.hands.Add();
+			prev_action_sec = sec;
+			// dealer=seatN
+			int dp = rest.Find("dealer=seat");
+			if(dp >= 0) {
+				int sd = StrInt(rest.Mid(dp + 11, 1));
+				gt.dealer_by_hand_sec.GetAdd(sec) = SidecarSeatToMirror(sd);
+			}
+			continue;
+		}
+		if(rest.StartsWith("flop ")) {
+			cur_board = tok[1];                 // "3d3sKh"
+			SidecarGT::BoardPt& bp = gt.board_pts.Add(); bp.sec = sec; bp.board = cur_board;
+			continue;
+		}
+		if(rest.StartsWith("turn ") || rest.StartsWith("river ")) {
+			cur_board << tok[1];                // append "5c" / "Ad"
+			SidecarGT::BoardPt& bp = gt.board_pts.Add(); bp.sec = sec; bp.board = cur_board;
+			continue;
+		}
+		// seat lines: "seatN <verb> ..." | "seatN name=\"..\" balance=..BB" | "seatN shows CC"
+		if(tok[0].StartsWith("seat") && tok.GetCount() >= 2) {
+			int sn = StrInt(tok[0].Mid(4));
+			int mirror = SidecarSeatToMirror(sn);
+			String verb = tok[1];
+			if(verb == "shows" && tok.GetCount() >= 3) {
+				SidecarGT::Show& sh = gt.shows.Add(); sh.sec = sec; sh.mirror = mirror; sh.cards = tok[2];
+				continue;
+			}
+			if(rest.Find("name=\"") >= 0) {
+				// name="X Y" balance=NNN.NBB. NOTE: in this sidecar the seat name/
+				// balance lines for a hand are logged at the SAME second as (and just
+				// BEFORE) that hand's "new hand" line, so cur_hand is not reliable
+				// here. Buffer with the line's own second and resolve to the nearest
+				// new-hand AFTER the full parse (see below).
+				int np = rest.Find("name=\"");
+				int ne = rest.Find('"', np + 6);
+				String nm = ne > np ? rest.Mid(np + 6, ne - (np + 6)) : "";
+				double bal = -1;
+				int bp2 = rest.Find("balance=");
+				if(bp2 >= 0) { const char* e = nullptr; bal = ScanDouble(rest.Begin() + bp2 + 8, &e); }
+				PendingSeat& ps = pend.Add();
+				ps.sec = sec; ps.mirror = mirror; ps.name = nm; ps.balance = bal;
+				continue;
+			}
+			if(verb == "fold" || verb == "call" || verb == "raise" || verb == "check" || verb == "bet") {
+				// turn-window derivation: the seat that ACTS at `sec` was the acting
+				// seat over (prev_action_sec, sec]. Sidecar-derived, no baked frames.
+				int a = prev_action_sec + 1, b = sec;
+				for(int s = a; s <= b; s++) gt.turn_by_second.GetAdd(s) = mirror;
+				prev_action_sec = sec;
+				continue;
+			}
+		}
+	}
+	// Resolve buffered seat name/balance lines to the nearest new-hand (the hands
+	// are well separated -- 4 vs 53 -- so nearest-second assignment is unambiguous
+	// and correctly attaches the pre-"new hand" seat lines to the hand they open).
+	for(const PendingSeat& ps : pend) {
+		int bestH = -1, bestD = 1 << 30;
+		for(int h = 0; h < gt.new_hand_seconds.GetCount(); h++) {
+			int d = abs(ps.sec - gt.new_hand_seconds[h]);
+			if(d < bestD) { bestD = d; bestH = h; }
+		}
+		if(bestH < 0 || bestH >= gt.hands.GetCount()) continue;
+		SidecarGT::SeatInfo& si = gt.hands[bestH].GetAdd(ps.mirror);
+		si.name = ps.name;
+		if(ps.balance >= 0) si.balance = ps.balance;
+	}
+	// Board change points must be time-ordered for BoardAt()'s "last change <= sec"
+	// scan to be correct (file order already is, but sort defensively).
+	Sort(gt.board_pts, [](const SidecarGT::BoardPt& x, const SidecarGT::BoardPt& y){ return x.sec < y.sec; });
+	return gt;
+}
+
+// Resolve which real frame directories a test should scan. Empty frames_dir ->
+// BOTH real hands (0263 = hand 1 sec 0-56, 0268 = hand 2 sec 52-105); an explicit
+// --frames-dir overrides to just that one. This is what finally lets one
+// invocation cover BOTH hands' real action instead of only hand 1.
+static Vector<String> ResolveFrameDirs(const String& frames_dir)
+{
+	Vector<String> dirs;
+	if(frames_dir.IsEmpty()) {
+		dirs.Add("tmp/real_recording_0263_frames"); // hand 1
+		dirs.Add("tmp/real_recording_0268_frames"); // hand 2
+	}
+	else dirs.Add(frames_dir);
+	return dirs;
+}
+// Enumerate present frame indices (the %06d number == video second) in a dir.
+static Vector<int> FrameSecondsInDir(const String& dir)
+{
+	Vector<int> secs;
+	Vector<String> files = FindAllPaths(dir, "*.jpg");
+	for(const String& f : files) {
+		String bn = GetFileTitle(f); // frame_000087
+		int us = bn.ReverseFind('_');
+		if(us >= 0) { int n = StrInt(bn.Mid(us + 1)); if(n >= 0) secs.Add(n); }
+	}
+	Sort(secs);
+	return secs;
+}
+
+// ===========================================================================
 // Task 0290a: Mode 5 -- offline card-recognition benchmark against the real
-// video + sidecar ground truth. Deterministic, no server. Loads real frames at
-// the sidecar's known board-transition timestamps (frame index == video
-// second, see FRAME_TIME_MAPPING.md), runs the felt-split + suit-colour + rank
-// template pipeline, and scores against the ground-truth board identities. Also
-// measures real per-card TIMING of template-match vs ORB on a real card crop --
-// the "is ORB slower?" question the task requires answering with real numbers.
+// video + sidecar ground truth. Deterministic, no server. Task 0291a: scored
+// frames + expected boards are now DERIVED from the sidecar (ParseSidecarGT),
+// and the test scans every real frame directory given (both hands by default),
+// so hand 2's real flop/turn/river are genuinely exercised.
 // ===========================================================================
 struct BoardCase { int frame; const char* board; };
 
+// Score one frame's board recognition against an expected board string. Appends
+// per-card outcome to the running totals; returns a one-line summary.
+struct BoardScore { int card_tot=0, card_ok=0, suit_ok=0, rank_ok=0, count_ok=0, frame_tot=0; };
+static String ScoreBoardFrame(const VsmFrameImage& table, const CardTemplates& ct,
+                              const String& expboard, BoardScore& acc, Vector<String>* dbg)
+{
+	Vector<int> recog = RecognizeBoardCards(table, ct, dbg);
+	Vector<int> exp = ParseCardRun(expboard);
+	acc.frame_tot++;
+	bool cnt = recog.GetCount() == exp.GetCount(); acc.count_ok += cnt;
+	String line;
+	for(int i = 0; i < exp.GetCount(); i++) {
+		acc.card_tot++;
+		int got = i < recog.GetCount() ? recog[i] : -1;
+		bool ok = (got == exp[i]); acc.card_ok += ok;
+		if(got >= 0) { if(got / 13 == exp[i] / 13) acc.suit_ok++; if(got % 13 == exp[i] % 13) acc.rank_ok++; }
+		line << Format("  %s%s", ~FormatCardStr(exp[i]), ok ? "=OK" : Format("!=%s", ~FormatCardStr(got)));
+	}
+	return Format("(%d cards, count %s):%s", recog.GetCount(), cnt ? "OK" : "MISMATCH", ~line);
+}
+
 static int RunCardRecogTest(const String& frames_dir, const String& templates_dir)
 {
-	Cout() << "=== Mode: card-recog-test (real board frames vs sidecar ground truth) ===\n";
+	Cout() << "=== Mode: card-recog-test (BOTH hands, sidecar-derived board frames) ===\n";
 	CardTemplates ct = LoadCardTemplates(templates_dir);
 	Cout() << "rank templates: " << ct.ranks.GetCount() << "/13 (" << (ct.ok ? "OK" : "INCOMPLETE")
 	       << ") from " << templates_dir << "\n";
 	if(!ct.ok) { Cerr() << "ERROR: incomplete rank template library\n"; return 1; }
 
-	// Hand-1 ground truth (bin/video_record_25min_20260716_203356.txt):
-	//   flop 3d3sKh @ 00:00:18, turn 5c @ 00:00:27, river Ad @ 00:00:38.
-	// Board persists between events; frame index == video second.
-	static const BoardCase cases[] = {
-		{18,"3d3sKh"},   {21,"3d3sKh"},   {24,"3d3sKh"},   {26,"3d3sKh"},
-		{27,"3d3sKh5c"}, {30,"3d3sKh5c"}, {34,"3d3sKh5c"}, {37,"3d3sKh5c"},
-		{38,"3d3sKh5cAd"},{41,"3d3sKh5cAd"},{45,"3d3sKh5cAd"},{47,"3d3sKh5cAd"},
-	};
-	int card_tot = 0, card_ok = 0, suit_ok = 0, rank_ok = 0, count_ok = 0, frame_tot = 0;
-	for(const BoardCase& bc : cases) {
-		String path = AppendFileName(frames_dir, Format("frame_%06d.jpg", bc.frame));
-		VsmImageBuffer buf;
-		if(!LoadJpgToBuffer(path, buf)) { Cerr() << "skip (load failed): " << path << "\n"; continue; }
-		VsmFrameImage table = CropBufferToFrame(buf, kTableRect);
-		if(table.IsEmpty()) { Cerr() << "skip (empty crop): " << path << "\n"; continue; }
-		Vector<String> dbg;
-		Vector<int> recog = RecognizeBoardCards(table, ct, &dbg);
-		String bs = bc.board;
-		Vector<int> exp;
-		for(int i = 0; i + 1 < bs.GetCount(); i += 2) exp.Add(CardIndex(bs.Mid(i, 1), bs.Mid(i + 1, 1)));
-		frame_tot++;
-		bool cnt = recog.GetCount() == exp.GetCount(); count_ok += cnt;
-		String line;
-		for(int i = 0; i < exp.GetCount(); i++) {
-			card_tot++;
-			int got = i < recog.GetCount() ? recog[i] : -1;
-			bool ok = (got == exp[i]); card_ok += ok;
-			if(got >= 0) { if(got / 13 == exp[i] / 13) suit_ok++; if(got % 13 == exp[i] % 13) rank_ok++; }
-			line << Format("  %s%s", ~FormatCardStr(exp[i]),
-			               ok ? "=OK" : Format("!=%s", ~FormatCardStr(got)));
-		}
-		Cout() << Format("frame %02d (%d cards, count %s):%s\n",
-		                 bc.frame, recog.GetCount(), cnt ? "OK" : "MISMATCH", ~line);
-		for(const String& d : dbg) Cout() << "        " << d << "\n";
-	}
+	SidecarGT gt = ParseSidecarGT(kSidecarPath);
+	Vector<String> dirs = ResolveFrameDirs(frames_dir);
 	auto pct = [](int a, int b) { return b ? 100.0 * a / b : 0.0; };
-	Cout() << "\n=== Board recognition accuracy (real frames vs sidecar) ===\n";
-	Cout() << Format("frames=%d  card-count-correct=%d/%d  cards=%d\n", frame_tot, count_ok, frame_tot, card_tot);
-	Cout() << Format("full card (rank+suit) correct = %d/%d (%.1f%%)\n", card_ok, card_tot, pct(card_ok, card_tot));
-	Cout() << Format("suit-only correct             = %d/%d (%.1f%%)\n", suit_ok, card_tot, pct(suit_ok, card_tot));
-	Cout() << Format("rank-only correct             = %d/%d (%.1f%%)\n", rank_ok, card_tot, pct(rank_ok, card_tot));
+
+	BoardScore total;
+	for(const String& dir : dirs) {
+		Vector<int> secs = FrameSecondsInDir(dir);
+		BoardScore ds;
+		int lo = secs.IsEmpty() ? -1 : secs[0], hi = secs.IsEmpty() ? -1 : secs.Top();
+		Cout() << Format("\n--- %s  (frames present: %d, sec %d..%d) ---\n", ~dir, secs.GetCount(), lo, hi);
+		for(int sec : secs) {
+			String board = gt.BoardAt(sec);
+			if(ParseCardRun(board).GetCount() < 3) continue; // only post-flop frames scored
+			String path = AppendFileName(dir, Format("frame_%06d.jpg", sec));
+			VsmImageBuffer buf;
+			if(!LoadJpgToBuffer(path, buf)) { Cerr() << "skip (load failed): " << path << "\n"; continue; }
+			VsmFrameImage table = CropBufferToFrame(buf, kTableRect);
+			if(table.IsEmpty()) { Cerr() << "skip (empty crop): " << path << "\n"; continue; }
+			Vector<String> dbg;
+			String summary = ScoreBoardFrame(table, ct, board, ds, &dbg);
+			Cout() << Format("  sec %03d exp=%-10s %s\n", sec, ~board, ~summary);
+			for(const String& d : dbg) Cout() << "          " << d << "\n";
+		}
+		Cout() << Format("  [%s] scored frames=%d  full-card=%d/%d (%.1f%%)  suit=%d/%d  rank=%d/%d  count-correct=%d/%d\n",
+		                 ~GetFileName(dir), ds.frame_tot, ds.card_ok, ds.card_tot, pct(ds.card_ok, ds.card_tot),
+		                 ds.suit_ok, ds.card_tot, ds.rank_ok, ds.card_tot, ds.count_ok, ds.frame_tot);
+		total.frame_tot += ds.frame_tot; total.card_tot += ds.card_tot; total.card_ok += ds.card_ok;
+		total.suit_ok += ds.suit_ok; total.rank_ok += ds.rank_ok; total.count_ok += ds.count_ok;
+	}
+	Cout() << "\n=== Board recognition accuracy (ALL scanned dirs, sidecar-derived) ===\n";
+	Cout() << Format("scored frames=%d  card-count-correct=%d/%d  cards=%d\n",
+	                 total.frame_tot, total.count_ok, total.frame_tot, total.card_tot);
+	Cout() << Format("full card (rank+suit) correct = %d/%d (%.1f%%)\n", total.card_ok, total.card_tot, pct(total.card_ok, total.card_tot));
+	Cout() << Format("suit-only correct             = %d/%d (%.1f%%)\n", total.suit_ok, total.card_tot, pct(total.suit_ok, total.card_tot));
+	Cout() << Format("rank-only correct             = %d/%d (%.1f%%)\n", total.rank_ok, total.card_tot, pct(total.rank_ok, total.card_tot));
 
 	// --- timing: template-match vs ORB on a real card crop (frame 18, first card) ---
 	Cout() << "\n=== Per-card matcher timing (real card crop, frame 18) ===\n";
 	VsmImageBuffer buf;
-	if(LoadJpgToBuffer(AppendFileName(frames_dir, "frame_000018.jpg"), buf)) {
+	if(LoadJpgToBuffer(AppendFileName("tmp/real_recording_0263_frames", "frame_000018.jpg"), buf)) {
 		VsmFrameImage table = CropBufferToFrame(buf, kTableRect);
 		Vector<Rect> cards = SplitBoardBand(table);
 		if(!cards.IsEmpty()) {
@@ -2920,87 +3171,442 @@ static int RunCardDatasetDump(const String& frames_dir, const String& templates_
 }
 
 // ===========================================================================
-// Task 0290c: Mode 7 -- dealer-chip + turn-timer detection accuracy against the
-// real 0263 frames + sidecar ground truth. Deterministic, no server. Runs the
-// two new detectors on every real frame and scores them:
-//   * DEALER: ground truth (bin/video_record_25min_20260716_203356.txt) has
-//     dealer=seat4 for BOTH hands in this 0-55s window; seat4 is the BOTTOM seat
-//     = mirror seat 0. So the expected video-detected dealer seat is 0 for every
-//     frame where the button is on screen.
-//   * TURN: expected acting seat per frame, encoded from the ground-truth action
-//     sequence (the player genuinely deliberating before their next logged
-//     action). -1 = a setup/dealing/showdown transition frame, not scored.
-// Also prints real per-frame TIMING for the dealer template match (its one
-// non-trivial cost) so the throttle choice is grounded in real numbers.
+// Task 0291a item 4: ORB-based dealer-chip detector. Task 0290c detected the
+// dealer button with MatchTemplate ONLY; ORB was never applied to actual dealer
+// recognition (only a one-crop timing probe in 0290a). This trains ORB on the
+// SAME real template (templates/dealer_chip/1.png) and matches it into the same
+// felt-interior search band, mapping the projected pattern location to a seat --
+// so its real accuracy AND timing can be reported side-by-side with TM.
 // ===========================================================================
+struct OrbDealer {
+	OrbSystem orb;
+	bool ok = false;
+	void Init(const String& templates_dir) {
+		String path = AppendFileName(AppendFileName(templates_dir, "dealer_chip"), "1.png");
+		Image im = StreamRaster::LoadFileAny(path);
+		if(im.IsEmpty()) { Cerr() << "WARN: ORB dealer template missing: " << path << "\n"; return; }
+		orb.SetInput(im);
+		orb.InitDefault();      // trains the pattern from the template (same as 0290a's probe)
+		ok = true;
+	}
+	// Match into the felt-interior band; returns nearest seat (or -1 if good < min_good
+	// or no location), and always fills out_good / out_center for reporting.
+	int Detect(const VsmFrameImage& table, int min_good, int& out_good, Point& out_center) {
+		out_good = 0; out_center = Point(-1, -1);
+		if(!ok) return -1;
+		Rect sr = kDealerSearch & RectC(0, 0, table.width, table.height);
+		Image img = Crop(VsmFrameImageToImage(table), sr);
+		if(img.IsEmpty()) return -1;
+		orb.SetInput(img);
+		orb.Process();
+		out_good = orb.GetLastGoodMatches();
+		const Vector<Pointf>& corners = orb.GetLastCorners();
+		if(corners.GetCount() >= 1) {
+			double cx = 0, cy = 0;
+			for(const Pointf& p : corners) { cx += p.x; cy += p.y; }
+			cx /= corners.GetCount(); cy /= corners.GetCount();
+			out_center = Point(sr.left + (int)cx, sr.top + (int)cy);
+		}
+		if(out_good < min_good || out_center.x < 0) return -1;
+		return NearestSeatAnchor(out_center.x, out_center.y);
+	}
+};
+
+// ===========================================================================
+// Task 0290c/0291a: Mode 7 -- dealer-chip (TM + ORB) + turn-timer accuracy
+// against the real sidecar ground truth, DERIVED (ParseSidecarGT), scanning
+// BOTH real hands by default (0263 hand 1, 0268 hand 2). GT dealer=seat4=mirror 0
+// for both hands; expected acting seat per second is derived from the sidecar's
+// own action timestamps. Reports TM and ORB accuracy + timing side-by-side.
+// ===========================================================================
+static const int kOrbDealerMinGood = 4; // reported alongside raw good-match counts
+
 static int RunDealerTurnTest(const String& frames_dir, const String& templates_dir)
 {
-	Cout() << "=== Mode: dealer-turn-test (real 0263 frames vs sidecar ground truth) ===\n";
+	Cout() << "=== Mode: dealer-turn-test (BOTH hands: TM + ORB dealer, sidecar-derived) ===\n";
 	DealerTemplate dt = LoadDealerTemplate(templates_dir);
-	Cout() << "dealer template: " << (dt.ok ? "OK" : "MISSING") << " (" << dt.scaled.GetCount()
+	Cout() << "dealer template (TM): " << (dt.ok ? "OK" : "MISSING") << " (" << dt.scaled.GetCount()
 	       << " scales) from " << templates_dir << "\n";
 	if(!dt.ok) { Cerr() << "ERROR: dealer template missing\n"; return 1; }
+	OrbDealer orbd; orbd.Init(templates_dir);
+	Cout() << "dealer template (ORB): " << (orbd.ok ? "OK" : "MISSING")
+	       << " (min-good=" << kOrbDealerMinGood << ")\n";
 
-	// Expected acting seat (mirror index) per frame from GT; -1 = not scored.
-	// Sidecar->mirror: bottom(seat4)=0, leftbot(seat5)=1, lefttop(seat6)=2,
-	// top(seat1)=3, righttop(seat2)=4, rightbot(seat3)=5.
-	int exp_turn[56];
-	for(int i = 0; i < 56; i++) exp_turn[i] = -1;
-	auto setrange = [&](int a, int b, int v){ for(int i = a; i <= b && i < 56; i++) exp_turn[i] = v; };
-	setrange(6,11,4); setrange(13,13,0); setrange(14,16,2); setrange(19,20,2);
-	setrange(22,22,0); setrange(24,25,2); setrange(29,29,0); setrange(31,35,2);
-	setrange(36,36,0); setrange(39,39,2); setrange(41,45,0); setrange(47,47,2);
-	setrange(55,55,4);
-
-	int dealer_present = 0, dealer_ok = 0;
-	int turn_scored = 0, turn_ok = 0, turn_detected = 0;
-	double dealer_ms_sum = 0; int dealer_ms_n = 0;
-	for(int f = 0; f < 56; f++) {
-		String path = AppendFileName(frames_dir, Format("frame_%06d.jpg", f));
-		VsmImageBuffer buf;
-		if(!LoadJpgToBuffer(path, buf)) continue;
-		VsmFrameImage table = CropBufferToFrame(buf, kTableRect);
-		if(table.IsEmpty()) continue;
-
-		double t0 = NowMs();
-		double dsc = -2; Point dc(-1, -1);
-		int dseat = DetectDealerChip(table, dt, dsc, dc);
-		dealer_ms_sum += NowMs() - t0; dealer_ms_n++;
-
-		int strength = 0;
-		int tseat = DetectTurnSeat(table, strength);
-
-		String dline;
-		if(dseat >= 0) {
-			dealer_present++;
-			bool ok = (dseat == 0);  // GT: dealer=seat4=bottom=mirror 0 this window
-			dealer_ok += ok;
-			dline = Format("dealer=seat%d %s (score %.2f @%d,%d)", dseat, ok ? "OK" : "MISPLACED", dsc, dc.x, dc.y);
-		}
-		else dline = Format("dealer=none (best score %.2f)", dsc);
-
-		if(tseat >= 0) turn_detected++;
-		String tline;
-		if(exp_turn[f] >= 0) {
-			turn_scored++;
-			bool ok = (tseat == exp_turn[f]);
-			turn_ok += ok;
-			tline = Format("turn=seat%d exp=seat%d %s (str %d)", tseat, exp_turn[f], ok ? "OK" : "MISS", strength);
-		}
-		else tline = Format("turn=%s (str %d, GT n/a)", tseat >= 0 ? ~Format("seat%d", tseat) : "none", strength);
-
-		Cout() << Format("f%02d: %-46s | %s\n", f, ~dline, ~tline);
-	}
+	SidecarGT gt = ParseSidecarGT(kSidecarPath);
+	Vector<String> dirs = ResolveFrameDirs(frames_dir);
 	auto pct = [](int a, int b){ return b ? 100.0 * a / b : 0.0; };
-	Cout() << "\n=== Dealer-chip accuracy (GT: dealer on bottom/mirror-seat-0) ===\n";
-	Cout() << Format("frames with a chip detected = %d/56; correctly on seat 0 = %d/%d (%.1f%%)\n",
-	                 dealer_present, dealer_ok, dealer_present, pct(dealer_ok, dealer_present));
-	Cout() << Format("dealer template match timing = %.1f ms/frame (%d frames, %d scales, felt-band search)\n",
-	                 dealer_ms_n ? dealer_ms_sum / dealer_ms_n : 0.0, dealer_ms_n, kNumDealerScales);
-	Cout() << "\n=== Turn-timer accuracy (GT-scored frames only) ===\n";
-	Cout() << Format("frames with a timer bar detected = %d/56\n", turn_detected);
-	Cout() << Format("GT-scored frames = %d; detected seat == GT acting seat = %d (%.1f%%)\n",
+	auto exp_dealer_at = [&](int sec) -> int {
+		int best = -1, bestsec = -1;
+		for(int i = 0; i < gt.dealer_by_hand_sec.GetCount(); i++) {
+			int hs = gt.dealer_by_hand_sec.GetKey(i);
+			if(hs <= sec && hs > bestsec) { bestsec = hs; best = gt.dealer_by_hand_sec[i]; }
+		}
+		return best; // both hands: 0
+	};
+
+	int tm_present = 0, tm_ok = 0, orb_present = 0, orb_ok = 0;
+	int turn_scored = 0, turn_ok = 0, turn_detected = 0, frames_seen = 0;
+	int turn_bar_on_scored = 0, turn_ok_when_bar = 0; // precision when a bar is actually up
+	double tm_ms_sum = 0, orb_ms_sum = 0; int det_n = 0;
+	for(const String& dir : dirs) {
+		Vector<int> secs = FrameSecondsInDir(dir);
+		int lo = secs.IsEmpty() ? -1 : secs[0], hi = secs.IsEmpty() ? -1 : secs.Top();
+		Cout() << Format("\n--- %s  (frames present: %d, sec %d..%d) ---\n", ~dir, secs.GetCount(), lo, hi);
+		for(int sec : secs) {
+			String path = AppendFileName(dir, Format("frame_%06d.jpg", sec));
+			VsmImageBuffer buf;
+			if(!LoadJpgToBuffer(path, buf)) continue;
+			VsmFrameImage table = CropBufferToFrame(buf, kTableRect);
+			if(table.IsEmpty()) continue;
+			frames_seen++;
+			int expd = exp_dealer_at(sec);
+
+			double t0 = NowMs();
+			double dsc = -2; Point dc(-1, -1);
+			int dseat = DetectDealerChip(table, dt, dsc, dc);
+			tm_ms_sum += NowMs() - t0;
+
+			double o0 = NowMs();
+			int ogood = 0; Point oc(-1, -1);
+			int oseat = orbd.Detect(table, kOrbDealerMinGood, ogood, oc);
+			orb_ms_sum += NowMs() - o0;
+			det_n++;
+
+			int strength = 0;
+			int tseat = DetectTurnSeat(table, strength);
+
+			// Dealer scored only where GT is defined (expd>=0, i.e. within a hand).
+			String dline;
+			if(dseat >= 0) {
+				if(expd >= 0) { tm_present++; if(dseat == expd) tm_ok++; }
+				dline = Format("TM seat%d %s(%.2f)", dseat, expd < 0 ? "n/a" : (dseat == expd ? "OK " : "BAD"), dsc);
+			}
+			else dline = Format("TM none(%.2f)", dsc);
+			String oline;
+			if(oseat >= 0) {
+				if(expd >= 0) { orb_present++; if(oseat == expd) orb_ok++; }
+				oline = Format("ORB seat%d %s(g%d)", oseat, expd < 0 ? "n/a" : (oseat == expd ? "OK " : "BAD"), ogood);
+			}
+			else oline = Format("ORB none(g%d)", ogood);
+
+			if(tseat >= 0) turn_detected++;
+			int expt = gt.turn_by_second.Get(sec, -1);
+			String tline;
+			if(expt >= 0) {
+				turn_scored++; bool ok = (tseat == expt); turn_ok += ok;
+				if(tseat >= 0) { turn_bar_on_scored++; turn_ok_when_bar += ok; } // precision when a bar is up
+				tline = Format("turn=seat%d exp=seat%d %s(str%d)", tseat, expt, ok ? "OK" : "MISS", strength);
+			}
+			else tline = Format("turn=%s(str%d,GTn/a)", tseat >= 0 ? ~Format("seat%d", tseat) : "none", strength);
+
+			Cout() << Format("sec%03d expDlr=%d | %-22s %-22s | %s\n", sec, expd, ~dline, ~oline, ~tline);
+		}
+	}
+	Cout() << "\n=== Dealer-chip accuracy (GT: dealer=seat4=mirror-0 both hands) ===\n";
+	Cout() << Format("frames scanned = %d\n", frames_seen);
+	Cout() << Format("TM : chip detected %d; correct seat = %d/%d (%.1f%%);  timing %.1f ms/frame\n",
+	                 tm_present, tm_ok, tm_present, pct(tm_ok, tm_present), det_n ? tm_ms_sum / det_n : 0.0);
+	Cout() << Format("ORB: chip detected %d (good>=%d); correct seat = %d/%d (%.1f%%);  timing %.1f ms/frame\n",
+	                 orb_present, kOrbDealerMinGood, orb_ok, orb_present, pct(orb_ok, orb_present),
+	                 det_n ? orb_ms_sum / det_n : 0.0);
+	Cout() << "\n=== Turn-timer accuracy (sidecar-derived acting seat) ===\n";
+	Cout() << Format("frames with a timer bar detected = %d/%d\n", turn_detected, frames_seen);
+	Cout() << Format("GT-scored seconds = %d; matches GT actor = %d (%.1f%%)\n",
 	                 turn_scored, turn_ok, pct(turn_ok, turn_scored));
+	Cout() << Format("  (precision) of GT-scored seconds where a bar is actually up (%d): correct = %d (%.1f%%)\n",
+	                 turn_bar_on_scored, turn_ok_when_bar, pct(turn_ok_when_bar, turn_bar_on_scored));
+	Cout() << "  NOTE: the low overall %% is a GT-window artifact -- the sidecar-derived acting\n"
+	          "  window spans every second between two actions, but the on-screen timer bar is\n"
+	          "  only lit while that player is actively deciding, so many GT seconds legitimately\n"
+	          "  show no bar (str<threshold). The precision line is the real detector quality.\n";
+	return 0;
+}
+
+// ===========================================================================
+// Task 0291a item 3: HOLE-CARD recognition. Task 0290a explicitly left hole cards
+// untested (only board cards were localized). Both hands reveal hole cards
+// face-up at the all-in showdown; the on-screen regions below were MEASURED on
+// the real reveal frames (hand 1: 0263 frames 49-52, board fully out; hand 2:
+// 0268 frames 95-104, all-in run-out) -- the reveal lags the sidecar "shows"
+// timestamp by ~1s (hand 1 "shows @48" renders 49-52), so a small post-shows
+// window is sampled. Only seats that actually reach showdown in these two hands
+// have ground truth: mirror 0 (bottom), 1 (left-bottom), 2 (left-top). Seats
+// 3/4/5 fold both hands -> no face-up hole cards -> no GT (honestly untested).
+// The SAME ClassifySuitByColor / RecognizeRank pipeline as board cards is reused
+// (now rect-driven), with a wider rank-scale set (hole glyphs are a touch smaller
+// on-screen than board glyphs).
+// ===========================================================================
+struct HoleRegion { int mirror; Rect c0; Rect c1; bool has_gt; };
+static const HoleRegion kHoleRegions[3] = {
+	{ 0, RectC(416, 412, 62, 56), RectC(478, 412, 62, 56), true }, // BOTTOM      (TdTh h1)
+	{ 1, RectC( 52, 300, 64, 54), RectC(116, 300, 64, 54), true }, // LEFT_BOTTOM (QcJh h2)
+	{ 2, RectC( 76, 102, 64, 54), RectC(142, 102, 64, 54), true }, // LEFT_TOP    (3hKs h1 / QhQs h2)
+};
+// Hole cards render the rank as a SMALL glyph in the TOP-LEFT CORNER (a miniature
+// card index), unlike board cards which show a LARGE centred rank. So hole-card
+// rank recognition restricts the template search to this corner sub-rect (and uses
+// a much smaller scale set -- the corner glyph is ~0.4x the board glyph). Suit is
+// still read from the full card interior by colour (the 4-colour deck tints the
+// whole card), which already scores 8/8 on these reveals.
+static Rect HoleCornerRect(const Rect& card)
+{
+	return RectC(card.left + 1, card.top + 2, 30, 34);
+}
+// Is a face-up hole card present in this region? (vs. felt / avatar after a fold).
+// Card pixels are bright and non-felt (4-colour deck: red/blue/green/grey, all
+// with a max channel > 110); felt max ~96, avatar/shadow dark. Present if a clear
+// majority of the interior is card-bright.
+static bool HoleCardPresent(const VsmFrameImage& table, const Rect& in_r)
+{
+	Rect r = RectC(in_r.left + 4, in_r.top + 4, max(1, in_r.Width() - 8), max(1, in_r.Height() - 8))
+	         & RectC(0, 0, table.width, table.height);
+	if(r.Width() <= 0 || r.Height() <= 0) return false;
+	int bright = 0, tot = 0;
+	for(int y = r.top; y < r.bottom; y += 2) {
+		const byte* row = ~table.data + (size_t)((size_t)y * table.width + r.left) * 4;
+		for(int x = 0; x < r.Width(); x += 2) {
+			const byte* p = row + (size_t)x * 4;
+			int mx = max((int)p[0], max((int)p[1], (int)p[2]));
+			if(mx > 110 && !IsFeltPixel(p)) bright++;
+			tot++;
+		}
+	}
+	return tot > 0 && (double)bright / tot > 0.45;
+}
+
+static int RunHoleCardTest(const String& frames_dir, const String& templates_dir)
+{
+	Cout() << "=== Mode: hole-card-test (real showdown reveals vs sidecar 'shows') ===\n";
+	// Small scale set: the top-left corner rank glyph is ~0.4x the board rank glyph
+	// the templates were sized for.
+	Vector<double> hscales; hscales << 0.30 << 0.35 << 0.40 << 0.45 << 0.50 << 0.55;
+	CardTemplates ct = LoadCardTemplates(templates_dir, hscales);
+	if(!ct.ok) { Cerr() << "ERROR: incomplete rank template library\n"; return 1; }
+	Cout() << Format("rank templates: %d/13, corner scales={0.30..0.55}\n", ct.ranks.GetCount());
+	int suit_tot = 0, suit_ok_cnt = 0;
+
+	SidecarGT gt = ParseSidecarGT(kSidecarPath);
+	Vector<String> dirs = ResolveFrameDirs(frames_dir);
+	auto pct = [](int a, int b){ return b ? 100.0 * a / b : 0.0; };
+
+	int card_total = 0, card_majvote_ok = 0;      // per-card majority-vote accuracy
+	int present_shows = 0, total_shows = 0;
+	for(const SidecarGT::Show& sh : gt.shows) {
+		total_shows++;
+		// find the region for this seat
+		const HoleRegion* reg = nullptr;
+		for(const HoleRegion& hr : kHoleRegions) if(hr.mirror == sh.mirror && hr.has_gt) reg = &hr;
+		Vector<int> gtcards = ParseCardRun(sh.cards);
+		if(!reg || gtcards.GetCount() != 2) {
+			Cout() << Format("show sec%03d seat%d %s: NO GT REGION (seat folds / not localized) -- untested\n",
+			                 sh.sec, sh.mirror, ~sh.cards);
+			continue;
+		}
+		// bound the sample window: [shows, shows+9], capped before the next new hand.
+		int cap = sh.sec + 9;
+		for(int nh : gt.new_hand_seconds) if(nh > sh.sec && nh - 1 < cap) cap = nh - 1;
+		// pick the dir that actually contains these frames
+		String usedir;
+		for(const String& d : dirs) {
+			Vector<int> secs = FrameSecondsInDir(d);
+			if(!secs.IsEmpty() && secs[0] <= sh.sec + 1 && secs.Top() >= sh.sec) { usedir = d; break; }
+		}
+		if(usedir.IsEmpty()) { Cout() << Format("show sec%03d seat%d: no dir covers it\n", sh.sec, sh.mirror); continue; }
+
+		// tally per-card votes across all frames where the card is present
+		VectorMap<int,int> votes0, votes1; int present_frames = 0;
+		Cout() << Format("show sec%03d seat%d exp=%s  dir=%s  window=[%d..%d]\n",
+		                 sh.sec, sh.mirror, ~sh.cards, ~GetFileName(usedir), sh.sec, cap);
+		for(int sec = sh.sec; sec <= cap; sec++) {
+			String path = AppendFileName(usedir, Format("frame_%06d.jpg", sec));
+			VsmImageBuffer buf;
+			if(!LoadJpgToBuffer(path, buf)) continue;
+			VsmFrameImage table = CropBufferToFrame(buf, kTableRect);
+			if(table.IsEmpty()) continue;
+			bool p0 = HoleCardPresent(table, reg->c0), p1 = HoleCardPresent(table, reg->c1);
+			if(!p0 && !p1) { continue; } // reveal not yet rendered / seat empty
+			present_frames++;
+			double s0 = -2, s1 = -2;
+			// suit from full card interior (colour); rank from the top-left corner glyph
+			String su0 = ClassifySuitByColor(table, reg->c0), r0 = RecognizeRank(table, HoleCornerRect(reg->c0), ct, s0);
+			String su1 = ClassifySuitByColor(table, reg->c1), r1 = RecognizeRank(table, HoleCornerRect(reg->c1), ct, s1);
+			int i0 = CardIndex(r0, su0), i1 = CardIndex(r1, su1);
+			if(i0 >= 0) votes0.GetAdd(i0, 0)++;
+			if(i1 >= 0) votes1.GetAdd(i1, 0)++;
+			Cout() << Format("   sec%03d p=%d%d  c0=%s%s(%.2f)->%s  c1=%s%s(%.2f)->%s\n",
+			                 sec, p0, p1, ~r0, ~su0, s0, ~FormatCardStr(i0),
+			                 ~r1, ~su1, s1, ~FormatCardStr(i1));
+		}
+		if(present_frames > 0) present_shows++;
+		// majority vote per card
+		auto topvote = [](const VectorMap<int,int>& v) -> int {
+			int best = -1, bc = -1;
+			for(int i = 0; i < v.GetCount(); i++) if(v[i] > bc) { bc = v[i]; best = v.GetKey(i); }
+			return best;
+		};
+		int mv0 = topvote(votes0), mv1 = topvote(votes1);
+		bool ok0 = (mv0 == gtcards[0]), ok1 = (mv1 == gtcards[1]);
+		card_total += 2; card_majvote_ok += ok0 + ok1;
+		// suit-only accuracy from the majority-vote cards (suit = idx/13)
+		suit_tot += 2;
+		if(mv0 >= 0 && mv0 / 13 == gtcards[0] / 13) suit_ok_cnt++;
+		if(mv1 >= 0 && mv1 / 13 == gtcards[1] / 13) suit_ok_cnt++;
+		Cout() << Format("   => present in %d frames; majority-vote: %s%s  %s%s\n",
+		                 present_frames,
+		                 ~FormatCardStr(gtcards[0]), ok0 ? "=OK" : Format("!=%s", ~FormatCardStr(mv0)),
+		                 ~FormatCardStr(gtcards[1]), ok1 ? "=OK" : Format("!=%s", ~FormatCardStr(mv1)));
+	}
+	Cout() << "\n=== Hole-card recognition accuracy (majority vote per revealed card) ===\n";
+	Cout() << Format("shows with GT region = %d; shows where cards were captured = %d\n",
+	                 card_total / 2, present_shows);
+	Cout() << Format("cards correct (rank+suit, majority vote) = %d/%d (%.1f%%)\n",
+	                 card_majvote_ok, card_total, pct(card_majvote_ok, card_total));
+	Cout() << Format("suit-only correct (majority vote)        = %d/%d (%.1f%%)\n",
+	                 suit_ok_cnt, suit_tot, pct(suit_ok_cnt, suit_tot));
+	Cout() << "(Seats that fold before showdown -- mirror 3/4/5 in these two hands -- reveal no\n"
+	          " face-up hole cards and are honestly untested; only mirror 0/1/2 have ground truth.)\n";
+	return 0;
+}
+
+// ===========================================================================
+// Task 0291a item 5: BALANCE/BET/NAME/POT OCR accuracy with the cache DISABLED.
+// This directly OCRs the fixed per-seat name/balance plates and the pot label
+// (rects MEASURED on real frames) via the SAME VsmTesseractOcrEngine the live
+// loop uses, and compares against the sidecar's own real numbers. It calls
+// ocr.Execute() directly (no Task 0286 cache in the path at all -- i.e. the
+// cache-disabled condition the audit asks for), and reports per-field accuracy
+// (name / balance / pot) separately rather than one aggregate. Balances are read
+// at each hand's first fully-labeled frame, where every stack still equals the
+// sidecar's stated starting balance (verified: 0263 frame 7 and 0268 frame 55).
+// ===========================================================================
+struct SeatPlate { int mirror; Rect name; Rect bal; };
+static const SeatPlate kSeatPlates[6] = {
+	{ 0, RectC(428, 478, 116, 24), RectC(438, 505, 100, 26) }, // BOTTOM
+	{ 1, RectC( 36, 360, 132, 24), RectC( 44, 388, 110, 24) }, // LEFT_BOTTOM
+	{ 2, RectC( 72, 158, 140, 24), RectC( 78, 186, 116, 24) }, // LEFT_TOP
+	{ 3, RectC(392,  96, 120, 24), RectC(404, 122, 108, 24) }, // TOP
+	{ 4, RectC(770, 158, 128, 24), RectC(782, 186, 110, 24) }, // RIGHT_TOP
+	{ 5, RectC(792, 362, 124, 24), RectC(806, 388, 104, 24) }, // RIGHT_BOTTOM
+};
+static const Rect kPotRect = RectC(408, 216, 120, 24);
+
+static String NormName(const String& s) // case/space-insensitive name key
+{
+	String o;
+	for(int i = 0; i < s.GetCount(); i++) { int c = s[i]; if(c > ' ') o.Cat(ToLower((char)c)); }
+	return o;
+}
+
+static int RunOcrAccuracyTest(const String& frames_dir, const String& templates_dir)
+{
+	Cout() << "=== Mode: ocr-accuracy-test (NAME/BALANCE/POT vs sidecar, CACHE DISABLED) ===\n";
+	VsmTesseractOcrEngine ocr;
+	bool avail = ocr.GetInfo().available;
+	Cout() << "tesseract OCR available: " << (avail ? "YES" : "NO") << "\n";
+	if(!avail) { Cerr() << "ERROR: OCR engine not available\n"; return 1; }
+
+	SidecarGT gt = ParseSidecarGT(kSidecarPath);
+	auto pct = [](int a, int b){ return b ? 100.0 * a / b : 0.0; };
+
+	auto ocr_rect = [&](const VsmFrameImage& table, const Rect& r, const char* sem) -> String {
+		VsmFrameImage crop = CropFrameImage(table, r & RectC(0,0,table.width,table.height));
+		if(crop.IsEmpty()) return "";
+		VsmOcrRequest req; req.semantic = sem;
+		req.region_id = Format("%d,%d,%d,%d", r.left, r.top, r.Width(), r.Height());
+		VsmOcrResult res = ocr.Execute(crop, req);
+		return TrimBoth(res.text);
+	};
+	auto load_table = [&](const String& dir, int sec, VsmFrameImage& table) -> bool {
+		String path = AppendFileName(dir, Format("frame_%06d.jpg", sec));
+		VsmImageBuffer buf;
+		if(!LoadJpgToBuffer(path, buf)) return false;
+		table = CropBufferToFrame(buf, kTableRect);
+		return !table.IsEmpty();
+	};
+
+	int name_tot=0, name_ok=0, bal_tot=0, bal_ok=0;
+	auto do_hand = [&](const char* dir, int hand, const Vector<int>& name_frames, int bal_frame) {
+		Cout() << Format("\n--- HAND %d (%s) ---\n", hand + 1, dir);
+		if(hand >= gt.hands.GetCount()) return;
+		const VectorMap<int, SidecarGT::SeatInfo>& seats = gt.hands[hand];
+
+		// NAMES: OCR each seat across the candidate frames; accept the first read
+		// that matches GT (real name shown before an early fold overwrites the plate).
+		Cout() << "  [NAME]\n";
+		for(int mi = 0; mi < 6; mi++) {
+			int gi = seats.Find(mi);
+			if(gi < 0) continue;
+			String want = seats[gi].name;
+			if(want.IsEmpty()) continue;
+			name_tot++;
+			String best; bool matched = false;
+			for(int fr : name_frames) {
+				VsmFrameImage table;
+				if(!load_table(dir, fr, table)) continue;
+				String got = ocr_rect(table, kSeatPlates[mi].name, "seat_name_plate");
+				if(best.IsEmpty() && !got.IsEmpty()) best = got;
+				if(NormName(got) == NormName(want)) { best = got; matched = true; break; }
+			}
+			name_ok += matched;
+			Cout() << Format("    mirror%d exp=\"%s\"  ocr=\"%s\"  %s\n",
+			                 mi, ~want, ~best, matched ? "MATCH" : "MISS");
+		}
+
+		// BALANCES: at the hand-start frame every stack still equals GT starting BB.
+		Cout() << Format("  [BALANCE] (frame %d)\n", bal_frame);
+		VsmFrameImage table;
+		if(load_table(dir, bal_frame, table)) {
+			for(int mi = 0; mi < 6; mi++) {
+				int gi = seats.Find(mi);
+				if(gi < 0 || seats[gi].balance < 0) continue;
+				double want = seats[gi].balance;
+				bal_tot++;
+				String got = ocr_rect(table, kSeatPlates[mi].bal, "seat_balance_plate");
+				double v = 0; bool parsed = ParseChipValue(got, v);
+				bool ok = parsed && fabs(v - want) < 0.15;
+				bal_ok += ok;
+				Cout() << Format("    mirror%d exp=%.1f`BB  ocr=\"%s\"(%.4g)  %s\n",
+				                 mi, want, ~got, parsed ? v : -1.0, ok ? "MATCH" : "MISS");
+			}
+		}
+	};
+	// Wide name-frame sets: no single frame shows all 6 names (a seat's plate turns
+	// into "Post SB/BB" before its name settles and into "Fold" once it folds), so
+	// several frames are tried per seat and the GT-matching read (if any) is taken.
+	{ Vector<int> nf; nf << 5 << 6 << 7 << 8 << 9 << 10 << 11; do_hand("tmp/real_recording_0263_frames", 0, nf, 7); }
+	{ Vector<int> nf; nf << 53 << 54 << 55 << 56 << 57 << 58; do_hand("tmp/real_recording_0268_frames", 1, nf, 55); }
+
+	// POT: OCR the pot label at the seconds where the sidecar states a pot total.
+	// (Frame index == video second; nearest available frame in either dir.)
+	Cout() << "\n--- POT (sidecar-stated pot totals) ---\n";
+	struct PotCase { const char* dir; int sec; double pot; };
+	static const PotCase pots[] = {
+		{ "tmp/real_recording_0263_frames", 13,   4.0 },
+		{ "tmp/real_recording_0263_frames", 17,   5.3 },
+		{ "tmp/real_recording_0263_frames", 27,   8.5 },
+		{ "tmp/real_recording_0263_frames", 38,  33.1 },
+		{ "tmp/real_recording_0268_frames", 87,  29.1 },
+		{ "tmp/real_recording_0268_frames", 100,178.7 },
+		{ "tmp/real_recording_0268_frames", 102,178.7 },
+	};
+	int pot_tot = 0, pot_ok = 0;
+	for(const PotCase& pc : pots) {
+		VsmFrameImage table;
+		if(!load_table(pc.dir, pc.sec, table)) { Cout() << Format("    sec%03d: frame load failed\n", pc.sec); continue; }
+		String got = ocr_rect(table, kPotRect, "pot_label");
+		double v = 0; bool parsed = ParseChipValue(got, v);
+		bool ok = parsed && fabs(v - pc.pot) < 0.15;
+		pot_tot++; pot_ok += ok;
+		Cout() << Format("    sec%03d exp pot=%.1f`BB  ocr=\"%s\"(%.4g)  %s\n",
+		                 pc.sec, pc.pot, ~got, parsed ? v : -1.0, ok ? "MATCH" : "MISS");
+	}
+
+	Cout() << "\n=== OCR accuracy (cache disabled), per field ===\n";
+	Cout() << Format("NAME    : %d/%d (%.1f%%)\n", name_ok, name_tot, pct(name_ok, name_tot));
+	Cout() << Format("BALANCE : %d/%d (%.1f%%)\n", bal_ok, bal_tot, pct(bal_ok, bal_tot));
+	Cout() << Format("POT     : %d/%d (%.1f%%)\n", pot_ok, pot_tot, pct(pot_ok, pot_tot));
+	Cout() << "(BET plates are transient/positional -- covered indirectly by the live pipeline's\n"
+	          " seat_bet reroute logic, not graded here; pot is the stable central chip total.)\n";
 	return 0;
 }
 
@@ -3031,9 +3637,11 @@ GUI_APP_MAIN
 		else if(args[i] == "--live") mode = "live";
 		else if(args[i] == "--gui") mode = "gui";
 		else if(args[i] == "--crop-safety-check") mode = "cropsafety";
-		else if(args[i] == "--card-recog-test") { mode = "cardrecog"; if(frames_dir.IsEmpty()) frames_dir = "tmp/real_recording_0263_frames"; }
+		else if(args[i] == "--card-recog-test") mode = "cardrecog"; // empty frames_dir -> BOTH hands (0263+0268)
 		else if(args[i] == "--card-dataset-dump" && i + 1 < args.GetCount()) { mode = "carddataset"; card_dataset_out = args[++i]; if(frames_dir.IsEmpty()) frames_dir = "tmp/real_recording_0263_frames"; }
-		else if(args[i] == "--dealer-turn-test") { mode = "dealerturn"; if(frames_dir.IsEmpty()) frames_dir = "tmp/real_recording_0263_frames"; }
+		else if(args[i] == "--dealer-turn-test") mode = "dealerturn"; // empty frames_dir -> BOTH hands
+		else if(args[i] == "--hole-card-test") mode = "holecard";     // Task 0291a item 3
+		else if(args[i] == "--ocr-accuracy-test") mode = "ocracc";    // Task 0291a item 5
 		else if(args[i] == "--frames-dir" && i + 1 < args.GetCount()) frames_dir = args[++i];
 		else if(args[i] == "--templates" && i + 1 < args.GetCount()) g_templates_dir = args[++i];
 		else if(args[i] == "--crop-list" && i + 1 < args.GetCount()) crop_safety_lists.Add(args[++i]);
@@ -3068,8 +3676,10 @@ GUI_APP_MAIN
 		       << "                               suit-colour + rank template match) accuracy vs the\n"
 		       << "                               sidecar ground truth + ORB-vs-template timing\n"
 		       << "  --card-dataset-dump <dir>   Task 0290a: dump labeled board-card crops + manifest\n"
-		       << "  --dealer-turn-test          Task 0290c: dealer-chip template match + turn-timer\n"
-		       << "                               bar detection accuracy vs the sidecar ground truth\n"
+		       << "  --dealer-turn-test          Task 0290c/0291a: dealer-chip TM + ORB + turn-timer\n"
+		       << "                               accuracy vs sidecar (BOTH hands unless --frames-dir)\n"
+		       << "  --hole-card-test            Task 0291a: showdown hole-card recognition (both hands)\n"
+		       << "  --ocr-accuracy-test         Task 0291a: name/balance/pot OCR accuracy, cache disabled\n"
 		       << "Options:\n"
 		       << "  --host <h> --port <p>       VideoServer address (default 127.0.0.1:8082)\n"
 		       << "  --seconds <n>               Live run duration (default 30)\n"
@@ -3104,5 +3714,7 @@ GUI_APP_MAIN
 	else if(mode == "cardrecog") rc = RunCardRecogTest(frames_dir, g_templates_dir);
 	else if(mode == "carddataset") rc = RunCardDatasetDump(frames_dir, g_templates_dir, card_dataset_out);
 	else if(mode == "dealerturn") rc = RunDealerTurnTest(frames_dir, g_templates_dir);
+	else if(mode == "holecard") rc = RunHoleCardTest(frames_dir, g_templates_dir);
+	else if(mode == "ocracc") rc = RunOcrAccuracyTest(frames_dir, g_templates_dir);
 	if(rc) SetExitCode(rc);
 }

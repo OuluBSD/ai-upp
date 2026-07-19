@@ -3348,9 +3348,21 @@ static const HoleRegion kHoleRegions[3] = {
 // a much smaller scale set -- the corner glyph is ~0.4x the board glyph). Suit is
 // still read from the full card interior by colour (the 4-colour deck tints the
 // whole card), which already scores 8/8 on these reveals.
+// Task 0292 fix: the corner rank glyph does NOT sit at a fixed small offset from
+// card.top -- the kHoleRegions card rects are vertically aligned inconsistently, so
+// the real rank glyph starts anywhere from card.top+8 (left-top seat) down to
+// card.top+20 (bottom seat) and is ~22px tall (measured on real reveal frames, both
+// hands: white-glyph row histograms of Th/Ks/Qc/Jh/Qh/Qs/Td/3h). The old
+// RectC(card.left+1, card.top+2, 30, 34) top edge (card.top+2..36) sat mostly in the
+// felt gap above the bottom seat's card and CUT OFF the lower half of its "10" glyph
+// -- the direct cause of the Th->7h miss (match 0.53 vs 0.84-0.95 for well-bounded
+// glyphs). The band below (card.top+6..44, x 0..31 from card.left) fully contains the
+// rank glyph for EVERY measured seat/hand; it clips at most a partial suit pip at the
+// very bottom for the top seats, which the sliding TM_CCOEFF_NORMED peak ignores in
+// favour of the full, correctly-scaled rank glyph.
 static Rect HoleCornerRect(const Rect& card)
 {
-	return RectC(card.left + 1, card.top + 2, 30, 34);
+	return RectC(card.left, card.top + 6, 32, 38);
 }
 // Is a face-up hole card present in this region? (vs. felt / avatar after a fold).
 // Card pixels are bright and non-felt (4-colour deck: red/blue/green/grey, all

@@ -256,6 +256,66 @@ static int LettersOutsideKeyword(const String& text, const String& kw)
 	return letters;
 }
 
+// Task 0290b: length of the LONGEST continuous run of alphabetic characters in
+// `s`. A real player name in this recording always carries a long continuous
+// alphabetic run (Donati=6, Aludra=6, wegohigh=8, isarpires98 has "isarpires"=9,
+// kolyamaster02 has "kolyamaster"=11, Arakatakas100 has "Arakatakas"=10) -- every
+// real username seen is >= 6. A chip-amount-shaped OCR read that leaked into the
+// name field (a misclassified balance/bet plate "191.5 BB", or a hand-result
+// phrase "Won 191.5 BB") has only short fragments ("BB"=2, "Won"=3). So a low
+// longest-alpha-run + a chip amount present is a robust, keyword-free "this is
+// NOT a name" discriminator (see kMinNameAlphaRun).
+static int LongestAlphaRun(const String& s)
+{
+	int best = 0, cur = 0;
+	for(int i = 0; i < s.GetCount(); i++) {
+		int c = s[i];
+		if((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z')) { cur++; if(cur > best) best = cur; }
+		else cur = 0;
+	}
+	return best;
+}
+
+// Task 0290b: detect a chip-amount-SHAPED substring in `s` and return its parsed
+// value. "Shaped" means a numeric run that is EITHER >= 2 digits long, OR
+// contains a decimal point, OR is immediately followed (after optional spaces) by
+// a "BB"/"SB" unit -- this deliberately does NOT fire on a lone single digit that
+// might be part of a username (e.g. the "5" many nicks contain), while it DOES
+// fire on real chip figures ("191.5 BB", "1,085", "78.3", "5 BB", "99.5 BB").
+// Pairing this with LongestAlphaRun() (below, in the name-plate resolve path) is
+// what separates "chip value that leaked into the name field" from a genuine
+// username that merely happens to contain digits (isarpires98).
+static bool ContainsChipAmount(const String& s, double& val)
+{
+	String low = ToLower(s);
+	bool shaped = false;
+	for(int i = 0; i < low.GetCount(); ) {
+		int c = low[i];
+		if(c >= '0' && c <= '9') {
+			int j = i, digits = 0; bool dot = false;
+			while(j < low.GetCount()) {
+				int d = low[j];
+				if(d >= '0' && d <= '9') { digits++; j++; }
+				else if(d == '.' || d == ',') { if(d == '.') dot = true; j++; }
+				else break;
+			}
+			int k = j; while(k < low.GetCount() && low[k] == ' ') k++;
+			bool unit = (low.Mid(k, 2) == "bb" || low.Mid(k, 2) == "sb");
+			if(digits >= 2 || dot || unit) { shaped = true; break; }
+			i = (j > i) ? j : i + 1;
+		}
+		else i++;
+	}
+	if(!shaped) return false;
+	return ParseChipValue(s, val);
+}
+
+// Task 0290b: minimum longest-alpha-run for an OCR'd name-plate string to be
+// ACCEPTED as a real player name when it also carries a chip amount. 4 sits
+// safely below every real username seen (all >= 6) and above the fragments of
+// the known leak cases ("BB"=2, "Won"=3, "All"/"Bet"=3). See LongestAlphaRun().
+static const int kMinNameAlphaRun = 4;
+
 // ---------------------------------------------------------------------------
 // Task 0287: map a classified region's table-space rect to a seat index (0-5).
 //
@@ -309,6 +369,65 @@ static int RegionToSeat(int left, int top, int w, int h)
 		if(d < best_d) { best_d = d; best = sa.seat; }
 	}
 	return best;
+}
+
+// ---------------------------------------------------------------------------
+// Task 0290b: OCR-FREE structural fold signal -- the two face-down hole-card
+// backs over a seat vs. that region gone empty/felt.
+//
+// Per-seat expected hole-card-back region (TABLE space, same coordinate frame as
+// kSeatAnchors and kTableRect's crop). Derived from REAL data, not guessed:
+//   - seats 0,1,2,5: taken directly from the labeled dataset's real
+//     `hole_card_facedown` rects (frame_000006/54 region crops).
+//   - seat 4: the left-right mirror of seat 2 about the table centre x (940-x),
+//     validated against real full frames (cards present ~11% white, absent ~0%).
+//   - seat 3 (TOP): DISABLED. The dataset carries ZERO hole_card_facedown entries
+//     for the top seat, and a direct look at real frames shows the TOP pod draws
+//     its name plate/avatar exactly where a naive card rect would sit, so any rect
+//     there false-triggers on white name/avatar text. Rather than emit a noisy/
+//     wrong seat-3 fold signal, seat 3 falls back to OCR-only fold detection
+//     (which still fires there -- e.g. frame_000006's seat-3 "Fold" name-plate
+//     read is caught by the action reroute). Disclosed honestly, not papered over.
+//
+// The discriminator is the near-white pixel fraction: this client's card backs
+// are a bright teal-and-white diamond pattern (~11-19% of pixels near-white on
+// real crops), whereas felt / an empty seat / a folded seat's dark action bubble
+// are 0-2.9%. kCardBackWhiteFrac=0.06 sits in that gap with margin on BOTH sides
+// (>3% above the felt max, >5% below the card-back min) -- the same safety-first
+// "threshold strictly inside the real measured gap" discipline Task 0286 used for
+// the OCR cache. Pixel/color sampling only: NO OCR, no classifier, ~a few thousand
+// strided pixel reads per seat per frame (sub-millisecond, folded into st.resolve).
+struct CardBackRegion { int seat; Rect rect; bool enabled; };
+static const CardBackRegion kCardBackRegions[6] = {
+	{ 0, RectC(456, 432,  96, 48), true  }, // BOTTOM       (dataset-measured)
+	{ 1, RectC( 96, 312,  96, 48), true  }, // LEFT_BOTTOM  (dataset-measured)
+	{ 2, RectC(144, 120,  72, 48), true  }, // LEFT_TOP     (dataset-measured)
+	{ 3, RectC(  0,   0,   0,  0), false }, // TOP          (no reliable region -- disabled)
+	{ 4, RectC(724, 120,  72, 48), true  }, // RIGHT_TOP    (mirror of seat 2, validated)
+	{ 5, RectC(768, 312, 144, 48), true  }, // RIGHT_BOTTOM (dataset-measured)
+};
+static const double kCardBackWhiteFrac    = 0.06; // >= => two card backs present
+static const int    kCardBackConfirmFrames = 3;   // debounce raw samples before committing
+
+// Fraction (0..1) of near-white pixels (all RGB channels >= 150) in a table-space
+// rect of the RGBA frame; -1 if the rect is empty. Strided x2 in both axes (the
+// diamond pattern is dense; full sampling is unnecessary and this keeps the cost
+// negligible). Matches the offline calibration that set kCardBackWhiteFrac.
+static double CardBackWhiteFraction(const VsmFrameImage& table, const Rect& in_r)
+{
+	Rect r = in_r & RectC(0, 0, table.width, table.height);
+	if(r.Width() <= 0 || r.Height() <= 0) return -1;
+	int white = 0, tot = 0;
+	for(int y = r.top; y < r.bottom; y += 2) {
+		const byte* row = ~table.data + (size_t)((size_t)y * table.width + r.left) * 4;
+		for(int x = 0; x < r.Width(); x += 2) {
+			const byte* p = row + (size_t)x * 4;
+			int mn = min((int)p[0], min((int)p[1], (int)p[2]));
+			if(mn >= 150) white++;
+			tot++;
+		}
+	}
+	return tot ? (double)white / tot : -1;
 }
 
 // ---------------------------------------------------------------------------
@@ -558,6 +677,9 @@ struct ResolveState {
 		for(int i = 0; i < 5; i++) board_cards.Add(-1);
 		for(int i = 0; i < 6; i++) {
 			seat_stack[i] = -1; seat_bet[i] = -1; seat_round_total[i] = -1;
+			// Task 0290b: structural fold signal state.
+			seat_cards_present[i] = -1; cards_raw_last[i] = -1; cards_raw_streak[i] = 0;
+			seat_folded[i] = false;
 		}
 	}
 	// board tracking (structural tier)
@@ -581,6 +703,25 @@ struct ResolveState {
 	double seat_round_total[6];  // last OCR'd chip_badge_stack value per seat, -1 none
 	int    last_action_seat = -1;    // seat of the most recent action-bubble read
 	int64  last_action_ms = 0;       // wall time of that read (for "fresh"/turn highlight)
+	// Task 0290b: OCR-free structural fold signal (hole-card-back presence).
+	// seat_folded is the AUTHORITATIVE fold state, driven by BOTH the OCR-text
+	// path (an action normalizing to "Fold", incl. the name-plate reroute) AND the
+	// card-back path (region gone felt/empty). seat_cards_present is the committed
+	// (debounced) card-back state; cards_raw_last/cards_raw_streak debounce the raw
+	// per-frame sample so a single animation frame can't flip fold state.
+	int    seat_cards_present[6];  // committed: -1 unknown, 0 absent, 1 present
+	int    cards_raw_last[6];      // last raw sample (1/0) for the debounce streak
+	int    cards_raw_streak[6];    // consecutive frames the raw sample agreed
+	bool   seat_folded[6];         // authoritative fold state (OCR-fold OR structural)
+	// Set the authoritative fold state for a seat, logging only on a real
+	// transition (idempotent). `reason` names which signal drove the change so the
+	// event log distinguishes an OCR-text fold from a structural card-back fold.
+	void SetFolded(int seat, bool f, const String& reason, bool verbose) {
+		if(seat < 0 || seat >= 6 || seat_folded[seat] == f) return;
+		seat_folded[seat] = f;
+		value_changes++;
+		LogEvent(Format("seat %d %s (%s)", seat, f ? "fold" : "back in hand", ~reason), verbose);
+	}
 	// Task 0289: bounded event log (most-recent-last), surfaced in the GUI panel.
 	int64  start_ms = 0;
 	Vector<String> event_log;
@@ -839,6 +980,9 @@ static void ProcessTableFrame(const VsmFrameImage& table, VsmFrameImage& prev, b
 					// the direct parallel to Task 0288's IsPureChipText name-reject,
 					// and what makes fold-based card hiding actually fire on real data.
 					String act0 = NormalizeActionText(nm);
+					double chipv = 0;
+					bool   has_chip  = ContainsChipAmount(nm, chipv);
+					int    alpha_run = LongestAlphaRun(nm);
 					if(!act0.IsEmpty()
 					   && LettersOutsideKeyword(nm, act0 == "All In" ? "all" : act0) <= 2) {
 						if(rs.seat_action[seat] != act0) {
@@ -846,20 +990,66 @@ static void ProcessTableFrame(const VsmFrameImage& table, VsmFrameImage& prev, b
 							rs.LogEvent(Format("seat %d action: %s (rerouted from name-plate)", seat, ~act0), verbose);
 						}
 						rs.seat_action[seat] = act0;
+						// Task 0290b: an action-word name-plate read also drives the
+						// authoritative fold state (a "Fold" here IS the fold signal;
+						// any other action means the seat is live -> clear a stale fold).
+						rs.SetFolded(seat, act0 == "Fold", "action via name-plate", verbose);
 						rs.last_action_seat = seat;
 						rs.last_action_ms = msecs();
+					}
+					// Task 0290b: a CHIP AMOUNT that leaked into the name field.
+					// Real names always carry a long continuous alphabetic run
+					// (>= 6 in this recording); a chip-amount-shaped read whose
+					// longest alpha run is < kMinNameAlphaRun is NOT a name. This is
+					// a keyword-free structural discriminator (per the task's stated
+					// preference over another one-off keyword list), so newly-seen
+					// phrases ("Wins"/"Split"/"Timed Out"+amount, ...) need no future
+					// fix. The alpha-run guard also protects real usernames that
+					// merely contain digits (isarpires98, alpha run 9) from ever
+					// being mistaken for a leaked chip value.
+					else if(has_chip && alpha_run < kMinNameAlphaRun) {
+						if(IsPureChipText(nm)) {
+							// A clean chip figure ("191.5 BB", "1,085") whose only
+							// letters are the BB/SB unit -- a misclassified balance/bet
+							// plate (the user's "BB in the name field is really a
+							// balance" report). Reroute the VALUE to the seat's bet slot
+							// rather than discarding it (Task 0288 discarded; this task
+							// reroutes). Bet, not stack, is the deliberate safety choice:
+							// a bet is transient/self-healing and renders as a clearly-a-
+							// bet pill, whereas a wrong STACK persists as an authoritative
+							// lie -- the exact risk Task 0288 flagged. Documented as a
+							// reversible judgment call.
+							if(rs.seat_bet[seat] < 0 || fabs(rs.seat_bet[seat] - chipv) > 0.001) {
+								rs.value_changes++;
+								rs.LogEvent(Format("seat %d bet: %.4g (chip amount rerouted from name-plate)", seat, chipv), verbose);
+							}
+							rs.seat_bet[seat] = chipv;
+							if(verbose)
+								Cout() << Format("    [reroute-name] seat %d name-plate OCR \"%s\" is a chip value -- "
+								                 "rerouted to bet=%.4g, not stored as a name\n", seat, ~nm, chipv);
+						}
+						else {
+							// A phrase carrying a chip amount ("Won 191.5 BB") -- a
+							// hand-result/status string with non-unit letters, too
+							// ambiguous to store as ANY authoritative value. Reject it
+							// from the name field (that IS the bug the user hit) WITHOUT
+							// inventing a bet/stack number for it.
+							if(rs.seat_name[seat] != nm)  // log the rejection once per distinct phrase
+								rs.LogEvent(Format("seat %d name-plate phrase rejected: \"%s\"", seat, ~nm), verbose);
+							if(verbose)
+								Cout() << Format("    [reject-name] seat %d name-plate OCR \"%s\" is a chip-bearing phrase, "
+								                 "not a name -- rejected (value not stored, to avoid a false reading)\n", seat, ~nm);
+						}
 					}
 					// Task 0288 fix 3: the classifier's measured accuracy on
 					// seat_balance_plate (~62%) is far lower than on
 					// seat_name_plate (~97%), so a balance plate genuinely gets
 					// misclassified as a name plate sometimes -- its numeric OCR
 					// text would then be stored as if it were the player's NAME
-					// (the user's "balance näkyy monien nimessä" report). Reject a
-					// purely-numeric "name": it is almost certainly a misclassified
-					// chip plate, not a real name. Discarded (not stored as a name,
-					// and NOT rerouted to the stack slot -- we cannot be sure it was
-					// a balance vs. a bet plate, and a wrong stack value would be a
-					// new lie; the seat keeps whatever real name it already had).
+					// (the user's "balance näkyy monien nimessä" report). This
+					// branch now only catches numeric reads the chip-amount test
+					// above did NOT (e.g. a lone single digit, which is deliberately
+					// not "chip-shaped"); still not stored as a name.
 					else if(IsPureChipText(nm)) {
 						if(verbose)
 							Cout() << Format("    [reject-name] seat %d name-plate OCR \"%s\" is purely numeric -- "
@@ -890,6 +1080,10 @@ static void ProcessTableFrame(const VsmFrameImage& table, VsmFrameImage& prev, b
 						rs.LogEvent(Format("seat %d action: %s", seat, ~act), verbose);
 					}
 					rs.seat_action[seat] = act;
+					// Task 0290b: the action bubble also drives the authoritative
+					// fold state (a "Fold" bubble folds the seat; any other action
+					// means the seat is live -> clear a stale fold).
+					rs.SetFolded(seat, act == "Fold", "action bubble", verbose);
 					rs.last_action_seat = seat;
 					rs.last_action_ms = msecs();
 				}
@@ -954,6 +1148,44 @@ static void ProcessTableFrame(const VsmFrameImage& table, VsmFrameImage& prev, b
 			                 ~cache_note);
 		}
 	}
+
+	// --- Task 0290b: OCR-free structural fold signal (hole-card-back presence) ---
+	// Runs EVERY frame, independent of the change detector (that is the whole
+	// point: a fold that the change detector missed, or an action bubble that was
+	// misclassified, is still caught here from raw pixels). Pixel/color sampling
+	// only -- no OCR, no classifier. Debounced (kCardBackConfirmFrames) so a single
+	// card-dealing/mucking animation frame can't flip fold state. Used to CONFIRM
+	// or CORRECT the OCR-text fold detection, never to replace it:
+	//   * card backs gone   -> fold the seat (catch a fold the OCR path missed);
+	//   * card backs present -> clear a stale fold (a new hand was dealt) -- this
+	//     also fixes Task 0289's disclosed "fold state never resets per hand" gap.
+	t = NowMs();
+	for(const CardBackRegion& cb : kCardBackRegions) {
+		if(!cb.enabled) continue;
+		double wf = CardBackWhiteFraction(table, cb.rect);
+		if(wf < 0) continue;
+		int raw = (wf >= kCardBackWhiteFrac) ? 1 : 0;
+		if(raw == rs.cards_raw_last[cb.seat]) rs.cards_raw_streak[cb.seat]++;
+		else { rs.cards_raw_last[cb.seat] = raw; rs.cards_raw_streak[cb.seat] = 1; }
+		if(rs.cards_raw_streak[cb.seat] >= kCardBackConfirmFrames
+		   && rs.seat_cards_present[cb.seat] != raw) {
+			int prev_state = rs.seat_cards_present[cb.seat];
+			rs.seat_cards_present[cb.seat] = raw;
+			if(raw == 0) {
+				// Backs gone -> folded (confirms an OCR fold, or catches a missed one).
+				rs.SetFolded(cb.seat, true, "card-backs gone -- structural", verbose);
+			}
+			else if(prev_state == 0) {
+				// Backs came back after being absent -> a fresh hand: the seat is live
+				// again. Clear the stale fold AND the stale "Fold" action label so the
+				// mirror stops showing a fold that no longer applies.
+				rs.SetFolded(cb.seat, false, "card-backs present -- structural", verbose);
+				if(ToLower(rs.seat_action[cb.seat]).Find("fold") >= 0)
+					rs.seat_action[cb.seat] = "";
+			}
+		}
+	}
+	st.resolve.Add(NowMs() - t);
 
 	// Structural street events + engine application from board region count.
 	t = NowMs();
@@ -1182,10 +1414,13 @@ static GameSnapshot BuildSnapshot(const std::shared_ptr<Game>& game, const Resol
 					if(rs.seat_stack[n] >= 0)      { ss.stack = (int)(rs.seat_stack[n] + 0.5); ss.stack_live = true; }
 					if(rs.seat_bet[n] >= 0)        { ss.bet = (int)(rs.seat_bet[n] + 0.5); ss.bet_live = true; ss.bet_ocr = rs.seat_bet[n]; }
 					// Task 0289: video-recognized action / fold / turn / round total.
-					if(!rs.seat_action[n].IsEmpty()) {
+					if(!rs.seat_action[n].IsEmpty())
 						ss.action_text = rs.seat_action[n];
-						ss.folded = (ToLower(rs.seat_action[n]).Find("fold") >= 0);
-					}
+					// Task 0290b: fold state is now authoritative in ResolveState,
+					// driven by BOTH the OCR-text path (action normalizing to "Fold")
+					// AND the OCR-free structural card-back path -- so a fold the OCR
+					// missed still hides the cards, and a redealt hand un-hides them.
+					ss.folded = rs.seat_folded[n];
 					if(rs.seat_round_total[n] >= 0) { ss.round_total = rs.seat_round_total[n]; ss.round_total_live = true; }
 					// "acting" = this seat had the freshest action-bubble read within
 					// a short recency window (the action bubble is transient in the
@@ -1728,6 +1963,8 @@ struct MirrorView : Ctrl {
 		line("LIVE (OCR): board, street, pot,", Color(150, 230, 160));
 		line("  name/stack/bet/action, folds", Color(150, 230, 160));
 		line("  (Task 0287/0289).", Color(150, 230, 160));
+		line("Folds also confirmed OCR-free via", Color(150, 230, 160));
+		line("  card-back presence (0290b).", Color(150, 230, 160));
 		ty += 2;
 		line("Felt chips: bet=gold pill,", Color(255, 236, 170));
 		line("  round-total=blue (both OCR).", Color(190, 220, 255));

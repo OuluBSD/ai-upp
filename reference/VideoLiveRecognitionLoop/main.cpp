@@ -209,8 +209,51 @@ static bool IsOcrCategory(const String& cat)
 	// plates, but no text extraction ran on them before, so the live mirror only
 	// ever showed generic "SeatN". Balance/bet were already OCR'd; names are the
 	// one new OCR category here.
+	// Task 0289: seat_action_bubble ("Call"/"Fold"/"Raise"/"Check"/"All In" -- the
+	// action/turn/fold signal) and chip_badge_stack (the round-bet-total chip
+	// figure, e.g. "376.6 BB" next to a chip graphic) are BOTH real categories the
+	// classifier already produces but that were never OCR'd anywhere in the live
+	// loop before this task. Both are added here, following the exact same pattern
+	// Task 0287 used for name plates.
 	return cat == "pot_label" || cat == "seat_balance_plate"
-	    || cat == "seat_bet_label" || cat == "seat_name_plate";
+	    || cat == "seat_bet_label" || cat == "seat_name_plate"
+	    || cat == "seat_action_bubble" || cat == "chip_badge_stack";
+}
+
+// Task 0289: canonicalize a seat_action_bubble OCR string ("Call\n78.3 BB",
+// "Check", "Call\nAll In", "Raise", "Fold") to a short action word. The real
+// action bubbles in this client (verified against real dataset crops) carry the
+// action verb on the first line, sometimes followed by an amount or "All In" on
+// a second line. Scan for known keywords case-insensitively; "All In" wins over
+// a leading "Call"/"Raise" verb since it is the more consequential state. Returns
+// "" if the text contains no recognizable action word (e.g. a misclassified
+// name/balance plate leaking into this category -- do NOT invent an action then).
+static String NormalizeActionText(const String& raw)
+{
+	String low = ToLower(raw);
+	if(low.Find("all in") >= 0 || low.Find("allin") >= 0 || low.Find("all-in") >= 0) return "All In";
+	if(low.Find("fold")  >= 0) return "Fold";
+	if(low.Find("check") >= 0) return "Check";
+	if(low.Find("raise") >= 0) return "Raise";
+	if(low.Find("call")  >= 0) return "Call";
+	if(low.Find("bet")   >= 0) return "Bet";
+	return "";
+}
+
+// Task 0289: how many alphabetic chars remain in `text` after removing one
+// occurrence of the action keyword `kw`. Used to decide whether a name-plate OCR
+// result is REALLY a misclassified action bubble (~0 leftover letters, e.g. a bare
+// "Fold"/"Check") vs. a genuine player name that merely contains an action-like
+// substring (many leftover letters). Real names in this recording never reduce to
+// near-zero leftover letters against any action keyword.
+static int LettersOutsideKeyword(const String& text, const String& kw)
+{
+	String low = ToLower(text), k = ToLower(kw);
+	int pos = low.Find(k);
+	String rest = (pos >= 0) ? (low.Left(pos) + low.Mid(pos + k.GetCount())) : low;
+	int letters = 0;
+	for(int i = 0; i < rest.GetCount(); i++) { int c = rest[i]; if(c >= 'a' && c <= 'z') letters++; }
+	return letters;
 }
 
 // ---------------------------------------------------------------------------
@@ -504,10 +547,18 @@ static int RunCropSafetyCheck(const Vector<String>& list_files, int threshold)
 // ===========================================================================
 // Shared per-frame pipeline state (stages 2..5) used by both offline + live.
 // ===========================================================================
+// Task 0289: max event-log scrollback kept in ResolveState / published to the
+// GUI snapshot. Bounded so a long run can't grow it unboundedly (the user asked
+// for a right-edge log "showing all events"; we keep the most recent N).
+static const int kMaxEventLog = 60;
+
 struct ResolveState {
 	ResolveState() {
+		start_ms = msecs();
 		for(int i = 0; i < 5; i++) board_cards.Add(-1);
-		for(int i = 0; i < 6; i++) { seat_stack[i] = -1; seat_bet[i] = -1; }
+		for(int i = 0; i < 6; i++) {
+			seat_stack[i] = -1; seat_bet[i] = -1; seat_round_total[i] = -1;
+		}
 	}
 	// board tracking (structural tier)
 	int  board_count = 0;
@@ -524,6 +575,29 @@ struct ResolveState {
 	double seat_stack[6]; // last OCR'd balance-plate value per seat index
 	double seat_bet[6];   // last OCR'd bet-label value per seat index
 	String seat_name[6];  // last OCR'd name-plate text per seat index
+	// Task 0289: per-seat latest action word (from seat_action_bubble OCR) and
+	// per-seat round-bet-total chip figure (from chip_badge_stack OCR).
+	String seat_action[6];       // normalized action word ("Call"/"Fold"/...)
+	double seat_round_total[6];  // last OCR'd chip_badge_stack value per seat, -1 none
+	int    last_action_seat = -1;    // seat of the most recent action-bubble read
+	int64  last_action_ms = 0;       // wall time of that read (for "fresh"/turn highlight)
+	// Task 0289: bounded event log (most-recent-last), surfaced in the GUI panel.
+	int64  start_ms = 0;
+	Vector<String> event_log;
+	// Append a timestamped event; keep only the last kMaxEventLog. Also emit to
+	// Cout when verbose so the GUI panel and the verbose console log stay the SAME
+	// event stream (the task's "reuse the verbose Cout logging as source of truth").
+	void LogEvent(const String& text, bool verbose) {
+		int t = (int)((msecs() - start_ms) / 1000);
+		// NOTE: U++ Format()'s %d id-scan greedily eats the trailing 's' as part of
+		// the conversion id ("ds"), so "%ds" mis-parses -- a backtick right after
+		// the conversion letter terminates the id and is itself skipped (same quirk
+		// the latency "%.0f`ms" line documents), leaving "s" as literal text.
+		String line = Format("[t+%d`s] %s", t, ~text);
+		event_log.Add(line);
+		while(event_log.GetCount() > kMaxEventLog) event_log.Remove(0);
+		if(verbose) Cout() << "    [event] " << line << "\n";
+	}
 };
 
 struct LoopStats {
@@ -756,6 +830,25 @@ static void ProcessTableFrame(const VsmFrameImage& table, VsmFrameImage& prev, b
 			if(!nm.IsEmpty()) {
 				int seat = RegionToSeat(r.left, r.top, r.Width(), r.Height());
 				if(seat >= 0 && seat < 6) {
+					// Task 0289: a fold/check/... action bubble is sometimes
+					// misclassified as a name plate (the classifier's own limitation,
+					// noted in Task 0288's Status/Evidence -- e.g. a real "Fold" read
+					// off this recording landed as a player NAME). If the plate text
+					// is ESSENTIALLY just an action word (near-zero leftover letters),
+					// route it to the action slot instead of storing it as a name --
+					// the direct parallel to Task 0288's IsPureChipText name-reject,
+					// and what makes fold-based card hiding actually fire on real data.
+					String act0 = NormalizeActionText(nm);
+					if(!act0.IsEmpty()
+					   && LettersOutsideKeyword(nm, act0 == "All In" ? "all" : act0) <= 2) {
+						if(rs.seat_action[seat] != act0) {
+							rs.value_changes++;
+							rs.LogEvent(Format("seat %d action: %s (rerouted from name-plate)", seat, ~act0), verbose);
+						}
+						rs.seat_action[seat] = act0;
+						rs.last_action_seat = seat;
+						rs.last_action_ms = msecs();
+					}
 					// Task 0288 fix 3: the classifier's measured accuracy on
 					// seat_balance_plate (~62%) is far lower than on
 					// seat_name_plate (~97%), so a balance plate genuinely gets
@@ -767,15 +860,38 @@ static void ProcessTableFrame(const VsmFrameImage& table, VsmFrameImage& prev, b
 					// and NOT rerouted to the stack slot -- we cannot be sure it was
 					// a balance vs. a bet plate, and a wrong stack value would be a
 					// new lie; the seat keeps whatever real name it already had).
-					if(IsPureChipText(nm)) {
+					else if(IsPureChipText(nm)) {
 						if(verbose)
 							Cout() << Format("    [reject-name] seat %d name-plate OCR \"%s\" is purely numeric -- "
 							                 "misclassified chip plate, not stored as a name\n", seat, ~nm);
 					}
 					else {
-						if(rs.seat_name[seat] != nm) rs.value_changes++;
+						if(rs.seat_name[seat] != nm) {
+							rs.value_changes++;
+							rs.LogEvent(Format("seat %d name: %s", seat, ~nm), verbose);
+						}
 						rs.seat_name[seat] = nm;
 					}
+				}
+			}
+		}
+		else if(cl.category == "seat_action_bubble") {
+			// Task 0289: the action/turn/fold signal. The bubble text carries the
+			// action verb (sometimes with an amount below); normalize to a short
+			// word and attribute to a seat by position. Whichever seat gets a fresh
+			// action read is treated as the acting/last-to-act seat (turn indicator),
+			// and an action normalizing to "Fold" hides that seat's hole cards.
+			String act = NormalizeActionText(ocr_text);
+			if(!act.IsEmpty()) {
+				int seat = RegionToSeat(r.left, r.top, r.Width(), r.Height());
+				if(seat >= 0 && seat < 6) {
+					if(rs.seat_action[seat] != act) {
+						rs.value_changes++;
+						rs.LogEvent(Format("seat %d action: %s", seat, ~act), verbose);
+					}
+					rs.seat_action[seat] = act;
+					rs.last_action_seat = seat;
+					rs.last_action_ms = msecs();
 				}
 			}
 		}
@@ -784,7 +900,10 @@ static void ProcessTableFrame(const VsmFrameImage& table, VsmFrameImage& prev, b
 			if(ParseChipValue(ocr_text, val)) {
 				if(cl.category == "pot_label") {
 					rs.pot_reads++;
-					if(rs.last_pot >= 0 && fabs(val - rs.last_pot) > 0.001) rs.value_changes++;
+					if(rs.last_pot >= 0 && fabs(val - rs.last_pot) > 0.001) {
+						rs.value_changes++;
+						rs.LogEvent(Format("pot: %.4g", val), verbose);
+					}
 					rs.last_pot = val;
 				} else {
 					String slot = Format("%s@%d,%d", ~cl.category, r.left, r.top);
@@ -796,8 +915,28 @@ static void ProcessTableFrame(const VsmFrameImage& table, VsmFrameImage& prev, b
 					// key was stored but the seat identity was discarded).
 					int seat = RegionToSeat(r.left, r.top, r.Width(), r.Height());
 					if(seat >= 0 && seat < 6) {
-						if(cl.category == "seat_balance_plate") rs.seat_stack[seat] = val;
-						else if(cl.category == "seat_bet_label")  rs.seat_bet[seat]   = val;
+						if(cl.category == "seat_balance_plate") {
+							if(rs.seat_stack[seat] < 0 || fabs(rs.seat_stack[seat] - val) > 0.001)
+								rs.LogEvent(Format("seat %d stack: %.4g", seat, val), verbose);
+							rs.seat_stack[seat] = val;
+						}
+						else if(cl.category == "seat_bet_label") {
+							if(rs.seat_bet[seat] < 0 || fabs(rs.seat_bet[seat] - val) > 0.001)
+								rs.LogEvent(Format("seat %d bet: %.4g", seat, val), verbose);
+							rs.seat_bet[seat] = val;
+						}
+						// Task 0289: chip_badge_stack is the "round bet total" chip
+						// figure (real evidence: the SAME on-felt chips+BB primitive
+						// that seat_bet_label also labels in other frames -- see the
+						// task Status/Evidence; e.g. center (264,360) is labeled
+						// seat_bet_label in some frames and chip_badge_stack in others).
+						// Stored in its own per-seat slot and rendered as a distinct
+						// felt chip-total element per the user's request (item 4).
+						else if(cl.category == "chip_badge_stack") {
+							if(rs.seat_round_total[seat] < 0 || fabs(rs.seat_round_total[seat] - val) > 0.001)
+								rs.LogEvent(Format("seat %d round-total: %.4g", seat, val), verbose);
+							rs.seat_round_total[seat] = val;
+						}
 					}
 				}
 			}
@@ -851,6 +990,8 @@ static void ProcessTableFrame(const VsmFrameImage& table, VsmFrameImage& prev, b
 					}
 				}
 			}
+			rs.LogEvent(Format("board %d -> %d (%s)", from, to,
+			                   to >= 5 ? "river" : to >= 4 ? "turn" : "flop"), verbose);
 			if(verbose)
 				Cout() << Format("    [structural] board %d -> %d dealt; engine board forced\n", from, to);
 		}
@@ -908,6 +1049,13 @@ struct SeatSnap {
 	bool   name_live = false;
 	bool   stack_live = false;
 	bool   bet_live = false;
+	// Task 0289: video-recognized action / turn / fold / round-total.
+	String action_text;          // last OCR'd action word ("Call"/"Fold"/...), "" none
+	bool   acting = false;       // this seat had the freshest action read (turn indicator)
+	bool   folded = false;       // last action normalized to "Fold" -> hide hole cards
+	double round_total = -1;     // last OCR'd chip_badge_stack value, -1 none
+	bool   round_total_live = false;
+	double bet_ocr = -1;         // raw OCR bet value (for felt rendering), -1 none
 };
 
 struct GameSnapshot {
@@ -943,6 +1091,11 @@ struct GameSnapshot {
 	double latency_avg_ms  = -1;
 	double latency_min_ms  = -1;
 	double latency_max_ms  = -1;
+	// --- Task 0289: bounded event log, published to the GUI panel (most recent
+	// last). Fixed-size String array keeps GameSnapshot trivially copy-assignable
+	// under the mutex (no Upp::Vector members -- same POD discipline as above).
+	String events[kMaxEventLog];
+	int    event_count = 0;
 };
 
 // Rolling-window size (in frames) for the GUI's live latency avg/min/max.
@@ -1027,13 +1180,31 @@ static GameSnapshot BuildSnapshot(const std::shared_ptr<Game>& game, const Resol
 				if(n < 6) {
 					if(!rs.seat_name[n].IsEmpty()) { ss.name = rs.seat_name[n]; ss.name_live = true; }
 					if(rs.seat_stack[n] >= 0)      { ss.stack = (int)(rs.seat_stack[n] + 0.5); ss.stack_live = true; }
-					if(rs.seat_bet[n] >= 0)        { ss.bet = (int)(rs.seat_bet[n] + 0.5); ss.bet_live = true; }
+					if(rs.seat_bet[n] >= 0)        { ss.bet = (int)(rs.seat_bet[n] + 0.5); ss.bet_live = true; ss.bet_ocr = rs.seat_bet[n]; }
+					// Task 0289: video-recognized action / fold / turn / round total.
+					if(!rs.seat_action[n].IsEmpty()) {
+						ss.action_text = rs.seat_action[n];
+						ss.folded = (ToLower(rs.seat_action[n]).Find("fold") >= 0);
+					}
+					if(rs.seat_round_total[n] >= 0) { ss.round_total = rs.seat_round_total[n]; ss.round_total_live = true; }
+					// "acting" = this seat had the freshest action-bubble read within
+					// a short recency window (the action bubble is transient in the
+					// real client, so an old read should not keep claiming the turn).
+					if(rs.last_action_seat == n && rs.last_action_ms > 0
+					   && (msecs() - rs.last_action_ms) < 5000)
+						ss.acting = true;
 				}
 				n++;
 			}
 			s.seat_count = n;
 		}
 	}
+	// Task 0289: publish the most-recent event-log entries (already bounded to
+	// kMaxEventLog in ResolveState) into the POD snapshot for the GUI panel.
+	int ne = min(rs.event_log.GetCount(), (int)kMaxEventLog);
+	int base = rs.event_log.GetCount() - ne;
+	for(int i = 0; i < ne; i++) s.events[i] = rs.event_log[base + i];
+	s.event_count = ne;
 	s.valid = true;
 	return s;
 }
@@ -1403,13 +1574,20 @@ struct MirrorView : Ctrl {
 			int px = cx + (int)(rx * cos(ang));
 			int py = cy + (int)(ry * sin(ang));
 			int bxx = px - boxw/2, byy = py - boxh/2;
-			// seat plate
-			Color plate = ss.turn ? Color(70, 70, 30) : Color(28, 34, 40);
+			// seat plate. Task 0289: the acting seat (freshest recognized action
+			// bubble) gets a distinctly brighter plate so "whose turn / who just
+			// acted" is visible at a glance -- the turn indicator the user asked for.
+			Color plate = ss.acting ? Color(46, 66, 96)
+			            : ss.folded ? Color(20, 24, 28)   // dim folded seats
+			            : ss.turn   ? Color(70, 70, 30)
+			                        : Color(28, 34, 40);
 			w.DrawRect(bxx, byy, boxw, boxh, plate);
-			w.DrawRect(bxx, byy, boxw, 1, Color(80,90,100));
-			w.DrawRect(bxx, byy+boxh-1, boxw, 1, Color(80,90,100));
-			w.DrawRect(bxx, byy, 1, boxh, Color(80,90,100));
-			w.DrawRect(bxx+boxw-1, byy, 1, boxh, Color(80,90,100));
+			Color edge = ss.acting ? Color(120, 180, 255) : Color(80,90,100);
+			int   ew   = ss.acting ? 2 : 1;
+			w.DrawRect(bxx, byy, boxw, ew, edge);
+			w.DrawRect(bxx, byy+boxh-ew, boxw, ew, edge);
+			w.DrawRect(bxx, byy, ew, boxh, edge);
+			w.DrawRect(bxx+boxw-ew, byy, ew, boxh, edge);
 			// Task 0288 fix 4: the dealer USED to be a bare " (D)" suffix appended
 			// to the name text -- easy to miss, and clipped off the 150px box once
 			// real OCR'd names (Task 0287) fill the line. Draw an unmistakable
@@ -1454,21 +1632,70 @@ struct MirrorView : Ctrl {
 			String betstr = (ss.bet_live && ss.bet > 0) ? Format("bet %d", ss.bet) : String();
 			if(!betstr.IsEmpty())
 				w.DrawText(bxx + 6, byy + 40, betstr, sf, kLive);
-			String ac = ActionName(ss.action);         // action stays engine-seed
+			// Task 0289: prefer the REAL video-recognized action word
+			// (seat_action_bubble OCR) over the engine-seed PlayerAction; fall back
+			// to the engine action only when nothing has been recognized yet.
+			String ac = ss.action_text.IsEmpty() ? ActionName(ss.action) : ss.action_text;
+			Color  acc = ss.action_text.IsEmpty() ? kSeed
+			           : ss.folded ? Color(235, 130, 120) : Color(150, 230, 160);
 			if(!ac.IsEmpty()) {
 				int axoff = betstr.IsEmpty() ? 0 : GetTextSize(betstr, sf).cx + 10;
-				w.DrawText(bxx + 6 + axoff, byy + 40, ac, sf, kSeed);
+				w.DrawText(bxx + 6 + axoff, byy + 40, ac, sf, acc);
 			}
-			// two face-down hole cards (per-seat hole-card RECOGNITION not built --
-			// show realistic backs, never fabricate/reveal engine-dealt faces)
-			Image back = TexasHoldemGetCardBackReferenceImage(Size(scw, sch), "default");
-			DrawCard(w, bxx + boxw - 2*scw - 8, byy + boxh - sch - 4, scw, sch, back);
-			DrawCard(w, bxx + boxw - scw - 4,   byy + boxh - sch - 4, scw, sch, back);
+			// Task 0289: fold-aware hole cards. Per-seat hole-card recognition is
+			// still not built, so an ACTIVE seat shows realistic face-down backs
+			// (never fabricated faces). A seat whose latest recognized action is
+			// "Fold" hides its cards entirely and shows a small grey "folded" tag
+			// -- the user's request that folded players' cards stop showing.
+			if(ss.folded) {
+				Font ff = SansSerif(10).Bold();
+				String ft = "folded";
+				Size fts = GetTextSize(ft, ff);
+				w.DrawText(bxx + boxw - fts.cx - 6, byy + boxh - fts.cy - 4, ft, ff, Color(150,150,150));
+			}
+			else {
+				Image back = TexasHoldemGetCardBackReferenceImage(Size(scw, sch), "default");
+				DrawCard(w, bxx + boxw - 2*scw - 8, byy + boxh - sch - 4, scw, sch, back);
+				DrawCard(w, bxx + boxw - scw - 4,   byy + boxh - sch - 4, scw, sch, back);
+			}
+
+			// Task 0289: felt-rendered bet + round-total chips. The user asked for
+			// bet amounts to appear ON the felt (more noticeable) rather than only
+			// inside the name box, plus a distinct "round bet total" chip figure.
+			// Both are drawn pulled IN toward the pot -- the same center-pulled
+			// layout the real client uses (and that RegionToSeat's anchors already
+			// account for). Position: partway along the seat->center line.
+			auto feltPoint = [&](double frac, int& fx, int& fy) {
+				fx = (int)(px + (cx - px) * frac);
+				fy = (int)(py + (cy - py) * frac);
+			};
+			if(ss.bet_ocr >= 0) {
+				int fx, fy; feltPoint(0.34, fx, fy);
+				String bt = Format("%.4g BB", ss.bet_ocr);
+				Size bts = GetTextSize(bt, sf);
+				// small chip glyph + amount on a dark pill so it reads on the felt
+				int pw = bts.cx + 26, ph = 20, pxl = fx - pw/2, pyl = fy - ph/2;
+				w.DrawRect(pxl, pyl, pw, ph, Color(18, 40, 26));
+				w.DrawEllipse(RectC(pxl + 3, pyl + 3, 14, 14), Color(210, 180, 70), 1, Color(120,90,20));
+				w.DrawText(pxl + 21, pyl + 4, bt, sf, Color(255, 236, 170));
+			}
+			if(ss.round_total_live) {
+				int fx, fy; feltPoint(0.52, fx, fy);
+				String rt = Format("%.4g BB", ss.round_total);
+				Size rts = GetTextSize(rt, sf);
+				int pw = rts.cx + 26, ph = 20, pxl = fx - pw/2, pyl = fy - ph/2;
+				w.DrawRect(pxl, pyl, pw, ph, Color(40, 30, 44));
+				// stacked-chips glyph (two discs) to distinguish the round-total
+				// element from the single-chip bet pill above.
+				w.DrawEllipse(RectC(pxl + 3, pyl + 6, 12, 10), Color(120, 170, 230), 1, Color(40,70,120));
+				w.DrawEllipse(RectC(pxl + 3, pyl + 3, 12, 10), Color(150, 200, 250), 1, Color(40,70,120));
+				w.DrawText(pxl + 21, pyl + 4, rt, sf, Color(190, 220, 255));
+			}
 		}
 
 		// ---- right-hand status / honesty panel ----
-		int panelx = sz.cx - 250, panely = 88;
-		w.DrawRect(panelx, panely, 236, sz.cy - panely - 16, Color(16, 22, 28));
+		const int panelx = sz.cx - 250, panely = 88, panelw = 236, statusH = 352;
+		w.DrawRect(panelx, panely, panelw, statusH, Color(16, 22, 28));
 		int ty = panely + 8;
 		auto line = [&](const String& t, Color c) { w.DrawText(panelx + 10, ty, t, sf, c); ty += 18; };
 		w.DrawText(panelx + 10, ty, "Recognition status", SansSerif(12).Bold(), White()); ty += 20;
@@ -1497,20 +1724,34 @@ struct MirrorView : Ctrl {
 		else
 			line("latency: (no frame yet)", Color(255, 210, 120));
 		ty += 8;
-		line("LIVE-DRIVEN:", Color(150, 230, 160));
-		line("  board cards, street, pot(OCR),", Color(150, 230, 160));
-		line("  per-seat name/stack/bet (OCR),", Color(150, 230, 160));
-		line("  green when read (Task 0287).", Color(150, 230, 160));
-		ty += 4;
-		line("ENGINE-SEED (not video-driven):", Color(235, 180, 120));
-		line("  per-seat action; hole cards", Color(235, 180, 120));
-		line("  (face-down). \"stack ?\" = balance", Color(235, 180, 120));
-		line("  not yet read -- no fabricated", Color(235, 180, 120));
-		line("  number (Task 0288 fix).", Color(235, 180, 120));
-		line("  Gold \"D\" disc = dealer button.", Color(230, 200, 60));
-		line("  Per-seat action resolution was", Color(180, 180, 180));
-		line("  left unbuilt in Task 0280.", Color(180, 180, 180));
-		if(!status.IsEmpty()) { ty += 6; line(status, Color(200, 200, 210)); }
+		// Legend, updated for Task 0289: per-seat action/fold are now video-driven.
+		line("LIVE (OCR): board, street, pot,", Color(150, 230, 160));
+		line("  name/stack/bet/action, folds", Color(150, 230, 160));
+		line("  (Task 0287/0289).", Color(150, 230, 160));
+		ty += 2;
+		line("Felt chips: bet=gold pill,", Color(255, 236, 170));
+		line("  round-total=blue (both OCR).", Color(190, 220, 255));
+		line("Bright blue plate = acting seat.", Color(120, 180, 255));
+		line("Gold \"D\"=dealer. folded=hidden.", Color(230, 200, 60));
+
+		// ---- Task 0289: scrolling event log on the right edge, below the status
+		// panel. Shows the most recent resolved events (the SAME stream the
+		// --verbose console prints), newest at the bottom, bounded to kMaxEventLog.
+		int logy = panely + statusH + 8;
+		int logh = max(60, sz.cy - logy - 16);
+		w.DrawRect(panelx, logy, panelw, logh, Color(12, 16, 20));
+		w.DrawText(panelx + 10, logy + 8, "Event log (recent)", SansSerif(12).Bold(), White());
+		int erow_h = 16, elist_top = logy + 30;
+		int rows_fit = max(1, (logy + logh - 6 - elist_top) / erow_h);
+		int first = max(0, snap.event_count - rows_fit);  // show the last rows_fit events
+		int eyy = elist_top;
+		for(int i = first; i < snap.event_count; i++) {
+			w.DrawText(panelx + 8, eyy, snap.events[i], SansSerif(10), Color(190, 205, 215));
+			eyy += erow_h;
+		}
+		if(snap.event_count == 0)
+			w.DrawText(panelx + 8, elist_top, "(no events yet)", SansSerif(10), Color(120, 130, 140));
+		if(!status.IsEmpty()) w.DrawText(panelx + 8, logy + logh - 16, status, SansSerif(9), Color(150, 160, 170));
 	}
 };
 

@@ -11,7 +11,8 @@ uses
 	EditorCommon,
 	GameRules,
 	Poker,
-	TexasHoldem;
+	TexasHoldem,
+	plugin/png;
 
 file
 	main.cpp;

@@ -2,6 +2,7 @@
 #include <VisualStateModel/VisualStateModel.h>
 #include <ComputerVision/ComputerVision.h> // Task 0290a: native MatchTemplate + OrbSystem (no OpenCV)
 #include <plugin/jpg/jpg.h>
+#include <plugin/png/png.h> // Task 0291b: PNG overlays (thin colored lines survive lossless)
 
 #include <TexasHoldem/TexasHoldemLocalGame.h>
 #include <TexasHoldem/TexasHoldemLogicState.h> // card/board art helpers (reuse game/CardRender via GameTable's own encoding)
@@ -3622,6 +3623,235 @@ static int RunOcrAccuracyTest(const String& frames_dir, const String& templates_
 	return 0;
 }
 
+// ===========================================================================
+// Task 0291b: Line/corner-intersection keypoint detection -- INVESTIGATIVE.
+//
+// Concrete real target picked: the BOARD CARDS' vertical edges, validated as a
+// cross-check on SplitBoardBand()'s felt-gap card boundaries (already verified
+// 100% accurate for recognition by Task 0290a/0292). This is the cleanest
+// testable target in-scope: white cards on green felt give strong Canny edges,
+// SplitBoardBand gives independent per-card left/right boundary ground truth,
+// and the search area is already bounded (the board band, never the full frame).
+//
+// Pipeline reuses ONLY the native ComputerVision building blocks (no OpenCV, no
+// new CV implementation): TableRegionToGray -> GaussianBlur -> Canny ->
+// HoughTransform (validated here for the FIRST time in this repo -- it had zero
+// prior usage) plus FastCorners::Detect for a corner-keypoint cross-signal.
+// ===========================================================================
+
+// A near-vertical Hough line reduced to its x-position (table space) at the
+// board band's mid-height. votes = accumulator strength (higher = stronger).
+struct VLine : Moveable<VLine> { double x; double theta_deg;
+	VLine() {} VLine(double x, double d) : x(x), theta_deg(d) {} };
+struct HLine : Moveable<HLine> { double y; double theta_deg;
+	HLine() {} HLine(double y, double d) : y(y), theta_deg(d) {} };
+
+// Draw a thick point marker into an ImageDraw (small filled square).
+static void MarkPoint(ImageDraw& w, int x, int y, int r, Color c)
+{
+	w.DrawRect(x - r, y - r, 2 * r + 1, 2 * r + 1, c);
+}
+
+static int RunLineCornerTest(const String& frames_dir)
+{
+	Cout() << "=== Mode: line-corner-test (Task 0291b, board-card edge keypoints) ===\n";
+	Cout() << "target: board-card vertical edges vs SplitBoardBand() boundaries (independent GT)\n";
+
+	// Board band crop region in table space -- BOUNDED (never the full frame),
+	// padded a few px around SplitBoardBand's own search window so card edges are
+	// not clipped at the crop border.
+	const int PAD = 12;
+	Rect crop = RectC(kBoardBandX0 - PAD, kBoardCardTop - PAD,
+	                  (kBoardBandX1 - kBoardBandX0) + 2 * PAD,
+	                  (kBoardCardBot - kBoardCardTop) + 2 * PAD);
+	Cout() << Format("board-band crop (table space): x=%d y=%d w=%d h=%d  (%d px^2)\n",
+	                 crop.left, crop.top, crop.Width(), crop.Height(), crop.Width() * crop.Height());
+
+	// Hough parameters (validated empirically below).
+	const double kRhoRes   = 1.0;
+	const double kThetaRes = M_PI / 180.0; // 1 degree
+	const double kHoughThr = 22.0;         // min accumulator votes (~ edge length)
+	const double kVertTolDeg = 8.0;        // |theta| to 0 or 180 deg -> vertical
+	const double kMergeX     = 6.0;        // merge near-duplicate vertical lines (table px)
+
+	SidecarGT gt = ParseSidecarGT(kSidecarPath);
+	Vector<String> dirs = ResolveFrameDirs(frames_dir);
+
+	Stage s_gray, s_blur, s_canny, s_hough, s_fast;
+	int    frames_scored = 0;
+	int    bnd_total = 0, bnd_hit = 0;    // SplitBoardBand vertical boundaries matched by a Hough line
+	double abs_err_sum = 0;               // sum |detected_x - boundary_x| over matched boundaries
+	const double kMatchTol = 5.0;         // a boundary counts "found" if a vertical line is within this many px
+
+	String overlay_saved;
+
+	for(const String& dir : dirs) {
+		Vector<int> secs = FrameSecondsInDir(dir);
+		for(int sec : secs) {
+			String board = gt.BoardAt(sec);
+			if(ParseCardRun(board).GetCount() < 3) continue; // only post-flop frames (real card edges present)
+
+			String path = AppendFileName(dir, Format("frame_%06d.jpg", sec));
+			VsmImageBuffer buf;
+			if(!LoadJpgToBuffer(path, buf)) continue;
+			VsmFrameImage table = CropBufferToFrame(buf, kTableRect);
+			if(table.IsEmpty()) continue;
+
+			// Ground truth: independent card boundaries from the already-verified splitter.
+			Vector<Rect> cards = SplitBoardBand(table);
+			if(cards.IsEmpty()) continue;
+
+			// --- CV pipeline (native ComputerVision, no OpenCV) ---
+			double t;
+			t = NowMs();
+			ByteMat gray = TableRegionToGray(table, crop);
+			s_gray.Add(NowMs() - t);
+			if(gray.IsEmpty()) continue;
+
+			t = NowMs();
+			ByteMat blur;
+			GaussianBlur(gray, blur, 5, 0.0); // kernel 5, sigma auto (matches WebcamCV CannyEdge pattern)
+			s_blur.Add(NowMs() - t);
+
+			t = NowMs();
+			ByteMat edges;
+			Canny(blur, edges, 40, 120);
+			s_canny.Add(NowMs() - t);
+
+			t = NowMs();
+			Vector<Pointf> lines = HoughTransform(edges, kRhoRes, kThetaRes, kHoughThr);
+			s_hough.Add(NowMs() - t);
+
+			t = NowMs();
+			ByteMat corner_src = TableRegionToGray(table, crop);
+			FastCorners fc;
+			fc.set_threshold(30);
+			Vector<Keypoint> corners;
+			fc.Detect(corner_src, corners, 4);
+			s_fast.Add(NowMs() - t);
+
+			int H = crop.Height(), W = crop.Width();
+			double ymid = H / 2.0, xmid = W / 2.0;
+
+			// Split Hough lines into vertical / horizontal, mapped to table space.
+			Vector<VLine> vlines;
+			Vector<HLine> hlines;
+			for(const Pointf& l : lines) {
+				double rho = l.x, th = l.y;         // (rho, theta), theta in [0,pi)
+				double deg = th * 180.0 / M_PI;
+				double ct = cos(th), st = sin(th);
+				bool vert = (deg < kVertTolDeg) || (deg > 180.0 - kVertTolDeg);
+				bool horiz = fabs(deg - 90.0) < kVertTolDeg;
+				if(vert && fabs(ct) > 1e-6) {
+					double xloc = (rho - ymid * st) / ct;   // x at mid-height
+					vlines.Add(VLine(crop.left + xloc, deg));
+				}
+				else if(horiz && fabs(st) > 1e-6) {
+					double yloc = (rho - xmid * ct) / st;   // y at mid-width
+					hlines.Add(HLine(crop.top + yloc, deg));
+				}
+			}
+			// Merge near-duplicate vertical lines (Hough emits clusters); lines are
+			// already vote-sorted, so first-seen wins each merged group.
+			Sort(vlines, [](const VLine& a, const VLine& b){ return a.x < b.x; });
+			Vector<VLine> vmerged;
+			for(const VLine& v : vlines) {
+				if(!vmerged.IsEmpty() && fabs(v.x - vmerged.Top().x) < kMergeX) continue;
+				vmerged.Add(v);
+			}
+
+			// Score: each SplitBoardBand card's left & right edge is a true vertical
+			// boundary; count how many have a detected vertical Hough line within tol.
+			Vector<double> bnds;
+			for(const Rect& c : cards) { bnds.Add(c.left); bnds.Add(c.left + c.Width()); }
+			for(double b : bnds) {
+				bnd_total++;
+				double best = 1e9;
+				for(const VLine& v : vmerged) best = min(best, fabs(v.x - b));
+				if(best <= kMatchTol) { bnd_hit++; abs_err_sum += best; }
+			}
+			frames_scored++;
+
+			bool verbose_frame = (overlay_saved.IsEmpty() && cards.GetCount() >= 4);
+			if(verbose_frame || sec == secs[0]) {
+				Cout() << Format("  %s sec %03d board=%-12s cards=%d  Hough:lines=%d vert=%d(merged %d) horiz=%d  FAST=%d\n",
+				                 ~GetFileName(dir), sec, ~board, cards.GetCount(),
+				                 lines.GetCount(), vlines.GetCount(), vmerged.GetCount(),
+				                 hlines.GetCount(), corners.GetCount());
+			}
+
+			// Save ONE annotated overlay (first frame with >=4 cards = richest edges).
+			if(overlay_saved.IsEmpty() && cards.GetCount() >= 4) {
+				const int UP = 4; // upscale for visibility
+				Image base = Crop(VsmFrameImageToImage(table), crop & RectC(0,0,table.width,table.height));
+				base = Rescale(base, W * UP, H * UP);
+				ImageDraw iw(W * UP, H * UP);
+				iw.DrawImage(0, 0, base);
+				// SplitBoardBand boundaries (GT) -- BLUE dashed-ish full-height lines
+				for(double b : bnds) {
+					int x = (int)((b - crop.left) * UP);
+					iw.DrawLine(x, 0, x, H * UP, 1, Blue());
+				}
+				// Hough vertical lines -- RED
+				for(const VLine& v : vmerged) {
+					int x = (int)((v.x - crop.left) * UP);
+					iw.DrawLine(x, 0, x, H * UP, 1, Color(255,40,40));
+				}
+				// Hough horizontal lines -- ORANGE
+				for(const HLine& hl : hlines) {
+					int y = (int)((hl.y - crop.top) * UP);
+					iw.DrawLine(0, y, W * UP, y, 1, Color(255,160,0));
+				}
+				// vertical x horizontal intersections -- MAGENTA squares
+				for(const VLine& v : vmerged)
+					for(const HLine& hl : hlines) {
+						int x = (int)((v.x - crop.left) * UP);
+						int y = (int)((hl.y - crop.top) * UP);
+						MarkPoint(iw, x, y, 3, Color(255,0,255));
+					}
+				// FAST corners -- GREEN dots
+				for(const Keypoint& k : corners)
+					MarkPoint(iw, k.x * UP, k.y * UP, 2, Color(0,230,0));
+				Image over = iw;
+				String outp = AppendFileName(GetCurrentDirectory(),
+				                             Format("task0291b_overlay_%s_sec%03d.png", ~GetFileName(dir), sec));
+				PNGEncoder().SaveFile(outp, over);
+				overlay_saved = outp;
+				// Also dump the raw Canny edge map (upscaled) for direct inspection.
+				Image edgeImg = FloatMatToGrayImage([&]{ FloatMat f; f.SetSize(edges.cols, edges.rows, 1);
+				                                          for(int i=0;i<edges.data.GetCount();i++) f.data[i]=edges.data[i];
+				                                          return f; }());
+				edgeImg = Rescale(edgeImg, W * UP, H * UP);
+				String edgep = AppendFileName(GetCurrentDirectory(),
+				                              Format("task0291b_canny_%s_sec%03d.png", ~GetFileName(dir), sec));
+				PNGEncoder().SaveFile(edgep, edgeImg);
+				Cout() << "  wrote overlay: " << outp << "\n";
+				Cout() << "  wrote canny  : " << edgep << "\n";
+			}
+		}
+	}
+
+	auto pct = [](int a, int b){ return b ? 100.0 * a / b : 0.0; };
+	Cout() << "\n=== Timing (per board frame, real, native ComputerVision) ===\n";
+	auto row = [](const char* nm, const Stage& s){
+		Cout() << Format("  %-10s calls=%-4d avg=%.3f ms  max=%.3f ms\n", nm, s.calls, s.Avg(), s.max_ms);
+	};
+	row("grayscale", s_gray); row("gauss+blur", s_blur); row("canny", s_canny);
+	row("hough", s_hough); row("fastcorners", s_fast);
+	double per_frame = s_gray.Avg() + s_blur.Avg() + s_canny.Avg() + s_hough.Avg();
+	Cout() << Format("  => Canny+Hough pipeline: %.3f ms / board frame (+%.3f ms if FAST added)\n",
+	                 per_frame, s_fast.Avg());
+
+	Cout() << "\n=== Accuracy vs SplitBoardBand boundaries (independent GT) ===\n";
+	Cout() << Format("post-flop frames scored : %d\n", frames_scored);
+	Cout() << Format("card vertical boundaries : %d\n", bnd_total);
+	Cout() << Format("matched by a Hough line  : %d/%d (%.1f%%) within +-%.0f px\n",
+	                 bnd_hit, bnd_total, pct(bnd_hit, bnd_total), kMatchTol);
+	Cout() << Format("mean abs error (matched) : %.2f px\n", bnd_hit ? abs_err_sum / bnd_hit : 0.0);
+	if(!overlay_saved.IsEmpty()) Cout() << "annotated overlay: " << overlay_saved << "\n";
+	return 0;
+}
+
 GUI_APP_MAIN
 {
 #ifdef PLATFORM_WIN32
@@ -3654,6 +3884,7 @@ GUI_APP_MAIN
 		else if(args[i] == "--dealer-turn-test") mode = "dealerturn"; // empty frames_dir -> BOTH hands
 		else if(args[i] == "--hole-card-test") mode = "holecard";     // Task 0291a item 3
 		else if(args[i] == "--ocr-accuracy-test") mode = "ocracc";    // Task 0291a item 5
+		else if(args[i] == "--line-corner-test") mode = "linecorner"; // Task 0291b
 		else if(args[i] == "--frames-dir" && i + 1 < args.GetCount()) frames_dir = args[++i];
 		else if(args[i] == "--templates" && i + 1 < args.GetCount()) g_templates_dir = args[++i];
 		else if(args[i] == "--crop-list" && i + 1 < args.GetCount()) crop_safety_lists.Add(args[++i]);
@@ -3692,6 +3923,8 @@ GUI_APP_MAIN
 		       << "                               accuracy vs sidecar (BOTH hands unless --frames-dir)\n"
 		       << "  --hole-card-test            Task 0291a: showdown hole-card recognition (both hands)\n"
 		       << "  --ocr-accuracy-test         Task 0291a: name/balance/pot OCR accuracy, cache disabled\n"
+		       << "  --line-corner-test          Task 0291b: Canny+Hough line / FAST corner keypoints\n"
+		       << "                               on the board band, vs SplitBoardBand boundaries\n"
 		       << "Options:\n"
 		       << "  --host <h> --port <p>       VideoServer address (default 127.0.0.1:8082)\n"
 		       << "  --seconds <n>               Live run duration (default 30)\n"
@@ -3728,5 +3961,6 @@ GUI_APP_MAIN
 	else if(mode == "dealerturn") rc = RunDealerTurnTest(frames_dir, g_templates_dir);
 	else if(mode == "holecard") rc = RunHoleCardTest(frames_dir, g_templates_dir);
 	else if(mode == "ocracc") rc = RunOcrAccuracyTest(frames_dir, g_templates_dir);
+	else if(mode == "linecorner") rc = RunLineCornerTest(frames_dir);
 	if(rc) SetExitCode(rc);
 }

@@ -728,6 +728,198 @@ static Vector<int> RecognizeBoardCards(const VsmFrameImage& table, const CardTem
 }
 
 // ===========================================================================
+// Task 0290c item 1: DEALER CHIP via template match (independent, video-grounded
+// cross-check of Task 0288's engine-derived GBUTTON_DEALER indicator).
+//
+// Real finding (investigated on real 0263 frames before writing any code): in
+// THIS PokerStars client the dealer button is NOT a "D" glyph -- it is a small
+// white-rimmed disc bearing the red PokerStars spade logo. The already-existing
+// real template images at templates/dealer_chip/{1.png (48x42, the bright live
+// appearance), seat5_is_dealer_0956.png (32x32, a dimmed variant)} ARE that
+// button; 1.png matches the live look, so it is the template used here.
+//
+// Reuses the EXACT Task 0290a matching infrastructure: native ComputerVision::
+// MatchTemplate (TM_CCOEFF_NORMED, no OpenCV) sliding a grayscale template over a
+// grayscale search region, peak via MinMaxLoc. The on-screen button scale is
+// FIXED on this static table (kTableRect), so -- exactly as 0290a found for card
+// ranks -- a small pre-scaled template set suffices and no per-frame ORB scale
+// search is needed (ORB stays a calibration-only tool). Real calibration on
+// frame_000006 (dealer=seat4=bottom): TM_CCOEFF_NORMED peak 0.956 at the true
+// button centre (table 383,432) at scale 0.65, vs a best FALSE peak of ~0.63 in
+// the pot/board area -- a wide, safe margin, so kDealerScoreMin=0.72 cleanly
+// accepts the real button and rejects felt/board/avatar clutter.
+//
+// The search is BOUNDED to the felt interior (never the full 1920x1080 frame),
+// and -- because the button is essentially static within a hand -- it is
+// THROTTLED to run once every kDealerEveryFrames frames (see ProcessTableFrame)
+// so its cost stays negligible in the live loop.
+// ===========================================================================
+static const double kDealerScales[] = { 0.60, 0.65, 0.70 }; // calibrated (native ~0.65 peaks)
+static const int    kNumDealerScales = 3;
+static const double kDealerScoreMin  = 0.72;   // strictly inside the real 0.63/0.956 gap
+// Felt-interior search band (TABLE space). Excludes the outer name plates/avatars
+// (top y<150, bottom Play-Now y>560) and covers where the button ever sits.
+static const Rect   kDealerSearch    = RectC(30, 150, 880, 410);
+
+struct DealerTemplate {
+	Vector<ByteMat> scaled;  // one grayscale button glyph per kDealerScales entry (HALF-res)
+	bool ok = false;
+};
+
+// 2x box-downscale of a single-channel ByteMat. The dealer felt-band search would
+// cost ~900M multiply-adds/frame at full resolution (measured: tens of seconds per
+// frame in this DEBUG_FULL build -- far too slow even when throttled). Matching at
+// HALF resolution -- downscaling BOTH the search image and the template by the same
+// factor -- preserves the exact scale relationship that scored 0.96 at full res
+// while cutting the cost ~16x. Averaging (not nearest) keeps the small button's
+// edges faithful at half size.
+static ByteMat DownscaleByteMat2x(const ByteMat& m)
+{
+	ByteMat o;
+	if(m.IsEmpty() || m.cols < 2 || m.rows < 2) return o;
+	int nw = m.cols / 2, nh = m.rows / 2;
+	o.SetSize(nw, nh, 1);
+	for(int y = 0; y < nh; y++)
+		for(int x = 0; x < nw; x++) {
+			int a = m.data[(2*y)   * m.cols + 2*x],     b = m.data[(2*y)   * m.cols + 2*x + 1];
+			int c = m.data[(2*y+1) * m.cols + 2*x],     d = m.data[(2*y+1) * m.cols + 2*x + 1];
+			o.data[y * nw + x] = (byte)((a + b + c + d) / 4);
+		}
+	return o;
+}
+
+// Load templates/dealer_chip/1.png, grayscale, pre-scaled to every calibrated
+// scale (same style as LoadCardTemplates -- one fixed MatchTemplate set/frame).
+static DealerTemplate LoadDealerTemplate(const String& dir)
+{
+	DealerTemplate dt;
+	String path = AppendFileName(AppendFileName(dir, "dealer_chip"), "1.png");
+	Image im = StreamRaster::LoadFileAny(path);
+	if(im.IsEmpty()) { Cerr() << "WARN: dealer template missing: " << path << "\n"; return dt; }
+	for(int s = 0; s < kNumDealerScales; s++) {
+		int nw = max(1, (int)(im.GetWidth()  * kDealerScales[s] + 0.5));
+		int nh = max(1, (int)(im.GetHeight() * kDealerScales[s] + 0.5));
+		Image sc = Rescale(im, nw, nh);
+		ByteMat bm; ImageToGrayByteMat(sc, bm);
+		dt.scaled.Add() = DownscaleByteMat2x(bm); // store HALF-res (matched at half-res)
+	}
+	dt.ok = dt.scaled.GetCount() == kNumDealerScales;
+	return dt;
+}
+
+// Nearest seat anchor (Euclidean) to a table-space point -- the RegionToSeat
+// analogue for a POINT-LIKE marker. Euclidean (not RegionToSeat's angular test,
+// which is tuned for centre-pulled bet chips) is the robust choice for the
+// compact dealer disc: on the real frame it maps the button at (383,429) to the
+// BOTTOM seat (dist 133) unambiguously over left-bottom (dist 304).
+static int NearestSeatAnchor(int cx, int cy)
+{
+	int best = -1; double bestd = 1e18;
+	for(const SeatAnchor& sa : kSeatAnchors) {
+		double d = (double)(sa.cx - cx) * (sa.cx - cx) + (double)(sa.cy - cy) * (sa.cy - cy);
+		if(d < bestd) { bestd = d; best = sa.seat; }
+	}
+	return best;
+}
+
+// Find the dealer button in a table frame. Returns the nearest seat index (or -1
+// if no match clears kDealerScoreMin); out_score/out_center get the peak. Bounded
+// to kDealerSearch, one MatchTemplate per pre-scaled template, global argmax.
+static int DetectDealerChip(const VsmFrameImage& table, const DealerTemplate& dt,
+                            double& out_score, Point& out_center)
+{
+	out_score = -2; out_center = Point(-1, -1);
+	if(!dt.ok) return -1;
+	Rect sr = kDealerSearch & RectC(0, 0, table.width, table.height);
+	ByteMat imgf = TableRegionToGray(table, sr);
+	ByteMat img = DownscaleByteMat2x(imgf); // match at HALF res (dt.scaled is half-res)
+	if(img.IsEmpty()) return -1;
+	double bestv = -2; Point bestc(-1, -1);
+	for(const ByteMat& tm : dt.scaled) {
+		if(tm.IsEmpty() || tm.cols > img.cols || tm.rows > img.rows) continue;
+		FloatMat res;
+		MatchTemplate(img, tm, res, TM_CCOEFF_NORMED);
+		if(res.IsEmpty()) continue;
+		double mn = 0, mx = 0; Point mnl, mxl;
+		MinMaxLoc(res, &mn, &mx, &mnl, &mxl);
+		if(mx > bestv) {
+			bestv = mx;
+			// peak (half-res) -> full-res table-space centre: (top-left + half-tmpl) * 2
+			bestc = Point(sr.left + (mxl.x + tm.cols / 2) * 2, sr.top + (mxl.y + tm.rows / 2) * 2);
+		}
+	}
+	out_score = bestv; out_center = bestc;
+	if(bestv < kDealerScoreMin) return -1;
+	return NearestSeatAnchor(bestc.x, bestc.y);
+}
+
+// ===========================================================================
+// Task 0290c item 2: TURN INDICATOR via the countdown-TIMER graphic (continuous
+// "whose turn right now", unlike Task 0289's momentary post-action bubble).
+//
+// Real finding (investigated on real 0263 frames): the acting player's turn timer
+// renders as a bright, saturated horizontal BAR (a green -> yellow -> orange ->
+// red depleting gradient) directly BELOW that seat's info pod. It is present the
+// WHOLE time the player is deciding -- exactly the continuous signal 0289's action
+// bubble (which only appears AFTER an action is taken) structurally cannot give.
+//
+// Detection is pure per-seat pixel sampling (NO OCR, NO template, sub-millisecond):
+// for each seat's fixed strip (measured on real frames) count the brightest row's
+// bright-saturated pixels; the seat with the strongest bar over kTimerBrightMin is
+// "whose turn". Felt (max-channel ~96) and white name text (low saturation) both
+// fail the bright+saturated test, so the bar stands alone. Validated against the
+// sidecar ground-truth turn order across all 56 real frames of hand 1+2: the
+// detector tracks the acting seat continuously and correctly (real bar counts
+// 58-139 vs <=41 clutter -- a clean, wide separation; see --dealer-turn-test).
+// ===========================================================================
+struct TimerStrip { int seat; Rect rect; };
+static const TimerStrip kTimerStrips[6] = {
+	{ 0, RectC(360, 532, 200, 18) }, // BOTTOM       (bar y~541)
+	{ 1, RectC( 45, 398, 215, 18) }, // LEFT_BOTTOM  (bar y~408)
+	{ 2, RectC( 52, 212, 208, 18) }, // LEFT_TOP     (bar y~220)
+	{ 3, RectC(360, 174, 240, 18) }, // TOP          (bar y~183)
+	{ 4, RectC(680, 212, 215, 18) }, // RIGHT_TOP    (bar y~220)
+	{ 5, RectC(688, 398, 217, 18) }, // RIGHT_BOTTOM (bar y~408)
+};
+static const int kTimerBrightMin = 50; // strictly inside the real 41/58 gap
+
+// Count bright-saturated (timer-bar) pixels in the single strongest row of a
+// table-space strip. A timer pixel is bright (max channel > 150), saturated
+// (max-min > 70) and not blue-dominant (b < 130) -- true for the green/yellow/
+// orange/red bar, false for felt, white text, card backs and avatars.
+static int TimerBarStrength(const VsmFrameImage& table, const Rect& in_r)
+{
+	Rect r = in_r & RectC(0, 0, table.width, table.height);
+	if(r.Width() <= 0 || r.Height() <= 0) return 0;
+	int best = 0;
+	for(int y = r.top; y < r.bottom; y++) {
+		const byte* row = ~table.data + (size_t)((size_t)y * table.width + r.left) * 4;
+		int cnt = 0;
+		for(int x = 0; x < r.Width(); x++) {
+			const byte* p = row + (size_t)x * 4;
+			int R = p[0], G = p[1], B = p[2];
+			int mx = max(R, max(G, B)), mn = min(R, min(G, B));
+			if(mx > 150 && (mx - mn) > 70 && B < 130) cnt++;
+		}
+		if(cnt > best) best = cnt;
+	}
+	return best;
+}
+
+// Whose turn: the seat whose timer bar is strongest, if it clears kTimerBrightMin.
+// Returns -1 (no one's timer visible) otherwise; out_strength gets the peak count.
+static int DetectTurnSeat(const VsmFrameImage& table, int& out_strength)
+{
+	int best_seat = -1, best = 0;
+	for(const TimerStrip& ts : kTimerStrips) {
+		int s = TimerBarStrength(table, ts.rect);
+		if(s > best) { best = s; best_seat = ts.seat; }
+	}
+	out_strength = best;
+	return best >= kTimerBrightMin ? best_seat : -1;
+}
+
+// ===========================================================================
 // Mode 1: rigorous leave-one-out classification accuracy over the dataset.
 // ===========================================================================
 static int RunClassifySelfTest(const String& dataset_path)
@@ -924,6 +1116,15 @@ struct ResolveState {
 			seat_folded[i] = false;
 		}
 	}
+	// Task 0290c item 1: video-grounded dealer seat (from dealer-chip template
+	// match), independent of the engine's GBUTTON_DEALER indicator. -1 = not yet
+	// detected. Compared against the engine dealer in BuildSnapshot/Paint.
+	int    dealer_seat_video = -1;
+	double dealer_chip_score = -1;
+	// Task 0290c item 2: video-grounded turn seat (from the countdown-timer bar).
+	// -1 = no timer bar currently visible (nobody's turn is being shown).
+	int    turn_seat_video = -1;
+	int    turn_bar_strength = 0;
 	// board tracking (structural tier)
 	int  board_count = 0;
 	Vector<int> board_cards;
@@ -1113,7 +1314,7 @@ static void ProcessTableFrame(const VsmFrameImage& table, VsmFrameImage& prev, b
                               bool ocr_available, const VsmChangeDetectParams& cdp,
                               StageSet& st, LoopStats& stats, ResolveState& rs, OcrCacheState& oc,
                               const std::shared_ptr<Game>& game, bool verbose, int ocr_cap,
-                              const CardTemplates& ct)
+                              const CardTemplates& ct, const DealerTemplate& dt)
 {
 	if(!has_prev) return;
 	int ocr_used = 0; // OCR calls spent on THIS frame (budget throttle)
@@ -1434,6 +1635,43 @@ static void ProcessTableFrame(const VsmFrameImage& table, VsmFrameImage& prev, b
 	}
 	st.resolve.Add(NowMs() - t);
 
+	// --- Task 0290c item 2: continuous turn indicator from the timer bar ---
+	// Pure per-seat pixel sampling, every frame (sub-millisecond). Independent of
+	// the change detector and of OCR: shows whose turn it is WHILE they decide, a
+	// signal 0289's momentary post-action bubble cannot provide.
+	t = NowMs();
+	{
+		int strength = 0;
+		int ts = DetectTurnSeat(table, strength);
+		rs.turn_bar_strength = strength;
+		if(ts != rs.turn_seat_video) {
+			rs.turn_seat_video = ts;
+			if(ts >= 0) rs.LogEvent(Format("turn: seat %d (timer bar, strength %d)", ts, strength), verbose);
+		}
+	}
+	st.resolve.Add(NowMs() - t);
+
+	// --- Task 0290c item 1: video-grounded dealer chip (template match) ---
+	// THROTTLED to once every kDealerEveryFrames frames -- the dealer button is
+	// static within a hand, and MatchTemplate over the felt band is the one
+	// non-trivial cost here, so running it every frame would be wasteful. Logged
+	// as an INDEPENDENT signal; agreement with the engine's GBUTTON_DEALER
+	// indicator is reported in BuildSnapshot/Paint, not asserted here.
+	static const int kDealerEveryFrames = 8;
+	if(dt.ok && (stats.frames % kDealerEveryFrames == 0)) {
+		t = NowMs();
+		double dsc = -2; Point dc(-1, -1);
+		int dseat = DetectDealerChip(table, dt, dsc, dc);
+		rs.dealer_chip_score = dsc;
+		if(dseat != rs.dealer_seat_video) {
+			rs.dealer_seat_video = dseat;
+			if(dseat >= 0)
+				rs.LogEvent(Format("dealer chip: seat %d (template score %.2f at %d,%d)",
+				                    dseat, dsc, dc.x, dc.y), verbose);
+		}
+		st.engine.Add(NowMs() - t);
+	}
+
 	// Structural street events + engine application from board region count.
 	t = NowMs();
 	if(board_regions_this_frame > 0 && ct.ok) {
@@ -1543,6 +1781,9 @@ struct SeatSnap {
 	double round_total = -1;     // last OCR'd chip_badge_stack value, -1 none
 	bool   round_total_live = false;
 	double bet_ocr = -1;         // raw OCR bet value (for felt rendering), -1 none
+	// Task 0290c: independent video-grounded signals for this seat.
+	bool   dealer_video = false; // dealer-chip template match maps here (item 1)
+	bool   timer_turn = false;   // countdown-timer bar is on this seat right now (item 2)
 };
 
 struct GameSnapshot {
@@ -1558,6 +1799,12 @@ struct GameSnapshot {
 	int    engine_pot = 0;
 	int    seat_count = 0;
 	SeatSnap seats[9];
+	// Task 0290c: independent video-grounded signals (mirror-seat indices) + the
+	// engine's own dealer seat, so the renderer can show BOTH and their agreement.
+	int    dealer_seat_video = -1;   // dealer-chip template match (item 1), -1 none
+	double dealer_chip_score = -1;   // its peak TM_CCOEFF_NORMED score
+	int    engine_dealer_seat = -1;  // seat with GBUTTON_DEALER (Task 0288)
+	int    turn_seat_video = -1;     // countdown-timer bar seat (item 2), -1 none
 	// --- recognition status counters ---
 	int    frames = 0;
 	int    total_regions = 0;
@@ -1622,6 +1869,10 @@ static GameSnapshot BuildSnapshot(const std::shared_ptr<Game>& game, const Resol
 	for(int i = 0; i < 5; i++) s.board[i] = rs.board_cards[i];
 	s.street = rs.board_count >= 5 ? 3 : rs.board_count >= 4 ? 2 : rs.board_count >= 3 ? 1 : 0;
 	s.elapsed_s = (int)((msecs() - start_ms) / 1000);
+	// Task 0290c: publish the independent video-grounded dealer/turn signals.
+	s.dealer_seat_video = rs.dealer_seat_video;
+	s.dealer_chip_score = rs.dealer_chip_score;
+	s.turn_seat_video = rs.turn_seat_video;
 	if(game) {
 		s.dealer = (int)game->getDealerPosition();
 		s.hand_id = game->getCurrentHandID();
@@ -1659,6 +1910,12 @@ static GameSnapshot BuildSnapshot(const std::shared_ptr<Game>& game, const Resol
 				// field is the direct, unambiguous engine signal for "this seat has the
 				// dealer button" and does not depend on the two id-spaces coinciding.
 				ss.is_dealer = (p->getMyButton() == GBUTTON_DEALER);
+				if(ss.is_dealer) s.engine_dealer_seat = n; // Task 0290c: engine dealer seat
+				// Task 0290c item 1/2: independent video-grounded per-seat markers.
+				if(n < 6) {
+					ss.dealer_video = (rs.dealer_seat_video == n);
+					ss.timer_turn   = (rs.turn_seat_video == n);
+				}
 				// Task 0287: override name/stack/bet with the real per-seat OCR
 				// values WHEN AVAILABLE (RegionToSeat-attributed), keeping the
 				// engine-seed value only where nothing has been recognized yet.
@@ -1766,6 +2023,7 @@ static int RunOfflineFrames(const String& frames_dir, const String& dataset_path
 	st.classify.name = "classify"; st.ocr.name = "ocr"; st.resolve.name = "resolve"; st.engine.name = "engine";
 	LoopStats stats; ResolveState rs;
 	CardTemplates card_templates = LoadCardTemplates(g_templates_dir); // Task 0290a
+	DealerTemplate dealer_template = LoadDealerTemplate(g_templates_dir); // Task 0290c item 1
 	VsmChangeDetectParams cdp;
 	OcrCacheState oc; oc.enabled = ocr_cache_enabled; oc.threshold = ocr_cache_threshold;
 
@@ -1779,7 +2037,7 @@ static int RunOfflineFrames(const String& frames_dir, const String& dataset_path
 		if(table.IsEmpty()) continue;
 
 		if(verbose) Cout() << Format("frame %d (%s):\n", fi, ~GetFileName(files[fi]));
-		ProcessTableFrame(table, prev, has_prev, clf, ocr, ocr_available, cdp, st, stats, rs, oc, game, verbose, ocr_cap, card_templates);
+		ProcessTableFrame(table, prev, has_prev, clf, ocr, ocr_available, cdp, st, stats, rs, oc, game, verbose, ocr_cap, card_templates, dealer_template);
 		if(!has_prev) { prev.Set(table.width, table.height, ~table.data); has_prev = true; }
 	}
 
@@ -1853,6 +2111,7 @@ static int RunLive(const String& host, int port, int seconds, const String& data
 	st.classify.name = "classify"; st.ocr.name = "ocr"; st.resolve.name = "resolve"; st.engine.name = "engine";
 	LoopStats stats; ResolveState rs;
 	CardTemplates card_templates = LoadCardTemplates(g_templates_dir); // Task 0290a
+	DealerTemplate dealer_template = LoadDealerTemplate(g_templates_dir); // Task 0290c item 1
 	VsmChangeDetectParams cdp;
 	OcrCacheState oc; oc.enabled = ocr_cache_enabled; oc.threshold = ocr_cache_threshold;
 
@@ -1884,7 +2143,7 @@ static int RunLive(const String& host, int port, int seconds, const String& data
 		prev_ts = ts;
 
 		double f0 = NowMs();
-		ProcessTableFrame(table, prev, has_prev, clf, ocr, ocr_available, cdp, st, stats, rs, oc, game, verbose, ocr_cap, card_templates);
+		ProcessTableFrame(table, prev, has_prev, clf, ocr, ocr_available, cdp, st, stats, rs, oc, game, verbose, ocr_cap, card_templates, dealer_template);
 		double f_done = NowMs();
 		if(has_prev) {
 			per_frame_ms.Add(f_done - f0);
@@ -2098,6 +2357,37 @@ struct MirrorView : Ctrl {
 				Size ds = GetTextSize("D", df);
 				w.DrawText(dcx - ds.cx/2, dcy - ds.cy/2, "D", df, Color(20, 20, 20));
 			}
+			// Task 0290c item 1: INDEPENDENT video-grounded dealer marker (from the
+			// dealer-chip template match) drawn at the box's top-LEFT as a green "D"
+			// disc -- deliberately distinct from and next to the engine's gold "D" at
+			// top-right, so a viewer sees at a glance whether the two AGREE (they
+			// should, if Task 0288 fixed the earlier off-by-one-hand bug). Green =
+			// "confirmed by real pixels on screen", not just engine bookkeeping.
+			if(ss.dealer_video) {
+				const int dd = 20, dcx = bxx + dd/2 + 3, dcy = byy + dd/2 + 3;
+				w.DrawEllipse(RectC(dcx - dd/2, dcy - dd/2, dd, dd),
+				              Color(70, 210, 110), 2, Color(15, 70, 35));   // green disc
+				Font df = SansSerif(12).Bold();
+				Size ds = GetTextSize("D", df);
+				w.DrawText(dcx - ds.cx/2, dcy - ds.cy/2, "D", df, Color(10, 30, 15));
+			}
+			// Task 0290c item 2: CONTINUOUS turn indicator from the countdown-timer
+			// bar. Unlike 0289's "acting" plate (a momentary post-action-bubble read),
+			// this lights up the WHOLE time the player is deciding. Rendered as a
+			// bright green frame + a small green "TIMER" tag, distinct from the blue
+			// "acting" edge, plus a mimic of the on-screen bar under the box.
+			if(ss.timer_turn) {
+				const int gw = 3; Color tg(90, 240, 130);
+				w.DrawRect(bxx - gw, byy - gw, boxw + 2*gw, gw, tg);
+				w.DrawRect(bxx - gw, byy + boxh, boxw + 2*gw, gw, tg);
+				w.DrawRect(bxx - gw, byy - gw, gw, boxh + 2*gw, tg);
+				w.DrawRect(bxx + boxw, byy - gw, gw, boxh + 2*gw, tg);
+				// green->yellow timer-bar mimic just under the box (the real graphic)
+				w.DrawRect(bxx + 4, byy + boxh + gw + 1, (boxw - 8) * 2 / 3, 3, Color(120, 230, 40));
+				w.DrawRect(bxx + 4 + (boxw - 8) * 2 / 3, byy + boxh + gw + 1, (boxw - 8) / 3, 3, Color(235, 210, 40));
+				Font tf = SansSerif(9).Bold();
+				w.DrawText(bxx + 4, byy - gw - 12, "TIMER (turn)", tf, tg);
+			}
 			// Task 0287: colour per-seat fields by provenance -- LIVE-DRIVEN
 			// green (Color(150,230,160)) when the value came from real video
 			// OCR this run, ENGINE-SEED amber (Color(235,180,120)) otherwise,
@@ -2200,6 +2490,21 @@ struct MirrorView : Ctrl {
 		line(Format("OCR cache hits: %d", snap.ocr_cache_hits), sub);
 		line(Format("board resolved: %d/5", snap.board_count), sub);
 		line(Format("engine pot: %d", snap.engine_pot), sub);
+		// Task 0290c: the two independent video-grounded signals + cross-check.
+		{
+			String eng = snap.engine_dealer_seat >= 0 ? Format("seat %d", snap.engine_dealer_seat) : String("?");
+			String vid = snap.dealer_seat_video >= 0
+			    ? Format("seat %d (%.2f)", snap.dealer_seat_video, snap.dealer_chip_score) : String("none");
+			line(Format("dealer engine: %s", ~eng), Color(230, 200, 60));
+			line(Format("dealer video : %s", ~vid), Color(70, 210, 110));
+			bool agree = snap.dealer_seat_video >= 0 && snap.dealer_seat_video == snap.engine_dealer_seat;
+			bool have  = snap.dealer_seat_video >= 0 && snap.engine_dealer_seat >= 0;
+			line(have ? (agree ? "  -> AGREE" : "  -> DIFFER") : "  -> (pending)",
+			     have ? (agree ? Color(120, 230, 140) : Color(240, 120, 110)) : sub);
+			line(snap.turn_seat_video >= 0
+			     ? Format("turn (timer): seat %d", snap.turn_seat_video)
+			     : String("turn (timer): none"), Color(90, 240, 130));
+		}
 		ty += 4;
 		// capture-to-render latency (Task 0282): msecs()-ts for the frame this
 		// snapshot reflects, plus rolling min/avg/max (see kLatencyWindowFrames)
@@ -2226,7 +2531,9 @@ struct MirrorView : Ctrl {
 		line("Felt chips: bet=gold pill,", Color(255, 236, 170));
 		line("  round-total=blue (both OCR).", Color(190, 220, 255));
 		line("Bright blue plate = acting seat.", Color(120, 180, 255));
-		line("Gold \"D\"=dealer. folded=hidden.", Color(230, 200, 60));
+		line("Gold \"D\"=engine dealer (0288).", Color(230, 200, 60));
+		line("Green \"D\"=video dealer chip (0290c).", Color(70, 210, 110));
+		line("Green frame=timer/turn (0290c).", Color(90, 240, 130));
 
 		// ---- Task 0289: scrolling event log on the right edge, below the status
 		// panel. Shows the most recent resolved events (the SAME stream the
@@ -2321,6 +2628,7 @@ static void GuiRecognitionWorker(LiveMirrorShared* shared, const String& host, i
 	st.classify.name = "classify"; st.ocr.name = "ocr"; st.resolve.name = "resolve"; st.engine.name = "engine";
 	LoopStats stats; ResolveState rs;
 	CardTemplates card_templates = LoadCardTemplates(g_templates_dir); // Task 0290a
+	DealerTemplate dealer_template = LoadDealerTemplate(g_templates_dir); // Task 0290c item 1
 	VsmChangeDetectParams cdp;
 	OcrCacheState oc; oc.enabled = ocr_cache_enabled; oc.threshold = ocr_cache_threshold;
 
@@ -2395,7 +2703,7 @@ static void GuiRecognitionWorker(LiveMirrorShared* shared, const String& host, i
 			VsmFrameImage table = CropBufferToFrame(buf, kTableRect);
 			if(table.IsEmpty()) continue;
 
-			ProcessTableFrame(table, prev, has_prev, clf, ocr, ocr_available, cdp, st, stats, rs, oc, game, verbose, ocr_cap, card_templates);
+			ProcessTableFrame(table, prev, has_prev, clf, ocr, ocr_available, cdp, st, stats, rs, oc, game, verbose, ocr_cap, card_templates, dealer_template);
 			if(!has_prev) { prev.Set(table.width, table.height, ~table.data); has_prev = true; }
 
 			// capture-to-processed latency for this frame (Task 0282), same
@@ -2611,6 +2919,91 @@ static int RunCardDatasetDump(const String& frames_dir, const String& templates_
 	return 0;
 }
 
+// ===========================================================================
+// Task 0290c: Mode 7 -- dealer-chip + turn-timer detection accuracy against the
+// real 0263 frames + sidecar ground truth. Deterministic, no server. Runs the
+// two new detectors on every real frame and scores them:
+//   * DEALER: ground truth (bin/video_record_25min_20260716_203356.txt) has
+//     dealer=seat4 for BOTH hands in this 0-55s window; seat4 is the BOTTOM seat
+//     = mirror seat 0. So the expected video-detected dealer seat is 0 for every
+//     frame where the button is on screen.
+//   * TURN: expected acting seat per frame, encoded from the ground-truth action
+//     sequence (the player genuinely deliberating before their next logged
+//     action). -1 = a setup/dealing/showdown transition frame, not scored.
+// Also prints real per-frame TIMING for the dealer template match (its one
+// non-trivial cost) so the throttle choice is grounded in real numbers.
+// ===========================================================================
+static int RunDealerTurnTest(const String& frames_dir, const String& templates_dir)
+{
+	Cout() << "=== Mode: dealer-turn-test (real 0263 frames vs sidecar ground truth) ===\n";
+	DealerTemplate dt = LoadDealerTemplate(templates_dir);
+	Cout() << "dealer template: " << (dt.ok ? "OK" : "MISSING") << " (" << dt.scaled.GetCount()
+	       << " scales) from " << templates_dir << "\n";
+	if(!dt.ok) { Cerr() << "ERROR: dealer template missing\n"; return 1; }
+
+	// Expected acting seat (mirror index) per frame from GT; -1 = not scored.
+	// Sidecar->mirror: bottom(seat4)=0, leftbot(seat5)=1, lefttop(seat6)=2,
+	// top(seat1)=3, righttop(seat2)=4, rightbot(seat3)=5.
+	int exp_turn[56];
+	for(int i = 0; i < 56; i++) exp_turn[i] = -1;
+	auto setrange = [&](int a, int b, int v){ for(int i = a; i <= b && i < 56; i++) exp_turn[i] = v; };
+	setrange(6,11,4); setrange(13,13,0); setrange(14,16,2); setrange(19,20,2);
+	setrange(22,22,0); setrange(24,25,2); setrange(29,29,0); setrange(31,35,2);
+	setrange(36,36,0); setrange(39,39,2); setrange(41,45,0); setrange(47,47,2);
+	setrange(55,55,4);
+
+	int dealer_present = 0, dealer_ok = 0;
+	int turn_scored = 0, turn_ok = 0, turn_detected = 0;
+	double dealer_ms_sum = 0; int dealer_ms_n = 0;
+	for(int f = 0; f < 56; f++) {
+		String path = AppendFileName(frames_dir, Format("frame_%06d.jpg", f));
+		VsmImageBuffer buf;
+		if(!LoadJpgToBuffer(path, buf)) continue;
+		VsmFrameImage table = CropBufferToFrame(buf, kTableRect);
+		if(table.IsEmpty()) continue;
+
+		double t0 = NowMs();
+		double dsc = -2; Point dc(-1, -1);
+		int dseat = DetectDealerChip(table, dt, dsc, dc);
+		dealer_ms_sum += NowMs() - t0; dealer_ms_n++;
+
+		int strength = 0;
+		int tseat = DetectTurnSeat(table, strength);
+
+		String dline;
+		if(dseat >= 0) {
+			dealer_present++;
+			bool ok = (dseat == 0);  // GT: dealer=seat4=bottom=mirror 0 this window
+			dealer_ok += ok;
+			dline = Format("dealer=seat%d %s (score %.2f @%d,%d)", dseat, ok ? "OK" : "MISPLACED", dsc, dc.x, dc.y);
+		}
+		else dline = Format("dealer=none (best score %.2f)", dsc);
+
+		if(tseat >= 0) turn_detected++;
+		String tline;
+		if(exp_turn[f] >= 0) {
+			turn_scored++;
+			bool ok = (tseat == exp_turn[f]);
+			turn_ok += ok;
+			tline = Format("turn=seat%d exp=seat%d %s (str %d)", tseat, exp_turn[f], ok ? "OK" : "MISS", strength);
+		}
+		else tline = Format("turn=%s (str %d, GT n/a)", tseat >= 0 ? ~Format("seat%d", tseat) : "none", strength);
+
+		Cout() << Format("f%02d: %-46s | %s\n", f, ~dline, ~tline);
+	}
+	auto pct = [](int a, int b){ return b ? 100.0 * a / b : 0.0; };
+	Cout() << "\n=== Dealer-chip accuracy (GT: dealer on bottom/mirror-seat-0) ===\n";
+	Cout() << Format("frames with a chip detected = %d/56; correctly on seat 0 = %d/%d (%.1f%%)\n",
+	                 dealer_present, dealer_ok, dealer_present, pct(dealer_ok, dealer_present));
+	Cout() << Format("dealer template match timing = %.1f ms/frame (%d frames, %d scales, felt-band search)\n",
+	                 dealer_ms_n ? dealer_ms_sum / dealer_ms_n : 0.0, dealer_ms_n, kNumDealerScales);
+	Cout() << "\n=== Turn-timer accuracy (GT-scored frames only) ===\n";
+	Cout() << Format("frames with a timer bar detected = %d/56\n", turn_detected);
+	Cout() << Format("GT-scored frames = %d; detected seat == GT acting seat = %d (%.1f%%)\n",
+	                 turn_scored, turn_ok, pct(turn_ok, turn_scored));
+	return 0;
+}
+
 GUI_APP_MAIN
 {
 #ifdef PLATFORM_WIN32
@@ -2640,6 +3033,7 @@ GUI_APP_MAIN
 		else if(args[i] == "--crop-safety-check") mode = "cropsafety";
 		else if(args[i] == "--card-recog-test") { mode = "cardrecog"; if(frames_dir.IsEmpty()) frames_dir = "tmp/real_recording_0263_frames"; }
 		else if(args[i] == "--card-dataset-dump" && i + 1 < args.GetCount()) { mode = "carddataset"; card_dataset_out = args[++i]; if(frames_dir.IsEmpty()) frames_dir = "tmp/real_recording_0263_frames"; }
+		else if(args[i] == "--dealer-turn-test") { mode = "dealerturn"; if(frames_dir.IsEmpty()) frames_dir = "tmp/real_recording_0263_frames"; }
 		else if(args[i] == "--frames-dir" && i + 1 < args.GetCount()) frames_dir = args[++i];
 		else if(args[i] == "--templates" && i + 1 < args.GetCount()) g_templates_dir = args[++i];
 		else if(args[i] == "--crop-list" && i + 1 < args.GetCount()) crop_safety_lists.Add(args[++i]);
@@ -2674,6 +3068,8 @@ GUI_APP_MAIN
 		       << "                               suit-colour + rank template match) accuracy vs the\n"
 		       << "                               sidecar ground truth + ORB-vs-template timing\n"
 		       << "  --card-dataset-dump <dir>   Task 0290a: dump labeled board-card crops + manifest\n"
+		       << "  --dealer-turn-test          Task 0290c: dealer-chip template match + turn-timer\n"
+		       << "                               bar detection accuracy vs the sidecar ground truth\n"
 		       << "Options:\n"
 		       << "  --host <h> --port <p>       VideoServer address (default 127.0.0.1:8082)\n"
 		       << "  --seconds <n>               Live run duration (default 30)\n"
@@ -2707,5 +3103,6 @@ GUI_APP_MAIN
 	}
 	else if(mode == "cardrecog") rc = RunCardRecogTest(frames_dir, g_templates_dir);
 	else if(mode == "carddataset") rc = RunCardDatasetDump(frames_dir, g_templates_dir, card_dataset_out);
+	else if(mode == "dealerturn") rc = RunDealerTurnTest(frames_dir, g_templates_dir);
 	if(rc) SetExitCode(rc);
 }

@@ -69,7 +69,8 @@ file
     "../Header-Footer Support and the RichEdit Floating Mode.md",
     "../BASE64 QTF and the Ref Refactor.md",
     "../NanoStrings and the Default GTK Backend.md",
-    "../The TURTLE Protocol and WebSocket Stability.md";
+    "../The TURTLE Protocol and WebSocket Stability.md",
+    "../Live Video Streaming and Player.md";
 
 mainconfig
 	"" = "";

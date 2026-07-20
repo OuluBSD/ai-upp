@@ -1,21 +1,20 @@
 # Current Task — Book Chronicle (Session Handoff)
 
 See: [AGENTS](./AGENTS.md)
+*Explicit Confirmation*: Read and applied Book/AGENTS.md.
 
 Scope
-- Volume I (Ultimate, upstream): continue drafting long-form chapters with references, plus paired summaries in Book/.
+- Volume II (Topside, fork): chronicle ongoing tasks and live video player/streaming integration.
 - Keep `.upp` manifests updated per AGENTS policy.
 
 Completed This Session
 - Added chapters:
-  - I - Ultimate/005 through 069 (Aug 2008 to Jan 2014).
+  - II - Topside/004 - Live Video Streaming and Player.md (covers Tasks 0270 to 0284).
 - Added paired summaries:
-  - Book/ summary files for all drafted chapters.
+  - Book/Live Video Streaming and Player.md summary file.
 - Updated manifests:
-  - Book/I - Ultimate/I - Ultimate.upp: chapters 006 through 069.
-  - Book/Book/Book.upp: all summaries.
+  - Book/II - Topside/II - Topside.upp: chapter 004.
+  - Book/Book/Book.upp: summary file link.
 
 Next Steps
-1) Draft I - Ultimate/070 for Feb 2014 (scan git log 2014-02-01..2014-02-28).
-2) Create paired summary in Book/.
-3) Update manifests.
+- Backfill details of any new Topside commits as they land.

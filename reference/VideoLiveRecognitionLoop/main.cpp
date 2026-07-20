@@ -4154,7 +4154,7 @@ static int RunSidecar2(const String& video_path, const String& dataset_path,
 		                         ocr_cache_enabled, ocr_cache_threshold);
 	Cout() << "pipeline=window-aware deterministic=1 staged_pre_ocr=1 async_ocr=0"
 	       << " prepared_queue=none ocr_queue=none"
-	       << " action_sample_hz=4 full_ocr_hz=1 window_count=" << window_count << "\n";
+	       << " window_count=" << window_count << "\n";
 	for(const WindowDescriptor& descriptor : window_descriptors)
 		Cout() << "window_descriptor id=" << descriptor.id.value
 		       << " name=" << descriptor.name
@@ -4162,9 +4162,7 @@ static int RunSidecar2(const String& video_path, const String& dataset_path,
 		       << "," << descriptor.source_rect.Width() << "," << descriptor.source_rect.Height() << "\n";
 	VsmChangeDetectParams change_params;
 	double started_ms = NowMs();
-	static const int64 kActionSampleIntervalMs = 250;
-	int64 next_action_sample_ms = (int64)start_second * 1000;
-	int next_full_sample_second = start_second;
+	int next_sample_second = start_second;
 	int sampled_frames = 0;
 	int decoded_frames = 0;
 	int first_frame_second = -1;
@@ -4221,12 +4219,9 @@ static int RunSidecar2(const String& video_path, const String& dataset_path,
 		if(pts_ms < 0)
 			continue;
 		int frame_second = (int)(pts_ms / 1000);
-		if(pts_ms < next_action_sample_ms)
+		if(frame_second < next_sample_second)
 			continue;
-		next_action_sample_ms = pts_ms + kActionSampleIntervalMs;
-		bool full_sample = frame_second >= next_full_sample_second;
-		if(full_sample)
-			next_full_sample_second = frame_second + 1;
+		next_sample_second = frame_second + 1;
 		if(!layout_validated) {
 			if(!ValidateSidecar2WindowLayout(buffer)) return 1;
 			layout_validated = true;
@@ -4277,12 +4272,10 @@ static int RunSidecar2(const String& video_path, const String& dataset_path,
 			stages.crop.Add(fanout_ms);
 
 		VsmFrameImage table;
-		bool action_only_ocr = !full_sample;
-		int frame_ocr_cap = action_only_ocr && ocr_cap != 0 ? -1 : ocr_cap;
 		ProcessWindowFrame(window_frames[window_index], recognition,
 		                   classifier, ocr, ocr_available, change_params,
-		                   nullptr, verbose, frame_ocr_cap, board_templates,
-		                   dealer_template, &table, action_only_ocr);
+		                   nullptr, verbose, ocr_cap, board_templates,
+		                   dealer_template, &table, false);
 		if(table.IsEmpty()) {
 			stats.omitted_signals++;
 			continue;

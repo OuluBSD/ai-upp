@@ -121,6 +121,115 @@ static const char* kDatasetDefault = "tmp/real_recording_combined_classified_dat
 // glyphs used by MatchTemplate). Overridable with --templates <dir>.
 static String g_templates_dir = "C:/Users/sblo/Dev/PKR/datasets/pokerstars/templates";
 
+struct RecognitionAnchor : Moveable<RecognitionAnchor> {
+	String name;
+	Image image;
+};
+
+struct RecognitionAnchors {
+	Vector<RecognitionAnchor> anchors;
+	bool loaded = false;
+
+	void Load(const String& dir)
+	{
+		anchors.Clear();
+		Vector<String> names;
+		names << "BB-in-game" << "BB-folded" << "BB-board" << "balance-all-in"
+		       << "action-bet" << "action-call" << "action-check" << "action-fold"
+		       << "action-post-sb" << "action-post-bb" << "action-raise"
+		       << "action-resume" << "action-muck" << "action-won";
+		for(const String& name : names) {
+			String path = AppendFileName(dir, name + ".png");
+			Image image = StreamRaster::LoadFileAny(path);
+			if(image.IsEmpty()) {
+				Cout() << "anchor_missing name=" << name << " path=" << path << "\n";
+				continue;
+			}
+			RecognitionAnchor& anchor = anchors.Add();
+			anchor.name = name;
+			anchor.image = image;
+			Cout() << Format("anchor_loaded name=%s size=%dx%d path=%s\n", ~name,
+			                 image.GetWidth(), image.GetHeight(), ~path);
+		}
+		loaded = !anchors.IsEmpty();
+	}
+};
+
+static RecognitionAnchors g_recognition_anchors;
+
+static int RgbAnchorDistance(const Image& candidate, const Image& anchor, double scale)
+{
+	if(candidate.IsEmpty() || anchor.IsEmpty()) return -1;
+	int w = max(1, (int)(anchor.GetWidth() * scale + 0.5));
+	int h = max(1, (int)(anchor.GetHeight() * scale + 0.5));
+	if(candidate.GetWidth() < w || candidate.GetHeight() < h) return -1;
+	Image resized = Rescale(anchor, w, h);
+	String target = VsmLiveRegionClassifier::Signature(resized);
+	int best = -1;
+	// Coarse RGB matching is deliberate: these assets carry action colour and
+	// brightness, so grayscale MatchTemplate would discard useful evidence.
+	// Two-pixel stride keeps the live cost bounded while tolerating detector
+	// rectangle jitter; the accepted result is still gated by OCR/state logic.
+	for(int y = 0; y <= candidate.GetHeight() - h; y += 2)
+		for(int x = 0; x <= candidate.GetWidth() - w; x += 2) {
+			Image probe = Crop(candidate, RectC(x, y, w, h));
+			int d = VsmLiveRegionClassifier::SignatureDistance(
+				VsmLiveRegionClassifier::Signature(probe), target);
+			if(best < 0 || d < best) best = d;
+		}
+	return best;
+}
+
+static String MatchRecognitionAnchor(const Image& candidate, const String& prefix,
+	                                 int& out_distance)
+{
+	out_distance = -1;
+	if(candidate.IsEmpty() || !g_recognition_anchors.loaded) return String();
+	String best;
+	for(const RecognitionAnchor& anchor : g_recognition_anchors.anchors) {
+		if(!anchor.name.StartsWith(prefix)) continue;
+		for(double scale : {0.75, 0.85, 0.95, 1.0, 1.05, 1.15, 1.25}) {
+			int distance = RgbAnchorDistance(candidate, anchor.image, scale);
+			if(distance >= 0 && (out_distance < 0 || distance < out_distance)) {
+				out_distance = distance;
+				best = anchor.name;
+			}
+		}
+	}
+	return best;
+}
+
+static bool IsAcceptedRecognitionAnchor(const String& name, int distance)
+{
+	// The signature is RGB (not grayscale) and has 64 samples. This conservative
+	// limit is intentionally a first gate; semantic OCR and state transitions are
+	// still required before an emitted sidecar event becomes authoritative.
+	return !name.IsEmpty() && distance >= 0 && distance <= 520;
+}
+
+static int RunRecognitionAnchorSelfTest()
+{
+	Cout() << "=== Mode: recognition-anchor-selftest (RGB templates) ===\n";
+	if(!g_recognition_anchors.loaded) {
+		Cerr() << "ERROR: no recognition anchors loaded\n";
+		return 1;
+	}
+	int failed = 0;
+	for(const RecognitionAnchor& anchor : g_recognition_anchors.anchors) {
+		String prefix = anchor.name.StartsWith("action-") ? "action-" : "BB-";
+		int distance = -1;
+		String got = MatchRecognitionAnchor(anchor.image, prefix, distance);
+		bool ok = !got.IsEmpty() && distance == 0;
+		Cout() << Format("anchor=%s matched=%s distance=%d %s\n", ~anchor.name,
+		                 ~got, distance, ok ? "PASS" : "FAIL");
+		if(!ok) failed++;
+	}
+	Cout() << Format("anchor_selftest=%d/%d\n",
+	                 g_recognition_anchors.anchors.GetCount() - failed,
+	                 g_recognition_anchors.anchors.GetCount());
+	return failed ? 2 : 0;
+}
+
 // ---------------------------------------------------------------------------
 static double NowMs()
 {
@@ -1249,6 +1358,7 @@ struct ResolveState {
 	VectorMap<String, double> slot_value;
 	int  value_changes = 0;
 	int  pot_reads = 0;
+	int  pot_rejected_reads = 0;
 	double last_pot = -1;
 	// Task 0287: per-seat OCR'd values, attributed via RegionToSeat(). -1 /
 	// empty means "not resolved from video yet for this seat" -> BuildSnapshot
@@ -1621,6 +1731,16 @@ static void CommitPreparedTableFrame(const PreparedTableFrame& prepared,
 		const Rect& r = region.rect;
 		const Image& crop = region.crop;
 		const VsmLiveClassifyResult& cl = region.classification;
+		int bb_distance = -1, action_distance = -1;
+		String bb_anchor = MatchRecognitionAnchor(crop, "BB-", bb_distance);
+		String action_anchor = MatchRecognitionAnchor(crop, "action-", action_distance);
+		bool bb_match = IsAcceptedRecognitionAnchor(bb_anchor, bb_distance);
+		bool action_match = IsAcceptedRecognitionAnchor(action_anchor, action_distance);
+		if((bb_match || action_match) && verbose)
+			Cout() << Format("    [rgb-anchor] rect=%d,%d,%d,%d category=%s anchor=%s distance=%d accepted=1\n",
+			                 r.left, r.top, r.Width(), r.Height(), ~cl.category,
+			                 bb_match ? ~bb_anchor : ~action_anchor,
+			                 bb_match ? bb_distance : action_distance);
 
 		stats.classified++;
 		String cat = cl.category.IsEmpty() ? String("<unresolved>") : cl.category;
@@ -1636,7 +1756,8 @@ static void CommitPreparedTableFrame(const PreparedTableFrame& prepared,
 		int cache_dist = -1; bool cache_hit = false;
 		bool fast_action_category = cl.category == "seat_action_bubble"
 		                         || cl.category == "seat_name_plate";
-		if(ocr_available && IsOcrCategory(cl.category)
+		bool anchor_needs_ocr = bb_match || action_match;
+		if(ocr_available && (IsOcrCategory(cl.category) || anchor_needs_ocr)
 		   && (!action_only_ocr || fast_action_category)
 		   && (ocr_cap < 0 || ocr_used < ocr_cap)) {
 			// Task 0286 Part B: consult the approximate-hash cache BEFORE paying
@@ -1664,7 +1785,20 @@ static void CommitPreparedTableFrame(const PreparedTableFrame& prepared,
 			} else {
 				ocr_used++;
 				t = NowMs();
-				VsmOcrResult res = ocr.Execute(region.ocr_crop, region.ocr_request);
+				VsmFrameImage anchor_crop;
+				if(!region.ocr_crop.IsEmpty())
+					anchor_crop.Set(region.ocr_crop.width, region.ocr_crop.height,
+					               ~region.ocr_crop.data);
+				VsmOcrRequest anchor_request = region.ocr_request;
+				if(anchor_crop.IsEmpty()) {
+					anchor_crop = CropFrameImage(table, r);
+					anchor_request.semantic = bb_match && bb_anchor == "BB-board"
+					                      ? "pot_label" : bb_match ? "seat_balance_plate"
+					                      : "seat_action_bubble";
+					anchor_request.region_id = Format("anchor:%d,%d,%d,%d", r.left, r.top,
+					                                  r.Width(), r.Height());
+				}
+				VsmOcrResult res = ocr.Execute(anchor_crop, anchor_request);
 				st.ocr.Add(NowMs() - t);
 				ocr_text = res.text; ocr_conf = res.confidence;
 				stats.ocr_calls++;
@@ -1685,6 +1819,64 @@ static void CommitPreparedTableFrame(const PreparedTableFrame& prepared,
 				oc.slots[ui].signature = VsmLiveRegionClassifier::Signature(crop); // crop == Crop(table_img, r)
 				oc.slots[ui].text = ocr_text; oc.slots[ui].confidence = ocr_conf;
 				oc.slots[ui].last_ocr_frame = stats.frames;
+			}
+		}
+
+		// RGB action templates are authoritative visual evidence for the action
+		// label, while OCR supplies optional amount text. This also handles a
+		// classifier result that was previously called a composite/name plate.
+		if(action_match) {
+			int seat = RegionToSeat(r.left, r.top, r.Width(), r.Height());
+			String action = action_anchor.Mid(7);
+			if(action == "post-sb") action = "Post SB";
+			else if(action == "post-bb") action = "Post BB";
+			else if(action == "all-in") action = "All In";
+			else if(action == "resume") action = "Resume";
+			else if(action == "muck") action = "Muck";
+			else if(action == "won") action = "Won";
+			else if(!action.IsEmpty()) action.Set(0, ToUpper(action[0]));
+			if(seat >= 0 && seat < 6 && !action.IsEmpty()) {
+				if(rs.seat_action[seat] != action)
+					rs.LogEvent(Format("seat %d action: %s (RGB template)", seat, ~action), verbose);
+				rs.seat_action[seat] = action;
+				if(action == "Fold") rs.SetFolded(seat, true, "RGB action template", verbose);
+				rs.last_action_seat = seat;
+				rs.last_action_ms = msecs();
+				rs.last_action_frame = stats.frames;
+			}
+		}
+		if(bb_match) {
+			double anchor_value = -1;
+			if(ParseChipValue(ocr_text, anchor_value)) {
+				bool board_money = bb_anchor == "BB-board";
+				if(board_money) {
+					rs.pot_reads++;
+					bool decreasing = rs.last_pot >= 0 && anchor_value + 0.25 < rs.last_pot;
+					double committed = 0;
+					for(int seat = 0; seat < 6; seat++)
+						committed += max(rs.seat_bet[seat], rs.seat_round_total[seat]);
+					bool below_contributions = committed > 0.0 && anchor_value + 0.5 < committed;
+					if(decreasing || below_contributions) {
+						rs.pot_rejected_reads++;
+						rs.LogEvent(Format("pot rejected: %.4g previous=%.4g committed=%.4g%s%s",
+						                   anchor_value, rs.last_pot, committed,
+						                   decreasing ? " decrease" : "",
+						                   below_contributions ? " below-contributions" : ""), verbose);
+					}
+					else {
+						if(rs.last_pot < 0 || fabs(rs.last_pot - anchor_value) > 0.001)
+							rs.LogEvent(Format("pot: %.4g (BB-board RGB anchor)", anchor_value), verbose);
+						rs.last_pot = anchor_value;
+					}
+				}
+				else {
+					int seat = RegionToSeat(r.left, r.top, r.Width(), r.Height());
+					if(seat >= 0 && seat < 6) {
+						rs.seat_stack[seat] = anchor_value;
+						rs.seat_stack_frame[seat] = stats.frames;
+						rs.LogEvent(Format("seat %d stack: %.4g (BB RGB anchor)", seat, anchor_value), verbose);
+					}
+				}
 			}
 		}
 
@@ -1832,11 +2024,25 @@ static void CommitPreparedTableFrame(const PreparedTableFrame& prepared,
 			if(ParseChipValue(ocr_text, val)) {
 				if(cl.category == "pot_label") {
 					rs.pot_reads++;
-					if(rs.last_pot >= 0 && fabs(val - rs.last_pot) > 0.001) {
-						rs.value_changes++;
-						rs.LogEvent(Format("pot: %.4g", val), verbose);
+					double committed = 0;
+					for(int seat = 0; seat < 6; seat++)
+						committed += max(rs.seat_bet[seat], rs.seat_round_total[seat]);
+					bool decreasing = rs.last_pot >= 0 && val + 0.25 < rs.last_pot;
+					bool below_contributions = committed > 0.0 && val + 0.5 < committed;
+					if(decreasing || below_contributions) {
+						rs.pot_rejected_reads++;
+						rs.LogEvent(Format("pot rejected: %.4g previous=%.4g committed=%.4g%s%s",
+						                   val, rs.last_pot, committed,
+						                   decreasing ? " decrease" : "",
+						                   below_contributions ? " below-contributions" : ""), verbose);
 					}
-					rs.last_pot = val;
+					else {
+						if(rs.last_pot < 0 || fabs(val - rs.last_pot) > 0.001) {
+							rs.value_changes++;
+							rs.LogEvent(Format("pot: %.4g", val), verbose);
+						}
+						rs.last_pot = val;
+					}
 				} else {
 					String slot = Format("%s@%d,%d", ~cl.category, r.left, r.top);
 					int q = rs.slot_value.Find(slot);
@@ -2656,7 +2862,9 @@ static int RunLive(const String& host, int port, int seconds, const String& data
 	       << " ocr_cache_hits=" << oc.hits << " ocr_cache_misses=" << oc.misses
 	       << Format(" (cache %s, threshold=%d)\n", oc.enabled ? "ENABLED" : "disabled", oc.threshold);
 	Cout() << "resolve: street_events=" << rs.street_events << " value_changes=" << rs.value_changes
-	       << " pot_reads=" << rs.pot_reads << " final_board_count=" << rs.board_count << "\n";
+	       << " pot_reads=" << rs.pot_reads
+	       << " pot_rejected_reads=" << rs.pot_rejected_reads
+	       << " final_board_count=" << rs.board_count << "\n";
 	Cout() << "live_assertion legal=" << live_assertion_legal
 	       << " undetermined=" << live_assertion_undetermined
 	       << " illegal=" << live_assertion_illegal << "\n";
@@ -4042,6 +4250,7 @@ static void ResetSidecar2HandState(ResolveState& state)
 	state.board_count = 0;
 	for(int i = 0; i < state.board_cards.GetCount(); i++) state.board_cards[i] = -1;
 	state.last_pot = -1;
+	state.pot_rejected_reads = 0;
 	state.last_action_seat = -1;
 	state.last_action_frame = -1;
 	for(int seat = 0; seat < 6; seat++) {
@@ -5317,6 +5526,7 @@ GUI_APP_MAIN
 		else if(args[i] == "--hole-card-test") mode = "holecard";     // Task 0291a item 3
 		else if(args[i] == "--ocr-accuracy-test") mode = "ocracc";    // Task 0291a item 5
 		else if(args[i] == "--line-corner-test") mode = "linecorner"; // Task 0291b
+		else if(args[i] == "--anchor-selftest") mode = "anchorselftest"; // Task 0294v
 		else if(args[i] == "--frames-dir" && i + 1 < args.GetCount()) frames_dir = args[++i];
 		else if(args[i] == "--video" && i + 1 < args.GetCount()) video_path = args[++i];
 		else if(args[i] == "--source-sidecar" && i + 1 < args.GetCount()) source_sidecar = args[++i];
@@ -5372,6 +5582,7 @@ GUI_APP_MAIN
 		       << "  --ocr-accuracy-test         Task 0291a: name/balance/pot OCR accuracy, cache disabled\n"
 		       << "  --line-corner-test          Task 0291b: Canny+Hough line / FAST corner keypoints\n"
 		       << "                               on the board band, vs SplitBoardBand boundaries\n"
+		       << "  --anchor-selftest           Task 0294v: RGB BB/action template self-test\n"
 		       << "Options:\n"
 		       << "  --host <h> --port <p>       VideoServer address (default 127.0.0.1:8082)\n"
 		       << "  --seconds <n>               Live run duration (default 30)\n"
@@ -5406,6 +5617,10 @@ GUI_APP_MAIN
 		SetExitCode(1);
 		return;
 	}
+	// Task 0294v: load the same RGB anchor library for live and libavcodec
+	// sidecar2 modes. Missing optional templates are diagnosed, not fatal: the
+	// existing classifier/OCR path remains available for incomplete installations.
+	g_recognition_anchors.Load(g_templates_dir);
 	if(mode == "sidecar2") {
 		if(sidecar2_window != "both" && sidecar2_window != "right" && sidecar2_window != "left") {
 			Cerr() << "ERROR: --sidecar2-window must be both, right, or left\n";
@@ -5465,5 +5680,6 @@ GUI_APP_MAIN
 	else if(mode == "holecard") rc = RunHoleCardTest(frames_dir, g_templates_dir);
 	else if(mode == "ocracc") rc = RunOcrAccuracyTest(frames_dir, g_templates_dir);
 	else if(mode == "linecorner") rc = RunLineCornerTest(frames_dir);
+	else if(mode == "anchorselftest") rc = RunRecognitionAnchorSelfTest();
 	if(rc) SetExitCode(rc);
 }

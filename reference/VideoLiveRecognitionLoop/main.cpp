@@ -4360,30 +4360,34 @@ static int RunSidecar2(const String& video_path, const String& dataset_path,
 			for(int seat = 0; seat < 6; seat++) {
 				bool fresh_name = state.seat_name_frame[seat] >= hand_start_frame;
 				bool fresh_stack = state.seat_stack_frame[seat] >= hand_start_frame;
-				if(!fresh_name || !fresh_stack || state.seat_stack[seat] < 0
-				   || frame_second - hand_open_sec > 10) continue;
-				String name = CleanSidecar2Name(state.seat_name[seat]);
-				if(name.IsEmpty()) continue;
-				bool profile_read_this_frame = state.seat_name_frame[seat] == loop_stats.frames
-				                            || state.seat_stack_frame[seat] == loop_stats.frames;
-				if(!profile_read_this_frame) continue;
-				if(name == profile_name_candidate[seat]
-				   && fabs(state.seat_stack[seat] - profile_stack_candidate[seat]) < 0.001)
-					profile_streak[seat]++;
-				else {
-					profile_name_candidate[seat] = name;
-					profile_stack_candidate[seat] = state.seat_stack[seat];
-					profile_streak[seat] = 1;
+				if((!fresh_name && !fresh_stack) || frame_second - hand_open_sec > 10) continue;
+				String previous_name = profile_name_candidate[seat];
+				double previous_stack = profile_stack_candidate[seat];
+				if(fresh_name) {
+					String name = CleanSidecar2Name(state.seat_name[seat]);
+					if(!name.IsEmpty()) profile_name_candidate[seat] = name;
 				}
+				if(fresh_stack && state.seat_stack[seat] >= 0)
+					profile_stack_candidate[seat] = state.seat_stack[seat];
+				if(profile_name_candidate[seat].IsEmpty() || profile_stack_candidate[seat] < 0)
+					continue;
+				if(profile_name_candidate[seat] == previous_name
+				   && fabs(profile_stack_candidate[seat] - previous_stack) < 0.001
+				   && profile_streak[seat] > 0)
+					profile_streak[seat]++;
+				else
+					profile_streak[seat] = 1;
 				if(profile_streak[seat] < 2) continue;
-				if(name == emitted_name[seat] && fabs(state.seat_stack[seat] - emitted_stack[seat]) < 0.001)
+				String name = profile_name_candidate[seat];
+				double stack = profile_stack_candidate[seat];
+				if(name == emitted_name[seat] && fabs(stack - emitted_stack[seat]) < 0.001)
 					continue;
 				int sidecar_seat = MirrorToSidecarSeat(seat);
 				AddSidecar2Event(window_output, window.code, frame_second,
 				    Format("seat%d name=\"%s\" balance=%s", sidecar_seat, ~name,
-				           ~FormatSidecar2Bb(state.seat_stack[seat])));
+				           ~FormatSidecar2Bb(stack)));
 				emitted_name[seat] = name;
-				emitted_stack[seat] = state.seat_stack[seat];
+				emitted_stack[seat] = stack;
 				stats.seat_updates++;
 			}
 

@@ -459,6 +459,150 @@ static int RunDistributedDiagnostics(bool permuted, bool jsonl)
 	return result.authoritative_applied ? 0 : 1;
 }
 
+static void FillScenarioSnapshot(DistributedStateSnapshot& state,
+	                              const char* phase, double total, int count,
+	                              int active_count)
+{
+	state.phase = phase;
+	state.total = total;
+	state.participants.Clear();
+	for(int i = 0; i < count; i++) {
+		DistributedParticipantState& participant = state.participants.Add();
+		participant.active = i < active_count;
+		participant.committed = 1 + i;
+	}
+}
+
+static DistributedActionObservation MakeScenarioObservation(
+	int participant, DistributedActionKind kind, int64 timestamp = 100)
+{
+	DistributedActionObservation observation;
+	observation.participant = participant;
+	observation.kind = kind;
+	observation.timestamp = timestamp;
+	return observation;
+}
+
+static void AssertScenario(const char* name,
+	                       const DistributedReconstructionResult& result,
+	                       bool complete, bool ambiguous)
+{
+	ASSERT(result.complete == complete);
+	ASSERT(result.ambiguous == ambiguous);
+	int inferred = 0;
+	for(const DistributedReconstructedAction& action : result.actions)
+		inferred += action.inferred;
+	Cout() << Format("Matrix %s passed: complete=%d ambiguous=%d inferred=%d\n",
+	                 name, result.complete, result.ambiguous,
+	                 inferred);
+}
+
+void TestDistributedScenarioMatrix() {
+	DistributedStateSnapshot before, after;
+	Vector<DistributedActionObservation> observed;
+
+	FillScenarioSnapshot(before, "start", 10, 3, 3);
+	FillScenarioSnapshot(after, "start", 10, 3, 3);
+	for(int i = 0; i < 3; i++)
+		observed.Add(MakeScenarioObservation(i, DISTRIBUTED_ACTION_PASSIVE, 100 + i));
+	AssertScenario("complete_ordered", DistributedEventReconstructor().Reconstruct(before, after, observed), true, false);
+
+	observed.Clear();
+	observed.Add(MakeScenarioObservation(0, DISTRIBUTED_ACTION_PASSIVE));
+	AssertScenario("one_passive_gap", DistributedEventReconstructor().Reconstruct(before, after, observed), true, false);
+
+	observed.Clear();
+	observed.Add(MakeScenarioObservation(0, DISTRIBUTED_ACTION_MATCH));
+	AssertScenario("multiple_passive_gaps", DistributedEventReconstructor().Reconstruct(before, after, observed), true, false);
+
+	FillScenarioSnapshot(after, "next", 10, 3, 3);
+	observed.Clear();
+	observed.Add(MakeScenarioObservation(0, DISTRIBUTED_ACTION_PASSIVE));
+	observed.Add(MakeScenarioObservation(1, DISTRIBUTED_ACTION_PASSIVE));
+	AssertScenario("unique_phase_completion", DistributedEventReconstructor().Reconstruct(before, after, observed), true, false);
+
+	observed.Clear();
+	AssertScenario("phase_gap_without_evidence", DistributedEventReconstructor().Reconstruct(before, after, observed), false, true);
+
+	FillScenarioSnapshot(before, "start", 10, 4, 4);
+	FillScenarioSnapshot(after, "next", 10, 4, 4);
+	observed.Add(MakeScenarioObservation(0, DISTRIBUTED_ACTION_PASSIVE));
+	AssertScenario("phase_multiple_completions", DistributedEventReconstructor().Reconstruct(before, after, observed), false, true);
+
+	FillScenarioSnapshot(before, "start", 10, 3, 3);
+	FillScenarioSnapshot(after, "start", 20, 3, 3);
+	observed.Clear();
+	observed.Add(MakeScenarioObservation(0, DISTRIBUTED_ACTION_PASSIVE));
+	AssertScenario("unknown_amount_gap", DistributedEventReconstructor().Reconstruct(before, after, observed), false, true);
+
+	observed.Clear();
+	observed.Add(MakeScenarioObservation(0, DISTRIBUTED_ACTION_INCREASE));
+	AssertScenario("unresolved_increase", DistributedEventReconstructor().Reconstruct(before, after, observed), false, true);
+
+	FillScenarioSnapshot(before, "start", 10, 2, 2);
+	FillScenarioSnapshot(after, "start", 20, 2, 2);
+	observed.Clear();
+	observed.Add(MakeScenarioObservation(0, DISTRIBUTED_ACTION_INCREASE));
+	observed.Add(MakeScenarioObservation(1, DISTRIBUTED_ACTION_PASSIVE));
+	AssertScenario("observed_increase_complete", DistributedEventReconstructor().Reconstruct(before, after, observed), true, false);
+
+	FillScenarioSnapshot(before, "start", 10, 3, 3);
+	FillScenarioSnapshot(after, "start", 10, 3, 2);
+	observed.Clear();
+	AssertScenario("unobserved_removal", DistributedEventReconstructor().Reconstruct(before, after, observed), false, true);
+
+	observed.Clear();
+	observed.Add(MakeScenarioObservation(2, DISTRIBUTED_ACTION_REMOVE));
+	AssertScenario("observed_removal_with_passive_gap", DistributedEventReconstructor().Reconstruct(before, after, observed), true, false);
+
+	FillScenarioSnapshot(before, "terminal", 10, 2, 2);
+	FillScenarioSnapshot(after, "terminal", 10, 2, 0);
+	observed.Clear();
+	observed.Add(MakeScenarioObservation(0, DISTRIBUTED_ACTION_REMOVE));
+	observed.Add(MakeScenarioObservation(1, DISTRIBUTED_ACTION_REMOVE));
+	AssertScenario("terminal_all_removals_observed", DistributedEventReconstructor().Reconstruct(before, after, observed), true, false);
+
+	FillScenarioSnapshot(before, "terminal", 10, 2, 0);
+	FillScenarioSnapshot(after, "terminal", 10, 2, 0);
+	observed.Clear();
+	AssertScenario("terminal_no_active_participants", DistributedEventReconstructor().Reconstruct(before, after, observed), true, false);
+
+	FillScenarioSnapshot(before, "start", 10, 3, 3);
+	FillScenarioSnapshot(after, "next", 10, 3, 2);
+	observed.Clear();
+	observed.Add(MakeScenarioObservation(0, DISTRIBUTED_ACTION_REMOVE));
+	AssertScenario("phase_and_unobserved_removal", DistributedEventReconstructor().Reconstruct(before, after, observed), false, true);
+
+	FillScenarioSnapshot(before, "start", 10, 2, 1);
+	FillScenarioSnapshot(after, "start", 10, 2, 2);
+	observed.Clear();
+	AssertScenario("unobserved_activation", DistributedEventReconstructor().Reconstruct(before, after, observed), false, true);
+
+	FillScenarioSnapshot(before, "start", 10, 2, 2);
+	FillScenarioSnapshot(after, "start", 20, 2, 2);
+	observed.Clear();
+	observed.Add(MakeScenarioObservation(0, DISTRIBUTED_ACTION_INCREASE, 100));
+	AssertScenario("same_time_increase_with_gap", DistributedEventReconstructor().Reconstruct(before, after, observed), false, true);
+
+	FillScenarioSnapshot(before, "start", 10, 1, 1);
+	FillScenarioSnapshot(after, "start", 10, 1, 1);
+	observed.Clear();
+	observed.Add(MakeScenarioObservation(5, DISTRIBUTED_ACTION_PASSIVE));
+	DistributedReconstructionResult invalid =
+		DistributedEventReconstructor().Reconstruct(before, after, observed);
+	ASSERT(invalid.invalid);
+	ASSERT(!invalid.complete);
+	Cout() << "Matrix invalid_participant passed\n";
+
+	FillScenarioSnapshot(before, "start", 10, 1, 1);
+	FillScenarioSnapshot(after, "start", 10, 2, 2);
+	invalid = DistributedEventReconstructor().Reconstruct(before, after, {});
+	ASSERT(invalid.invalid);
+	ASSERT(!invalid.complete);
+	Cout() << "Matrix participant_count_mismatch passed\n";
+	Cout() << "Distributed scenario matrix passed: 18 scenarios\n";
+}
+
 CONSOLE_APP_MAIN {
 	const Vector<String>& args = CommandLine();
 	bool diagnostic = false, permuted = false, jsonl = false;
@@ -520,5 +664,6 @@ CONSOLE_APP_MAIN {
 	TestDistributedEventBufferIndependentStreams();
 	TestDistributedEventBufferOverflow();
 	TestDistributedReconstructionService();
+	TestDistributedScenarioMatrix();
 	Cout() << "All CardGame tests passed! 🐍💎✨🚀❤️🃏\n";
 }

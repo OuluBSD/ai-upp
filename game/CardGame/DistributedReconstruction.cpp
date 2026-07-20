@@ -251,6 +251,7 @@ DistributedReconstructionResult DistributedEventReconstructor::Reconstruct(
 	Vector<bool> covered;
 	covered.SetCount(count, false);
 	bool increase_seen = false;
+	bool activation_unobserved = false;
 	for(const DistributedActionObservation& action : observed) {
 		if(action.participant < 0 || action.participant >= count) {
 			result.invalid = true;
@@ -272,6 +273,11 @@ DistributedReconstructionResult DistributedEventReconstructor::Reconstruct(
 	Vector<int> missing_active;
 	Vector<int> removed;
 	for(int i = 0; i < count; i++) {
+		if(!before.participants[i].active && after.participants[i].active && !covered[i]) {
+			activation_unobserved = true;
+			result.ambiguous = true;
+			AddDiagnostic(result, "participant activation is unobserved");
+		}
 		if(before.participants[i].active && !after.participants[i].active && !covered[i])
 			removed.Add(i);
 		if(before.participants[i].active && after.participants[i].active && !covered[i])
@@ -294,6 +300,9 @@ DistributedReconstructionResult DistributedEventReconstructor::Reconstruct(
 			inferred.observation.timestamp = -1;
 			inferred.inferred = true;
 			inferred.reason = "single passive completion is forced by the observed transition";
+		}
+		else if(!removed.IsEmpty() || activation_unobserved) {
+			AddDiagnostic(result, "missing actions coexist with an unobserved removal");
 		}
 		else if(!phase_unchanged) {
 			result.ambiguous = true;

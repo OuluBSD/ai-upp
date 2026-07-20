@@ -6,5 +6,6 @@ uses
 
 file
 	AGENTS.md,
+	CURRENT_TASK.md,
 	ProgDB.h,
 	ProgDB.cpp;

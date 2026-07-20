@@ -1,0 +1,10 @@
+uses
+	Core,
+	Vfs/ProgDB;
+
+file
+	ProgDBTest.cpp;
+
+mainconfig
+	"Release" = "AI",
+	"Debug" = "AI DEBUG";

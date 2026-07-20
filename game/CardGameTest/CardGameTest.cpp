@@ -407,6 +407,77 @@ void TestDistributedReconstructionService() {
 	Cout() << "TestDistributedReconstructionService passed\n";
 }
 
+static void FillScenarioSnapshot(DistributedStateSnapshot& state,
+	                              const char* phase, double total, int count,
+	                              int active_count);
+
+void TestDistributedLiveAssertion() {
+	DistributedStateSnapshot before, after;
+	FillScenarioSnapshot(before, "start", 10, 2, 2);
+	FillScenarioSnapshot(after, "start", 10, 2, 2);
+	DistributedLiveAssertion assertion;
+	DistributedReconstructionService service;
+	service.SetLiveAssertion(&assertion);
+	service.Begin("left", before);
+	service.Observe("left", MakeBufferedEvent("first", 1, 0));
+	DistributedServiceResult legal = service.Complete("left", after);
+	ASSERT(legal.legality.status == DISTRIBUTED_LEGALITY_LEGAL);
+	ASSERT(legal.authoritative_applied);
+
+	FillScenarioSnapshot(after, "next", 10, 2, 2);
+	service.Begin("left", before);
+	DistributedServiceResult uncertain = service.Complete("left", after);
+	ASSERT(uncertain.legality.status == DISTRIBUTED_LEGALITY_UNDETERMINED);
+	ASSERT(!uncertain.authoritative_applied);
+	DistributedStateSnapshot authoritative;
+	ASSERT(service.GetAuthoritative("left", authoritative));
+	ASSERT(authoritative.phase == before.phase);
+	ASSERT(!service.ApplyOverride("left", "", 123));
+
+	ASSERT(service.ApplyOverride("left", "operator confirmed missing passive actions", 124));
+	ASSERT(assertion.GetOverrides().GetCount() == 1);
+	ASSERT(service.GetAuthoritative("left", authoritative));
+	ASSERT(authoritative.phase == after.phase);
+	ASSERT(!service.ApplyOverride("left", "duplicate", 125));
+
+	FillScenarioSnapshot(after, "next", 20, 3, 3);
+	service.Begin("invalid", before);
+	DistributedServiceResult invalid = service.Complete("invalid", after);
+	ASSERT(invalid.legality.status == DISTRIBUTED_LEGALITY_ILLEGAL);
+	ASSERT(!invalid.authoritative_applied);
+	ASSERT(!service.ApplyOverride("invalid", "", 126));
+	ASSERT(service.ApplyOverride("invalid", "test fixture accepted", 127));
+	ASSERT(assertion.GetOverrides().GetCount() == 2);
+	Cout() << "TestDistributedLiveAssertion passed: legal=1 undetermined=1 illegal=1 overrides=2\n";
+}
+
+void TestDistributedSidecar2Writer() {
+	Vector<DistributedSidecar2Line> lines;
+	DistributedSidecar2Line right;
+	right.stream = "R";
+	right.timestamp_seconds = 5;
+	right.text = "new hand, dealer=seat4";
+	right.hand = 1;
+	right.hand_start = true;
+	right.legality.status = DISTRIBUTED_LEGALITY_UNDETERMINED;
+	right.legality.issues.Add().code = "missing-event";
+	right.legality.issues[0].message = "input gap";
+	lines.Add(pick(right));
+	DistributedSidecar2Line left;
+	left.stream = "L";
+	left.timestamp_seconds = 2;
+	left.text = "seat1 match";
+	lines.Add(pick(left));
+	String output = DistributedSidecar2Writer().Generate(lines);
+	ASSERT(output.Find("# R HAND 1 legal=undetermined checked=n") >= 0);
+	ASSERT(output.Find("# R HAND 1 issue=missing-event: input gap") >= 0);
+	ASSERT(output.Find("R 00:00:05: new hand, dealer=seat4") >= 0);
+	ASSERT(output.Find("L 00:00:02: seat1 match") >= 0);
+	ASSERT(output.Find("R 00:00:05: new hand, dealer=seat4") <
+	       output.Find("L 00:00:02: seat1 match"));
+	Cout() << "TestDistributedSidecar2Writer passed: separated streams and assertion comments OK\n";
+}
+
 static bool ReadArgument(const Vector<String>& args, const String& name,
 	                       String& value)
 {
@@ -457,6 +528,46 @@ static int RunDistributedDiagnostics(bool permuted, bool jsonl)
 		                 result.reconstruction.ambiguous, result.authoritative_applied,
 		                 permuted);
 	return result.authoritative_applied ? 0 : 1;
+}
+
+static const char* AssertionStatusName(DistributedLegalityStatus status)
+{
+	switch(status) {
+	case DISTRIBUTED_LEGALITY_LEGAL: return "legal";
+	case DISTRIBUTED_LEGALITY_ILLEGAL: return "illegal";
+	default: return "undetermined";
+	}
+}
+
+static int RunDistributedAssertionDiagnostics(bool jsonl)
+{
+	DistributedStateSnapshot before, after;
+	FillScenarioSnapshot(before, "start", 10, 2, 2);
+	FillScenarioSnapshot(after, "start", 10, 2, 2);
+	DistributedLiveAssertion assertion;
+	DistributedReconstructionService service;
+	service.SetLiveAssertion(&assertion);
+	service.Begin("R", before);
+	service.Observe("R", MakeBufferedEvent("observed", 1, 0));
+	DistributedServiceResult legal = service.Complete("R", after, 1, 5);
+	FillScenarioSnapshot(after, "next", 10, 2, 2);
+	service.Begin("R", before);
+	DistributedServiceResult uncertain = service.Complete("R", after, 2, 9);
+	bool overridden = service.ApplyOverride("R", "operator confirmed replay gap", 10);
+	if(jsonl) {
+		Cout() << Format("{\"stream\":\"R\",\"round\":1,\"legal\":\"%s\",\"authoritative\":%d}\n",
+			AssertionStatusName(legal.legality.status), legal.authoritative_applied);
+		Cout() << Format("{\"stream\":\"R\",\"round\":2,\"legal\":\"%s\",\"authoritative\":%d,\"override\":%d}\n",
+			AssertionStatusName(uncertain.legality.status), uncertain.authoritative_applied, overridden);
+	}
+	else {
+		Cout() << Format("live_assertion stream=R round=1 legal=%s authoritative=%d\n",
+			AssertionStatusName(legal.legality.status), legal.authoritative_applied);
+		Cout() << Format("live_assertion stream=R round=2 legal=%s authoritative=%d override=%d\n",
+			AssertionStatusName(uncertain.legality.status), uncertain.authoritative_applied, overridden);
+	}
+	return legal.legality.status == DISTRIBUTED_LEGALITY_LEGAL &&
+	       uncertain.legality.status == DISTRIBUTED_LEGALITY_UNDETERMINED && overridden ? 0 : 1;
 }
 
 static void FillScenarioSnapshot(DistributedStateSnapshot& state,
@@ -605,9 +716,10 @@ void TestDistributedScenarioMatrix() {
 
 CONSOLE_APP_MAIN {
 	const Vector<String>& args = CommandLine();
-	bool diagnostic = false, permuted = false, jsonl = false;
+	bool diagnostic = false, assertion_diagnostic = false, permuted = false, jsonl = false;
 	for(const String& arg : args) {
 		diagnostic |= arg == "--distributed-diagnostics";
+		assertion_diagnostic |= arg == "--distributed-assertion-diagnostics";
 		permuted |= arg == "--distributed-permuted";
 		jsonl |= arg == "--distributed-jsonl";
 	}
@@ -644,6 +756,10 @@ CONSOLE_APP_MAIN {
 		SetExitCode(rc);
 		return;
 	}
+	if(assertion_diagnostic) {
+		SetExitCode(RunDistributedAssertionDiagnostics(jsonl));
+		return;
+	}
 	Cout() << "Running C++ CardGame tests...\n";
 	TestSuitFollowing();
 	TestHeartsBreaking();
@@ -664,6 +780,8 @@ CONSOLE_APP_MAIN {
 	TestDistributedEventBufferIndependentStreams();
 	TestDistributedEventBufferOverflow();
 	TestDistributedReconstructionService();
+	TestDistributedLiveAssertion();
+	TestDistributedSidecar2Writer();
 	TestDistributedScenarioMatrix();
 	Cout() << "All CardGame tests passed! 🐍💎✨🚀❤️🃏\n";
 }

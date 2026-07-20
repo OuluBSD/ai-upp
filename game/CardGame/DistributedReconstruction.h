@@ -65,11 +65,78 @@ struct DistributedEventBufferResult : Moveable<DistributedEventBufferResult> {
 	bool overflow = false;
 };
 
+enum DistributedLegalityStatus {
+	DISTRIBUTED_LEGALITY_LEGAL,
+	DISTRIBUTED_LEGALITY_ILLEGAL,
+	DISTRIBUTED_LEGALITY_UNDETERMINED,
+};
+
+struct DistributedLegalityIssue : Moveable<DistributedLegalityIssue> {
+	String code;
+	String message;
+};
+
+struct DistributedLegalityReport : Moveable<DistributedLegalityReport> {
+	String stream;
+	int64 round = -1;
+	int64 timestamp = -1;
+	DistributedLegalityStatus status = DISTRIBUTED_LEGALITY_UNDETERMINED;
+	Vector<DistributedLegalityIssue> issues;
+	bool override_applied = false;
+	String override_reason;
+};
+
+struct DistributedLegalityOverride : Moveable<DistributedLegalityOverride> {
+	String stream;
+	int64 round = -1;
+	int64 timestamp = -1;
+	String reason;
+	DistributedLegalityStatus prior_status = DISTRIBUTED_LEGALITY_UNDETERMINED;
+};
+
+struct DistributedSidecar2Line : Moveable<DistributedSidecar2Line> {
+	String stream;
+	int64 timestamp_seconds = 0;
+	String text;
+	int hand = -1;
+	bool hand_start = false;
+	bool checked = false;
+	DistributedLegalityReport legality;
+};
+
+class DistributedSidecar2Writer {
+	static String StatusName(DistributedLegalityStatus status);
+	static String Timestamp(int64 seconds);
+	static void WriteStream(String& out, const Vector<DistributedSidecar2Line>& lines,
+	                        const String& stream);
+
+public:
+	String Generate(const Vector<DistributedSidecar2Line>& lines) const;
+};
+
 struct DistributedServiceResult : Moveable<DistributedServiceResult> {
 	String stream;
 	DistributedEventBufferResult buffered;
 	DistributedReconstructionResult reconstruction;
+	DistributedLegalityReport legality;
 	bool authoritative_applied = false;
+};
+
+class DistributedLiveAssertion {
+	Vector<DistributedLegalityOverride> overrides;
+
+	static void AddIssue(DistributedLegalityReport& report,
+	                    const char* code, const String& message);
+
+public:
+	DistributedLegalityReport Validate(
+		const String& stream, int64 round, int64 timestamp,
+		const DistributedReconstructionResult& reconstruction,
+		const DistributedEventBufferResult& buffered) const;
+	bool Accepts(const DistributedLegalityReport& report) const;
+	bool ApplyOverride(DistributedLegalityReport& report,
+	                  const String& reason, int64 timestamp);
+	const Vector<DistributedLegalityOverride>& GetOverrides() const { return overrides; }
 };
 
 class DistributedEventBuffer {
@@ -107,17 +174,24 @@ class DistributedReconstructionService {
 		DistributedStateSnapshot authoritative;
 		DistributedEventBuffer buffer;
 		bool has_authoritative = false;
+		DistributedStateSnapshot pending;
+		DistributedLegalityReport pending_legality;
+		bool has_pending = false;
 	};
 
 	Vector<StreamState> streams;
+	DistributedLiveAssertion* assertion = nullptr;
 	StreamState* Find(const String& id);
 	const StreamState* Find(const String& id) const;
 
 public:
+	void SetLiveAssertion(DistributedLiveAssertion* assertion) { this->assertion = assertion; }
 	void Begin(const String& stream, const DistributedStateSnapshot& before);
 	bool Observe(const String& stream, const DistributedBufferedEvent& event);
 	DistributedServiceResult Complete(const String& stream,
-	                                  const DistributedStateSnapshot& after);
+	                                  const DistributedStateSnapshot& after,
+	                                  int64 round = -1, int64 timestamp = -1);
+	bool ApplyOverride(const String& stream, const String& reason, int64 timestamp);
 	bool GetAuthoritative(const String& stream, DistributedStateSnapshot& out) const;
 };
 

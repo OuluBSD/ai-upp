@@ -2153,9 +2153,14 @@ static void TestDistributedReconstructionAdapter()
 	changed.total = 20;
 	result = adapter.Complete("right", changed);
 	ASSERT(!result.authoritative_applied);
+	ASSERT(result.legality.status == DISTRIBUTED_LEGALITY_UNDETERMINED);
 	DistributedStateSnapshot authoritative;
 	ASSERT(adapter.GetAuthoritative("right", authoritative));
 	ASSERT(authoritative.total == before.total);
+	ASSERT(adapter.ApplyOverride("right", "recorded fixture approval", 900));
+	ASSERT(adapter.GetOverrides().GetCount() == 1);
+	ASSERT(adapter.GetAuthoritative("right", authoritative));
+	ASSERT(authoritative.total == changed.total);
 	Cout() << "VsmDistributedReconstructionAdapter: incremental and isolated streams OK\n";
 }
 

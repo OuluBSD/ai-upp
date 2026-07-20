@@ -17,15 +17,22 @@ struct VsmDistributedObservation : Moveable<VsmDistributedObservation> {
 
 class VsmDistributedReconstructionAdapter {
 	DistributedReconstructionService service_;
+	DistributedLiveAssertion assertion_;
 	Vector<String> diagnostics_;
 
 public:
+	VsmDistributedReconstructionAdapter();
 	void Begin(const String& stream, const DistributedStateSnapshot& before);
 	bool Observe(const VsmDistributedObservation& observation);
 	DistributedServiceResult Complete(const String& stream,
-	                                  const DistributedStateSnapshot& after);
+	                                  const DistributedStateSnapshot& after,
+	                                  int64 round = -1, int64 timestamp = -1);
+	bool ApplyOverride(const String& stream, const String& reason, int64 timestamp);
 	bool GetAuthoritative(const String& stream, DistributedStateSnapshot& out) const;
 	const Vector<String>& GetDiagnostics() const { return diagnostics_; }
+	const Vector<DistributedLegalityOverride>& GetOverrides() const {
+		return assertion_.GetOverrides();
+	}
 };
 
 } // namespace Upp

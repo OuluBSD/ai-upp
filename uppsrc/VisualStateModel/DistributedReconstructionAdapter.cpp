@@ -2,6 +2,11 @@
 
 namespace Upp {
 
+VsmDistributedReconstructionAdapter::VsmDistributedReconstructionAdapter()
+{
+	service_.SetLiveAssertion(&assertion_);
+}
+
 void VsmDistributedReconstructionAdapter::Begin(
 	const String& stream, const DistributedStateSnapshot& before)
 {
@@ -26,12 +31,21 @@ bool VsmDistributedReconstructionAdapter::Observe(
 }
 
 DistributedServiceResult VsmDistributedReconstructionAdapter::Complete(
-	const String& stream, const DistributedStateSnapshot& after)
+	const String& stream, const DistributedStateSnapshot& after,
+	int64 round, int64 timestamp)
 {
-	DistributedServiceResult result = service_.Complete(stream, after);
+	DistributedServiceResult result = service_.Complete(stream, after, round, timestamp);
 	for(const String& diagnostic : result.reconstruction.diagnostics)
 		diagnostics_.Add(diagnostic);
+	for(const DistributedLegalityIssue& issue : result.legality.issues)
+		diagnostics_.Add(Format("legality %s: %s", issue.code, issue.message));
 	return result;
+}
+
+bool VsmDistributedReconstructionAdapter::ApplyOverride(
+	const String& stream, const String& reason, int64 timestamp)
+{
+	return service_.ApplyOverride(stream, reason, timestamp);
 }
 
 bool VsmDistributedReconstructionAdapter::GetAuthoritative(

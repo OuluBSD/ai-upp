@@ -10,4 +10,6 @@ file
 	GameState.h,
 	GameState.cpp,
 	HeartsAI.h,
-	HeartsAI.cpp;
+	HeartsAI.cpp,
+	DistributedReconstruction.h,
+	DistributedReconstruction.cpp;

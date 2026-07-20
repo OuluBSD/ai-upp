@@ -8,6 +8,7 @@ NAMESPACE_UPP
 #include "Card.h"
 #include "GameState.h"
 #include "HeartsAI.h"
+#include "DistributedReconstruction.h"
 
 END_UPP_NAMESPACE
 

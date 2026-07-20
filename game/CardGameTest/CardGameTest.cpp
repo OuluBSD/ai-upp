@@ -135,6 +135,147 @@ void TestAI() {
 	Cout() << "✓ TestAI passed\n";
 }
 
+void TestDistributedPassiveReconstruction() {
+	DistributedStateSnapshot before, after;
+	before.phase = after.phase = "phase-1";
+	before.total = after.total = 10;
+	for(int i = 0; i < 3; i++) {
+		DistributedParticipantState& a = before.participants.Add();
+		DistributedParticipantState& b = after.participants.Add();
+		a.active = b.active = true;
+	}
+	Vector<DistributedActionObservation> observed;
+	DistributedActionObservation& action = observed.Add();
+	action.participant = 0;
+	action.kind = DISTRIBUTED_ACTION_PASSIVE;
+	DistributedReconstructionResult result =
+		DistributedEventReconstructor().Reconstruct(before, after, observed);
+	ASSERT(result.complete);
+	ASSERT(!result.ambiguous);
+	ASSERT(result.actions.GetCount() == 3);
+	ASSERT(result.actions[1].inferred);
+	ASSERT(result.actions[2].inferred);
+	Cout() << "TestDistributedPassiveReconstruction passed\n";
+}
+
+void TestDistributedIncreaseGap() {
+	DistributedStateSnapshot before, after;
+	before.phase = after.phase = "phase-1";
+	before.total = 10;
+	after.total = 20;
+	for(int i = 0; i < 2; i++) {
+		DistributedParticipantState& a = before.participants.Add();
+		DistributedParticipantState& b = after.participants.Add();
+		a.active = b.active = true;
+	}
+	Vector<DistributedActionObservation> observed;
+	DistributedActionObservation& action = observed.Add();
+	action.participant = 0;
+	action.kind = DISTRIBUTED_ACTION_INCREASE;
+	DistributedReconstructionResult result =
+		DistributedEventReconstructor().Reconstruct(before, after, observed);
+	ASSERT(!result.complete);
+	ASSERT(result.ambiguous);
+	Cout() << "TestDistributedIncreaseGap passed\n";
+}
+
+void TestDistributedUnobservedRemoval() {
+	DistributedStateSnapshot before, after;
+	before.phase = after.phase = "phase-1";
+	before.total = after.total = 10;
+	for(int i = 0; i < 2; i++) {
+		DistributedParticipantState& a = before.participants.Add();
+		DistributedParticipantState& b = after.participants.Add();
+		a.active = true;
+		b.active = i == 0;
+	}
+	DistributedReconstructionResult result =
+		DistributedEventReconstructor().Reconstruct(before, after, {});
+	ASSERT(!result.complete);
+	ASSERT(result.ambiguous);
+	Cout() << "TestDistributedUnobservedRemoval passed\n";
+}
+
+void TestDistributedSameTimeBatch() {
+	DistributedStateSnapshot before, after;
+	before.phase = after.phase = "phase-1";
+	before.total = after.total = 10;
+	for(int i = 0; i < 2; i++) {
+		DistributedParticipantState& a = before.participants.Add();
+		DistributedParticipantState& b = after.participants.Add();
+		a.active = b.active = true;
+	}
+	Vector<DistributedActionObservation> observed;
+	for(int i = 0; i < 2; i++) {
+		DistributedActionObservation& action = observed.Add();
+		action.participant = i;
+		action.kind = DISTRIBUTED_ACTION_PASSIVE;
+		action.timestamp = 100;
+	}
+	DistributedReconstructionResult result =
+		DistributedEventReconstructor().Reconstruct(before, after, observed);
+	ASSERT(result.complete);
+	ASSERT(result.actions.GetCount() == 2);
+	ASSERT(result.actions[0].observation.timestamp == result.actions[1].observation.timestamp);
+	Cout() << "TestDistributedSameTimeBatch passed\n";
+}
+
+void TestDistributedDuplicateObservation() {
+	DistributedStateSnapshot before, after;
+	before.phase = after.phase = "phase-1";
+	before.total = after.total = 10;
+	DistributedParticipantState& a = before.participants.Add();
+	DistributedParticipantState& b = after.participants.Add();
+	a.active = b.active = true;
+	Vector<DistributedActionObservation> observed;
+	for(int i = 0; i < 2; i++) {
+		DistributedActionObservation& action = observed.Add();
+		action.participant = 0;
+		action.kind = DISTRIBUTED_ACTION_PASSIVE;
+		action.timestamp = 100 + i;
+	}
+	DistributedReconstructionResult result =
+		DistributedEventReconstructor().Reconstruct(before, after, observed);
+	ASSERT(result.complete);
+	ASSERT(result.diagnostics.GetCount() == 1);
+	Cout() << "TestDistributedDuplicateObservation passed\n";
+}
+
+void TestDistributedPhaseGap() {
+	DistributedStateSnapshot before, after;
+	before.phase = "phase-1";
+	after.phase = "phase-2";
+	before.total = after.total = 10;
+	DistributedParticipantState& a = before.participants.Add();
+	DistributedParticipantState& b = after.participants.Add();
+	a.active = b.active = true;
+	DistributedReconstructionResult result =
+		DistributedEventReconstructor().Reconstruct(before, after, {});
+	ASSERT(!result.complete);
+	ASSERT(result.ambiguous);
+	ASSERT(result.diagnostics.GetCount() == 1);
+	Cout() << "TestDistributedPhaseGap passed\n";
+}
+
+void TestDistributedObservedRemoval() {
+	DistributedStateSnapshot before, after;
+	before.phase = after.phase = "phase-1";
+	before.total = after.total = 10;
+	DistributedParticipantState& a = before.participants.Add();
+	DistributedParticipantState& b = after.participants.Add();
+	a.active = true;
+	b.active = false;
+	Vector<DistributedActionObservation> observed;
+	DistributedActionObservation& action = observed.Add();
+	action.participant = 0;
+	action.kind = DISTRIBUTED_ACTION_REMOVE;
+	DistributedReconstructionResult result =
+		DistributedEventReconstructor().Reconstruct(before, after, observed);
+	ASSERT(result.complete);
+	ASSERT(!result.ambiguous);
+	Cout() << "TestDistributedObservedRemoval passed\n";
+}
+
 CONSOLE_APP_MAIN {
 	Cout() << "Running C++ CardGame tests...\n";
 	TestSuitFollowing();
@@ -142,5 +283,12 @@ CONSOLE_APP_MAIN {
 	TestTrickResolution();
 	TestPointsCalculation();
 	TestAI();
+	TestDistributedPassiveReconstruction();
+	TestDistributedIncreaseGap();
+	TestDistributedUnobservedRemoval();
+	TestDistributedSameTimeBatch();
+	TestDistributedDuplicateObservation();
+	TestDistributedPhaseGap();
+	TestDistributedObservedRemoval();
 	Cout() << "All CardGame tests passed! 🐍💎✨🚀❤️🃏\n";
 }

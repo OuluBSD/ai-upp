@@ -1546,7 +1546,7 @@ static void CommitPreparedTableFrame(const PreparedTableFrame& prepared,
 	                                 VsmTesseractOcrEngine& ocr, bool ocr_available,
 	                                 StageSet& st, LoopStats& stats, ResolveState& rs,
 	                                 OcrCacheState& oc, const std::shared_ptr<Game>& game,
-	                                 bool verbose, int ocr_cap)
+	                                 bool verbose, int ocr_cap, bool action_only_ocr)
 {
 	ASSERT(prepared.ready);
 	ASSERT(prepared.commit_frame == stats.frames + 1);
@@ -1575,7 +1575,11 @@ static void CommitPreparedTableFrame(const PreparedTableFrame& prepared,
 		// --- stage: OCR (only OCR-relevant categories) ---
 		String ocr_text; double ocr_conf = 0;
 		int cache_dist = -1; bool cache_hit = false;
-		if(ocr_available && IsOcrCategory(cl.category) && (ocr_cap < 0 || ocr_used < ocr_cap)) {
+		bool fast_action_category = cl.category == "seat_action_bubble"
+		                         || cl.category == "seat_name_plate";
+		if(ocr_available && IsOcrCategory(cl.category)
+		   && (!action_only_ocr || fast_action_category)
+		   && (ocr_cap < 0 || ocr_used < ocr_cap)) {
 			// Task 0286 Part B: consult the approximate-hash cache BEFORE paying
 			// for a real OCR call. Per OcrCacheState's comment: compare the
 			// slot's OWN anchor_rect re-sampled from THIS frame (not this
@@ -1980,7 +1984,8 @@ static bool ProcessWindowFrame(WindowFrame& frame, RecognitionWindowState& state
 	                           const std::shared_ptr<Game>& game, bool verbose, int ocr_cap,
 	                           const CardTemplates& card_templates,
 	                           const DealerTemplate& dealer_template,
-	                           VsmFrameImage *committed_table = nullptr)
+	                           VsmFrameImage *committed_table = nullptr,
+	                           bool action_only_ocr = false)
 {
 	ASSERT(frame.descriptor.id == state.descriptor.id);
 	ASSERT(frame.window_sequence == state.next_prepare_sequence);
@@ -2004,7 +2009,8 @@ static bool ProcessWindowFrame(WindowFrame& frame, RecognitionWindowState& state
 	ASSERT(prepared.window_sequence == state.next_commit_sequence);
 	ASSERT(prepared.source_sequence > state.last_committed_source_sequence);
 	CommitPreparedTableFrame(prepared, ocr, ocr_available, state.stages, state.loop_stats,
-	                         state.resolve_state, state.ocr_cache, game, verbose, ocr_cap);
+	                         state.resolve_state, state.ocr_cache, game, verbose, ocr_cap,
+	                         action_only_ocr);
 	state.last_committed_source_sequence = prepared.source_sequence;
 	if(committed_table)
 		*committed_table = pick(prepared.table);
@@ -2032,7 +2038,7 @@ static void ProcessTableFrame(const VsmFrameImage& table, VsmFrameImage& previou
 	                                                dealer_template, stats.frames + 1, verbose);
 	if(prepared.ready)
 		CommitPreparedTableFrame(prepared, ocr, ocr_available, stages, stats, resolve_state,
-		                         ocr_cache, game, verbose, ocr_cap);
+		                         ocr_cache, game, verbose, ocr_cap, false);
 }
 
 // ===========================================================================
@@ -4148,7 +4154,7 @@ static int RunSidecar2(const String& video_path, const String& dataset_path,
 		                         ocr_cache_enabled, ocr_cache_threshold);
 	Cout() << "pipeline=window-aware deterministic=1 staged_pre_ocr=1 async_ocr=0"
 	       << " prepared_queue=none ocr_queue=none"
-	       << " window_count=" << window_count << "\n";
+	       << " action_sample_hz=4 full_ocr_hz=1 window_count=" << window_count << "\n";
 	for(const WindowDescriptor& descriptor : window_descriptors)
 		Cout() << "window_descriptor id=" << descriptor.id.value
 		       << " name=" << descriptor.name
@@ -4156,7 +4162,9 @@ static int RunSidecar2(const String& video_path, const String& dataset_path,
 		       << "," << descriptor.source_rect.Width() << "," << descriptor.source_rect.Height() << "\n";
 	VsmChangeDetectParams change_params;
 	double started_ms = NowMs();
-	int next_sample_second = start_second;
+	static const int64 kActionSampleIntervalMs = 250;
+	int64 next_action_sample_ms = (int64)start_second * 1000;
+	int next_full_sample_second = start_second;
 	int sampled_frames = 0;
 	int decoded_frames = 0;
 	int first_frame_second = -1;
@@ -4213,9 +4221,12 @@ static int RunSidecar2(const String& video_path, const String& dataset_path,
 		if(pts_ms < 0)
 			continue;
 		int frame_second = (int)(pts_ms / 1000);
-		if(frame_second < next_sample_second)
+		if(pts_ms < next_action_sample_ms)
 			continue;
-		next_sample_second = frame_second + 1;
+		next_action_sample_ms = pts_ms + kActionSampleIntervalMs;
+		bool full_sample = frame_second >= next_full_sample_second;
+		if(full_sample)
+			next_full_sample_second = frame_second + 1;
 		if(!layout_validated) {
 			if(!ValidateSidecar2WindowLayout(buffer)) return 1;
 			layout_validated = true;
@@ -4266,10 +4277,12 @@ static int RunSidecar2(const String& video_path, const String& dataset_path,
 			stages.crop.Add(fanout_ms);
 
 		VsmFrameImage table;
+		bool action_only_ocr = !full_sample;
+		int frame_ocr_cap = action_only_ocr && ocr_cap != 0 ? -1 : ocr_cap;
 		ProcessWindowFrame(window_frames[window_index], recognition,
 		                   classifier, ocr, ocr_available, change_params,
-		                   nullptr, verbose, ocr_cap, board_templates,
-		                   dealer_template, &table);
+		                   nullptr, verbose, frame_ocr_cap, board_templates,
+		                   dealer_template, &table, action_only_ocr);
 		if(table.IsEmpty()) {
 			stats.omitted_signals++;
 			continue;

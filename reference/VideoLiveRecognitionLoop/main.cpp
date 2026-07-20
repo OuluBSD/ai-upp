@@ -253,6 +253,85 @@ static bool SaveFixedTextSearchLayout(const String& path)
 	return SaveFile(path, out);
 }
 
+static bool LoadFixedTextSearchLayout(const String& path)
+{
+	String text = LoadFile(path);
+	if(text.IsVoid() || text.IsEmpty()) {
+		Cerr() << "ERROR: text layout is empty: " << path << "\n";
+		return false;
+	}
+	Value root = ParseJSON(text);
+	if(IsError(root) || root.GetType() != VALUEMAP_V) {
+		Cerr() << "ERROR: invalid text layout JSON: " << path << "\n";
+		return false;
+	}
+	ValueMap map = root;
+	int width = (int)map.Get("width", Value());
+	int height = (int)map.Get("height", Value());
+	if(width <= 0 || height <= 0) {
+		Cerr() << "ERROR: text layout has invalid dimensions: " << path << "\n";
+		return false;
+	}
+	FixedTextSearchLayout candidate;
+	candidate.width = width;
+	candidate.height = height;
+	auto read_rects = [&](const char *key, Rect *out, int count) {
+		Value value = map.Get(key, Value());
+		if(value.GetType() != VALUEARRAY_V) return false;
+		ValueArray array = value;
+		if(array.GetCount() != count) return false;
+		for(int i = 0; i < count; i++) {
+			if(array[i].GetType() != VALUEMAP_V) return false;
+			ValueMap item = array[i];
+			int x = (int)item.Get("x", Value());
+			int y = (int)item.Get("y", Value());
+			int w = (int)item.Get("w", Value());
+			int h = (int)item.Get("h", Value());
+			if(w <= 0 || h <= 0 || x < 0 || y < 0 || x + w > width || y + h > height)
+				return false;
+			out[i] = RectC(x, y, w, h);
+		}
+		return true;
+	};
+	if(!read_rects("name", candidate.name, 6) ||
+	   !read_rects("balance", candidate.balance, 6) ||
+	   !read_rects("action", candidate.action, 6) ||
+	   !read_rects("bet", candidate.bet, 6)) {
+		Cerr() << "ERROR: text layout must contain six valid name/balance/action/bet rectangles: " << path << "\n";
+		return false;
+	}
+	Value board_value = map.Get("board_money", Value());
+	if(board_value.GetType() != VALUEMAP_V) {
+		Cerr() << "ERROR: text layout is missing board_money: " << path << "\n";
+		return false;
+	}
+	ValueMap board = board_value;
+	int bx = (int)board.Get("x", Value()), by = (int)board.Get("y", Value());
+	int bw = (int)board.Get("w", Value()), bh = (int)board.Get("h", Value());
+	if(bx < 0 || by < 0 || bw <= 0 || bh <= 0 || bx + bw > width || by + bh > height) {
+		Cerr() << "ERROR: text layout has invalid board_money rectangle: " << path << "\n";
+		return false;
+	}
+	candidate.board_money = RectC(bx, by, bw, bh);
+	g_fixed_text_layout = candidate;
+	Cout() << Format("text_layout_loaded path=%s size=%dx%d\n", ~path, width, height);
+	return true;
+}
+
+static bool WritePipelineReport(const String& path, const String& mode, const String& video,
+	                               const String& layout, const String& sidecar, int exit_code)
+{
+	if(path.IsEmpty()) return true;
+	String report;
+	report << "{\n"
+	       << "  \"mode\": \"" << mode << "\",\n"
+	       << "  \"video\": \"" << video << "\",\n"
+	       << "  \"text_layout\": \"" << layout << "\",\n"
+	       << "  \"sidecar2_output\": \"" << sidecar << "\",\n"
+	       << "  \"exit_code\": " << exit_code << "\n}\n";
+	return SaveFile(path, report);
+}
+
 static int RgbAnchorDistance(const Image& candidate, const Image& anchor, double scale)
 {
 	if(candidate.IsEmpty() || anchor.IsEmpty()) return -1;
@@ -3725,6 +3804,54 @@ static SidecarGT ParseSidecarGT(const String& path, char window = 'R')
 	return gt;
 }
 
+static int CompareAnnotatedSidecar2(const String& expected_path, const String& actual_path)
+{
+	int checked = 0, matched = 0, unresolved = 0, rejected = 0;
+	for(char window : String("RL")) {
+		SidecarGT expected = ParseSidecarGT(expected_path, window);
+		SidecarGT actual = ParseSidecarGT(actual_path, window);
+		Cout() << Format("annotated_regression window=%c expected_hands=%d actual_hands=%d\n",
+		                 window, expected.new_hand_seconds.GetCount(), actual.new_hand_seconds.GetCount());
+		if(expected.new_hand_seconds.IsEmpty()) {
+			Cout() << Format("annotated_regression window=%c status=unresolved reason=no_ground_truth\n", window);
+			unresolved++;
+			continue;
+		}
+		checked++;
+		if(expected.new_hand_seconds.GetCount() != actual.new_hand_seconds.GetCount()) {
+			rejected++;
+			Cout() << Format("annotated_regression window=%c status=rejected reason=hand_count\n", window);
+			continue;
+		}
+		bool ok = true;
+		for(const SidecarGT::BoardPt& want : expected.board_pts) {
+			String got = actual.BoardAt(want.sec);
+			if(got != want.board) {
+				ok = false;
+				Cout() << Format("annotated_regression window=%c status=unresolved second=%d expected_board=%s actual_board=%s\n",
+				                 window, want.sec, ~want.board, ~got);
+			}
+		}
+		for(int hand = 0; hand < expected.hands.GetCount(); hand++) {
+			if(hand >= actual.hands.GetCount()) { ok = false; break; }
+			for(int i = 0; i < expected.hands[hand].GetCount(); i++) {
+				int mirror = expected.hands[hand].GetKey(i);
+				int actual_i = actual.hands[hand].Find(mirror);
+				if(actual_i < 0) { ok = false; continue; }
+				const SidecarGT::SeatInfo& want = expected.hands[hand][i];
+				const SidecarGT::SeatInfo& got = actual.hands[hand][actual_i];
+				if(!want.name.IsEmpty() && want.name != got.name) ok = false;
+				if(want.balance >= 0 && (got.balance < 0 || fabs(want.balance - got.balance) > 0.15)) ok = false;
+			}
+		}
+		if(ok) { matched++; Cout() << Format("annotated_regression window=%c status=matched\n", window); }
+		else { unresolved++; Cout() << Format("annotated_regression window=%c status=unresolved\n", window); }
+	}
+	Cout() << Format("annotated_regression_summary checked=%d matched=%d rejected=%d unresolved=%d\n",
+	                 checked, matched, rejected, unresolved);
+	return rejected || unresolved ? 2 : 0;
+}
+
 // Resolve which real frame directories a test should scan. Empty frames_dir ->
 // BOTH real hands (0263 = hand 1 sec 0-56, 0268 = hand 2 sec 52-105); an explicit
 // --frames-dir overrides to just that one. This is what finally lets one
@@ -5603,6 +5730,7 @@ GUI_APP_MAIN
 	int ocr_cap = -1; // -1 = unlimited, 0 = OCR off, N = up to N OCR calls/frame
 	bool verbose = false, use_engine = true;
 	bool sidecar2_short = false, sidecar2_full = false, two_window_sample = false;
+	bool annotated_regression = false;
 	String source_sidecar = kSidecarPath, sidecar2_output;
 	String sidecar2_window = "both";
 	String sidecar2_diagnostics_output;
@@ -5615,11 +5743,15 @@ GUI_APP_MAIN
 	Vector<String> crop_safety_lists;
 	String card_dataset_out; // Task 0290a --card-dataset-dump output dir
 	String text_layout_out;  // Task 0294x fixed-window text search layout
+	String text_layout_in;   // Task 0294aa shared layout input
+	String json_out;         // Task 0294y machine-readable run manifest
+	String report_out;       // Task 0294y human-readable run report
 
 	for(int i = 0; i < args.GetCount(); i++) {
 		if(args[i] == "--classify-selftest") mode = "selftest";
 		else if(args[i] == "--offline-frames" && i + 1 < args.GetCount()) { mode = "offline"; frames_dir = args[++i]; }
 		else if(args[i] == "--sidecar2") mode = "sidecar2";
+		else if(args[i] == "--annotated-regression") { mode = "sidecar2"; annotated_regression = true; }
 		else if(args[i] == "--live") mode = "live";
 		else if(args[i] == "--gui") mode = "gui";
 		else if(args[i] == "--crop-safety-check") mode = "cropsafety";
@@ -5633,6 +5765,9 @@ GUI_APP_MAIN
 		else if(args[i] == "--dump-text-layout" && i + 1 < args.GetCount()) {
 			mode = "textlayout"; text_layout_out = args[++i];
 		}
+		else if(args[i] == "--text-layout" && i + 1 < args.GetCount()) text_layout_in = args[++i];
+		else if(args[i] == "--json-out" && i + 1 < args.GetCount()) json_out = args[++i];
+		else if(args[i] == "--report-out" && i + 1 < args.GetCount()) report_out = args[++i];
 		else if(args[i] == "--frames-dir" && i + 1 < args.GetCount()) frames_dir = args[++i];
 		else if(args[i] == "--video" && i + 1 < args.GetCount()) video_path = args[++i];
 		else if(args[i] == "--source-sidecar" && i + 1 < args.GetCount()) source_sidecar = args[++i];
@@ -5671,6 +5806,7 @@ GUI_APP_MAIN
 		       << "  --classify-selftest        Leave-one-out classifier accuracy over the dataset\n"
 		       << "  --offline-frames <dir>     Full pipeline over dataset source frames (timing)\n"
 		       << "  --sidecar2                 Generate recognized-data sidecar directly from MP4\n"
+		       << "  --annotated-regression    Generate both windows and compare against source sidecar\n"
 		       << "  --live                     Continuous loop against a running VideoServer\n"
 		       << "  --gui                      Live mirror window of the driven Game (Task 0281);\n"
 		       << "                               background recognition loop + main-thread TopWindow,\n"
@@ -5689,7 +5825,10 @@ GUI_APP_MAIN
 		       << "  --line-corner-test          Task 0291b: Canny+Hough line / FAST corner keypoints\n"
 		       << "                               on the board band, vs SplitBoardBand boundaries\n"
 		       << "  --anchor-selftest           Task 0294v: RGB BB/action template self-test\n"
-		       << "  --dump-text-layout <path>  Task 0294x: write fixed 944x682 text search layout\n"
+			       << "  --dump-text-layout <path>  Task 0294x: write fixed 944x682 text search layout\n"
+			       << "  --text-layout <path>      Task 0294aa: load shared text-search layout JSON\n"
+			       << "  --json-out <path>         Task 0294y: write run manifest JSON\n"
+			       << "  --report-out <path>       Task 0294y: write run report JSON\n"
 		       << "Options:\n"
 		       << "  --host <h> --port <p>       VideoServer address (default 127.0.0.1:8082)\n"
 		       << "  --seconds <n>               Live run duration (default 30)\n"
@@ -5724,11 +5863,17 @@ GUI_APP_MAIN
 		SetExitCode(1);
 		return;
 	}
+	if(!text_layout_in.IsEmpty() && !LoadFixedTextSearchLayout(text_layout_in)) {
+		SetExitCode(1);
+		return;
+	}
 	// Task 0294v: load the same RGB anchor library for live and libavcodec
 	// sidecar2 modes. Missing optional templates are diagnosed, not fatal: the
 	// existing classifier/OCR path remains available for incomplete installations.
 	g_recognition_anchors.Load(g_templates_dir);
 	if(mode == "sidecar2") {
+		if(annotated_regression)
+			sidecar2_window = "both";
 		if(sidecar2_window != "both" && sidecar2_window != "right" && sidecar2_window != "left") {
 			Cerr() << "ERROR: --sidecar2-window must be both, right, or left\n";
 			SetExitCode(1);
@@ -5772,6 +5917,14 @@ GUI_APP_MAIN
 	                                               max_frames, sidecar2_window,
 	                                               verbose, ocr_cap, ocr_cache_enabled,
 	                                               ocr_cache_threshold);
+	if(annotated_regression && rc == 0) {
+		if(sidecar2_output.IsEmpty()) {
+			Cerr() << "ERROR: --annotated-regression requires --sidecar2-out <path>\n";
+			rc = 1;
+		}
+		else
+			rc = CompareAnnotatedSidecar2(source_sidecar, sidecar2_output);
+	}
 	else if(mode == "live") rc = RunLive(host, port, seconds, dataset, verbose, use_engine, wait_timeout_ms, ocr_cap, ocr_cache_enabled, ocr_cache_threshold);
 	else if(mode == "gui") rc = RunGui(host, port, dataset, verbose, use_engine, wait_timeout_ms, ocr_cap, ocr_cache_enabled, ocr_cache_threshold);
 	else if(mode == "cropsafety") {
@@ -5792,6 +5945,15 @@ GUI_APP_MAIN
 		rc = SaveFixedTextSearchLayout(text_layout_out) ? 0 : 1;
 		Cout() << "text_layout=" << text_layout_out << " size=944x682 status="
 		       << (rc == 0 ? "written" : "write-failed") << "\n";
+	}
+	if(!WritePipelineReport(report_out, mode, video_path, text_layout_in, sidecar2_output, rc)) {
+		Cerr() << "ERROR: failed to write report: " << report_out << "\n";
+		if(!rc) rc = 1;
+	}
+	if(!json_out.IsEmpty() && !WritePipelineReport(json_out, mode, video_path, text_layout_in,
+	                                                sidecar2_output, rc)) {
+		Cerr() << "ERROR: failed to write JSON manifest: " << json_out << "\n";
+		if(!rc) rc = 1;
 	}
 	if(rc) SetExitCode(rc);
 }

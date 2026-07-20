@@ -4,7 +4,7 @@
 using namespace Upp;
 
 void TestSuitFollowing() {
-	GameState state;
+	CardGameState state;
 	state.Deal();
 	
 	state.players[0].Clear();
@@ -36,7 +36,7 @@ void TestSuitFollowing() {
 }
 
 void TestHeartsBreaking() {
-	GameState state;
+	CardGameState state;
 	state.Deal();
 	
 	state.players[0].Clear();
@@ -61,7 +61,7 @@ void TestHeartsBreaking() {
 }
 
 void TestTrickResolution() {
-	GameState state;
+	CardGameState state;
 	state.Deal();
 
 	state.players[0].Clear(); state.players[0].Add(Card("clubs", "2"));
@@ -92,7 +92,7 @@ void TestTrickResolution() {
 }
 
 void TestPointsCalculation() {
-	GameState state;
+	CardGameState state;
 	state.Deal();
 
 	state.players[0].Clear(); state.players[0].Add(Card("clubs", "2"));
@@ -119,7 +119,7 @@ void TestPointsCalculation() {
 }
 
 void TestAI() {
-	GameState state;
+	CardGameState state;
 	state.Deal();
 
 	// AI plays when leading

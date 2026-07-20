@@ -36,7 +36,7 @@ public:
 		DIFFICULTY_HARD
 	};
 
-	GameState state;
+	CardGameState state;
 	Difficulty difficulty;
 
 	// UI Buttons

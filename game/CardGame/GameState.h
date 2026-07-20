@@ -16,7 +16,7 @@ struct PlayResult {
 	PlayResult(bool s, const String& m);
 };
 
-class GameState {
+class CardGameState {
 public:
 	Vector<Card> players[4];
 	int scores[4];
@@ -39,7 +39,7 @@ public:
 
 	Event<const String&> LogCallback;
 
-	GameState();
+	CardGameState();
 
 	void Log(const String& msg);
 	void Deal();

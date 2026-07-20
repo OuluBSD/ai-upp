@@ -27,7 +27,7 @@ static void SortHand(Vector<Card>& hand) {
 	});
 }
 
-GameState::GameState() {
+CardGameState::CardGameState() {
 	for (int i = 0; i < 4; i++) {
 		scores[i] = 0;
 		round_scores[i] = 0;
@@ -46,7 +46,7 @@ GameState::GameState() {
 	phase = "PASSING";
 }
 
-void GameState::Log(const String& msg) {
+void CardGameState::Log(const String& msg) {
 	if (LogCallback) {
 		LogCallback(msg);
 	} else {
@@ -54,7 +54,7 @@ void GameState::Log(const String& msg) {
 	}
 }
 
-void GameState::Deal() {
+void CardGameState::Deal() {
 	round_number++;
 	
 	// Create standard deck
@@ -106,7 +106,7 @@ void GameState::Deal() {
 	}
 }
 
-bool GameState::SelectPass(int player_index, const Vector<Card>& cards) {
+bool CardGameState::SelectPass(int player_index, const Vector<Card>& cards) {
 	if (phase != "PASSING") return false;
 	if (cards.GetCount() != 3) return false;
 	
@@ -127,7 +127,7 @@ bool GameState::SelectPass(int player_index, const Vector<Card>& cards) {
 	return true;
 }
 
-void GameState::ExecutePass() {
+void CardGameState::ExecutePass() {
 	int pass_direction = round_number % 4; // 1 = Left, 2 = Right, 3 = Across
 	Vector<Card> received[4];
 
@@ -166,7 +166,7 @@ void GameState::ExecutePass() {
 	StartPlayPhase();
 }
 
-void GameState::StartPlayPhase() {
+void CardGameState::StartPlayPhase() {
 	// Find player with 2 of clubs
 	for (int i = 0; i < 4; i++) {
 		for (const Card& c : players[i]) {
@@ -183,7 +183,7 @@ void GameState::StartPlayPhase() {
 	leading_suit = "";
 }
 
-PlayResult GameState::ValidatePlay(int player_index, const Card& card) const {
+PlayResult CardGameState::ValidatePlay(int player_index, const Card& card) const {
 	if (phase != "PLAYING") {
 		return PlayResult(false, "Not in PLAYING phase.");
 	}
@@ -255,7 +255,7 @@ PlayResult GameState::ValidatePlay(int player_index, const Card& card) const {
 	return PlayResult(true, "");
 }
 
-PlayResult GameState::PlayCard(int player_index, const Card& card) {
+PlayResult CardGameState::PlayCard(int player_index, const Card& card) {
 	PlayResult res = ValidatePlay(player_index, card);
 	if (!res.success) {
 		return res;
@@ -287,7 +287,7 @@ PlayResult GameState::PlayCard(int player_index, const Card& card) {
 	return PlayResult(true, "Play recorded.");
 }
 
-int GameState::GetTrickResult(int& points_out) const {
+int CardGameState::GetTrickResult(int& points_out) const {
 	if (trick.GetCount() != 4) return -1;
 	
 	int winner = trick[0].player_index;
@@ -311,7 +311,7 @@ int GameState::GetTrickResult(int& points_out) const {
 	return winner;
 }
 
-void GameState::ResolveTrick() {
+void CardGameState::ResolveTrick() {
 	if (!trick_pending) return;
 
 	round_scores[pending_trick_winner] += pending_trick_points;
@@ -339,7 +339,7 @@ void GameState::ResolveTrick() {
 	}
 }
 
-void GameState::ResolveRound() {
+void CardGameState::ResolveRound() {
 	int moon_shooter = -1;
 	for (int i = 0; i < 4; i++) {
 		if (round_scores[i] == 26) {
@@ -386,7 +386,7 @@ void GameState::ResolveRound() {
 	}
 }
 
-void GameState::BeginNextRound() {
+void CardGameState::BeginNextRound() {
 	Deal();
 }
 

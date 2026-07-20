@@ -51,7 +51,7 @@ using namespace Upp;
 //                         real Task 0278/0279 live source).
 // ===========================================================================
 
-// Fixed PokerStars table windows in the 1920x1080 recording. Confirmed static
+// Fixed 2D card-game table windows in the 1920x1080 recording. Confirmed static
 // across all 56 tracking frames of the M12 recording (tracking.json), and by
 // VideoFrameWindowDetector's two table_candidate results for frame 0.
 // Task 0283 real finding: the table M12's ground truth and the 267-candidate
@@ -117,9 +117,9 @@ static Vector<WindowDescriptor> SelectWindowDescriptors(const String& mode)
 
 static const char* kDatasetDefault = "tmp/real_recording_combined_classified_dataset.json";
 
-// Task 0290a: real, already-existing PokerStars card template library (rank
+// Task 0290a: external card template library (rank
 // glyphs used by MatchTemplate). Overridable with --templates <dir>.
-static String g_templates_dir = "C:/Users/sblo/Dev/PKR/datasets/pokerstars/templates";
+static String g_templates_dir = "tmp/templates";
 
 struct RecognitionAnchor : Moveable<RecognitionAnchor> {
 	String name;
@@ -156,6 +156,102 @@ struct RecognitionAnchors {
 };
 
 static RecognitionAnchors g_recognition_anchors;
+
+struct FixedTextSearchLayout {
+	int width = 944;
+	int height = 682;
+	Rect name[6];
+	Rect balance[6];
+	Rect action[6];
+	Rect bet[6];
+	Rect board_money;
+};
+
+static FixedTextSearchLayout MakeFixedTextSearchLayout()
+{
+	FixedTextSearchLayout layout;
+	static const Rect names[6] = {
+		RectC(16, 74, 176, 54), RectC(20, 348, 184, 54), RectC(54, 146, 176, 54),
+		RectC(372, 84, 160, 54), RectC(750, 146, 176, 54), RectC(772, 350, 176, 54)
+	};
+	static const Rect balances[6] = {
+		RectC(414, 494, 148, 48), RectC(30, 378, 146, 48), RectC(62, 176, 148, 48),
+		RectC(388, 112, 140, 48), RectC(764, 176, 148, 48), RectC(784, 378, 148, 48)
+	};
+	static const Rect bets[6] = {
+		RectC(352, 392, 250, 70), RectC(154, 304, 190, 82), RectC(170, 190, 190, 82),
+		RectC(350, 142, 250, 78), RectC(610, 190, 190, 82), RectC(610, 304, 190, 82)
+	};
+	for(int seat = 0; seat < 6; seat++) {
+		layout.name[seat] = names[seat];
+		layout.balance[seat] = balances[seat];
+		layout.action[seat] = names[seat]; // action replaces the name plate
+		layout.bet[seat] = bets[seat];
+	}
+	layout.board_money = RectC(272, 166, 396, 238);
+	return layout;
+}
+
+static FixedTextSearchLayout g_fixed_text_layout = MakeFixedTextSearchLayout();
+
+static bool SearchLayoutIntersects(const Rect& rect, const Rect& area)
+{
+	Rect overlap = rect & area;
+	return overlap.Width() > 0 && overlap.Height() > 0;
+}
+
+static bool IsMoneySearchRegion(const Rect& rect, const String& category)
+{
+	if(category == "pot_label" || category == "seat_balance_plate" ||
+	   category == "seat_bet_label" || category == "chip_badge_stack")
+		return SearchLayoutIntersects(rect, g_fixed_text_layout.board_money) ||
+		       SearchLayoutIntersects(rect, g_fixed_text_layout.balance[0]) ||
+		       SearchLayoutIntersects(rect, g_fixed_text_layout.balance[1]) ||
+		       SearchLayoutIntersects(rect, g_fixed_text_layout.balance[2]) ||
+		       SearchLayoutIntersects(rect, g_fixed_text_layout.balance[3]) ||
+		       SearchLayoutIntersects(rect, g_fixed_text_layout.balance[4]) ||
+		       SearchLayoutIntersects(rect, g_fixed_text_layout.balance[5]);
+	if(category.Find("composite") >= 0) {
+		if(SearchLayoutIntersects(rect, g_fixed_text_layout.board_money)) return true;
+		for(int seat = 0; seat < 6; seat++)
+			if(SearchLayoutIntersects(rect, g_fixed_text_layout.balance[seat]) ||
+			   SearchLayoutIntersects(rect, g_fixed_text_layout.bet[seat])) return true;
+	}
+	return false;
+}
+
+static bool IsActionSearchRegion(const Rect& rect, const String& category)
+{
+	if(category != "seat_action_bubble" && category != "seat_name_plate" &&
+	   category.Find("composite") < 0) return false;
+	for(int seat = 0; seat < 6; seat++)
+		if(SearchLayoutIntersects(rect, g_fixed_text_layout.action[seat])) return true;
+	return false;
+}
+
+static bool SaveFixedTextSearchLayout(const String& path)
+{
+	String out;
+	out << "{\n  \"width\":944,\n  \"height\":682,\n  \"coordinate_space\":\"table-window\",\n";
+	auto write_rects = [&](const char* key, const Rect* rects) {
+		out << "  \"" << key << "\":[";
+		for(int i = 0; i < 6; i++) {
+			if(i) out << ",";
+			out << Format("{\"x\":%d,\"y\":%d,\"w\":%d,\"h\":%d}",
+			             rects[i].left, rects[i].top, rects[i].Width(), rects[i].Height());
+		}
+		out << "],\n";
+	};
+	write_rects("name", g_fixed_text_layout.name);
+	write_rects("balance", g_fixed_text_layout.balance);
+	write_rects("action", g_fixed_text_layout.action);
+	write_rects("bet", g_fixed_text_layout.bet);
+	out << Format("  \"board_money\":{\"x\":%d,\"y\":%d,\"w\":%d,\"h\":%d},\n",
+	             g_fixed_text_layout.board_money.left, g_fixed_text_layout.board_money.top,
+	             g_fixed_text_layout.board_money.Width(), g_fixed_text_layout.board_money.Height());
+	out << "  \"source\":\"fixed 944x682 layout, calibrated from recorded two-window feed\"\n}\n";
+	return SaveFile(path, out);
+}
 
 static int RgbAnchorDistance(const Image& candidate, const Image& anchor, double scale)
 {
@@ -528,7 +624,7 @@ static const int kMinNameAlphaRun = 4;
 // ---------------------------------------------------------------------------
 // Task 0287: map a classified region's table-space rect to a seat index (0-5).
 //
-// This is a fixed-layout 6-max PokerStars table (same premise as kTableRect
+// This is a fixed-layout six-seat 2D card-game table (same premise as kTableRect
 // being a fixed empirical constant). The 267-candidate labeled dataset
 // (real_recording_combined_classified_dataset.json) carries real
 // seat_name_plate / seat_balance_plate / seat_bet_label rects; grouping their
@@ -677,7 +773,7 @@ public:
 };
 
 // Card index from rank+suit strings the dataset carries for board_card entries.
-// PokerStars-style: rank in {2..9,T,J,Q,K,A}, suit in {c,d,h,s}. Engine card
+// Reference-client style: rank in {2..9,T,J,Q,K,A}, suit in {c,d,h,s}. Engine card
 // index = suit*13 + rankidx (matches ReplayValidator's FormatCard()).
 static int CardIndex(const String& rank, const String& suit)
 {
@@ -721,7 +817,7 @@ static String FormatCardStr(int idx)
 //      spades=grey (144,145,133)). So suit is a trivial, robust dominant-colour
 //      test, no template needed.
 //   3. RANK BY TEMPLATE MATCH: ComputerVision::MatchTemplate (TM_CCOEFF_NORMED)
-//      slides the real PokerStars rank-glyph library (templates/ranks/*.png,
+//      slides the external rank-glyph library (templates/ranks/*.png,
 //      white glyph on grey) over the card crop at a few calibrated scales and
 //      takes the peak response. TM_CCOEFF_NORMED's translational search is what
 //      makes this work (a single forced bbox alignment does NOT -- verified);
@@ -779,7 +875,7 @@ struct CardTemplates {
 	bool ok = false;
 };
 
-// Load the real PokerStars rank-glyph library from <dir>/ranks/{rank}.png. Each
+// Load the external rank-glyph library from <dir>/ranks/{rank}.png. Each
 // glyph is tight-cropped to its bright (white) pixels then pre-rescaled to every
 // calibrated scale, so per-frame recognition is a fixed set of MatchTemplate calls.
 // Task 0291a: scale set is now a parameter so hole-card recognition (smaller
@@ -956,8 +1052,8 @@ static Vector<int> RecognizeBoardCards(const VsmFrameImage& table, const CardTem
 // cross-check of Task 0288's engine-derived GBUTTON_DEALER indicator).
 //
 // Real finding (investigated on real 0263 frames before writing any code): in
-// THIS PokerStars client the dealer button is NOT a "D" glyph -- it is a small
-// white-rimmed disc bearing the red PokerStars spade logo. The already-existing
+// THIS reference client the dealer button is NOT a "D" glyph -- it is a small
+// white-rimmed disc bearing a red symbol. The already-existing
 // real template images at templates/dealer_chip/{1.png (48x42, the bright live
 // appearance), seat5_is_dealer_0956.png (32x32, a dimmed variant)} ARE that
 // button; 1.png matches the live look, so it is the template used here.
@@ -1736,11 +1832,8 @@ static void CommitPreparedTableFrame(const PreparedTableFrame& prepared,
 		// run the small-label search over those large regions: the classifier
 		// category and bounded geometry are the cheap first-stage gate.
 		bool small_text_region = r.Width() <= 260 && r.Height() <= 80;
-		bool money_candidate = small_text_region &&
-			(IsOcrCategory(cl.category) || cl.category.Find("composite") >= 0);
-		bool action_candidate = small_text_region &&
-			(cl.category == "seat_action_bubble" || cl.category == "seat_name_plate" ||
-			 cl.category.Find("composite") >= 0);
+		bool money_candidate = small_text_region && IsMoneySearchRegion(r, cl.category);
+		bool action_candidate = small_text_region && IsActionSearchRegion(r, cl.category);
 		String bb_anchor = money_candidate ? MatchRecognitionAnchor(crop, "BB-", bb_distance) : String();
 		String action_anchor = action_candidate ? MatchRecognitionAnchor(crop, "action-", action_distance) : String();
 		bool bb_match = IsAcceptedRecognitionAnchor(bb_anchor, bb_distance);
@@ -4228,7 +4321,7 @@ static bool LoadSidecar2Legend(const String& path, String& output)
 	       << "# sidecar2: generated only from recognized video signals; unresolved signals are omitted.\n"
 	       << "# showdown recognition is limited to the three measured kHoleRegions seats.\n"
 	       << "# Change checked=n to checked=y only after manual review of that hand.\n"
-	       << "# R = right poker window; L = left poker window.\n"
+		       << "# R = right 2D table window; L = left 2D table window.\n"
 	       << "# The seat-position legend above applies independently inside each window.\n\n";
 	return true;
 }
@@ -4407,7 +4500,7 @@ static bool ValidateSidecar2WindowLayout(const VsmImageBuffer& buffer)
 {
 	Rect bounds = RectC(0, 0, buffer.width, buffer.height);
 	if(!bounds.Contains(kLeftTableRect) || !bounds.Contains(kRightTableRect)) {
-		Cerr() << "ERROR: decoded frame is too small for the two tracked poker windows: "
+		Cerr() << "ERROR: decoded frame is too small for the two tracked 2D table windows: "
 		       << buffer.width << "x" << buffer.height << "\n";
 		return false;
 	}
@@ -5521,6 +5614,7 @@ GUI_APP_MAIN
 	int  ocr_cache_threshold = 40; // real-evidence calibrated, see OcrCacheState's comment
 	Vector<String> crop_safety_lists;
 	String card_dataset_out; // Task 0290a --card-dataset-dump output dir
+	String text_layout_out;  // Task 0294x fixed-window text search layout
 
 	for(int i = 0; i < args.GetCount(); i++) {
 		if(args[i] == "--classify-selftest") mode = "selftest";
@@ -5536,6 +5630,9 @@ GUI_APP_MAIN
 		else if(args[i] == "--ocr-accuracy-test") mode = "ocracc";    // Task 0291a item 5
 		else if(args[i] == "--line-corner-test") mode = "linecorner"; // Task 0291b
 		else if(args[i] == "--anchor-selftest") mode = "anchorselftest"; // Task 0294v
+		else if(args[i] == "--dump-text-layout" && i + 1 < args.GetCount()) {
+			mode = "textlayout"; text_layout_out = args[++i];
+		}
 		else if(args[i] == "--frames-dir" && i + 1 < args.GetCount()) frames_dir = args[++i];
 		else if(args[i] == "--video" && i + 1 < args.GetCount()) video_path = args[++i];
 		else if(args[i] == "--source-sidecar" && i + 1 < args.GetCount()) source_sidecar = args[++i];
@@ -5592,6 +5689,7 @@ GUI_APP_MAIN
 		       << "  --line-corner-test          Task 0291b: Canny+Hough line / FAST corner keypoints\n"
 		       << "                               on the board band, vs SplitBoardBand boundaries\n"
 		       << "  --anchor-selftest           Task 0294v: RGB BB/action template self-test\n"
+		       << "  --dump-text-layout <path>  Task 0294x: write fixed 944x682 text search layout\n"
 		       << "Options:\n"
 		       << "  --host <h> --port <p>       VideoServer address (default 127.0.0.1:8082)\n"
 		       << "  --seconds <n>               Live run duration (default 30)\n"
@@ -5690,5 +5788,10 @@ GUI_APP_MAIN
 	else if(mode == "ocracc") rc = RunOcrAccuracyTest(frames_dir, g_templates_dir);
 	else if(mode == "linecorner") rc = RunLineCornerTest(frames_dir);
 	else if(mode == "anchorselftest") rc = RunRecognitionAnchorSelfTest();
+	else if(mode == "textlayout") {
+		rc = SaveFixedTextSearchLayout(text_layout_out) ? 0 : 1;
+		Cout() << "text_layout=" << text_layout_out << " size=944x682 status="
+		       << (rc == 0 ? "written" : "write-failed") << "\n";
+	}
 	if(rc) SetExitCode(rc);
 }

@@ -144,6 +144,18 @@ Current Task Files (`CURRENT_TASK.md`)
 
 ## Headless / GUI Dual-Purpose Rule
 
+## Generic 2D GUI Terminology and External Assets
+
+- Generic repository code must use neutral terminology such as `2D GUI`,
+  `card game`, `table window`, `provider-neutral`, and `external dataset`.
+- Do not add commercial platform, provider, or brand names to generic source,
+  task descriptions, layout filenames, diagnostics, or commit messages.
+- Provider-specific screenshots, templates, layout JSON, and recordings belong
+  under the external dataset repository (for example `D:\\sblo\\Dev-linux\\PKR\\datasets`),
+  never under this repository. Code may accept a caller-supplied asset path.
+- Existing package names or historical references may remain when required for
+  compilation or compatibility, but new work must not expand them.
+
 - Every new GUI-facing feature should have a headless path that exercises the same behavior one-to-one for agents, CI, and scripted verification.
 - Do not duplicate meaningful logic between headless and GUI implementations. Put shared state transitions, layout decisions, command handling, serialization, and diagnostics into common helper classes or free functions.
 - GUI classes should own presentation and input wiring, not the authoritative model. Prefer headless model/controller classes that GUI controls observe, edit, and render.

@@ -1732,8 +1732,17 @@ static void CommitPreparedTableFrame(const PreparedTableFrame& prepared,
 		const Image& crop = region.crop;
 		const VsmLiveClassifyResult& cl = region.classification;
 		int bb_distance = -1, action_distance = -1;
-		String bb_anchor = MatchRecognitionAnchor(crop, "BB-", bb_distance);
-		String action_anchor = MatchRecognitionAnchor(crop, "action-", action_distance);
+		// Changed-region rectangles can contain a whole table animation. Do not
+		// run the small-label search over those large regions: the classifier
+		// category and bounded geometry are the cheap first-stage gate.
+		bool small_text_region = r.Width() <= 260 && r.Height() <= 80;
+		bool money_candidate = small_text_region &&
+			(IsOcrCategory(cl.category) || cl.category.Find("composite") >= 0);
+		bool action_candidate = small_text_region &&
+			(cl.category == "seat_action_bubble" || cl.category == "seat_name_plate" ||
+			 cl.category.Find("composite") >= 0);
+		String bb_anchor = money_candidate ? MatchRecognitionAnchor(crop, "BB-", bb_distance) : String();
+		String action_anchor = action_candidate ? MatchRecognitionAnchor(crop, "action-", action_distance) : String();
 		bool bb_match = IsAcceptedRecognitionAnchor(bb_anchor, bb_distance);
 		bool action_match = IsAcceptedRecognitionAnchor(action_anchor, action_distance);
 		if((bb_match || action_match) && verbose)

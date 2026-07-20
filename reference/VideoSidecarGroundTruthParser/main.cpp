@@ -238,12 +238,19 @@ struct SeatLegend {
 	VectorMap<String, int> position_to_seat; // position name -> 0-indexed seat
 };
 
+static bool IsIgnorableSidecarLine(const String& line)
+{
+	String trimmed = TrimBoth(line);
+	return trimmed.IsEmpty() || trimmed[0] == '#';
+}
+
 static SeatLegend ParseLegend(const Vector<String>& lines, int& i)
 {
 	SeatLegend legend;
 	while(i < lines.GetCount()) {
 		String line = TrimBoth(lines[i]);
 		if(line.IsEmpty()) { i++; break; }
+		if(line[0] == '#') { i++; continue; }
 		int eq = line.Find('=');
 		if(eq < 0)
 			throw Exc(Format("line %d: expected legend entry '<position>=seatN', got '%s'", i + 1, line));
@@ -629,7 +636,7 @@ static Vector<TexasHoldemLogicState> ParseSidecar(const String& path, String& ou
 
 	for(; i < raw_lines.GetCount(); i++) {
 		String raw_line = TrimBoth(raw_lines[i]);
-		if(raw_line.IsEmpty())
+		if(IsIgnorableSidecarLine(raw_line))
 			continue;
 		int line_no = i + 1;
 

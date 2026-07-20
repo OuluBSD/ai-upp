@@ -44,6 +44,8 @@ using namespace Upp;
 //   --offline-frames DIR  Runs the full stages-1..4 pipeline over the dataset's
 //                         own source frames (frame_%06d.jpg) for per-stage
 //                         timing, deterministic, no server needed.
+//   --sidecar2            Runs that same offline pipeline and emits only
+//                         recognized, parser-shaped sidecar events.
 //   --live                Continuous loop against a running VideoServer (the
 //                         real Task 0278/0279 live source).
 // ===========================================================================
@@ -1132,6 +1134,7 @@ struct ResolveState {
 		for(int i = 0; i < 5; i++) board_cards.Add(-1);
 		for(int i = 0; i < 6; i++) {
 			seat_stack[i] = -1; seat_bet[i] = -1; seat_round_total[i] = -1;
+			seat_name_frame[i] = -1; seat_stack_frame[i] = -1;
 			// Task 0290b: structural fold signal state.
 			seat_cards_present[i] = -1; cards_raw_last[i] = -1; cards_raw_streak[i] = 0;
 			seat_folded[i] = false;
@@ -1161,12 +1164,15 @@ struct ResolveState {
 	double seat_stack[6]; // last OCR'd balance-plate value per seat index
 	double seat_bet[6];   // last OCR'd bet-label value per seat index
 	String seat_name[6];  // last OCR'd name-plate text per seat index
+	int    seat_name_frame[6];
+	int    seat_stack_frame[6];
 	// Task 0289: per-seat latest action word (from seat_action_bubble OCR) and
 	// per-seat round-bet-total chip figure (from chip_badge_stack OCR).
 	String seat_action[6];       // normalized action word ("Call"/"Fold"/...)
 	double seat_round_total[6];  // last OCR'd chip_badge_stack value per seat, -1 none
 	int    last_action_seat = -1;    // seat of the most recent action-bubble read
 	int64  last_action_ms = 0;       // wall time of that read (for "fresh"/turn highlight)
+	int    last_action_frame = -1;   // pipeline frame that produced that read
 	// Task 0290b: OCR-free structural fold signal (hole-card-back presence).
 	// seat_folded is the AUTHORITATIVE fold state, driven by BOTH the OCR-text
 	// path (an action normalizing to "Fold", incl. the name-plate reroute) AND the
@@ -1465,6 +1471,7 @@ static void ProcessTableFrame(const VsmFrameImage& table, VsmFrameImage& prev, b
 						rs.SetFolded(seat, act0 == "Fold", "action via name-plate", verbose);
 						rs.last_action_seat = seat;
 						rs.last_action_ms = msecs();
+						rs.last_action_frame = stats.frames;
 					}
 					// Task 0290b: a CHIP AMOUNT that leaked into the name field.
 					// Real names always carry a long continuous alphabetic run
@@ -1530,6 +1537,7 @@ static void ProcessTableFrame(const VsmFrameImage& table, VsmFrameImage& prev, b
 							rs.LogEvent(Format("seat %d name: %s", seat, ~nm), verbose);
 						}
 						rs.seat_name[seat] = nm;
+						rs.seat_name_frame[seat] = stats.frames;
 					}
 				}
 			}
@@ -1555,6 +1563,7 @@ static void ProcessTableFrame(const VsmFrameImage& table, VsmFrameImage& prev, b
 					rs.SetFolded(seat, act == "Fold", "action bubble", verbose);
 					rs.last_action_seat = seat;
 					rs.last_action_ms = msecs();
+					rs.last_action_frame = stats.frames;
 				}
 			}
 		}
@@ -1582,6 +1591,7 @@ static void ProcessTableFrame(const VsmFrameImage& table, VsmFrameImage& prev, b
 							if(rs.seat_stack[seat] < 0 || fabs(rs.seat_stack[seat] - val) > 0.001)
 								rs.LogEvent(Format("seat %d stack: %.4g", seat, val), verbose);
 							rs.seat_stack[seat] = val;
+							rs.seat_stack_frame[seat] = stats.frames;
 						}
 						else if(cl.category == "seat_bet_label") {
 							if(rs.seat_bet[seat] < 0 || fabs(rs.seat_bet[seat] - val) > 0.001)
@@ -3481,6 +3491,587 @@ static int RunHoleCardTest(const String& frames_dir, const String& templates_dir
 	return 0;
 }
 
+struct Sidecar2Frame : Moveable<Sidecar2Frame> {
+	int sec = -1;
+	String path;
+};
+
+struct Sidecar2Stats {
+	int frames = 0;
+	int hands = 0;
+	int board_events = 0;
+	int actions = 0;
+	int showdowns = 0;
+	int seat_updates = 0;
+	int omitted_signals = 0;
+	int omitted_dealer = 0;
+	int omitted_board = 0;
+	int omitted_action = 0;
+	int omitted_showdown = 0;
+	int omitted_seat = 0;
+};
+
+static int MirrorToSidecarSeat(int mirror)
+{
+	switch(mirror) {
+	case 0: return 4;
+	case 1: return 5;
+	case 2: return 6;
+	case 3: return 1;
+	case 4: return 2;
+	case 5: return 3;
+	}
+	return -1;
+}
+
+static String FormatSidecar2Time(int sec)
+{
+	sec = max(sec, 0);
+	return Format("%02d:%02d:%02d", sec / 3600, (sec / 60) % 60, sec % 60);
+}
+
+static String FormatSidecar2Bb(double value)
+{
+	return Format("%.4g", value) + "BB";
+}
+
+static void AddSidecar2Event(String& output, int sec, const String& event)
+{
+	output << "R " << FormatSidecar2Time(sec) << ": " << event << "\n";
+}
+
+static bool LoadSidecar2Legend(const String& path, String& output)
+{
+	Vector<String> lines = Split(LoadFile(path), '\n');
+	int count = 0;
+	for(String line : lines) {
+		line = TrimBoth(line);
+		if(line.IsEmpty()) break;
+		if(line.Find("=seat") < 0) return false;
+		output << line << "\n";
+		count++;
+	}
+	if(count != 6) return false;
+	output << "\n"
+	       << "# sidecar2: generated only from recognized video signals; unresolved signals are omitted.\n"
+	       << "# showdown recognition is limited to the three measured kHoleRegions seats.\n"
+	       << "# Change checked=n to checked=y only after manual review of that hand.\n\n";
+	return true;
+}
+
+static int Sidecar2FrameSecond(const String& path)
+{
+	String title = GetFileTitle(path);
+	int underscore = title.ReverseFind('_');
+	if(underscore < 0 || underscore + 1 >= title.GetCount()) return -1;
+	String number = title.Mid(underscore + 1);
+	for(int i = 0; i < number.GetCount(); i++)
+		if(number[i] < '0' || number[i] > '9') return -1;
+	return StrInt(number);
+}
+
+static Vector<Sidecar2Frame> CollectSidecar2Frames(const String& frames_dir,
+	                                                int start_second, int max_frames)
+{
+	Vector<String> dirs;
+	if(frames_dir.IsEmpty())
+		dirs = ResolveFrameDirs("");
+	else
+		dirs.Add(frames_dir);
+
+	VectorMap<int, String> by_second;
+	for(const String& dir : dirs) {
+		Vector<String> paths = FindAllPaths(dir, "*.jpg");
+		for(const String& path : paths) {
+			int sec = Sidecar2FrameSecond(path);
+			if(sec < start_second || by_second.Find(sec) >= 0) continue;
+			by_second.Add(sec, path);
+		}
+	}
+
+	Vector<Sidecar2Frame> frames;
+	for(int i = 0; i < by_second.GetCount(); i++) {
+		Sidecar2Frame& frame = frames.Add();
+		frame.sec = by_second.GetKey(i);
+		frame.path = by_second[i];
+	}
+	Sort(frames, [](const Sidecar2Frame& left, const Sidecar2Frame& right) {
+		return left.sec < right.sec;
+	});
+	if(max_frames > 0 && frames.GetCount() > max_frames)
+		frames.SetCount(max_frames);
+	return frames;
+}
+
+static String CleanSidecar2Name(const String& raw)
+{
+	String clean;
+	bool space = false;
+	for(int i = 0; i < raw.GetCount(); i++) {
+		int chr = raw[i];
+		if(chr == '"') return "";
+		if(chr <= ' ') {
+			space = !clean.IsEmpty();
+			continue;
+		}
+		if(space) clean.Cat(' ');
+		space = false;
+		clean.Cat(chr);
+	}
+	clean = TrimBoth(clean);
+	if(clean.GetCount() > 48 || LongestAlphaRun(clean) < kMinNameAlphaRun)
+		return "";
+	return clean;
+}
+
+static void ResetSidecar2HandState(ResolveState& state)
+{
+	state.board_count = 0;
+	for(int i = 0; i < state.board_cards.GetCount(); i++) state.board_cards[i] = -1;
+	state.last_pot = -1;
+	state.last_action_seat = -1;
+	state.last_action_frame = -1;
+	for(int seat = 0; seat < 6; seat++) {
+		state.seat_action[seat].Clear();
+		state.seat_bet[seat] = -1;
+		state.seat_round_total[seat] = -1;
+		state.seat_folded[seat] = false;
+	}
+}
+
+static String Sidecar2BoardString(const ResolveState& state, int count)
+{
+	String cards;
+	if(count < 0 || count > state.board_cards.GetCount()) return "";
+	for(int i = 0; i < count; i++) {
+		if(state.board_cards[i] < 0) return "";
+		cards << FormatCardStr(state.board_cards[i]);
+	}
+	return cards;
+}
+
+static String RecognizeSidecar2HoleCards(const VsmFrameImage& table,
+	                                      const HoleRegion& region,
+	                                      const CardTemplates& templates,
+	                                      bool& unresolved)
+{
+	unresolved = false;
+	bool present0 = HoleCardPresent(table, region.c0);
+	bool present1 = HoleCardPresent(table, region.c1);
+	if(!present0 && !present1) return "";
+	if(!present0 || !present1) {
+		unresolved = true;
+		return "";
+	}
+	double score0 = -2, score1 = -2;
+	String suit0 = ClassifySuitByColor(table, region.c0);
+	String suit1 = ClassifySuitByColor(table, region.c1);
+	String rank0 = RecognizeRank(table, HoleCornerRect(region.c0), templates, score0);
+	String rank1 = RecognizeRank(table, HoleCornerRect(region.c1), templates, score1);
+	int card0 = CardIndex(rank0, suit0);
+	int card1 = CardIndex(rank1, suit1);
+	if(card0 < 0 || card1 < 0 || score0 < 0.70 || score1 < 0.70) {
+		unresolved = true;
+		return "";
+	}
+	return FormatCardStr(card0) + FormatCardStr(card1);
+}
+
+static void CountSidecar2PartialSeats(const ResolveState& state, int hand_start_frame,
+	                                  const String emitted_name[6], Sidecar2Stats& stats)
+{
+	for(int seat = 0; seat < 6; seat++) {
+		bool fresh_name = state.seat_name_frame[seat] >= hand_start_frame;
+		bool fresh_stack = state.seat_stack_frame[seat] >= hand_start_frame;
+		if(emitted_name[seat].IsEmpty() && (fresh_name || fresh_stack)) {
+			stats.omitted_signals++;
+			stats.omitted_seat++;
+		}
+	}
+}
+
+static int RunSidecar2(const String& frames_dir, const String& dataset_path,
+	                   const String& source_sidecar, const String& requested_output,
+	                   int start_second, int max_frames, bool verbose, int ocr_cap,
+	                   bool ocr_cache_enabled, int ocr_cache_threshold)
+{
+	String output_path = requested_output;
+	if(output_path.IsEmpty())
+		output_path = AppendFileName(GetFileFolder(source_sidecar),
+		                             GetFileTitle(source_sidecar) + "_sidecar2.txt");
+
+	String output;
+	if(!LoadSidecar2Legend(source_sidecar, output)) {
+		Cerr() << "ERROR: source sidecar does not have the expected six-line legend: "
+		       << source_sidecar << "\n";
+		return 1;
+	}
+
+	Vector<Sidecar2Frame> frames = CollectSidecar2Frames(frames_dir, start_second, max_frames);
+	if(frames.IsEmpty()) {
+		Cerr() << "ERROR: no frame_%06d.jpg files found for sidecar2 generation\n";
+		return 1;
+	}
+
+	Cout() << "=== Mode: sidecar2 (recognized signals only) ===\n";
+	Cout() << "source_sidecar=" << source_sidecar << "\n";
+	Cout() << "output=" << output_path << "\n";
+	Cout() << Format("frames=%d seconds=[%d..%d]\n", frames.GetCount(), frames[0].sec, frames.Top().sec);
+
+	VsmLiveRegionClassifier classifier;
+	if(classifier.Load(dataset_path) == 0) {
+		Cerr() << "ERROR: classifier load failed\n";
+		return 1;
+	}
+	VsmTesseractOcrEngine ocr;
+	bool ocr_available = ocr.GetInfo().available;
+	if(!ocr_available && ocr_cap != 0) {
+		Cerr() << "ERROR: tesseract OCR is unavailable\n";
+		return 1;
+	}
+
+	Vector<double> hole_scales;
+	hole_scales << 0.30 << 0.35 << 0.40 << 0.45 << 0.50 << 0.55;
+	CardTemplates board_templates = LoadCardTemplates(g_templates_dir);
+	CardTemplates hole_templates = LoadCardTemplates(g_templates_dir, hole_scales);
+	DealerTemplate dealer_template = LoadDealerTemplate(g_templates_dir);
+	if(!board_templates.ok || !hole_templates.ok || !dealer_template.ok) {
+		Cerr() << "ERROR: recognition templates are incomplete\n";
+		return 1;
+	}
+
+	StageSet stages;
+	stages.acquire.name = "acquire"; stages.crop.name = "crop+conv";
+	stages.change.name = "change_detect"; stages.classify.name = "classify";
+	stages.ocr.name = "ocr"; stages.resolve.name = "resolve"; stages.engine.name = "engine";
+	LoopStats loop_stats;
+	ResolveState state;
+	OcrCacheState cache;
+	cache.enabled = ocr_cache_enabled;
+	cache.threshold = ocr_cache_threshold;
+	VsmChangeDetectParams change_params;
+	VsmFrameImage previous;
+	bool has_previous = false;
+	Sidecar2Stats stats;
+
+	bool hand_open = false;
+	bool pending_hand = false;
+	bool hand_has_progress = false;
+	bool hand_has_showdown = false;
+	int hand_start_frame = -1;
+	int hand_open_sec = -1;
+	int last_raw_board_count = -1;
+	int redeal_window_sec = -1;
+	bool redeal_returned[6] = { false, false, false, false, false, false };
+	String emitted_name[6];
+	double emitted_stack[6] = { -1, -1, -1, -1, -1, -1 };
+	String profile_name_candidate[6];
+	double profile_stack_candidate[6] = { -1, -1, -1, -1, -1, -1 };
+	int profile_streak[6] = { 0, 0, 0, 0, 0, 0 };
+	bool fold_emitted[6] = { false, false, false, false, false, false };
+	String last_action_text[6];
+	int last_action_sec[6] = { -1000, -1000, -1000, -1000, -1000, -1000 };
+	String hole_candidate[3];
+	int hole_streak[3] = { 0, 0, 0 };
+	bool hole_emitted[3] = { false, false, false };
+	bool hole_unresolved[3] = { false, false, false };
+	double started_ms = NowMs();
+
+	for(const Sidecar2Frame& frame : frames) {
+		VsmImageBuffer buffer;
+		double acquire_started = NowMs();
+		if(!LoadJpgToBuffer(frame.path, buffer)) {
+			stats.omitted_signals++;
+			continue;
+		}
+		VsmFrameImage table = CropBufferToFrame(buffer, kTableRect);
+		stages.acquire.Add(NowMs() - acquire_started);
+		if(table.IsEmpty()) {
+			stats.omitted_signals++;
+			continue;
+		}
+		stats.frames++;
+
+		bool folded_before[6];
+		double bet_before[6], round_before[6];
+		int cards_before[6];
+		for(int seat = 0; seat < 6; seat++) {
+			folded_before[seat] = state.seat_folded[seat];
+			bet_before[seat] = state.seat_bet[seat];
+			round_before[seat] = state.seat_round_total[seat];
+			cards_before[seat] = state.seat_cards_present[seat];
+		}
+		int board_before = state.board_count;
+
+		ProcessTableFrame(table, previous, has_previous, classifier, ocr, ocr_available,
+		                  change_params, stages, loop_stats, state, cache, nullptr, verbose,
+		                  ocr_cap, board_templates, dealer_template);
+		if(!has_previous) {
+			previous.Set(table.width, table.height, ~table.data);
+			has_previous = true;
+		}
+
+		int present_count = 0;
+		int returned_count = 0;
+		if(redeal_window_sec >= 0 && frame.sec - redeal_window_sec > 3) {
+			redeal_window_sec = -1;
+			for(int seat = 0; seat < 6; seat++) redeal_returned[seat] = false;
+		}
+		for(int seat = 0; seat < 6; seat++) {
+			if(state.seat_cards_present[seat] == 1) present_count++;
+			if(cards_before[seat] == 0 && state.seat_cards_present[seat] == 1) {
+				if(redeal_window_sec < 0) redeal_window_sec = frame.sec;
+				redeal_returned[seat] = true;
+			}
+			if(redeal_returned[seat]) returned_count++;
+		}
+		int raw_board_count = SplitBoardBand(table).GetCount();
+		bool board_cleared = last_raw_board_count >= 3 && raw_board_count == 0;
+		bool redealt = returned_count >= 2 && raw_board_count == 0;
+		bool initial_hand = !hand_open && !pending_hand && raw_board_count == 0 && present_count >= 2;
+		bool next_hand = hand_open && !pending_hand
+		              && (board_cleared || (redealt && hand_has_progress));
+
+		if(initial_hand || next_hand) {
+			if(hand_open)
+				CountSidecar2PartialSeats(state, hand_start_frame, emitted_name, stats);
+			pending_hand = true;
+			hand_open = false;
+			ResetSidecar2HandState(state);
+			for(int seat = 0; seat < 6; seat++) {
+				emitted_name[seat].Clear();
+				emitted_stack[seat] = -1;
+				fold_emitted[seat] = false;
+				last_action_text[seat].Clear();
+				last_action_sec[seat] = -1000;
+				profile_name_candidate[seat].Clear();
+				profile_stack_candidate[seat] = -1;
+				profile_streak[seat] = 0;
+			}
+			for(int region = 0; region < 3; region++) {
+				hole_candidate[region].Clear();
+				hole_streak[region] = 0;
+				hole_emitted[region] = false;
+				hole_unresolved[region] = false;
+			}
+			redeal_window_sec = -1;
+			for(int seat = 0; seat < 6; seat++) redeal_returned[seat] = false;
+		}
+
+		if(pending_hand && raw_board_count == 0 && present_count >= 2) {
+			double dealer_score = -2;
+			Point dealer_center(-1, -1);
+			int dealer_mirror = DetectDealerChip(table, dealer_template, dealer_score, dealer_center);
+			if(dealer_mirror >= 0) {
+				int dealer = MirrorToSidecarSeat(dealer_mirror);
+				int small_blind = dealer % 6 + 1;
+				int big_blind = small_blind % 6 + 1;
+				AddSidecar2Event(output, frame.sec,
+				    Format("new hand, dealer=seat%d, smallblind=seat%d, bigblind=seat%d",
+				           dealer, small_blind, big_blind));
+				stats.hands++;
+				output << Format("# HAND %d checked=n\n", stats.hands);
+				hand_open = true;
+				pending_hand = false;
+				hand_start_frame = loop_stats.frames;
+				hand_open_sec = frame.sec;
+				hand_has_progress = false;
+				hand_has_showdown = false;
+				state.dealer_seat_video = dealer_mirror;
+				state.dealer_chip_score = dealer_score;
+			}
+		}
+
+		if(hand_open) {
+			for(int seat = 0; seat < 6; seat++) {
+				bool fresh_name = state.seat_name_frame[seat] >= hand_start_frame;
+				bool fresh_stack = state.seat_stack_frame[seat] >= hand_start_frame;
+				if(!fresh_name || !fresh_stack || state.seat_stack[seat] < 0
+				   || frame.sec - hand_open_sec > 10) continue;
+				String name = CleanSidecar2Name(state.seat_name[seat]);
+				if(name.IsEmpty()) continue;
+				bool profile_read_this_frame = state.seat_name_frame[seat] == loop_stats.frames
+				                            || state.seat_stack_frame[seat] == loop_stats.frames;
+				if(!profile_read_this_frame) continue;
+				if(name == profile_name_candidate[seat]
+				   && fabs(state.seat_stack[seat] - profile_stack_candidate[seat]) < 0.001)
+					profile_streak[seat]++;
+				else {
+					profile_name_candidate[seat] = name;
+					profile_stack_candidate[seat] = state.seat_stack[seat];
+					profile_streak[seat] = 1;
+				}
+				if(profile_streak[seat] < 2) continue;
+				if(name == emitted_name[seat] && fabs(state.seat_stack[seat] - emitted_stack[seat]) < 0.001)
+					continue;
+				int sidecar_seat = MirrorToSidecarSeat(seat);
+				AddSidecar2Event(output, frame.sec,
+				    Format("seat%d name=\"%s\" balance=%s", sidecar_seat, ~name,
+				           ~FormatSidecar2Bb(state.seat_stack[seat])));
+				emitted_name[seat] = name;
+				emitted_stack[seat] = state.seat_stack[seat];
+				stats.seat_updates++;
+			}
+
+			int action_seat = state.last_action_seat;
+			bool action_this_frame = state.last_action_frame == loop_stats.frames
+			                      && action_seat >= 0 && action_seat < 6;
+			if(action_this_frame && !hand_has_showdown) {
+				String action = state.seat_action[action_seat];
+				bool duplicate = action == last_action_text[action_seat]
+				              && frame.sec - last_action_sec[action_seat] <= 2;
+				if(!duplicate) {
+					last_action_text[action_seat] = action;
+					last_action_sec[action_seat] = frame.sec;
+					if(action == "Fold") {
+						if(!fold_emitted[action_seat]) {
+							AddSidecar2Event(output, frame.sec,
+							    Format("seat%d fold", MirrorToSidecarSeat(action_seat)));
+							fold_emitted[action_seat] = true;
+							stats.actions++;
+							hand_has_progress = true;
+						}
+					}
+					else if(action == "All In" || action.IsEmpty()) {
+						stats.omitted_signals++;
+						stats.omitted_action++;
+					}
+					else {
+						double amount = -1;
+						if(state.seat_bet[action_seat] >= 0
+						   && fabs(state.seat_bet[action_seat] - bet_before[action_seat]) > 0.001)
+							amount = state.seat_bet[action_seat];
+						else if(state.seat_round_total[action_seat] >= 0
+						        && fabs(state.seat_round_total[action_seat] - round_before[action_seat]) > 0.001)
+							amount = state.seat_round_total[action_seat];
+						bool amount_required = action == "Call" || action == "Bet" || action == "Raise";
+						if(amount_required && amount < 0) {
+							stats.omitted_signals++;
+							stats.omitted_action++;
+						}
+						else {
+							String event = Format("seat%d %s", MirrorToSidecarSeat(action_seat),
+							                      ~ToLower(action));
+							if(amount >= 0) event << " " << FormatSidecar2Bb(amount);
+							if(state.last_pot >= 0) event << " (pot " << FormatSidecar2Bb(state.last_pot) << ")";
+							AddSidecar2Event(output, frame.sec, event);
+							stats.actions++;
+							hand_has_progress = true;
+						}
+					}
+				}
+			}
+
+			for(int seat = 0; seat < 6; seat++) {
+				if(!hand_has_showdown && !folded_before[seat] && state.seat_folded[seat]
+				   && !fold_emitted[seat]) {
+					AddSidecar2Event(output, frame.sec,
+					    Format("seat%d fold", MirrorToSidecarSeat(seat)));
+					fold_emitted[seat] = true;
+					stats.actions++;
+					hand_has_progress = true;
+				}
+			}
+
+			if(state.board_count > board_before) {
+				String cards = Sidecar2BoardString(state, state.board_count);
+				if(cards.IsEmpty()) {
+					stats.omitted_signals++;
+					stats.omitted_board++;
+				}
+				else {
+					String event;
+					if(state.board_count == 3) event = "flop " + cards;
+					else if(state.board_count == 4) event = "turn " + cards.Right(2);
+					else if(state.board_count == 5) event = "river " + cards.Right(2);
+					if(!event.IsEmpty()) {
+						if(state.last_pot >= 0) event << " (pot " << FormatSidecar2Bb(state.last_pot) << ")";
+						AddSidecar2Event(output, frame.sec, event);
+						stats.board_events++;
+						hand_has_progress = true;
+						for(int seat = 0; seat < 6; seat++) last_action_text[seat].Clear();
+					}
+				}
+			}
+			else if(raw_board_count >= 3 && raw_board_count != last_raw_board_count
+			        && raw_board_count > state.board_count) {
+				stats.omitted_signals++;
+				stats.omitted_board++;
+			}
+
+			if(state.board_count >= 3) {
+				for(int region_index = 0; region_index < 3; region_index++) {
+					const HoleRegion& region = kHoleRegions[region_index];
+					bool unresolved = false;
+					String cards = RecognizeSidecar2HoleCards(table, region, hole_templates, unresolved);
+					if(unresolved) hole_unresolved[region_index] = true;
+					if(cards.IsEmpty()) {
+						hole_candidate[region_index].Clear();
+						hole_streak[region_index] = 0;
+						continue;
+					}
+					if(cards == hole_candidate[region_index])
+						hole_streak[region_index]++;
+					else {
+						hole_candidate[region_index] = cards;
+						hole_streak[region_index] = 1;
+					}
+					if(hole_streak[region_index] >= 2 && !hole_emitted[region_index]) {
+						AddSidecar2Event(output, frame.sec,
+						    Format("seat%d shows %s", MirrorToSidecarSeat(region.mirror), ~cards));
+						hole_emitted[region_index] = true;
+						stats.showdowns++;
+						hand_has_showdown = true;
+					}
+				}
+			}
+		}
+
+		last_raw_board_count = raw_board_count;
+		if(stats.frames % 30 == 0) SaveFile(output_path, output);
+	}
+
+	if(hand_open)
+		CountSidecar2PartialSeats(state, hand_start_frame, emitted_name, stats);
+	if(pending_hand) {
+		stats.omitted_signals++;
+		stats.omitted_dealer++;
+	}
+	for(int region = 0; region < 3; region++) {
+		if(hole_unresolved[region] && !hole_emitted[region]) {
+			stats.omitted_signals++;
+			stats.omitted_showdown++;
+		}
+	}
+
+	String output_dir = GetFileFolder(output_path);
+	if(!output_dir.IsEmpty()) RealizeDirectory(output_dir);
+	if(!SaveFile(output_path, output)) {
+		Cerr() << "ERROR: failed to write " << output_path << "\n";
+		return 1;
+	}
+
+	SidecarGT parsed = ParseSidecarGT(output_path);
+	double elapsed_seconds = (NowMs() - started_ms) / 1000.0;
+	Cout() << "\n=== Sidecar2 counters ===\n";
+	Cout() << "frames=" << stats.frames << " hands=" << stats.hands
+	       << " board_events=" << stats.board_events << " actions=" << stats.actions
+	       << " showdowns=" << stats.showdowns << " omitted_signals=" << stats.omitted_signals
+	       << Format(" elapsed_seconds=%.1f\n", elapsed_seconds);
+	Cout() << "seat_updates=" << stats.seat_updates
+	       << " omitted_dealer=" << stats.omitted_dealer
+	       << " omitted_board=" << stats.omitted_board
+	       << " omitted_action=" << stats.omitted_action
+	       << " omitted_showdown=" << stats.omitted_showdown
+	       << " omitted_seat=" << stats.omitted_seat << "\n";
+	Cout() << "classifier_unresolved_regions=" << loop_stats.unresolved
+	       << " ocr_calls=" << loop_stats.ocr_calls
+	       << " parsed_hands=" << parsed.new_hand_seconds.GetCount()
+	       << " output=" << output_path << "\n";
+	stages.Print();
+	return parsed.new_hand_seconds.GetCount() == stats.hands ? 0 : 2;
+}
+
 // ===========================================================================
 // Task 0291a item 5: BALANCE/BET/NAME/POT OCR accuracy with the cache DISABLED.
 // This directly OCRs the fixed per-seat name/balance plates and the pot label
@@ -3862,8 +4453,11 @@ GUI_APP_MAIN
 	const Vector<String>& args = CommandLine();
 	String mode, host = "127.0.0.1", frames_dir, dataset = kDatasetDefault;
 	int port = 8082, seconds = 30, max_frames = 0, wait_timeout_ms = 4000;
+	int start_second = 0;
 	int ocr_cap = -1; // -1 = unlimited, 0 = OCR off, N = up to N OCR calls/frame
 	bool verbose = false, use_engine = true;
+	bool sidecar2_short = false, sidecar2_full = false;
+	String source_sidecar = kSidecarPath, sidecar2_output;
 	// Task 0286 Part B: approximate-hash OCR result cache, ON by default (this
 	// IS the optimization being delivered) -- see OcrCacheState's comment for
 	// the design AND the "SAFETY OVERRIDE" note explaining why 40 (not the
@@ -3876,6 +4470,7 @@ GUI_APP_MAIN
 	for(int i = 0; i < args.GetCount(); i++) {
 		if(args[i] == "--classify-selftest") mode = "selftest";
 		else if(args[i] == "--offline-frames" && i + 1 < args.GetCount()) { mode = "offline"; frames_dir = args[++i]; }
+		else if(args[i] == "--sidecar2") mode = "sidecar2";
 		else if(args[i] == "--live") mode = "live";
 		else if(args[i] == "--gui") mode = "gui";
 		else if(args[i] == "--crop-safety-check") mode = "cropsafety";
@@ -3886,6 +4481,11 @@ GUI_APP_MAIN
 		else if(args[i] == "--ocr-accuracy-test") mode = "ocracc";    // Task 0291a item 5
 		else if(args[i] == "--line-corner-test") mode = "linecorner"; // Task 0291b
 		else if(args[i] == "--frames-dir" && i + 1 < args.GetCount()) frames_dir = args[++i];
+		else if(args[i] == "--source-sidecar" && i + 1 < args.GetCount()) source_sidecar = args[++i];
+		else if(args[i] == "--sidecar2-out" && i + 1 < args.GetCount()) sidecar2_output = args[++i];
+		else if(args[i] == "--start-second" && i + 1 < args.GetCount()) start_second = max(0, StrInt(args[++i]));
+		else if(args[i] == "--short-sample") sidecar2_short = true;
+		else if(args[i] == "--full-run") sidecar2_full = true;
 		else if(args[i] == "--templates" && i + 1 < args.GetCount()) g_templates_dir = args[++i];
 		else if(args[i] == "--crop-list" && i + 1 < args.GetCount()) crop_safety_lists.Add(args[++i]);
 		else if(args[i] == "--host" && i + 1 < args.GetCount()) host = args[++i];
@@ -3904,10 +4504,11 @@ GUI_APP_MAIN
 	}
 
 	if(mode.IsEmpty() || mode == "help") {
-		Cout() << "VideoLiveRecognitionLoop (Task 0280/0286)\n"
+		Cout() << "VideoLiveRecognitionLoop (Task 0280/0293a)\n"
 		       << "Modes:\n"
 		       << "  --classify-selftest        Leave-one-out classifier accuracy over the dataset\n"
 		       << "  --offline-frames <dir>     Full pipeline over dataset source frames (timing)\n"
+		       << "  --sidecar2                 Generate recognized-data sidecar from offline frames\n"
 		       << "  --live                     Continuous loop against a running VideoServer\n"
 		       << "  --gui                      Live mirror window of the driven Game (Task 0281);\n"
 		       << "                               background recognition loop + main-thread TopWindow,\n"
@@ -3928,10 +4529,15 @@ GUI_APP_MAIN
 		       << "Options:\n"
 		       << "  --host <h> --port <p>       VideoServer address (default 127.0.0.1:8082)\n"
 		       << "  --seconds <n>               Live run duration (default 30)\n"
-		       << "  --max-frames <n>            Cap frames in offline mode\n"
+		       << "  --max-frames <n>            Cap frames in offline/sidecar2 mode\n"
 		       << "  --wait-timeout-ms <n>       Live source wait timeout (default 4000)\n"
 		       << "  --dataset <path>            Labeled dataset (default " << kDatasetDefault << ")\n"
-		       << "  --frames-dir <dir>          Real frames for card-recog-test/dataset-dump\n"
+		       << "  --frames-dir <dir>          Real frames for tests or sidecar2 generation\n"
+		       << "  --source-sidecar <path>     Legend source; default " << kSidecarPath << "\n"
+		       << "  --sidecar2-out <path>       Output path; default next to source as *_sidecar2.txt\n"
+		       << "  --start-second <n>          Ignore frames before this filename second\n"
+		       << "  --short-sample              Sidecar2 safety cap of 120 frames (default)\n"
+		       << "  --full-run                  Sidecar2 processes every frame; requires --frames-dir\n"
 		       << "  --templates <dir>           Card template library (default " << g_templates_dir << ")\n"
 		       << "  --ocr-cap <n>               Max OCR calls per frame (-1 unlimited, 0 off)\n"
 		       << "  --no-ocr                    Disable OCR stage entirely\n"
@@ -3943,10 +4549,28 @@ GUI_APP_MAIN
 		       << "  --verbose                   Per-region log lines\n";
 		return;
 	}
+	if(sidecar2_short && sidecar2_full) {
+		Cerr() << "ERROR: --short-sample and --full-run are mutually exclusive\n";
+		SetExitCode(1);
+		return;
+	}
+	if(mode == "sidecar2") {
+		if(sidecar2_full && frames_dir.IsEmpty()) {
+			Cerr() << "ERROR: --full-run requires --frames-dir pointing at the full fps=1 extraction\n";
+			SetExitCode(1);
+			return;
+		}
+		if(sidecar2_full) max_frames = 0;
+		if(!sidecar2_full && max_frames <= 0) max_frames = 120;
+	}
 
 	int rc = 0;
 	if(mode == "selftest") rc = RunClassifySelfTest(dataset);
 	else if(mode == "offline") rc = RunOfflineFrames(frames_dir, dataset, max_frames, verbose, use_engine, ocr_cap, ocr_cache_enabled, ocr_cache_threshold);
+	else if(mode == "sidecar2") rc = RunSidecar2(frames_dir, dataset, source_sidecar,
+	                                               sidecar2_output, start_second, max_frames,
+	                                               verbose, ocr_cap, ocr_cache_enabled,
+	                                               ocr_cache_threshold);
 	else if(mode == "live") rc = RunLive(host, port, seconds, dataset, verbose, use_engine, wait_timeout_ms, ocr_cap, ocr_cache_enabled, ocr_cache_threshold);
 	else if(mode == "gui") rc = RunGui(host, port, dataset, verbose, use_engine, wait_timeout_ms, ocr_cap, ocr_cache_enabled, ocr_cache_threshold);
 	else if(mode == "cropsafety") {

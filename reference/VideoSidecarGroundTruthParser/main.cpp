@@ -360,7 +360,8 @@ static TexasHoldemLogicState Emit(const RunningState& rs, int frame_id, int64 ti
 }
 
 // ---------------------------------------------------------------------------
-// Per-event-line grammar dispatch. `rest` is everything after "R HH:MM:SS: ".
+// Per-event-line grammar dispatch. `rest` is everything after
+// "<window> HH:MM:SS: ".
 // Any syntax not recognized here throws (fails loudly) rather than being
 // silently skipped -- see the task file's explicit requirement.
 // ---------------------------------------------------------------------------
@@ -589,20 +590,42 @@ static void ApplyEvent(RunningState& rs, const String& rest, int line_no, const 
 	throw Exc(Format("line %d: unrecognized event syntax (in: %s)", line_no, raw_line));
 }
 
-static void SplitEventLine(const String& raw_line, int line_no, String& ts_str, String& rest)
+static int SidecarWindowIndex(char window, int line_no, const String& raw_line)
 {
-	if(!raw_line.StartsWith("R "))
-		throw Exc(Format("line %d: expected event line to start with 'R ' (in: %s)", line_no, raw_line));
-	String after_r = raw_line.Mid(2);
-	if(after_r.GetCount() < 10 || after_r[8] != ':' || after_r[9] != ' ')
-		throw Exc(Format("line %d: expected 'R HH:MM:SS: <event>' (in: %s)", line_no, raw_line));
-	ts_str = after_r.Left(8);
-	rest = after_r.Mid(10);
+	if(window == 'R') return 0;
+	if(window == 'L') return 1;
+	throw Exc(Format("line %d: unsupported window '%c'; expected R or L (in: %s)",
+	                 line_no, window, raw_line));
+}
+
+static void SplitEventLine(const String& raw_line, int line_no, char& window,
+	                       String& ts_str, String& rest)
+{
+	if(raw_line.GetCount() < 2 || raw_line[1] != ' ')
+		throw Exc(Format("line %d: expected event line to start with 'R ' or 'L ' (in: %s)",
+		                 line_no, raw_line));
+	window = raw_line[0];
+	SidecarWindowIndex(window, line_no, raw_line);
+	String after_window = raw_line.Mid(2);
+	if(after_window.GetCount() < 10 || after_window[8] != ':' || after_window[9] != ' ')
+		throw Exc(Format("line %d: expected '<R|L> HH:MM:SS: <event>' (in: %s)",
+		                 line_no, raw_line));
+	ts_str = after_window.Left(8);
+	rest = after_window.Mid(10);
 	if(rest.IsEmpty())
 		throw Exc(Format("line %d: empty event after timestamp (in: %s)", line_no, raw_line));
 }
 
-static Vector<TexasHoldemLogicState> ParseSidecar(const String& path, String& out_legend_summary)
+static void InitializeRunningState(RunningState& rs)
+{
+	rs.players.SetCount(6);
+	for(int seat = 0; seat < 6; seat++) rs.players[seat].seat = seat;
+	rs.board_cards.SetCount(5, -1);
+	rs.board_cards_known = false;
+}
+
+static Vector<TexasHoldemLogicState> ParseSidecar(const String& path, String& out_legend_summary,
+	                                              String& out_window_summary)
 {
 	String content = LoadFile(path);
 	if(content.IsEmpty())
@@ -621,18 +644,26 @@ static Vector<TexasHoldemLogicState> ParseSidecar(const String& path, String& ou
 		out_legend_summary << legend.position_to_seat.GetKey(k) << "=seat" << (legend.position_to_seat[k] + 1);
 	}
 
-	RunningState rs;
-	rs.players.SetCount(6);
-	for(int s = 0; s < 6; s++) rs.players[s].seat = s;
-	rs.board_cards.SetCount(5, -1);
-	rs.board_cards_known = false; // not yet asserted by any event line
+	bool window_present[2] = { false, false };
+	for(int line_index = i; line_index < raw_lines.GetCount(); line_index++) {
+		String line = TrimBoth(raw_lines[line_index]);
+		if(IsIgnorableSidecarLine(line) || line.GetCount() < 2 || line[1] != ' ')
+			continue;
+		int window_index = SidecarWindowIndex(line[0], line_index + 1, line);
+		window_present[window_index] = true;
+	}
+	bool multi_window = window_present[0] && window_present[1];
+	RunningState window_state[2];
+	InitializeRunningState(window_state[0]);
+	InitializeRunningState(window_state[1]);
 
 	String session_id = GetFileTitle(path);
 
 	Vector<TexasHoldemLogicState> out;
-	bool have_base_ts = false;
-	int base_ts = 0;
-	int prev_frame_id = -1;
+	bool have_base_ts[2] = { false, false };
+	int base_ts[2] = { 0, 0 };
+	int prev_frame_id[2] = { -1, -1 };
+	int window_records[2] = { 0, 0 };
 
 	for(; i < raw_lines.GetCount(); i++) {
 		String raw_line = TrimBoth(raw_lines[i]);
@@ -640,20 +671,30 @@ static Vector<TexasHoldemLogicState> ParseSidecar(const String& path, String& ou
 			continue;
 		int line_no = i + 1;
 
+		char window = 0;
 		String ts_str, rest;
-		SplitEventLine(raw_line, line_no, ts_str, rest);
+		SplitEventLine(raw_line, line_no, window, ts_str, rest);
+		int window_index = SidecarWindowIndex(window, line_no, raw_line);
+		RunningState& rs = window_state[window_index];
 		int ts_seconds = ParseTimestampSeconds(ts_str, line_no, raw_line);
-		if(!have_base_ts) { base_ts = ts_seconds; have_base_ts = true; }
+		if(!have_base_ts[window_index]) {
+			base_ts[window_index] = ts_seconds;
+			have_base_ts[window_index] = true;
+		}
 
-		int elapsed = ts_seconds - base_ts;                 // header comment, decision (2)
-		int frame_id = max(elapsed, prev_frame_id + 1);      // monotonic clamp -- see decision (2)
-		prev_frame_id = frame_id;
+		int elapsed = ts_seconds - base_ts[window_index];
+		int frame_id = max(elapsed, prev_frame_id[window_index] + 1);
+		prev_frame_id[window_index] = frame_id;
 
 		ApplyEvent(rs, rest, line_no, raw_line);
 
-		TexasHoldemLogicState st = Emit(rs, frame_id, (int64)ts_seconds * 1000, session_id);
+		String event_session_id = session_id;
+		if(multi_window) event_session_id << ":" << window;
+		TexasHoldemLogicState st = Emit(rs, frame_id, (int64)ts_seconds * 1000, event_session_id);
 		out.Add(pick(st));
+		window_records[window_index]++;
 	}
+	out_window_summary = Format("R=%d, L=%d", window_records[0], window_records[1]);
 	return out;
 }
 
@@ -689,9 +730,9 @@ GUI_APP_MAIN
 	}
 
 	Vector<TexasHoldemLogicState> records;
-	String legend_summary;
+	String legend_summary, window_summary;
 	try {
-		records = ParseSidecar(sidecar_path, legend_summary);
+		records = ParseSidecar(sidecar_path, legend_summary, window_summary);
 	}
 	catch(const Exc& e) {
 		Cerr() << "PARSE ERROR: " << e << "\n";
@@ -700,6 +741,7 @@ GUI_APP_MAIN
 	}
 
 	Cout() << "Seat-position legend (local to this recording, not consumed by the emitted schema): " << legend_summary << "\n";
+	Cout() << "Window records: " << window_summary << "\n";
 	Cout() << "Parsed " << records.GetCount() << " event line(s) from " << sidecar_path << "\n";
 
 	String out_text;

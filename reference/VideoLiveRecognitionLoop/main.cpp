@@ -50,8 +50,9 @@ using namespace Upp;
 //                         real Task 0278/0279 live source).
 // ===========================================================================
 
-// Fixed PokerStars table window in the 1920x1080 recording. Confirmed static
-// across all 56 tracking frames of the M12 recording (tracking.json).
+// Fixed PokerStars table windows in the 1920x1080 recording. Confirmed static
+// across all 56 tracking frames of the M12 recording (tracking.json), and by
+// VideoFrameWindowDetector's two table_candidate results for frame 0.
 // Task 0283 real finding: the table M12's ground truth and the 267-candidate
 // labeled dataset (real_recording_combined_classified_dataset.json) were
 // actually built from is table_1 ("Aludra", rect (968,1,944,682) in
@@ -66,7 +67,9 @@ using namespace Upp;
 // dataset/ground truth describe. Using a fixed crop matches M12's
 // single-static-table scope; a moving/multi-table feed would need
 // VideoWindowTracker per frame (explicitly out of scope for this task).
-static const Rect kTableRect = RectC(968, 1, 944, 682);
+static const Rect kLeftTableRect  = RectC(8,   1, 944, 682);
+static const Rect kRightTableRect = RectC(968, 1, 944, 682);
+static const Rect kTableRect = kRightTableRect;
 
 static const char* kDatasetDefault = "tmp/real_recording_combined_classified_dataset.json";
 
@@ -2870,7 +2873,7 @@ static bool IsActionVerb(const String& w)
 	    || w == "bet"  || w == "shows"; // "shows" handled separately, excluded below
 }
 
-static SidecarGT ParseSidecarGT(const String& path)
+static SidecarGT ParseSidecarGT(const String& path, char window = 'R')
 {
 	SidecarGT gt;
 	String txt = LoadFile(path);
@@ -2882,7 +2885,7 @@ static SidecarGT ParseSidecarGT(const String& path)
 	Vector<PendingSeat> pend;       // seat name/balance lines, hand resolved post-parse
 	for(String raw : lines) {
 		String line = TrimBoth(raw);
-		if(!line.StartsWith("R ")) continue;
+		if(line.GetCount() < 2 || line[0] != window || line[1] != ' ') continue;
 		int colon = line.Find(':', 2);
 		// the HH:MM:SS itself has colons; find the ": " AFTER the timestamp
 		int sep = line.Find(": ", 2);
@@ -3535,9 +3538,9 @@ static String FormatSidecar2Bb(double value)
 	return Format("%.4g", value) + "BB";
 }
 
-static void AddSidecar2Event(String& output, int sec, const String& event)
+static void AddSidecar2Event(String& output, char window, int sec, const String& event)
 {
-	output << "R " << FormatSidecar2Time(sec) << ": " << event << "\n";
+	output << window << " " << FormatSidecar2Time(sec) << ": " << event << "\n";
 }
 
 static bool LoadSidecar2Legend(const String& path, String& output)
@@ -3555,7 +3558,9 @@ static bool LoadSidecar2Legend(const String& path, String& output)
 	output << "\n"
 	       << "# sidecar2: generated only from recognized video signals; unresolved signals are omitted.\n"
 	       << "# showdown recognition is limited to the three measured kHoleRegions seats.\n"
-	       << "# Change checked=n to checked=y only after manual review of that hand.\n\n";
+	       << "# Change checked=n to checked=y only after manual review of that hand.\n"
+	       << "# R = right poker window; L = left poker window.\n"
+	       << "# The seat-position legend above applies independently inside each window.\n\n";
 	return true;
 }
 
@@ -3646,9 +3651,157 @@ static void CountSidecar2PartialSeats(const ResolveState& state, int hand_start_
 	}
 }
 
+struct Sidecar2WindowState {
+	char code = 0;
+	String name;
+	Rect rect;
+	String output;
+	StageSet stages;
+	LoopStats loop_stats;
+	ResolveState state;
+	OcrCacheState cache;
+	VsmFrameImage previous;
+	bool has_previous = false;
+	Sidecar2Stats stats;
+
+	bool hand_open = false;
+	bool pending_hand = false;
+	bool hand_has_progress = false;
+	bool hand_has_showdown = false;
+	int hand_start_frame = -1;
+	int hand_open_sec = -1;
+	int last_raw_board_count = -1;
+	int redeal_window_sec = -1;
+	bool redeal_returned[6];
+	String emitted_name[6];
+	double emitted_stack[6];
+	String profile_name_candidate[6];
+	double profile_stack_candidate[6];
+	int profile_streak[6];
+	bool fold_emitted[6];
+	String last_action_text[6];
+	int last_action_sec[6];
+	String hole_candidate[3];
+	int hole_streak[3];
+	bool hole_emitted[3];
+	bool hole_unresolved[3];
+
+	Sidecar2WindowState()
+	{
+		for(int seat = 0; seat < 6; seat++) {
+			redeal_returned[seat] = false;
+			emitted_stack[seat] = -1;
+			profile_stack_candidate[seat] = -1;
+			profile_streak[seat] = 0;
+			fold_emitted[seat] = false;
+			last_action_sec[seat] = -1000;
+		}
+		for(int region = 0; region < 3; region++) {
+			hole_streak[region] = 0;
+			hole_emitted[region] = false;
+			hole_unresolved[region] = false;
+		}
+	}
+};
+
+static void InitializeSidecar2Window(Sidecar2WindowState& window, char code,
+	                                 const char *name, const Rect& rect,
+	                                 bool ocr_cache_enabled, int ocr_cache_threshold)
+{
+	window.code = code;
+	window.name = name;
+	window.rect = rect;
+	window.stages.acquire.name = "acquire";
+	window.stages.crop.name = "crop+conv";
+	window.stages.change.name = "change_detect";
+	window.stages.classify.name = "classify";
+	window.stages.ocr.name = "ocr";
+	window.stages.resolve.name = "resolve";
+	window.stages.engine.name = "engine";
+	window.cache.enabled = ocr_cache_enabled;
+	window.cache.threshold = ocr_cache_threshold;
+}
+
+static double Sidecar2PixelFraction(const VsmImageBuffer& buffer, const Rect& in_rect,
+	                                bool white)
+{
+	Rect rect = in_rect & RectC(0, 0, buffer.width, buffer.height);
+	if(rect.IsEmpty() || buffer.channels < 3) return 0;
+	int64 matching = 0;
+	int64 total = (int64)rect.Width() * rect.Height();
+	for(int y = rect.top; y < rect.bottom; y++) {
+		const byte *row = buffer.pixels.Begin() + (int64)y * buffer.width * buffer.channels;
+		for(int x = rect.left; x < rect.right; x++) {
+			const byte *pixel = row + (int64)x * buffer.channels;
+			if(white ? pixel[0] >= 235 && pixel[1] >= 235 && pixel[2] >= 235
+			         : pixel[0] <= 28 && pixel[1] <= 28 && pixel[2] <= 28)
+				matching++;
+		}
+	}
+	return total ? (double)matching / total : 0;
+}
+
+static bool ValidateSidecar2WindowLayout(const VsmImageBuffer& buffer)
+{
+	Rect bounds = RectC(0, 0, buffer.width, buffer.height);
+	if(!bounds.Contains(kLeftTableRect) || !bounds.Contains(kRightTableRect)) {
+		Cerr() << "ERROR: decoded frame is too small for the two tracked poker windows: "
+		       << buffer.width << "x" << buffer.height << "\n";
+		return false;
+	}
+	double left_title = Sidecar2PixelFraction(buffer, RectC(8, 1, 944, 30), true);
+	double right_title = Sidecar2PixelFraction(buffer, RectC(968, 1, 944, 30), true);
+	double outer_left = Sidecar2PixelFraction(buffer, RectC(0, 1, 8, 682), false);
+	double middle = Sidecar2PixelFraction(buffer, RectC(952, 1, 16, 682), false);
+	double outer_right = Sidecar2PixelFraction(buffer, RectC(1912, 1, 8, 682), false);
+	Cout() << Format("window_layout left_title_white=%.3f right_title_white=%.3f ",
+	                 left_title, right_title)
+	       << Format("left_gutter_black=%.3f middle_gutter_black=%.3f right_gutter_black=%.3f\n",
+	                 outer_left, middle, outer_right);
+	if(left_title < 0.80 || right_title < 0.80 || outer_left < 0.75
+	   || middle < 0.75 || outer_right < 0.75) {
+		Cerr() << "ERROR: decoded frame does not match the tracked two-window title-bar/gutter layout\n";
+		return false;
+	}
+	return true;
+}
+
+static String ComposeSidecar2Output(const String& header, const Sidecar2WindowState *windows,
+	                                int window_count)
+{
+	String output = header;
+	for(int i = 0; i < window_count; i++) {
+		const Sidecar2WindowState& window = windows[i];
+		output << "# === " << window.code << " " << window.name << " window ===\n";
+		output << window.output;
+		if(!output.EndsWith("\n")) output << "\n";
+		output << "\n";
+	}
+	return output;
+}
+
+static Sidecar2Stats AddSidecar2Stats(const Sidecar2Stats& left, const Sidecar2Stats& right)
+{
+	Sidecar2Stats total;
+	total.frames = left.frames + right.frames;
+	total.hands = left.hands + right.hands;
+	total.board_events = left.board_events + right.board_events;
+	total.actions = left.actions + right.actions;
+	total.showdowns = left.showdowns + right.showdowns;
+	total.seat_updates = left.seat_updates + right.seat_updates;
+	total.omitted_signals = left.omitted_signals + right.omitted_signals;
+	total.omitted_dealer = left.omitted_dealer + right.omitted_dealer;
+	total.omitted_board = left.omitted_board + right.omitted_board;
+	total.omitted_action = left.omitted_action + right.omitted_action;
+	total.omitted_showdown = left.omitted_showdown + right.omitted_showdown;
+	total.omitted_seat = left.omitted_seat + right.omitted_seat;
+	return total;
+}
+
 static int RunSidecar2(const String& video_path, const String& dataset_path,
 	                   const String& source_sidecar, const String& requested_output,
 	                   int start_second, int end_second, int max_frames,
+	                   const String& window_mode,
 	                   bool verbose, int ocr_cap,
 	                   bool ocr_cache_enabled, int ocr_cache_threshold)
 {
@@ -3679,9 +3832,10 @@ static int RunSidecar2(const String& video_path, const String& dataset_path,
 	Cout() << "video_info=" << video.GetSourceInfo() << "\n";
 	Cout() << "source_sidecar=" << source_sidecar << "\n";
 	Cout() << "output=" << output_path << "\n";
+	Cout() << "windows=" << window_mode << " decoder_instances=1\n";
 	Cout() << "range_start_second=" << start_second
 	       << " range_end_second=" << end_second
-	       << " max_processed_frames=" << max_frames << "\n";
+	       << " max_sampled_pts_frames=" << max_frames << "\n";
 
 	VsmLiveRegionClassifier classifier;
 	if(classifier.Load(dataset_path) == 0) {
@@ -3705,46 +3859,26 @@ static int RunSidecar2(const String& video_path, const String& dataset_path,
 		return 1;
 	}
 
-	StageSet stages;
-	stages.acquire.name = "acquire"; stages.crop.name = "crop+conv";
-	stages.change.name = "change_detect"; stages.classify.name = "classify";
-	stages.ocr.name = "ocr"; stages.resolve.name = "resolve"; stages.engine.name = "engine";
-	LoopStats loop_stats;
-	ResolveState state;
-	OcrCacheState cache;
-	cache.enabled = ocr_cache_enabled;
-	cache.threshold = ocr_cache_threshold;
+	Sidecar2WindowState windows[2];
+	int window_count = 0;
+	if(window_mode == "both" || window_mode == "right")
+		InitializeSidecar2Window(windows[window_count++], 'R', "right", kRightTableRect,
+		                         ocr_cache_enabled, ocr_cache_threshold);
+	if(window_mode == "both" || window_mode == "left")
+		InitializeSidecar2Window(windows[window_count++], 'L', "left", kLeftTableRect,
+		                         ocr_cache_enabled, ocr_cache_threshold);
+	ASSERT(window_count >= 1 && window_count <= 2);
 	VsmChangeDetectParams change_params;
-	VsmFrameImage previous;
-	bool has_previous = false;
-	Sidecar2Stats stats;
-
-	bool hand_open = false;
-	bool pending_hand = false;
-	bool hand_has_progress = false;
-	bool hand_has_showdown = false;
-	int hand_start_frame = -1;
-	int hand_open_sec = -1;
-	int last_raw_board_count = -1;
-	int redeal_window_sec = -1;
-	bool redeal_returned[6] = { false, false, false, false, false, false };
-	String emitted_name[6];
-	double emitted_stack[6] = { -1, -1, -1, -1, -1, -1 };
-	String profile_name_candidate[6];
-	double profile_stack_candidate[6] = { -1, -1, -1, -1, -1, -1 };
-	int profile_streak[6] = { 0, 0, 0, 0, 0, 0 };
-	bool fold_emitted[6] = { false, false, false, false, false, false };
-	String last_action_text[6];
-	int last_action_sec[6] = { -1000, -1000, -1000, -1000, -1000, -1000 };
-	String hole_candidate[3];
-	int hole_streak[3] = { 0, 0, 0 };
-	bool hole_emitted[3] = { false, false, false };
-	bool hole_unresolved[3] = { false, false, false };
 	double started_ms = NowMs();
 	int next_sample_second = start_second;
+	int sampled_frames = 0;
+	int decoded_frames = 0;
+	int first_frame_second = -1;
+	int last_frame_second = -1;
+	bool layout_validated = false;
 
 	for(;;) {
-		if(max_frames > 0 && stats.frames >= max_frames)
+		if(max_frames > 0 && sampled_frames >= max_frames)
 			break;
 		VsmImageBuffer buffer;
 		int64 pts_ms = -1;
@@ -3756,8 +3890,8 @@ static int RunSidecar2(const String& video_path, const String& dataset_path,
 			}
 			break;
 		}
-		stages.acquire.Add(NowMs() - acquire_started);
-		stats.decoded_frames++;
+		double acquire_ms = NowMs() - acquire_started;
+		decoded_frames++;
 		if(pts_ms < (int64)start_second * 1000)
 			continue;
 		if(end_second >= 0 && pts_ms >= (int64)end_second * 1000)
@@ -3768,7 +3902,48 @@ static int RunSidecar2(const String& video_path, const String& dataset_path,
 		if(frame_second < next_sample_second)
 			continue;
 		next_sample_second = frame_second + 1;
-		VsmFrameImage table = CropBufferToFrame(buffer, kTableRect);
+		if(!layout_validated) {
+			if(!ValidateSidecar2WindowLayout(buffer)) return 1;
+			layout_validated = true;
+		}
+		sampled_frames++;
+		if(first_frame_second < 0) first_frame_second = frame_second;
+		last_frame_second = frame_second;
+
+		for(int window_index = 0; window_index < window_count; window_index++) {
+			Sidecar2WindowState& window = windows[window_index];
+			StageSet& stages = window.stages;
+			LoopStats& loop_stats = window.loop_stats;
+			ResolveState& state = window.state;
+			OcrCacheState& cache = window.cache;
+			VsmFrameImage& previous = window.previous;
+			bool& has_previous = window.has_previous;
+			Sidecar2Stats& stats = window.stats;
+			bool& hand_open = window.hand_open;
+			bool& pending_hand = window.pending_hand;
+			bool& hand_has_progress = window.hand_has_progress;
+			bool& hand_has_showdown = window.hand_has_showdown;
+			int& hand_start_frame = window.hand_start_frame;
+			int& hand_open_sec = window.hand_open_sec;
+			int& last_raw_board_count = window.last_raw_board_count;
+			int& redeal_window_sec = window.redeal_window_sec;
+			bool *redeal_returned = window.redeal_returned;
+			String *emitted_name = window.emitted_name;
+			double *emitted_stack = window.emitted_stack;
+			String *profile_name_candidate = window.profile_name_candidate;
+			double *profile_stack_candidate = window.profile_stack_candidate;
+			int *profile_streak = window.profile_streak;
+			bool *fold_emitted = window.fold_emitted;
+			String *last_action_text = window.last_action_text;
+			int *last_action_sec = window.last_action_sec;
+			String *hole_candidate = window.hole_candidate;
+			int *hole_streak = window.hole_streak;
+			bool *hole_emitted = window.hole_emitted;
+			bool *hole_unresolved = window.hole_unresolved;
+			String& window_output = window.output;
+			stages.acquire.Add(acquire_ms);
+
+		VsmFrameImage table = CropBufferToFrame(buffer, window.rect);
 		if(table.IsEmpty()) {
 			stats.omitted_signals++;
 			continue;
@@ -3851,11 +4026,14 @@ static int RunSidecar2(const String& video_path, const String& dataset_path,
 				int dealer = MirrorToSidecarSeat(dealer_mirror);
 				int small_blind = dealer % 6 + 1;
 				int big_blind = small_blind % 6 + 1;
-				AddSidecar2Event(output, frame_second,
+				AddSidecar2Event(window_output, window.code, frame_second,
 				    Format("new hand, dealer=seat%d, smallblind=seat%d, bigblind=seat%d",
 				           dealer, small_blind, big_blind));
 				stats.hands++;
-				output << Format("# HAND %d checked=n\n", stats.hands);
+				if(window_count == 1 && window.code == 'R')
+					window_output << Format("# HAND %d checked=n\n", stats.hands);
+				else
+					window_output << Format("# %c HAND %d checked=n\n", window.code, stats.hands);
 				hand_open = true;
 				pending_hand = false;
 				hand_start_frame = loop_stats.frames;
@@ -3890,7 +4068,7 @@ static int RunSidecar2(const String& video_path, const String& dataset_path,
 				if(name == emitted_name[seat] && fabs(state.seat_stack[seat] - emitted_stack[seat]) < 0.001)
 					continue;
 				int sidecar_seat = MirrorToSidecarSeat(seat);
-				AddSidecar2Event(output, frame_second,
+				AddSidecar2Event(window_output, window.code, frame_second,
 				    Format("seat%d name=\"%s\" balance=%s", sidecar_seat, ~name,
 				           ~FormatSidecar2Bb(state.seat_stack[seat])));
 				emitted_name[seat] = name;
@@ -3910,7 +4088,7 @@ static int RunSidecar2(const String& video_path, const String& dataset_path,
 					last_action_sec[action_seat] = frame_second;
 					if(action == "Fold") {
 						if(!fold_emitted[action_seat]) {
-							AddSidecar2Event(output, frame_second,
+							AddSidecar2Event(window_output, window.code, frame_second,
 							    Format("seat%d fold", MirrorToSidecarSeat(action_seat)));
 							fold_emitted[action_seat] = true;
 							stats.actions++;
@@ -3939,7 +4117,7 @@ static int RunSidecar2(const String& video_path, const String& dataset_path,
 							                      ~ToLower(action));
 							if(amount >= 0) event << " " << FormatSidecar2Bb(amount);
 							if(state.last_pot >= 0) event << " (pot " << FormatSidecar2Bb(state.last_pot) << ")";
-							AddSidecar2Event(output, frame_second, event);
+							AddSidecar2Event(window_output, window.code, frame_second, event);
 							stats.actions++;
 							hand_has_progress = true;
 						}
@@ -3950,7 +4128,7 @@ static int RunSidecar2(const String& video_path, const String& dataset_path,
 			for(int seat = 0; seat < 6; seat++) {
 				if(!hand_has_showdown && !folded_before[seat] && state.seat_folded[seat]
 				   && !fold_emitted[seat]) {
-					AddSidecar2Event(output, frame_second,
+					AddSidecar2Event(window_output, window.code, frame_second,
 					    Format("seat%d fold", MirrorToSidecarSeat(seat)));
 					fold_emitted[seat] = true;
 					stats.actions++;
@@ -3971,7 +4149,7 @@ static int RunSidecar2(const String& video_path, const String& dataset_path,
 					else if(state.board_count == 5) event = "river " + cards.Right(2);
 					if(!event.IsEmpty()) {
 						if(state.last_pot >= 0) event << " (pot " << FormatSidecar2Bb(state.last_pot) << ")";
-						AddSidecar2Event(output, frame_second, event);
+						AddSidecar2Event(window_output, window.code, frame_second, event);
 						stats.board_events++;
 						hand_has_progress = true;
 						for(int seat = 0; seat < 6; seat++) last_action_text[seat].Clear();
@@ -4002,7 +4180,7 @@ static int RunSidecar2(const String& video_path, const String& dataset_path,
 						hole_streak[region_index] = 1;
 					}
 					if(hole_streak[region_index] >= 2 && !hole_emitted[region_index]) {
-						AddSidecar2Event(output, frame_second,
+						AddSidecar2Event(window_output, window.code, frame_second,
 						    Format("seat%d shows %s", MirrorToSidecarSeat(region.mirror), ~cards));
 						hole_emitted[region_index] = true;
 						stats.showdowns++;
@@ -4013,56 +4191,91 @@ static int RunSidecar2(const String& video_path, const String& dataset_path,
 		}
 
 		last_raw_board_count = raw_board_count;
-		if(stats.frames % 30 == 0) SaveFile(output_path, output);
+		}
+		if(sampled_frames % 30 == 0)
+			SaveFile(output_path, ComposeSidecar2Output(output, windows, window_count));
 	}
 
-	if(hand_open)
-		CountSidecar2PartialSeats(state, hand_start_frame, emitted_name, stats);
-	if(pending_hand) {
-		stats.omitted_signals++;
-		stats.omitted_dealer++;
-	}
-	for(int region = 0; region < 3; region++) {
-		if(hole_unresolved[region] && !hole_emitted[region]) {
-			stats.omitted_signals++;
-			stats.omitted_showdown++;
+	for(int window_index = 0; window_index < window_count; window_index++) {
+		Sidecar2WindowState& window = windows[window_index];
+		if(window.hand_open)
+			CountSidecar2PartialSeats(window.state, window.hand_start_frame,
+			                          window.emitted_name, window.stats);
+		if(window.pending_hand) {
+			window.stats.omitted_signals++;
+			window.stats.omitted_dealer++;
+		}
+		for(int region = 0; region < 3; region++) {
+			if(window.hole_unresolved[region] && !window.hole_emitted[region]) {
+				window.stats.omitted_signals++;
+				window.stats.omitted_showdown++;
+			}
 		}
 	}
 
 	String output_dir = GetFileFolder(output_path);
 	if(!output_dir.IsEmpty()) RealizeDirectory(output_dir);
-	if(!SaveFile(output_path, output)) {
+	String composed_output = ComposeSidecar2Output(output, windows, window_count);
+	if(!SaveFile(output_path, composed_output)) {
 		Cerr() << "ERROR: failed to write " << output_path << "\n";
 		return 1;
 	}
 
-	SidecarGT parsed = ParseSidecarGT(output_path);
+	int parsed_hands = 0;
+	for(int window_index = 0; window_index < window_count; window_index++) {
+		SidecarGT parsed = ParseSidecarGT(output_path, windows[window_index].code);
+		parsed_hands += parsed.new_hand_seconds.GetCount();
+	}
 	double elapsed_seconds = (NowMs() - started_ms) / 1000.0;
-	stats.decoded_frames = (int)video.GetDecodedFrameCount();
-	stats.skipped_frames = stats.decoded_frames - stats.frames;
-	int elapsed_frame_seconds = stats.first_frame_second < 0 ? 0
-	                          : stats.last_frame_second - stats.first_frame_second + 1;
+	decoded_frames = (int)video.GetDecodedFrameCount();
+	int skipped_frames = decoded_frames - sampled_frames;
+	int elapsed_frame_seconds = first_frame_second < 0 ? 0
+	                          : last_frame_second - first_frame_second + 1;
+	Sidecar2Stats combined = windows[0].stats;
+	if(window_count == 2) combined = AddSidecar2Stats(windows[0].stats, windows[1].stats);
+	int combined_unresolved = 0;
+	int combined_ocr_calls = 0;
 	Cout() << "\n=== Sidecar2 counters ===\n";
-	Cout() << "decoded_frames=" << stats.decoded_frames
-	       << " processed_frames=" << stats.frames
-	       << " skipped_frames=" << stats.skipped_frames
+	Cout() << "decoded_frames=" << decoded_frames
+	       << " sampled_pts_frames=" << sampled_frames
+	       << " skipped_decoded_frames=" << skipped_frames
 	       << " elapsed_frame_seconds=" << elapsed_frame_seconds << "\n";
-	Cout() << "frames=" << stats.frames << " hands=" << stats.hands
-	       << " board_events=" << stats.board_events << " actions=" << stats.actions
-	       << " showdowns=" << stats.showdowns << " omitted_signals=" << stats.omitted_signals
-	       << Format(" elapsed_seconds=%.1f\n", elapsed_seconds);
-	Cout() << "seat_updates=" << stats.seat_updates
-	       << " omitted_dealer=" << stats.omitted_dealer
-	       << " omitted_board=" << stats.omitted_board
-	       << " omitted_action=" << stats.omitted_action
-	       << " omitted_showdown=" << stats.omitted_showdown
-	       << " omitted_seat=" << stats.omitted_seat << "\n";
-	Cout() << "classifier_unresolved_regions=" << loop_stats.unresolved
-	       << " ocr_calls=" << loop_stats.ocr_calls
-	       << " parsed_hands=" << parsed.new_hand_seconds.GetCount()
+	for(int window_index = 0; window_index < window_count; window_index++) {
+		const Sidecar2WindowState& window = windows[window_index];
+		const Sidecar2Stats& stats = window.stats;
+		combined_unresolved += window.loop_stats.unresolved;
+		combined_ocr_calls += window.loop_stats.ocr_calls;
+		Cout() << "window=" << window.code << " name=" << window.name
+		       << " frames=" << stats.frames << " hands=" << stats.hands
+		       << " board_events=" << stats.board_events << " actions=" << stats.actions
+		       << " showdowns=" << stats.showdowns << " seat_updates=" << stats.seat_updates
+		       << " omitted_signals=" << stats.omitted_signals
+		       << " classifier_unresolved_regions=" << window.loop_stats.unresolved
+		       << " ocr_calls=" << window.loop_stats.ocr_calls << "\n";
+		Cout() << "window=" << window.code
+		       << " omitted_dealer=" << stats.omitted_dealer
+		       << " omitted_board=" << stats.omitted_board
+		       << " omitted_action=" << stats.omitted_action
+		       << " omitted_showdown=" << stats.omitted_showdown
+		       << " omitted_seat=" << stats.omitted_seat << "\n";
+	}
+	Cout() << "combined_window_frames=" << combined.frames
+	       << " hands=" << combined.hands
+	       << " board_events=" << combined.board_events
+	       << " actions=" << combined.actions
+	       << " showdowns=" << combined.showdowns
+	       << " seat_updates=" << combined.seat_updates
+	       << " omitted_signals=" << combined.omitted_signals
+	       << " classifier_unresolved_regions=" << combined_unresolved
+	       << " ocr_calls=" << combined_ocr_calls
+	       << " parsed_hands=" << parsed_hands
+	       << Format(" elapsed_seconds=%.1f\n", elapsed_seconds)
 	       << " output=" << output_path << "\n";
-	stages.Print();
-	return parsed.new_hand_seconds.GetCount() == stats.hands ? 0 : 2;
+	for(int window_index = 0; window_index < window_count; window_index++) {
+		Cout() << "window=" << windows[window_index].code << " stage_timings:\n";
+		windows[window_index].stages.Print();
+	}
+	return parsed_hands == combined.hands ? 0 : 2;
 }
 
 // ===========================================================================
@@ -4448,10 +4661,12 @@ GUI_APP_MAIN
 	String video_path = kVideoPath;
 	int port = 8082, seconds = 30, max_frames = 0, wait_timeout_ms = 4000;
 	int start_second = 0, end_second = -1;
+	bool max_frames_set = false, end_second_set = false;
 	int ocr_cap = -1; // -1 = unlimited, 0 = OCR off, N = up to N OCR calls/frame
 	bool verbose = false, use_engine = true;
-	bool sidecar2_short = false, sidecar2_full = false;
+	bool sidecar2_short = false, sidecar2_full = false, two_window_sample = false;
 	String source_sidecar = kSidecarPath, sidecar2_output;
+	String sidecar2_window = "both";
 	// Task 0286 Part B: approximate-hash OCR result cache, ON by default (this
 	// IS the optimization being delivered) -- see OcrCacheState's comment for
 	// the design AND the "SAFETY OVERRIDE" note explaining why 40 (not the
@@ -4479,15 +4694,17 @@ GUI_APP_MAIN
 		else if(args[i] == "--source-sidecar" && i + 1 < args.GetCount()) source_sidecar = args[++i];
 		else if(args[i] == "--sidecar2-out" && i + 1 < args.GetCount()) sidecar2_output = args[++i];
 		else if(args[i] == "--start-second" && i + 1 < args.GetCount()) start_second = max(0, StrInt(args[++i]));
-		else if(args[i] == "--end-second" && i + 1 < args.GetCount()) end_second = StrInt(args[++i]);
+		else if(args[i] == "--end-second" && i + 1 < args.GetCount()) { end_second = StrInt(args[++i]); end_second_set = true; }
 		else if(args[i] == "--short-sample") sidecar2_short = true;
 		else if(args[i] == "--full-run") sidecar2_full = true;
+		else if(args[i] == "--two-window-sample") { mode = "sidecar2"; two_window_sample = true; }
+		else if(args[i] == "--sidecar2-window" && i + 1 < args.GetCount()) sidecar2_window = ToLower(args[++i]);
 		else if(args[i] == "--templates" && i + 1 < args.GetCount()) g_templates_dir = args[++i];
 		else if(args[i] == "--crop-list" && i + 1 < args.GetCount()) crop_safety_lists.Add(args[++i]);
 		else if(args[i] == "--host" && i + 1 < args.GetCount()) host = args[++i];
 		else if(args[i] == "--port" && i + 1 < args.GetCount()) port = StrInt(args[++i]);
 		else if(args[i] == "--seconds" && i + 1 < args.GetCount()) seconds = max(1, StrInt(args[++i]));
-		else if(args[i] == "--max-frames" && i + 1 < args.GetCount()) max_frames = StrInt(args[++i]);
+		else if(args[i] == "--max-frames" && i + 1 < args.GetCount()) { max_frames = StrInt(args[++i]); max_frames_set = true; }
 		else if(args[i] == "--wait-timeout-ms" && i + 1 < args.GetCount()) wait_timeout_ms = StrInt(args[++i]);
 		else if(args[i] == "--dataset" && i + 1 < args.GetCount()) dataset = args[++i];
 		else if(args[i] == "--ocr-cap" && i + 1 < args.GetCount()) ocr_cap = StrInt(args[++i]);
@@ -4532,9 +4749,11 @@ GUI_APP_MAIN
 		       << "  --video <path>              Sidecar2 MP4 source; default " << kVideoPath << "\n"
 		       << "  --source-sidecar <path>     Legend source; default " << kSidecarPath << "\n"
 		       << "  --sidecar2-out <path>       Output path; default next to source as *_sidecar2.txt\n"
+		       << "  --sidecar2-window <mode>    both (default), right, or left; right preserves one-window output\n"
 		       << "  --start-second <n>          Seek to this MP4 presentation second\n"
 		       << "  --end-second <n>            Stop before this MP4 presentation second\n"
 		       << "  --short-sample              Sidecar2 safety cap of 120 PTS seconds (default)\n"
+		       << "  --two-window-sample         Sidecar2 both-window sample capped at 105 seconds\n"
 		       << "  --full-run                  Sidecar2 processes every PTS second through EOF/range\n"
 		       << "  --templates <dir>           Card template library (default " << g_templates_dir << ")\n"
 		       << "  --ocr-cap <n>               Max OCR calls per frame (-1 unlimited, 0 off)\n"
@@ -4547,12 +4766,17 @@ GUI_APP_MAIN
 		       << "  --verbose                   Per-region log lines\n";
 		return;
 	}
-	if(sidecar2_short && sidecar2_full) {
-		Cerr() << "ERROR: --short-sample and --full-run are mutually exclusive\n";
+	if((sidecar2_short || two_window_sample) && sidecar2_full) {
+		Cerr() << "ERROR: sample modes and --full-run are mutually exclusive\n";
 		SetExitCode(1);
 		return;
 	}
 	if(mode == "sidecar2") {
+		if(sidecar2_window != "both" && sidecar2_window != "right" && sidecar2_window != "left") {
+			Cerr() << "ERROR: --sidecar2-window must be both, right, or left\n";
+			SetExitCode(1);
+			return;
+		}
 		if(!frames_dir.IsEmpty()) {
 			Cerr() << "ERROR: --frames-dir is not valid with --sidecar2; use direct --video MP4 input\n";
 			SetExitCode(1);
@@ -4563,6 +4787,11 @@ GUI_APP_MAIN
 			SetExitCode(1);
 			return;
 		}
+		if(two_window_sample) {
+			sidecar2_window = "both";
+			if(!end_second_set) end_second = start_second + 105;
+			if(!max_frames_set) max_frames = 105;
+		}
 		if(sidecar2_full) max_frames = 0;
 		if(!sidecar2_full && max_frames <= 0) max_frames = 120;
 	}
@@ -4572,7 +4801,7 @@ GUI_APP_MAIN
 	else if(mode == "offline") rc = RunOfflineFrames(frames_dir, dataset, max_frames, verbose, use_engine, ocr_cap, ocr_cache_enabled, ocr_cache_threshold);
 	else if(mode == "sidecar2") rc = RunSidecar2(video_path, dataset, source_sidecar,
 	                                               sidecar2_output, start_second, end_second,
-	                                               max_frames,
+	                                               max_frames, sidecar2_window,
 	                                               verbose, ocr_cap, ocr_cache_enabled,
 	                                               ocr_cache_threshold);
 	else if(mode == "live") rc = RunLive(host, port, seconds, dataset, verbose, use_engine, wait_timeout_ms, ocr_cap, ocr_cache_enabled, ocr_cache_threshold);

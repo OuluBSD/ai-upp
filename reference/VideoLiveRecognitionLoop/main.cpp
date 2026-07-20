@@ -1309,7 +1309,25 @@ struct LoopStats {
 	VectorMap<String, int> category_counts;
 	int ocr_calls = 0, ocr_nonempty = 0;
 	int classified = 0, unresolved = 0;
+	int diagnostic_raw_board_frames = 0;
+	int diagnostic_raw_board_max = 0;
+	int diagnostic_board_trigger_frames = 0;
+	int diagnostic_resolved_board_cards = 0;
+	int diagnostic_ocr_candidates = 0;
+	int diagnostic_action_candidates = 0;
+	int diagnostic_action_reads = 0;
 };
+
+static bool g_sidecar2_diagnostics = false;
+static String g_sidecar2_diagnostics_path;
+
+static void EmitSidecar2Diagnostic(const String& line)
+{
+	Cout() << line << "\n";
+	Cout().Flush();
+	if(!g_sidecar2_diagnostics_path.IsEmpty())
+		SaveFile(g_sidecar2_diagnostics_path, LoadFile(g_sidecar2_diagnostics_path) + line + "\n");
+}
 
 // ---------------------------------------------------------------------------
 // Task 0286 Part B: approximate-hash-based OCR result cache.
@@ -1473,6 +1491,9 @@ struct PreparedTableFrame : Moveable<PreparedTableFrame> {
 	Point                 dealer_center = Point(-1, -1);
 	Vector<int>           board_cards;
 	Vector<String>        board_debug;
+	int                   changed_regions = 0;
+	int                   board_classifier_regions = 0;
+	int                   raw_board_count = 0;
 
 	PreparedTableFrame()
 	{
@@ -1515,6 +1536,7 @@ static PreparedTableFrame PrepareTableFrame(WindowFrame& frame, VsmFrameImage& p
 	for(const VsmChangedRect& changed_rect : changed) {
 		Rect rect = changed_rect.GetRect() & RectC(0, 0, prepared.table.width, prepared.table.height);
 		if(rect.Width() <= 0 || rect.Height() <= 0) continue;
+		prepared.changed_regions++;
 		PreparedRegion& region = prepared.regions.Add();
 		region.rect = rect;
 		started = NowMs();
@@ -1532,6 +1554,7 @@ static PreparedTableFrame PrepareTableFrame(WindowFrame& frame, VsmFrameImage& p
 			region.ocr_request.ts = AsString(prepared.timestamp_ms);
 		}
 	}
+	prepared.board_classifier_regions = board_regions;
 
 	started = NowMs();
 	for(const CardBackRegion& card_back : kCardBackRegions) {
@@ -1550,11 +1573,11 @@ static PreparedTableFrame PrepareTableFrame(WindowFrame& frame, VsmFrameImage& p
 		prepared.dealer_seat = DetectDealerChip(prepared.table, dealer_template,
 		                                          prepared.dealer_score, prepared.dealer_center);
 	}
-	int raw_board_count = SplitBoardBand(prepared.table).GetCount();
-	if((board_regions > 0 || raw_board_count >= 3) && card_templates.ok)
+	prepared.raw_board_count = SplitBoardBand(prepared.table).GetCount();
+	if((board_regions > 0 || prepared.raw_board_count >= 3) && card_templates.ok)
 		prepared.board_cards = RecognizeBoardCards(prepared.table, card_templates,
 		                                            verbose ? &prepared.board_debug : nullptr);
-	if(prepared.dealer_sampled || board_regions > 0 || raw_board_count >= 3)
+	if(prepared.dealer_sampled || board_regions > 0 || prepared.raw_board_count >= 3)
 		prepared.stages.template_match.Add(NowMs() - started);
 
 	previous.Set(prepared.table.width, prepared.table.height, ~prepared.table.data);
@@ -1573,11 +1596,21 @@ static void CommitPreparedTableFrame(const PreparedTableFrame& prepared,
 	const VsmFrameImage& table = prepared.table;
 	const Image& table_img = prepared.table_image;
 	int ocr_used = 0; // OCR calls spent on THIS frame (budget throttle)
+	int frame_ocr_candidates = 0;
+	int frame_action_candidates = 0;
+	int frame_action_reads = 0;
+	String frame_action_texts;
+	VectorMap<String, int> frame_categories;
 	double t = 0;
 	st.MergePrepared(prepared.stages);
 
 	stats.frames++;
 	stats.total_regions += prepared.regions.GetCount();
+	if(prepared.raw_board_count > 0) stats.diagnostic_raw_board_frames++;
+	stats.diagnostic_raw_board_max = max(stats.diagnostic_raw_board_max, prepared.raw_board_count);
+	if(prepared.board_classifier_regions > 0) stats.diagnostic_board_trigger_frames++;
+	for(int card : prepared.board_cards)
+		if(card >= 0) stats.diagnostic_resolved_board_cards++;
 
 	int board_regions_this_frame = 0;
 	if(!prepared.board_cards.IsEmpty())
@@ -1593,6 +1626,10 @@ static void CommitPreparedTableFrame(const PreparedTableFrame& prepared,
 		String cat = cl.category.IsEmpty() ? String("<unresolved>") : cl.category;
 		if(cl.category.IsEmpty()) stats.unresolved++;
 		stats.category_counts.GetAdd(cat, 0)++;
+		frame_categories.GetAdd(cat, 0)++;
+		if(IsOcrCategory(cl.category)) frame_ocr_candidates++;
+		if(cl.category == "seat_action_bubble" || cl.category == "seat_name_plate")
+			frame_action_candidates++;
 
 		// --- stage: OCR (only OCR-relevant categories) ---
 		String ocr_text; double ocr_conf = 0;
@@ -1631,7 +1668,14 @@ static void CommitPreparedTableFrame(const PreparedTableFrame& prepared,
 				st.ocr.Add(NowMs() - t);
 				ocr_text = res.text; ocr_conf = res.confidence;
 				stats.ocr_calls++;
-				if(!TrimBoth(ocr_text).IsEmpty()) stats.ocr_nonempty++;
+			if(!TrimBoth(ocr_text).IsEmpty()) stats.ocr_nonempty++;
+			if(!TrimBoth(ocr_text).IsEmpty() && (cl.category == "seat_action_bubble" || cl.category == "seat_name_plate"))
+				frame_action_reads++;
+			if((cl.category == "seat_action_bubble" || cl.category == "seat_name_plate")
+			   && !TrimBoth(ocr_text).IsEmpty()) {
+				if(!frame_action_texts.IsEmpty()) frame_action_texts << ";";
+				frame_action_texts << cl.category << "=\"" << TrimBoth(ocr_text) << "\"";
+			}
 				if(oc.enabled) oc.misses++;
 				// Refresh the anchor ONLY on a real OCR call (not every frame) --
 				// moves anchor_rect to THIS frame's (freshest, best-quality) rect.
@@ -1893,6 +1937,24 @@ static void CommitPreparedTableFrame(const PreparedTableFrame& prepared,
 			rs.turn_seat_video = ts;
 			if(ts >= 0) rs.LogEvent(Format("turn: seat %d (timer bar, strength %d)", ts, prepared.turn_strength), verbose);
 		}
+	}
+	stats.diagnostic_ocr_candidates += frame_ocr_candidates;
+	stats.diagnostic_action_candidates += frame_action_candidates;
+	stats.diagnostic_action_reads += frame_action_reads;
+	if(g_sidecar2_diagnostics) {
+		String categories;
+		for(int i = 0; i < frame_categories.GetCount(); i++) {
+			if(i) categories << ",";
+			categories << frame_categories.GetKey(i) << "=" << frame_categories[i];
+		}
+		EmitSidecar2Diagnostic(Format("diagnostic window=%s pts=%d changed=%d board_raw=%d board_classifier=%d board_resolved=%d "
+		                 "ocr_candidates=%d action_candidates=%d action_reads=%d ocr_calls=%d ocr_nonempty=%d categories=%s action_texts=%s",
+		                 ~prepared.descriptor.name, (int)(prepared.timestamp_ms / 1000),
+		                 prepared.changed_regions, prepared.raw_board_count,
+		                 prepared.board_classifier_regions, prepared.board_cards.GetCount(),
+		                 frame_ocr_candidates, frame_action_candidates, frame_action_reads,
+		                 stats.ocr_calls, stats.ocr_nonempty, ~categories,
+		                 frame_action_texts.IsEmpty() ? "-" : ~frame_action_texts));
 	}
 	st.resolve.Add(NowMs() - t);
 
@@ -3829,6 +3891,13 @@ struct Sidecar2Stats {
 	int omitted_action = 0;
 	int omitted_showdown = 0;
 	int omitted_seat = 0;
+	int diagnostic_raw_board_frames = 0;
+	int diagnostic_raw_board_max = 0;
+	int diagnostic_board_trigger_frames = 0;
+	int diagnostic_resolved_board_cards = 0;
+	int diagnostic_ocr_candidates = 0;
+	int diagnostic_action_candidates = 0;
+	int diagnostic_action_reads = 0;
 };
 
 static int MirrorToSidecarSeat(int mirror)
@@ -4131,6 +4200,13 @@ static Sidecar2Stats AddSidecar2Stats(const Sidecar2Stats& left, const Sidecar2S
 	total.omitted_action = left.omitted_action + right.omitted_action;
 	total.omitted_showdown = left.omitted_showdown + right.omitted_showdown;
 	total.omitted_seat = left.omitted_seat + right.omitted_seat;
+	total.diagnostic_raw_board_frames = left.diagnostic_raw_board_frames + right.diagnostic_raw_board_frames;
+	total.diagnostic_raw_board_max = max(left.diagnostic_raw_board_max, right.diagnostic_raw_board_max);
+	total.diagnostic_board_trigger_frames = left.diagnostic_board_trigger_frames + right.diagnostic_board_trigger_frames;
+	total.diagnostic_resolved_board_cards = left.diagnostic_resolved_board_cards + right.diagnostic_resolved_board_cards;
+	total.diagnostic_ocr_candidates = left.diagnostic_ocr_candidates + right.diagnostic_ocr_candidates;
+	total.diagnostic_action_candidates = left.diagnostic_action_candidates + right.diagnostic_action_candidates;
+	total.diagnostic_action_reads = left.diagnostic_action_reads + right.diagnostic_action_reads;
 	return total;
 }
 
@@ -4322,6 +4398,17 @@ static int RunSidecar2(const String& video_path, const String& dataset_path,
 			stages.acquire.Add(acquire_ms);
 			stages.crop.Add(fanout_ms);
 
+		bool folded_before[6];
+		double bet_before[6], round_before[6];
+		int cards_before[6];
+		for(int seat = 0; seat < 6; seat++) {
+			folded_before[seat] = state.seat_folded[seat];
+			bet_before[seat] = state.seat_bet[seat];
+			round_before[seat] = state.seat_round_total[seat];
+			cards_before[seat] = state.seat_cards_present[seat];
+		}
+		int board_before = state.board_count;
+
 		VsmFrameImage table;
 		ProcessWindowFrame(window_frames[window_index], recognition,
 		                   classifier, ocr, ocr_available, change_params,
@@ -4334,17 +4421,6 @@ static int RunSidecar2(const String& video_path, const String& dataset_path,
 		stats.frames++;
 		if(stats.first_frame_second < 0) stats.first_frame_second = frame_second;
 		stats.last_frame_second = frame_second;
-
-		bool folded_before[6];
-		double bet_before[6], round_before[6];
-		int cards_before[6];
-		for(int seat = 0; seat < 6; seat++) {
-			folded_before[seat] = state.seat_folded[seat];
-			bet_before[seat] = state.seat_bet[seat];
-			round_before[seat] = state.seat_round_total[seat];
-			cards_before[seat] = state.seat_cards_present[seat];
-		}
-		int board_before = state.board_count;
 
 		int present_count = 0;
 		int returned_count = 0;
@@ -4651,6 +4727,14 @@ static int RunSidecar2(const String& video_path, const String& dataset_path,
 
 	for(int window_index = 0; window_index < window_count; window_index++) {
 		Sidecar2WindowState& window = windows[window_index];
+		const LoopStats& diagnostic_stats = window.recognition.loop_stats;
+		window.stats.diagnostic_raw_board_frames = diagnostic_stats.diagnostic_raw_board_frames;
+		window.stats.diagnostic_raw_board_max = diagnostic_stats.diagnostic_raw_board_max;
+		window.stats.diagnostic_board_trigger_frames = diagnostic_stats.diagnostic_board_trigger_frames;
+		window.stats.diagnostic_resolved_board_cards = diagnostic_stats.diagnostic_resolved_board_cards;
+		window.stats.diagnostic_ocr_candidates = diagnostic_stats.diagnostic_ocr_candidates;
+		window.stats.diagnostic_action_candidates = diagnostic_stats.diagnostic_action_candidates;
+		window.stats.diagnostic_action_reads = diagnostic_stats.diagnostic_action_reads;
 		if(window.hand_open) {
 			CountSidecar2PartialSeats(window.recognition.resolve_state, window.hand_start_frame,
 			                          window.emitted_name, window.stats);
@@ -4722,6 +4806,14 @@ static int RunSidecar2(const String& video_path, const String& dataset_path,
 		       << " omitted_action=" << stats.omitted_action
 		       << " omitted_showdown=" << stats.omitted_showdown
 		       << " omitted_seat=" << stats.omitted_seat << "\n";
+		Cout() << "window=" << window.code
+		       << " diagnostic_raw_board_frames=" << window.recognition.loop_stats.diagnostic_raw_board_frames
+		       << " diagnostic_raw_board_max=" << window.recognition.loop_stats.diagnostic_raw_board_max
+		       << " diagnostic_board_trigger_frames=" << window.recognition.loop_stats.diagnostic_board_trigger_frames
+		       << " diagnostic_resolved_board_cards=" << window.recognition.loop_stats.diagnostic_resolved_board_cards
+		       << " diagnostic_ocr_candidates=" << window.recognition.loop_stats.diagnostic_ocr_candidates
+		       << " diagnostic_action_candidates=" << window.recognition.loop_stats.diagnostic_action_candidates
+		       << " diagnostic_action_reads=" << window.recognition.loop_stats.diagnostic_action_reads << "\n";
 	}
 	Cout() << "combined_window_frames=" << combined.frames
 	       << " hands=" << combined.hands
@@ -4732,6 +4824,13 @@ static int RunSidecar2(const String& video_path, const String& dataset_path,
 	       << " omitted_signals=" << combined.omitted_signals
 	       << " classifier_unresolved_regions=" << combined_unresolved
 	       << " ocr_calls=" << combined_ocr_calls
+	       << " diagnostic_raw_board_frames=" << combined.diagnostic_raw_board_frames
+	       << " diagnostic_raw_board_max=" << combined.diagnostic_raw_board_max
+	       << " diagnostic_board_trigger_frames=" << combined.diagnostic_board_trigger_frames
+	       << " diagnostic_resolved_board_cards=" << combined.diagnostic_resolved_board_cards
+	       << " diagnostic_ocr_candidates=" << combined.diagnostic_ocr_candidates
+	       << " diagnostic_action_candidates=" << combined.diagnostic_action_candidates
+	       << " diagnostic_action_reads=" << combined.diagnostic_action_reads
 	       << " parsed_hands=" << parsed_hands
 	       << Format(" elapsed_seconds=%.1f\n", elapsed_seconds)
 	       << " output=" << output_path << "\n";
@@ -5131,6 +5230,7 @@ GUI_APP_MAIN
 	bool sidecar2_short = false, sidecar2_full = false, two_window_sample = false;
 	String source_sidecar = kSidecarPath, sidecar2_output;
 	String sidecar2_window = "both";
+	String sidecar2_diagnostics_output;
 	// Task 0286 Part B: approximate-hash OCR result cache, ON by default (this
 	// IS the optimization being delivered) -- see OcrCacheState's comment for
 	// the design AND the "SAFETY OVERRIDE" note explaining why 40 (not the
@@ -5175,6 +5275,11 @@ GUI_APP_MAIN
 		else if(args[i] == "--no-ocr") ocr_cap = 0;
 		else if(args[i] == "--no-ocr-cache") ocr_cache_enabled = false;
 		else if(args[i] == "--ocr-cache-threshold" && i + 1 < args.GetCount()) ocr_cache_threshold = StrInt(args[++i]);
+		else if(args[i] == "--sidecar2-diagnostics") g_sidecar2_diagnostics = true;
+		else if(args[i] == "--sidecar2-diagnostics-out" && i + 1 < args.GetCount()) {
+			g_sidecar2_diagnostics = true;
+			sidecar2_diagnostics_output = args[++i];
+		}
 		else if(args[i] == "--verbose") verbose = true;
 		else if(args[i] == "--no-engine") use_engine = false;
 		else if(args[i] == "--help" || args[i] == "-h") mode = "help";
@@ -5225,6 +5330,8 @@ GUI_APP_MAIN
 		       << "  --no-ocr-cache               Disable the Task 0286 approximate-hash OCR cache\n"
 		       << "                               (enabled by default; use for before/after A-B runs)\n"
 		       << "  --ocr-cache-threshold <n>   Tight signature-distance threshold (default 40)\n"
+		       << "  --sidecar2-diagnostics      Print per-sampled-frame board/OCR/action gates\n"
+		       << "  --sidecar2-diagnostics-out <path>  Also write diagnostics deterministically\n"
 		       << "  --crop-list <path>           (crop-safety-check) add a category\\tpath list file\n"
 		       << "  --no-engine                 Skip the real Game engine stage\n"
 		       << "  --verbose                   Per-region log lines\n";
@@ -5258,6 +5365,17 @@ GUI_APP_MAIN
 		}
 		if(sidecar2_full) max_frames = 0;
 		if(!sidecar2_full && max_frames <= 0) max_frames = 120;
+		if(g_sidecar2_diagnostics) {
+			g_sidecar2_diagnostics_path = sidecar2_diagnostics_output;
+			if(g_sidecar2_diagnostics_path.IsEmpty()) {
+				String diagnostic_base = sidecar2_output.IsEmpty()
+				                       ? AppendFileName(GetFileFolder(source_sidecar),
+				                                         GetFileTitle(source_sidecar) + "_sidecar2.txt")
+				                       : sidecar2_output;
+				g_sidecar2_diagnostics_path = diagnostic_base + ".diagnostics.log";
+			}
+			SaveFile(g_sidecar2_diagnostics_path, String());
+		}
 	}
 
 	int rc = 0;

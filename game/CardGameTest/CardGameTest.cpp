@@ -478,6 +478,50 @@ void TestDistributedSidecar2Writer() {
 	Cout() << "TestDistributedSidecar2Writer passed: separated streams and assertion comments OK\n";
 }
 
+void TestDistributedAssertionReplayModes() {
+	DistributedStateSnapshot before, after;
+	FillScenarioSnapshot(before, "start", 10, 2, 2);
+	FillScenarioSnapshot(after, "start", 10, 2, 2);
+	DistributedLiveAssertion assertion;
+	DistributedReconstructionService service;
+	service.SetLiveAssertion(&assertion);
+
+	service.Begin("R", before);
+	service.Begin("L", before);
+	DistributedBufferedEvent first = MakeBufferedEvent("first", 1, 0);
+	DistributedBufferedEvent second = MakeBufferedEvent("second", 2, 1);
+	first.stream = "R";
+	second.stream = "R";
+	ASSERT(service.Observe("R", second));
+	ASSERT(service.Observe("R", first));
+	DistributedBufferedEvent left = first;
+	left.stream = "L";
+	left.identity = "left-first";
+	ASSERT(service.Observe("L", left));
+	DistributedServiceResult right_result = service.Complete("R", after, 7, 70);
+	DistributedServiceResult left_result = service.Complete("L", after, 7, 70);
+	ASSERT(right_result.legality.status == DISTRIBUTED_LEGALITY_LEGAL);
+	ASSERT(left_result.legality.status == DISTRIBUTED_LEGALITY_LEGAL);
+	ASSERT(right_result.authoritative_applied && left_result.authoritative_applied);
+
+	service.Begin("delayed", before);
+	DistributedStateSnapshot delayed_after;
+	FillScenarioSnapshot(delayed_after, "next", 10, 2, 2);
+	DistributedServiceResult delayed = service.Complete("delayed", delayed_after, 8, 80);
+	ASSERT(delayed.legality.status == DISTRIBUTED_LEGALITY_UNDETERMINED);
+	ASSERT(!delayed.authoritative_applied);
+
+	service.Begin("conflict", before);
+	DistributedBufferedEvent conflicting = MakeBufferedEvent("same", 1, 0);
+	ASSERT(service.Observe("conflict", conflicting));
+	conflicting.observation.participant = 1;
+	ASSERT(!service.Observe("conflict", conflicting));
+	DistributedServiceResult conflict = service.Complete("conflict", after, 9, 90);
+	ASSERT(conflict.legality.status == DISTRIBUTED_LEGALITY_UNDETERMINED);
+	ASSERT(!conflict.authoritative_applied);
+	Cout() << "TestDistributedAssertionReplayModes passed: ordered=1 delayed=1 reordered=1 concurrent=1 conflict-held=1\n";
+}
+
 static bool ReadArgument(const Vector<String>& args, const String& name,
 	                       String& value)
 {
@@ -782,6 +826,7 @@ CONSOLE_APP_MAIN {
 	TestDistributedReconstructionService();
 	TestDistributedLiveAssertion();
 	TestDistributedSidecar2Writer();
+	TestDistributedAssertionReplayModes();
 	TestDistributedScenarioMatrix();
 	Cout() << "All CardGame tests passed! 🐍💎✨🚀❤️🃏\n";
 }

@@ -12,6 +12,19 @@ static void AddDiagnostic(DistributedReconstructionResult& result, const String&
 	result.diagnostics.Add(text);
 }
 
+static void CopySnapshot(DistributedStateSnapshot& dst,
+	                      const DistributedStateSnapshot& src)
+{
+	dst.phase = src.phase;
+	dst.total = src.total;
+	dst.participants.Clear();
+	for(const DistributedParticipantState& participant : src.participants) {
+		DistributedParticipantState& copy = dst.participants.Add();
+		copy.active = participant.active;
+		copy.committed = participant.committed;
+	}
+}
+
 DistributedEventBuffer::DistributedEventBuffer(int max_events)
 {
 	ASSERT(max_events > 0);
@@ -131,6 +144,95 @@ void DistributedEventBuffer::Clear()
 	overflow = false;
 	last_order_key = -1;
 	has_last_order = false;
+}
+
+DistributedReconstructionService::StreamState*
+DistributedReconstructionService::Find(const String& id)
+{
+	for(StreamState& stream : streams)
+		if(stream.id == id)
+			return &stream;
+	return nullptr;
+}
+
+const DistributedReconstructionService::StreamState*
+DistributedReconstructionService::Find(const String& id) const
+{
+	for(const StreamState& stream : streams)
+		if(stream.id == id)
+			return &stream;
+	return nullptr;
+}
+
+void DistributedReconstructionService::Begin(const String& stream,
+	                                           const DistributedStateSnapshot& before)
+{
+	StreamState* state = Find(stream);
+	if(!state) {
+		state = &streams.Add();
+		state->id = stream;
+	}
+	CopySnapshot(state->before, before);
+	CopySnapshot(state->authoritative, before);
+	state->has_authoritative = true;
+	state->buffer.Clear();
+}
+
+bool DistributedReconstructionService::Observe(const String& stream,
+	                                             const DistributedBufferedEvent& event)
+{
+	StreamState* state = Find(stream);
+	if(!state)
+		return false;
+	DistributedBufferedEvent copy = event;
+	copy.stream = stream;
+	return state->buffer.Push(copy);
+}
+
+DistributedServiceResult DistributedReconstructionService::Complete(
+	const String& stream, const DistributedStateSnapshot& after)
+{
+	DistributedServiceResult service;
+	service.stream = stream;
+	StreamState* state = Find(stream);
+	if(!state) {
+		service.reconstruction.invalid = true;
+		service.reconstruction.diagnostics.Add("stream was not started");
+		return service;
+	}
+	service.buffered = state->buffer.Drain();
+	for(const String& diagnostic : service.buffered.diagnostics)
+		service.reconstruction.diagnostics.Add(diagnostic);
+	if(!service.buffered.conflicts.IsEmpty())
+		service.reconstruction.ambiguous = true;
+	Vector<DistributedActionObservation> observations;
+	for(const DistributedEventBatch& batch : service.buffered.batches)
+		for(const DistributedBufferedEvent& event : batch.events)
+			observations.Add(event.observation);
+	service.reconstruction = DistributedEventReconstructor().Reconstruct(
+		state->before, after, observations);
+	bool has_late = false;
+	for(const DistributedEventBatch& batch : service.buffered.batches)
+		for(const DistributedBufferedEvent& event : batch.events)
+			has_late |= event.late;
+	service.authoritative_applied = service.reconstruction.complete &&
+		!service.reconstruction.ambiguous && !service.reconstruction.invalid &&
+		!service.buffered.overflow && service.buffered.conflicts.IsEmpty() && !has_late;
+	if(service.authoritative_applied) {
+		CopySnapshot(state->authoritative, after);
+		CopySnapshot(state->before, after);
+	}
+	return service;
+}
+
+bool DistributedReconstructionService::GetAuthoritative(
+	const String& stream, DistributedStateSnapshot& out) const
+{
+	const StreamState* state = Find(stream);
+	if(!state || !state->has_authoritative)
+		return false;
+	CopySnapshot(out, state->authoritative);
+	return true;
 }
 
 DistributedReconstructionResult DistributedEventReconstructor::Reconstruct(

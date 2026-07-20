@@ -65,6 +65,13 @@ struct DistributedEventBufferResult : Moveable<DistributedEventBufferResult> {
 	bool overflow = false;
 };
 
+struct DistributedServiceResult : Moveable<DistributedServiceResult> {
+	String stream;
+	DistributedEventBufferResult buffered;
+	DistributedReconstructionResult reconstruction;
+	bool authoritative_applied = false;
+};
+
 class DistributedEventBuffer {
 	int max_events = 256;
 	Vector<DistributedBufferedEvent> pending;
@@ -91,6 +98,27 @@ public:
 	DistributedEventBufferResult Drain();
 	void Clear();
 	int GetPendingCount() const { return pending.GetCount(); }
+};
+
+class DistributedReconstructionService {
+	struct StreamState : Moveable<StreamState> {
+		String id;
+		DistributedStateSnapshot before;
+		DistributedStateSnapshot authoritative;
+		DistributedEventBuffer buffer;
+		bool has_authoritative = false;
+	};
+
+	Vector<StreamState> streams;
+	StreamState* Find(const String& id);
+	const StreamState* Find(const String& id) const;
+
+public:
+	void Begin(const String& stream, const DistributedStateSnapshot& before);
+	bool Observe(const String& stream, const DistributedBufferedEvent& event);
+	DistributedServiceResult Complete(const String& stream,
+	                                  const DistributedStateSnapshot& after);
+	bool GetAuthoritative(const String& stream, DistributedStateSnapshot& out) const;
 };
 
 class DistributedEventReconstructor {

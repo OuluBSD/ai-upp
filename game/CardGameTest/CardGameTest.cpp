@@ -378,6 +378,35 @@ void TestDistributedEventBufferOverflow() {
 	Cout() << "TestDistributedEventBufferOverflow passed\n";
 }
 
+void TestDistributedReconstructionService() {
+	DistributedStateSnapshot before, after;
+	before.phase = after.phase = "phase-1";
+	before.total = after.total = 10;
+	for(int i = 0; i < 2; i++) {
+		DistributedParticipantState& a = before.participants.Add();
+		DistributedParticipantState& b = after.participants.Add();
+		a.active = b.active = true;
+	}
+	DistributedReconstructionService service;
+	service.Begin("left", before);
+	DistributedBufferedEvent event = MakeBufferedEvent("observed", 2, 0);
+	ASSERT(service.Observe("left", event));
+	DistributedServiceResult result = service.Complete("left", after);
+	ASSERT(result.authoritative_applied);
+	ASSERT(result.reconstruction.complete);
+	DistributedStateSnapshot authoritative;
+	ASSERT(service.GetAuthoritative("left", authoritative));
+	ASSERT(authoritative.phase == after.phase);
+
+	service.Begin("right", before);
+	after.total = 20;
+	result = service.Complete("right", after);
+	ASSERT(!result.authoritative_applied);
+	ASSERT(service.GetAuthoritative("right", authoritative));
+	ASSERT(authoritative.total == before.total);
+	Cout() << "TestDistributedReconstructionService passed\n";
+}
+
 CONSOLE_APP_MAIN {
 	Cout() << "Running C++ CardGame tests...\n";
 	TestSuitFollowing();
@@ -398,5 +427,6 @@ CONSOLE_APP_MAIN {
 	TestDistributedEventBufferConflictsAndLateEvents();
 	TestDistributedEventBufferIndependentStreams();
 	TestDistributedEventBufferOverflow();
+	TestDistributedReconstructionService();
 	Cout() << "All CardGame tests passed! 🐍💎✨🚀❤️🃏\n";
 }

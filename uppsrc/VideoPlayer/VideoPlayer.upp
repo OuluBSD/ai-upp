@@ -1,0 +1,17 @@
+description "Task 0284: standalone, mpv-style GUI window connecting to VideoServer";
+
+uses
+	Core,
+	Draw,
+	CtrlCore,
+	CtrlLib,
+	VisualStateModel;
+
+file
+	AGENTS.md,
+	CURRENT_TASK.md,
+	VideoPlayer.h,
+	main.cpp;
+
+mainconfig
+	"" = "GUI";

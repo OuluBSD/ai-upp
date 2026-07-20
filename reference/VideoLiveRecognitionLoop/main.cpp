@@ -3876,6 +3876,34 @@ static int RunSidecar2(const String& video_path, const String& dataset_path,
 	int first_frame_second = -1;
 	int last_frame_second = -1;
 	bool layout_validated = false;
+	int64 range_start_ms = (int64)start_second * 1000;
+	int64 range_end_ms = end_second >= 0 ? (int64)end_second * 1000 : video.GetDurationMs();
+	double requested_range_seconds = range_end_ms > range_start_ms
+	                             ? (range_end_ms - range_start_ms) / 1000.0
+	                             : -1.0;
+	int next_progress_second = start_second + 10;
+	int64 last_sampled_pts_ms = -1;
+	int64 last_progress_pts_ms = -1;
+	auto PrintProgress = [&](int64 progress_pts_ms) {
+		if(progress_pts_ms < 0 || requested_range_seconds <= 0) return;
+		double processed_seconds = (double)(progress_pts_ms - range_start_ms) / 1000.0;
+		processed_seconds = min(max(processed_seconds, 0.0), requested_range_seconds);
+		double percent = processed_seconds * 100.0 / requested_range_seconds;
+		double wall_elapsed = (NowMs() - started_ms) / 1000.0;
+		double eta = processed_seconds > 0.0 && wall_elapsed > 0.0
+		           ? wall_elapsed * (requested_range_seconds - processed_seconds) / processed_seconds
+		           : 0.0;
+		Cout() << "progress: pts=" << Format("%.3f", progress_pts_ms / 1000.0)
+		       << "s range=" << Format("%.3f", range_start_ms / 1000.0)
+		       << "-" << Format("%.3f", range_end_ms / 1000.0)
+		       << "s processed_seconds=" << Format("%.3f", processed_seconds)
+		       << "/" << Format("%.3f", requested_range_seconds)
+		       << " percent=" << Format("%.1f", percent)
+		       << " wall_elapsed=" << Format("%.1f", wall_elapsed)
+		       << "s eta=" << Format("%.1f", eta) << "s\n";
+		Cout().Flush();
+		last_progress_pts_ms = progress_pts_ms;
+	};
 
 	for(;;) {
 		if(max_frames > 0 && sampled_frames >= max_frames)
@@ -3907,6 +3935,7 @@ static int RunSidecar2(const String& video_path, const String& dataset_path,
 			layout_validated = true;
 		}
 		sampled_frames++;
+		last_sampled_pts_ms = pts_ms;
 		if(first_frame_second < 0) first_frame_second = frame_second;
 		last_frame_second = frame_second;
 
@@ -4192,9 +4221,15 @@ static int RunSidecar2(const String& video_path, const String& dataset_path,
 
 		last_raw_board_count = raw_board_count;
 		}
+		if(frame_second >= next_progress_second) {
+			PrintProgress(pts_ms);
+			next_progress_second = frame_second + 10;
+		}
 		if(sampled_frames % 30 == 0)
 			SaveFile(output_path, ComposeSidecar2Output(output, windows, window_count));
 	}
+	if(last_progress_pts_ms != last_sampled_pts_ms)
+		PrintProgress(last_sampled_pts_ms);
 
 	for(int window_index = 0; window_index < window_count; window_index++) {
 		Sidecar2WindowState& window = windows[window_index];

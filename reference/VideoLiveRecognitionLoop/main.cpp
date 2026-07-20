@@ -1550,10 +1550,11 @@ static PreparedTableFrame PrepareTableFrame(WindowFrame& frame, VsmFrameImage& p
 		prepared.dealer_seat = DetectDealerChip(prepared.table, dealer_template,
 		                                          prepared.dealer_score, prepared.dealer_center);
 	}
-	if(board_regions > 0 && card_templates.ok)
+	int raw_board_count = SplitBoardBand(prepared.table).GetCount();
+	if((board_regions > 0 || raw_board_count >= 3) && card_templates.ok)
 		prepared.board_cards = RecognizeBoardCards(prepared.table, card_templates,
 		                                            verbose ? &prepared.board_debug : nullptr);
-	if(prepared.dealer_sampled || board_regions > 0)
+	if(prepared.dealer_sampled || board_regions > 0 || raw_board_count >= 3)
 		prepared.stages.template_match.Add(NowMs() - started);
 
 	previous.Set(prepared.table.width, prepared.table.height, ~prepared.table.data);
@@ -1579,6 +1580,8 @@ static void CommitPreparedTableFrame(const PreparedTableFrame& prepared,
 	stats.total_regions += prepared.regions.GetCount();
 
 	int board_regions_this_frame = 0;
+	if(!prepared.board_cards.IsEmpty())
+		board_regions_this_frame = prepared.board_cards.GetCount();
 	Vector<int> new_board_cards;
 
 	for(const PreparedRegion& region : prepared.regions) {
@@ -4377,14 +4380,16 @@ static int RunSidecar2(const String& video_path, const String& dataset_path,
 			hand_open = false;
 			ResetSidecar2HandState(state);
 			for(int seat = 0; seat < 6; seat++) {
+				String known_name = CleanSidecar2Name(state.seat_name[seat]);
+				double known_stack = state.seat_stack[seat];
 				emitted_name[seat].Clear();
 				emitted_stack[seat] = -1;
 				fold_emitted[seat] = false;
 				last_action_text[seat].Clear();
 				last_action_sec[seat] = -1000;
-				profile_name_candidate[seat].Clear();
-				profile_stack_candidate[seat] = -1;
-				profile_streak[seat] = 0;
+				profile_name_candidate[seat] = known_name;
+				profile_stack_candidate[seat] = known_stack;
+				profile_streak[seat] = known_name.IsEmpty() || known_stack < 0 ? 0 : 2;
 			}
 			for(int region = 0; region < 3; region++) {
 				hole_candidate[region].Clear();

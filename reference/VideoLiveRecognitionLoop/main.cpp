@@ -7,6 +7,7 @@
 #include <TexasHoldem/TexasHoldemLocalGame.h>
 #include <TexasHoldem/TexasHoldemLogicState.h> // card/board art helpers (reuse game/CardRender via GameTable's own encoding)
 #include <Poker/LocalEngineFactory.h>
+#include <Poker/CardsValue.h>
 #include <GameRules/Game.h>
 #include <GameRules/GameData.h>
 #include <GameRules/PlayerData.h>
@@ -3967,6 +3968,8 @@ struct Sidecar2WindowState {
 	int hole_streak[3];
 	bool hole_emitted[3];
 	bool hole_unresolved[3];
+	String hole_emitted_cards[3];
+	bool winner_emitted = false;
 
 	Sidecar2WindowState()
 	{
@@ -3982,7 +3985,9 @@ struct Sidecar2WindowState {
 			hole_streak[region] = 0;
 			hole_emitted[region] = false;
 			hole_unresolved[region] = false;
+			hole_emitted_cards[region].Clear();
 		}
+		winner_emitted = false;
 	}
 };
 
@@ -4254,6 +4259,8 @@ static int RunSidecar2(const String& video_path, const String& dataset_path,
 			int *hole_streak = window.hole_streak;
 			bool *hole_emitted = window.hole_emitted;
 			bool *hole_unresolved = window.hole_unresolved;
+			String *hole_emitted_cards = window.hole_emitted_cards;
+			bool& winner_emitted = window.winner_emitted;
 			String& window_output = window.output;
 			stages.acquire.Add(acquire_ms);
 			stages.crop.Add(fanout_ms);
@@ -4410,7 +4417,7 @@ static int RunSidecar2(const String& video_path, const String& dataset_path,
 							hand_has_progress = true;
 						}
 					}
-					else if(action == "All In" || action.IsEmpty()) {
+					else if(action.IsEmpty()) {
 						stats.omitted_signals++;
 						stats.omitted_action++;
 					}
@@ -4422,20 +4429,13 @@ static int RunSidecar2(const String& video_path, const String& dataset_path,
 						else if(state.seat_round_total[action_seat] >= 0
 						        && fabs(state.seat_round_total[action_seat] - round_before[action_seat]) > 0.001)
 							amount = state.seat_round_total[action_seat];
-						bool amount_required = action == "Call" || action == "Bet" || action == "Raise";
-						if(amount_required && amount < 0) {
-							stats.omitted_signals++;
-							stats.omitted_action++;
-						}
-						else {
-							String event = Format("seat%d %s", MirrorToSidecarSeat(action_seat),
-							                      ~ToLower(action));
-							if(amount >= 0) event << " " << FormatSidecar2Bb(amount);
-							if(state.last_pot >= 0) event << " (pot " << FormatSidecar2Bb(state.last_pot) << ")";
-							AddSidecar2Event(window_output, window.code, frame_second, event);
-							stats.actions++;
-							hand_has_progress = true;
-						}
+						String event = Format("seat%d %s", MirrorToSidecarSeat(action_seat),
+						                      action == "All In" ? "all-in" : ~ToLower(action));
+						if(amount >= 0) event << " " << FormatSidecar2Bb(amount);
+						if(state.last_pot >= 0) event << " (pot " << FormatSidecar2Bb(state.last_pot) << ")";
+						AddSidecar2Event(window_output, window.code, frame_second, event);
+						stats.actions++;
+						hand_has_progress = true;
 					}
 				}
 			}
@@ -4498,8 +4498,54 @@ static int RunSidecar2(const String& video_path, const String& dataset_path,
 						AddSidecar2Event(window_output, window.code, frame_second,
 						    Format("seat%d shows %s", MirrorToSidecarSeat(region.mirror), ~cards));
 						hole_emitted[region_index] = true;
+						hole_emitted_cards[region_index] = cards;
 						stats.showdowns++;
 						hand_has_showdown = true;
+					}
+				}
+				if(state.board_count == 5 && !winner_emitted) {
+					bool all_active_resolved = true;
+					int values[3] = {};
+					bool has_value[3] = {};
+					int resolved_count = 0;
+					for(int seat = 0; seat < 6; seat++) {
+						if(state.seat_folded[seat]) continue;
+						int region_index = -1;
+						for(int i = 0; i < 3; i++)
+							if(kHoleRegions[i].mirror == seat) region_index = i;
+						if(region_index < 0 || !hole_emitted[region_index]) {
+							all_active_resolved = false;
+							break;
+						}
+						String cards = hole_emitted_cards[region_index];
+						if(cards.GetCount() != 4) {
+							all_active_resolved = false;
+							break;
+						}
+						int hand_cards[7];
+						for(int i = 0; i < 5; i++) hand_cards[i] = state.board_cards[i];
+						hand_cards[5] = CardIndex(cards.Mid(0, 1), cards.Mid(1, 1));
+						hand_cards[6] = CardIndex(cards.Mid(2, 1), cards.Mid(3, 1));
+						if(hand_cards[5] < 0 || hand_cards[6] < 0) {
+							all_active_resolved = false;
+							break;
+						}
+						int position[5] = {};
+						values[region_index] = CardsValue::cardsValue(hand_cards, position);
+						has_value[region_index] = true;
+						resolved_count++;
+					}
+					if(all_active_resolved && resolved_count > 0) {
+						int best = -1;
+						for(int i = 0; i < 3; i++)
+							if(has_value[i] && (best < 0 || values[i] > values[best])) best = i;
+						if(best >= 0) {
+							for(int i = 0; i < 3; i++)
+								if(has_value[i] && values[i] == values[best])
+									AddSidecar2Event(window_output, window.code, frame_second,
+									                 Format("seat%d wins", MirrorToSidecarSeat(kHoleRegions[i].mirror)));
+							winner_emitted = true;
+						}
 					}
 				}
 			}

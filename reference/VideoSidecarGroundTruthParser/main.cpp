@@ -428,6 +428,16 @@ static void ApplyEvent(RunningState& rs, const String& rest, int line_no, const 
 			rp.action_known = true; rp.action = 1; // PLAYER_ACTION_CHECK
 			return;
 		}
+		if(verb_part == "all-in" || verb_part == "call all-in" || verb_part.StartsWith("all-in ")) {
+			rp.action_known = true; rp.action = 6; // PLAYER_ACTION_ALLIN
+			if(verb_part.StartsWith("all-in ")) {
+				int bet = ParseBBAmountX10(verb_part.Mid((int)strlen("all-in ")), line_no, raw_line);
+				rp.bet_known = true; rp.bet = bet;
+				rs.street_high_bet_known = true; rs.street_high_bet = bet;
+			}
+			rp.stack_known = false;
+			return;
+		}
 		if(verb_part == "call" || verb_part.StartsWith("call ")) {
 			if(verb_part == "call") {
 				rp.action_known = true; rp.action = 2; // PLAYER_ACTION_CALL
@@ -449,16 +459,24 @@ static void ApplyEvent(RunningState& rs, const String& rest, int line_no, const 
 			rp.stack_known = false; // stale -- see header comment, decision (6)
 			return;
 		}
-		if(verb_part.StartsWith("bet ")) {
-			int bet = ParseBBAmountX10(verb_part.Mid((int)strlen("bet ")), line_no, raw_line);
+		if(verb_part == "bet" || verb_part.StartsWith("bet ")) {
+			String amount = TrimBoth(verb_part.Mid((int)strlen("bet")));
 			rp.action_known = true; rp.action = 3; // PLAYER_ACTION_BET
-			rp.bet_known = true; rp.bet = bet;
-			rs.street_high_bet_known = true; rs.street_high_bet = bet;
+			if(!amount.IsEmpty()) {
+				int bet = ParseBBAmountX10(amount, line_no, raw_line);
+				rp.bet_known = true; rp.bet = bet;
+				rs.street_high_bet_known = true; rs.street_high_bet = bet;
+			}
 			rp.stack_known = false;
 			return;
 		}
-		if(verb_part.StartsWith("raise ")) {
+		if(verb_part == "raise" || verb_part.StartsWith("raise ")) {
 			String amt = verb_part.Mid((int)strlen("raise "));
+			if(amt.IsEmpty()) {
+				rp.action_known = true; rp.action = 4;
+				rp.stack_known = false;
+				return;
+			}
 			bool all_in = false;
 			if(amt.StartsWith("all-in ")) { all_in = true; amt = amt.Mid((int)strlen("all-in ")); }
 			int bet = ParseBBAmountX10(amt, line_no, raw_line);
@@ -737,7 +755,7 @@ static void AuditSidecarEvent(Vector<HandAudit>& audits, HandAudit& h, char wind
 			h.shows++;
 			return;
 		}
-		if(event == "fold" || event == "check" || event.StartsWith("call")
+		if(event == "fold" || event == "check" || event == "all-in" || event.StartsWith("all-in ") || event.StartsWith("call")
 		   || event.StartsWith("bet ") || event.StartsWith("raise ")) {
 			if(h.last_action_seat == seat && h.last_action_second == second)
 				AddAuditError(h, Format("duplicate action for seat%d at %02d:%02d:%02d",

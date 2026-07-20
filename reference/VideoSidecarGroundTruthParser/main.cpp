@@ -624,8 +624,192 @@ static void InitializeRunningState(RunningState& rs)
 	rs.board_cards_known = false;
 }
 
+struct HandAudit : Moveable<HandAudit> {
+	char window = 0;
+	int hand = 0;
+	int start_line = 0;
+	int start_second = 0;
+	bool open = false;
+	bool named[6] = {};
+	bool balance[6] = {};
+	bool folded[6] = {};
+	int actions[4] = {};
+	int street = 0;
+	int street_bet = 0;
+	int last_action_seat = -1;
+	int last_action_second = -1;
+	int shows = 0;
+	int winners = 0;
+	Vector<String> warnings;
+	Vector<String> errors;
+};
+
+static void AddAuditWarning(HandAudit& h, const String& text)
+{
+	for(const String& old : h.warnings)
+		if(old == text) return;
+	h.warnings.Add(text);
+}
+
+static void AddAuditError(HandAudit& h, const String& text)
+{
+	for(const String& old : h.errors)
+		if(old == text) return;
+	h.errors.Add(text);
+}
+
+static void FinishHandAudit(HandAudit& h, Vector<HandAudit>& out)
+{
+	if(!h.open) return;
+	int missing = 0;
+	for(int seat = 0; seat < 6; seat++)
+		missing += !h.named[seat] || !h.balance[seat];
+	if(missing)
+		AddAuditWarning(h, Format("missing seat metadata for %d seat(s)", missing));
+	if(h.actions[0] < 2)
+		AddAuditWarning(h, Format("preflop action trace incomplete: only %d action(s)", h.actions[0]));
+	if(h.street >= 1 && h.actions[1] < 2)
+		AddAuditWarning(h, Format("flop action trace incomplete: only %d action(s)", h.actions[1]));
+	if(h.street >= 2 && h.actions[2] < 2)
+		AddAuditWarning(h, Format("turn action trace incomplete: only %d action(s)", h.actions[2]));
+	if(h.street >= 3 && h.actions[3] < 2)
+		AddAuditWarning(h, Format("river action trace incomplete: only %d action(s)", h.actions[3]));
+	if(h.shows && !h.winners)
+		AddAuditWarning(h, "showdown detected without an explicit winner");
+	if(!h.winners)
+		AddAuditWarning(h, "winner line missing");
+	if(h.errors.IsEmpty() && h.warnings.IsEmpty())
+		AddAuditWarning(h, "no independent legality proof: observation trace is incomplete");
+	out.Add(pick(h));
+	h = HandAudit();
+}
+
+static void AuditSidecarEvent(Vector<HandAudit>& audits, HandAudit& h, char window,
+	                           int hand, int second, const String& rest,
+	                           int line_no, const String& raw_line,
+	                           bool known_name[6], bool known_balance[6])
+{
+	if(rest.StartsWith("new hand")) {
+		FinishHandAudit(h, audits);
+		h.window = window;
+		h.hand = hand;
+		h.start_line = line_no;
+		h.start_second = second;
+		h.open = true;
+		h.street = 0;
+		for(int seat = 0; seat < 6; seat++) {
+			h.named[seat] = known_name[seat];
+			h.balance[seat] = known_balance[seat];
+		}
+		return;
+	}
+	if(!h.open) {
+		if(rest.StartsWith("seat")) {
+			int sp = rest.Find(' ');
+			if(sp >= 0) {
+				int seat = ParseSeatToken(rest.Left(sp), line_no, raw_line);
+				String event = rest.Mid(sp + 1);
+				if(event.StartsWith("name=")) {
+					known_name[seat] = true;
+					known_balance[seat] = event.Find("balance=") >= 0;
+				}
+			}
+		}
+		return;
+	}
+	if(rest.StartsWith("seat")) {
+		int sp = rest.Find(' ');
+		if(sp < 0) return;
+		int seat = ParseSeatToken(rest.Left(sp), line_no, raw_line);
+		String event = rest.Mid(sp + 1);
+		if(event.StartsWith("name=")) {
+			h.named[seat] = true;
+			h.balance[seat] = event.Find("balance=") >= 0;
+		known_name[seat] = h.named[seat];
+		known_balance[seat] = h.balance[seat];
+			return;
+		}
+		if(event == "wins") {
+			h.winners++;
+			return;
+		}
+		if(event.StartsWith("shows ")) {
+			h.shows++;
+			return;
+		}
+		if(event == "fold" || event == "check" || event.StartsWith("call")
+		   || event.StartsWith("bet ") || event.StartsWith("raise ")) {
+			if(h.last_action_seat == seat && h.last_action_second == second)
+				AddAuditError(h, Format("duplicate action for seat%d at %02d:%02d:%02d",
+			                              seat + 1, second / 3600, (second / 60) % 60, second % 60));
+			if(event == "check" && h.street_bet > 0)
+				AddAuditError(h, Format("seat%d checked while a street bet of %d x0.1BB was outstanding", seat + 1, h.street_bet));
+			if(event.StartsWith("bet ") && h.street_bet > 0)
+				AddAuditError(h, Format("seat%d bet after a street bet already existed; expected raise", seat + 1));
+			if(event.StartsWith("raise ") && h.street_bet == 0)
+				AddAuditError(h, Format("seat%d raised without an outstanding bet", seat + 1));
+			if(event.StartsWith("bet ") || event.StartsWith("raise ") || event.StartsWith("call ")) {
+				int p = event.Find(' ');
+				if(p >= 0) {
+					String amount = TrimBoth(event.Mid(p + 1));
+					int paren = amount.Find(" (pot ");
+					if(paren >= 0) amount = amount.Left(paren);
+					if(amount.StartsWith("all-in ")) amount = amount.Mid(7);
+					try {
+						int value = ParseBBAmountX10(amount, line_no, raw_line);
+						if(event.StartsWith("bet ") || event.StartsWith("raise ")) h.street_bet = value;
+					}
+					catch(const Exc&) {}
+				}
+			}
+			h.actions[min(h.street, 3)]++;
+			h.last_action_seat = seat;
+			h.last_action_second = second;
+		}
+		return;
+	}
+	if(rest.StartsWith("flop ")) {
+		if(h.street != 0) AddAuditError(h, "flop event out of street order");
+		h.street = 1;
+		h.street_bet = 0;
+		return;
+	}
+	if(rest.StartsWith("turn ")) {
+		if(h.street != 1) AddAuditError(h, "turn event out of street order");
+		h.street = 2;
+		h.street_bet = 0;
+		return;
+	}
+	if(rest.StartsWith("river ")) {
+		if(h.street != 2) AddAuditError(h, "river event out of street order");
+		h.street = 3;
+		h.street_bet = 0;
+	}
+}
+
+static void PrintHandAudits(const Vector<HandAudit>& audits)
+{
+	int valid = 0, warnings = 0, errors = 0;
+	for(const HandAudit& h : audits) {
+		bool is_valid = h.errors.IsEmpty() && h.warnings.IsEmpty();
+		valid += is_valid;
+		warnings += h.warnings.GetCount();
+		errors += h.errors.GetCount();
+		Cout() << Format("hand_audit window=%c hand=%d valid=%d warnings=%d errors=%d actions=%d/%d/%d/%d shows=%d winners=%d\n",
+		                 h.window, h.hand, is_valid, h.warnings.GetCount(), h.errors.GetCount(),
+		                 h.actions[0], h.actions[1], h.actions[2], h.actions[3], h.shows, h.winners);
+		for(const String& issue : h.warnings) Cout() << "  warning: " << issue << "\n";
+		for(const String& issue : h.errors) Cout() << "  error: " << issue << "\n";
+	}
+	Cout() << Format("hand_audit_summary valid=%d warnings=%d errors=%d total=%d\n",
+	                 valid, warnings, errors, audits.GetCount());
+	Cout().Flush();
+}
+
 static Vector<TexasHoldemLogicState> ParseSidecar(const String& path, String& out_legend_summary,
-	                                              String& out_window_summary)
+	                                              String& out_window_summary,
+	                                              Vector<HandAudit>& out_audits,
+	                                              bool validate_hands)
 {
 	String content = LoadFile(path);
 	if(content.IsEmpty())
@@ -664,6 +848,10 @@ static Vector<TexasHoldemLogicState> ParseSidecar(const String& path, String& ou
 	int base_ts[2] = { 0, 0 };
 	int prev_frame_id[2] = { -1, -1 };
 	int window_records[2] = { 0, 0 };
+	HandAudit audits[2];
+	int hand_numbers[2] = { 0, 0 };
+	bool known_name[2][6] = {};
+	bool known_balance[2][6] = {};
 
 	for(; i < raw_lines.GetCount(); i++) {
 		String raw_line = TrimBoth(raw_lines[i]);
@@ -686,6 +874,12 @@ static Vector<TexasHoldemLogicState> ParseSidecar(const String& path, String& ou
 		int frame_id = max(elapsed, prev_frame_id[window_index] + 1);
 		prev_frame_id[window_index] = frame_id;
 
+		if(validate_hands) {
+			if(rest.StartsWith("new hand")) hand_numbers[window_index]++;
+			AuditSidecarEvent(out_audits, audits[window_index], window, hand_numbers[window_index],
+			                  ts_seconds, rest, line_no, raw_line,
+			                  known_name[window_index], known_balance[window_index]);
+		}
 		ApplyEvent(rs, rest, line_no, raw_line);
 
 		String event_session_id = session_id;
@@ -693,6 +887,10 @@ static Vector<TexasHoldemLogicState> ParseSidecar(const String& path, String& ou
 		TexasHoldemLogicState st = Emit(rs, frame_id, (int64)ts_seconds * 1000, event_session_id);
 		out.Add(pick(st));
 		window_records[window_index]++;
+	}
+	if(validate_hands) {
+		FinishHandAudit(audits[0], out_audits);
+		FinishHandAudit(audits[1], out_audits);
 	}
 	out_window_summary = Format("R=%d, L=%d", window_records[0], window_records[1]);
 	return out;
@@ -712,14 +910,16 @@ GUI_APP_MAIN
 
 	const Vector<String>& args = CommandLine();
 	String sidecar_path, out_jsonl_path;
+	bool validate_hands = true;
 	for(int i = 0; i < args.GetCount(); i++) {
 		if(args[i] == "--sidecar" && i + 1 < args.GetCount()) sidecar_path = args[++i];
 		else if(args[i] == "--out-jsonl" && i + 1 < args.GetCount()) out_jsonl_path = args[++i];
+		else if(args[i] == "--no-validate-hands") validate_hands = false;
 	}
 
 	if(sidecar_path.IsEmpty() || out_jsonl_path.IsEmpty()) {
 		Cout() << "VideoSidecarGroundTruthParser CLI (Task 0262)\n"
-		       << "Usage: VideoSidecarGroundTruthParser --sidecar <sidecar.txt> --out-jsonl <out.jsonl>\n";
+		       << "Usage: VideoSidecarGroundTruthParser --sidecar <sidecar.txt> --out-jsonl <out.jsonl> [--no-validate-hands]\n";
 		SetExitCode(1);
 		return;
 	}
@@ -730,9 +930,10 @@ GUI_APP_MAIN
 	}
 
 	Vector<TexasHoldemLogicState> records;
+	Vector<HandAudit> audits;
 	String legend_summary, window_summary;
 	try {
-		records = ParseSidecar(sidecar_path, legend_summary, window_summary);
+		records = ParseSidecar(sidecar_path, legend_summary, window_summary, audits, validate_hands);
 	}
 	catch(const Exc& e) {
 		Cerr() << "PARSE ERROR: " << e << "\n";
@@ -743,6 +944,9 @@ GUI_APP_MAIN
 	Cout() << "Seat-position legend (local to this recording, not consumed by the emitted schema): " << legend_summary << "\n";
 	Cout() << "Window records: " << window_summary << "\n";
 	Cout() << "Parsed " << records.GetCount() << " event line(s) from " << sidecar_path << "\n";
+	if(validate_hands)
+		PrintHandAudits(audits);
+	Cout().Flush();
 
 	String out_text;
 	for(const TexasHoldemLogicState& st : records)

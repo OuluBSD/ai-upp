@@ -276,6 +276,71 @@ void TestDistributedObservedRemoval() {
 	Cout() << "TestDistributedObservedRemoval passed\n";
 }
 
+DistributedBufferedEvent MakeBufferedEvent(const char* identity, int64 sequence,
+	                                         int participant)
+{
+	DistributedBufferedEvent event;
+	event.identity = identity;
+	event.sequence = sequence;
+	event.timestamp = sequence * 10;
+	event.observation.participant = participant;
+	event.observation.kind = DISTRIBUTED_ACTION_PASSIVE;
+	return event;
+}
+
+void TestDistributedEventBufferOrdering() {
+	DistributedEventBuffer buffer;
+	ASSERT(buffer.Push(MakeBufferedEvent("second", 2, 1)));
+	ASSERT(buffer.Push(MakeBufferedEvent("first", 1, 0)));
+	DistributedEventBufferResult result = buffer.Drain();
+	ASSERT(result.batches.GetCount() == 2);
+	ASSERT(result.batches[0].order_key == 1);
+	ASSERT(result.batches[1].order_key == 2);
+	Cout() << "TestDistributedEventBufferOrdering passed\n";
+}
+
+void TestDistributedEventBufferSameTimeBatch() {
+	DistributedEventBuffer buffer;
+	DistributedBufferedEvent second = MakeBufferedEvent("second", -1, 1);
+	DistributedBufferedEvent first = MakeBufferedEvent("first", -1, 0);
+	second.timestamp = first.timestamp = 100;
+	ASSERT(buffer.Push(second));
+	ASSERT(buffer.Push(first));
+	DistributedEventBufferResult result = buffer.Drain();
+	ASSERT(result.batches.GetCount() == 1);
+	ASSERT(result.batches[0].events.GetCount() == 2);
+	ASSERT(result.batches[0].events[0].identity == "first");
+	Cout() << "TestDistributedEventBufferSameTimeBatch passed\n";
+}
+
+void TestDistributedEventBufferConflictsAndLateEvents() {
+	DistributedEventBuffer buffer;
+	DistributedBufferedEvent event = MakeBufferedEvent("stable", 5, 0);
+	ASSERT(buffer.Push(event));
+	buffer.Drain();
+	ASSERT(!buffer.Push(event));
+	event.observation.participant = 1;
+	ASSERT(!buffer.Push(event));
+	ASSERT(buffer.Push(MakeBufferedEvent("late", 4, 0)));
+	DistributedEventBufferResult result = buffer.Drain();
+	ASSERT(result.conflicts.GetCount() == 1);
+	ASSERT(result.batches.GetCount() == 1);
+	ASSERT(!result.batches[0].events[0].authoritative);
+	ASSERT(result.batches[0].events[0].late);
+	Cout() << "TestDistributedEventBufferConflictsAndLateEvents passed\n";
+}
+
+void TestDistributedEventBufferOverflow() {
+	DistributedEventBuffer buffer(1);
+	ASSERT(buffer.Push(MakeBufferedEvent("one", 1, 0)));
+	ASSERT(!buffer.Push(MakeBufferedEvent("two", 2, 1)));
+	DistributedEventBufferResult result = buffer.Drain();
+	ASSERT(result.batches.GetCount() == 1);
+	ASSERT(result.overflow);
+	ASSERT(result.diagnostics.GetCount() == 1);
+	Cout() << "TestDistributedEventBufferOverflow passed\n";
+}
+
 CONSOLE_APP_MAIN {
 	Cout() << "Running C++ CardGame tests...\n";
 	TestSuitFollowing();
@@ -290,5 +355,9 @@ CONSOLE_APP_MAIN {
 	TestDistributedDuplicateObservation();
 	TestDistributedPhaseGap();
 	TestDistributedObservedRemoval();
+	TestDistributedEventBufferOrdering();
+	TestDistributedEventBufferSameTimeBatch();
+	TestDistributedEventBufferConflictsAndLateEvents();
+	TestDistributedEventBufferOverflow();
 	Cout() << "All CardGame tests passed! 🐍💎✨🚀❤️🃏\n";
 }

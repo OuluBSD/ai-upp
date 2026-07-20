@@ -42,6 +42,55 @@ struct DistributedReconstructionResult : Moveable<DistributedReconstructionResul
 	bool invalid = false;
 };
 
+struct DistributedBufferedEvent : Moveable<DistributedBufferedEvent> {
+	String identity;
+	int64 sequence = -1;
+	int64 timestamp = -1;
+	DistributedActionObservation observation;
+	bool authoritative = true;
+	bool late = false;
+};
+
+struct DistributedEventBatch : Moveable<DistributedEventBatch> {
+	int64 order_key = -1;
+	bool sequence_order = false;
+	Vector<DistributedBufferedEvent> events;
+};
+
+struct DistributedEventBufferResult : Moveable<DistributedEventBufferResult> {
+	Vector<DistributedEventBatch> batches;
+	Vector<DistributedBufferedEvent> conflicts;
+	Vector<String> diagnostics;
+	bool overflow = false;
+};
+
+class DistributedEventBuffer {
+	int max_events = 256;
+	Vector<DistributedBufferedEvent> pending;
+	Vector<DistributedBufferedEvent> conflicts;
+	Vector<DistributedBufferedEvent> seen;
+	Vector<String> diagnostics;
+	Index<String> identities;
+	bool overflow = false;
+	int64 last_order_key = -1;
+	bool last_sequence_order = false;
+	bool has_last_order = false;
+
+	static bool Equivalent(const DistributedBufferedEvent& a,
+	                       const DistributedBufferedEvent& b);
+	static int Compare(const DistributedBufferedEvent& a,
+	                   const DistributedBufferedEvent& b);
+
+public:
+	DistributedEventBuffer() = default;
+	DistributedEventBuffer(int max_events);
+
+	bool Push(const DistributedBufferedEvent& event);
+	DistributedEventBufferResult Drain();
+	void Clear();
+	int GetPendingCount() const { return pending.GetCount(); }
+};
+
 class DistributedEventReconstructor {
 public:
 	DistributedReconstructionResult Reconstruct(

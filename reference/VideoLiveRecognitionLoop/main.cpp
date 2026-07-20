@@ -44,8 +44,8 @@ using namespace Upp;
 //   --offline-frames DIR  Runs the full stages-1..4 pipeline over the dataset's
 //                         own source frames (frame_%06d.jpg) for per-stage
 //                         timing, deterministic, no server needed.
-//   --sidecar2            Runs that same offline pipeline and emits only
-//                         recognized, parser-shaped sidecar events.
+//   --sidecar2            Decodes an MP4 directly and emits only recognized,
+//                         parser-shaped sidecar events at one PTS frame/second.
 //   --live                Continuous loop against a running VideoServer (the
 //                         real Task 0278/0279 live source).
 // ===========================================================================
@@ -2806,6 +2806,7 @@ static int RunGui(const String& host, int port, const String& dataset_path,
 // HH:MM:SS in seconds. (See each dir's FRAME_TIME_MAPPING.md.)
 // ===========================================================================
 static const char* kSidecarPath = "bin/video_record_25min_20260716_203356.txt";
+static const char* kVideoPath = "bin/video_record_25min_20260716_203356.mp4";
 
 // sidecar seat (1..6, per the file's own header) -> mirror seat index (0..5,
 // the kSeatAnchors / RegionToSeat convention). Same mapping Task 0290c encoded
@@ -3491,13 +3492,12 @@ static int RunHoleCardTest(const String& frames_dir, const String& templates_dir
 	return 0;
 }
 
-struct Sidecar2Frame : Moveable<Sidecar2Frame> {
-	int sec = -1;
-	String path;
-};
-
 struct Sidecar2Stats {
+	int decoded_frames = 0;
 	int frames = 0;
+	int skipped_frames = 0;
+	int first_frame_second = -1;
+	int last_frame_second = -1;
 	int hands = 0;
 	int board_events = 0;
 	int actions = 0;
@@ -3557,50 +3557,6 @@ static bool LoadSidecar2Legend(const String& path, String& output)
 	       << "# showdown recognition is limited to the three measured kHoleRegions seats.\n"
 	       << "# Change checked=n to checked=y only after manual review of that hand.\n\n";
 	return true;
-}
-
-static int Sidecar2FrameSecond(const String& path)
-{
-	String title = GetFileTitle(path);
-	int underscore = title.ReverseFind('_');
-	if(underscore < 0 || underscore + 1 >= title.GetCount()) return -1;
-	String number = title.Mid(underscore + 1);
-	for(int i = 0; i < number.GetCount(); i++)
-		if(number[i] < '0' || number[i] > '9') return -1;
-	return StrInt(number);
-}
-
-static Vector<Sidecar2Frame> CollectSidecar2Frames(const String& frames_dir,
-	                                                int start_second, int max_frames)
-{
-	Vector<String> dirs;
-	if(frames_dir.IsEmpty())
-		dirs = ResolveFrameDirs("");
-	else
-		dirs.Add(frames_dir);
-
-	VectorMap<int, String> by_second;
-	for(const String& dir : dirs) {
-		Vector<String> paths = FindAllPaths(dir, "*.jpg");
-		for(const String& path : paths) {
-			int sec = Sidecar2FrameSecond(path);
-			if(sec < start_second || by_second.Find(sec) >= 0) continue;
-			by_second.Add(sec, path);
-		}
-	}
-
-	Vector<Sidecar2Frame> frames;
-	for(int i = 0; i < by_second.GetCount(); i++) {
-		Sidecar2Frame& frame = frames.Add();
-		frame.sec = by_second.GetKey(i);
-		frame.path = by_second[i];
-	}
-	Sort(frames, [](const Sidecar2Frame& left, const Sidecar2Frame& right) {
-		return left.sec < right.sec;
-	});
-	if(max_frames > 0 && frames.GetCount() > max_frames)
-		frames.SetCount(max_frames);
-	return frames;
 }
 
 static String CleanSidecar2Name(const String& raw)
@@ -3690,9 +3646,10 @@ static void CountSidecar2PartialSeats(const ResolveState& state, int hand_start_
 	}
 }
 
-static int RunSidecar2(const String& frames_dir, const String& dataset_path,
+static int RunSidecar2(const String& video_path, const String& dataset_path,
 	                   const String& source_sidecar, const String& requested_output,
-	                   int start_second, int max_frames, bool verbose, int ocr_cap,
+	                   int start_second, int end_second, int max_frames,
+	                   bool verbose, int ocr_cap,
 	                   bool ocr_cache_enabled, int ocr_cache_threshold)
 {
 	String output_path = requested_output;
@@ -3707,16 +3664,24 @@ static int RunSidecar2(const String& frames_dir, const String& dataset_path,
 		return 1;
 	}
 
-	Vector<Sidecar2Frame> frames = CollectSidecar2Frames(frames_dir, start_second, max_frames);
-	if(frames.IsEmpty()) {
-		Cerr() << "ERROR: no frame_%06d.jpg files found for sidecar2 generation\n";
+	VsmVideoFileFrameSource video;
+	if(!video.Open(video_path)) {
+		Cerr() << "ERROR: cannot open direct MP4 source: " << video.GetLastError() << "\n";
+		return 1;
+	}
+	if(start_second > 0 && !video.SeekMs((int64)start_second * 1000)) {
+		Cerr() << "ERROR: cannot seek direct MP4 source: " << video.GetLastError() << "\n";
 		return 1;
 	}
 
 	Cout() << "=== Mode: sidecar2 (recognized signals only) ===\n";
+	Cout() << "video_source=direct-libavcodec file=" << video_path << "\n";
+	Cout() << "video_info=" << video.GetSourceInfo() << "\n";
 	Cout() << "source_sidecar=" << source_sidecar << "\n";
 	Cout() << "output=" << output_path << "\n";
-	Cout() << Format("frames=%d seconds=[%d..%d]\n", frames.GetCount(), frames[0].sec, frames.Top().sec);
+	Cout() << "range_start_second=" << start_second
+	       << " range_end_second=" << end_second
+	       << " max_processed_frames=" << max_frames << "\n";
 
 	VsmLiveRegionClassifier classifier;
 	if(classifier.Load(dataset_path) == 0) {
@@ -3776,21 +3741,41 @@ static int RunSidecar2(const String& frames_dir, const String& dataset_path,
 	bool hole_emitted[3] = { false, false, false };
 	bool hole_unresolved[3] = { false, false, false };
 	double started_ms = NowMs();
+	int next_sample_second = start_second;
 
-	for(const Sidecar2Frame& frame : frames) {
+	for(;;) {
+		if(max_frames > 0 && stats.frames >= max_frames)
+			break;
 		VsmImageBuffer buffer;
+		int64 pts_ms = -1;
 		double acquire_started = NowMs();
-		if(!LoadJpgToBuffer(frame.path, buffer)) {
-			stats.omitted_signals++;
-			continue;
+		if(!video.ReadFrame(buffer, pts_ms)) {
+			if(!video.IsEof()) {
+				Cerr() << "ERROR: direct MP4 decode failed: " << video.GetLastError() << "\n";
+				return 1;
+			}
+			break;
 		}
-		VsmFrameImage table = CropBufferToFrame(buffer, kTableRect);
 		stages.acquire.Add(NowMs() - acquire_started);
+		stats.decoded_frames++;
+		if(pts_ms < (int64)start_second * 1000)
+			continue;
+		if(end_second >= 0 && pts_ms >= (int64)end_second * 1000)
+			break;
+		if(pts_ms < 0)
+			continue;
+		int frame_second = (int)(pts_ms / 1000);
+		if(frame_second < next_sample_second)
+			continue;
+		next_sample_second = frame_second + 1;
+		VsmFrameImage table = CropBufferToFrame(buffer, kTableRect);
 		if(table.IsEmpty()) {
 			stats.omitted_signals++;
 			continue;
 		}
 		stats.frames++;
+		if(stats.first_frame_second < 0) stats.first_frame_second = frame_second;
+		stats.last_frame_second = frame_second;
 
 		bool folded_before[6];
 		double bet_before[6], round_before[6];
@@ -3813,14 +3798,14 @@ static int RunSidecar2(const String& frames_dir, const String& dataset_path,
 
 		int present_count = 0;
 		int returned_count = 0;
-		if(redeal_window_sec >= 0 && frame.sec - redeal_window_sec > 3) {
+		if(redeal_window_sec >= 0 && frame_second - redeal_window_sec > 3) {
 			redeal_window_sec = -1;
 			for(int seat = 0; seat < 6; seat++) redeal_returned[seat] = false;
 		}
 		for(int seat = 0; seat < 6; seat++) {
 			if(state.seat_cards_present[seat] == 1) present_count++;
 			if(cards_before[seat] == 0 && state.seat_cards_present[seat] == 1) {
-				if(redeal_window_sec < 0) redeal_window_sec = frame.sec;
+				if(redeal_window_sec < 0) redeal_window_sec = frame_second;
 				redeal_returned[seat] = true;
 			}
 			if(redeal_returned[seat]) returned_count++;
@@ -3866,7 +3851,7 @@ static int RunSidecar2(const String& frames_dir, const String& dataset_path,
 				int dealer = MirrorToSidecarSeat(dealer_mirror);
 				int small_blind = dealer % 6 + 1;
 				int big_blind = small_blind % 6 + 1;
-				AddSidecar2Event(output, frame.sec,
+				AddSidecar2Event(output, frame_second,
 				    Format("new hand, dealer=seat%d, smallblind=seat%d, bigblind=seat%d",
 				           dealer, small_blind, big_blind));
 				stats.hands++;
@@ -3874,7 +3859,7 @@ static int RunSidecar2(const String& frames_dir, const String& dataset_path,
 				hand_open = true;
 				pending_hand = false;
 				hand_start_frame = loop_stats.frames;
-				hand_open_sec = frame.sec;
+				hand_open_sec = frame_second;
 				hand_has_progress = false;
 				hand_has_showdown = false;
 				state.dealer_seat_video = dealer_mirror;
@@ -3887,7 +3872,7 @@ static int RunSidecar2(const String& frames_dir, const String& dataset_path,
 				bool fresh_name = state.seat_name_frame[seat] >= hand_start_frame;
 				bool fresh_stack = state.seat_stack_frame[seat] >= hand_start_frame;
 				if(!fresh_name || !fresh_stack || state.seat_stack[seat] < 0
-				   || frame.sec - hand_open_sec > 10) continue;
+				   || frame_second - hand_open_sec > 10) continue;
 				String name = CleanSidecar2Name(state.seat_name[seat]);
 				if(name.IsEmpty()) continue;
 				bool profile_read_this_frame = state.seat_name_frame[seat] == loop_stats.frames
@@ -3905,7 +3890,7 @@ static int RunSidecar2(const String& frames_dir, const String& dataset_path,
 				if(name == emitted_name[seat] && fabs(state.seat_stack[seat] - emitted_stack[seat]) < 0.001)
 					continue;
 				int sidecar_seat = MirrorToSidecarSeat(seat);
-				AddSidecar2Event(output, frame.sec,
+				AddSidecar2Event(output, frame_second,
 				    Format("seat%d name=\"%s\" balance=%s", sidecar_seat, ~name,
 				           ~FormatSidecar2Bb(state.seat_stack[seat])));
 				emitted_name[seat] = name;
@@ -3919,13 +3904,13 @@ static int RunSidecar2(const String& frames_dir, const String& dataset_path,
 			if(action_this_frame && !hand_has_showdown) {
 				String action = state.seat_action[action_seat];
 				bool duplicate = action == last_action_text[action_seat]
-				              && frame.sec - last_action_sec[action_seat] <= 2;
+				              && frame_second - last_action_sec[action_seat] <= 2;
 				if(!duplicate) {
 					last_action_text[action_seat] = action;
-					last_action_sec[action_seat] = frame.sec;
+					last_action_sec[action_seat] = frame_second;
 					if(action == "Fold") {
 						if(!fold_emitted[action_seat]) {
-							AddSidecar2Event(output, frame.sec,
+							AddSidecar2Event(output, frame_second,
 							    Format("seat%d fold", MirrorToSidecarSeat(action_seat)));
 							fold_emitted[action_seat] = true;
 							stats.actions++;
@@ -3954,7 +3939,7 @@ static int RunSidecar2(const String& frames_dir, const String& dataset_path,
 							                      ~ToLower(action));
 							if(amount >= 0) event << " " << FormatSidecar2Bb(amount);
 							if(state.last_pot >= 0) event << " (pot " << FormatSidecar2Bb(state.last_pot) << ")";
-							AddSidecar2Event(output, frame.sec, event);
+							AddSidecar2Event(output, frame_second, event);
 							stats.actions++;
 							hand_has_progress = true;
 						}
@@ -3965,7 +3950,7 @@ static int RunSidecar2(const String& frames_dir, const String& dataset_path,
 			for(int seat = 0; seat < 6; seat++) {
 				if(!hand_has_showdown && !folded_before[seat] && state.seat_folded[seat]
 				   && !fold_emitted[seat]) {
-					AddSidecar2Event(output, frame.sec,
+					AddSidecar2Event(output, frame_second,
 					    Format("seat%d fold", MirrorToSidecarSeat(seat)));
 					fold_emitted[seat] = true;
 					stats.actions++;
@@ -3986,7 +3971,7 @@ static int RunSidecar2(const String& frames_dir, const String& dataset_path,
 					else if(state.board_count == 5) event = "river " + cards.Right(2);
 					if(!event.IsEmpty()) {
 						if(state.last_pot >= 0) event << " (pot " << FormatSidecar2Bb(state.last_pot) << ")";
-						AddSidecar2Event(output, frame.sec, event);
+						AddSidecar2Event(output, frame_second, event);
 						stats.board_events++;
 						hand_has_progress = true;
 						for(int seat = 0; seat < 6; seat++) last_action_text[seat].Clear();
@@ -4017,7 +4002,7 @@ static int RunSidecar2(const String& frames_dir, const String& dataset_path,
 						hole_streak[region_index] = 1;
 					}
 					if(hole_streak[region_index] >= 2 && !hole_emitted[region_index]) {
-						AddSidecar2Event(output, frame.sec,
+						AddSidecar2Event(output, frame_second,
 						    Format("seat%d shows %s", MirrorToSidecarSeat(region.mirror), ~cards));
 						hole_emitted[region_index] = true;
 						stats.showdowns++;
@@ -4053,7 +4038,15 @@ static int RunSidecar2(const String& frames_dir, const String& dataset_path,
 
 	SidecarGT parsed = ParseSidecarGT(output_path);
 	double elapsed_seconds = (NowMs() - started_ms) / 1000.0;
+	stats.decoded_frames = (int)video.GetDecodedFrameCount();
+	stats.skipped_frames = stats.decoded_frames - stats.frames;
+	int elapsed_frame_seconds = stats.first_frame_second < 0 ? 0
+	                          : stats.last_frame_second - stats.first_frame_second + 1;
 	Cout() << "\n=== Sidecar2 counters ===\n";
+	Cout() << "decoded_frames=" << stats.decoded_frames
+	       << " processed_frames=" << stats.frames
+	       << " skipped_frames=" << stats.skipped_frames
+	       << " elapsed_frame_seconds=" << elapsed_frame_seconds << "\n";
 	Cout() << "frames=" << stats.frames << " hands=" << stats.hands
 	       << " board_events=" << stats.board_events << " actions=" << stats.actions
 	       << " showdowns=" << stats.showdowns << " omitted_signals=" << stats.omitted_signals
@@ -4452,8 +4445,9 @@ GUI_APP_MAIN
 
 	const Vector<String>& args = CommandLine();
 	String mode, host = "127.0.0.1", frames_dir, dataset = kDatasetDefault;
+	String video_path = kVideoPath;
 	int port = 8082, seconds = 30, max_frames = 0, wait_timeout_ms = 4000;
-	int start_second = 0;
+	int start_second = 0, end_second = -1;
 	int ocr_cap = -1; // -1 = unlimited, 0 = OCR off, N = up to N OCR calls/frame
 	bool verbose = false, use_engine = true;
 	bool sidecar2_short = false, sidecar2_full = false;
@@ -4481,9 +4475,11 @@ GUI_APP_MAIN
 		else if(args[i] == "--ocr-accuracy-test") mode = "ocracc";    // Task 0291a item 5
 		else if(args[i] == "--line-corner-test") mode = "linecorner"; // Task 0291b
 		else if(args[i] == "--frames-dir" && i + 1 < args.GetCount()) frames_dir = args[++i];
+		else if(args[i] == "--video" && i + 1 < args.GetCount()) video_path = args[++i];
 		else if(args[i] == "--source-sidecar" && i + 1 < args.GetCount()) source_sidecar = args[++i];
 		else if(args[i] == "--sidecar2-out" && i + 1 < args.GetCount()) sidecar2_output = args[++i];
 		else if(args[i] == "--start-second" && i + 1 < args.GetCount()) start_second = max(0, StrInt(args[++i]));
+		else if(args[i] == "--end-second" && i + 1 < args.GetCount()) end_second = StrInt(args[++i]);
 		else if(args[i] == "--short-sample") sidecar2_short = true;
 		else if(args[i] == "--full-run") sidecar2_full = true;
 		else if(args[i] == "--templates" && i + 1 < args.GetCount()) g_templates_dir = args[++i];
@@ -4508,7 +4504,7 @@ GUI_APP_MAIN
 		       << "Modes:\n"
 		       << "  --classify-selftest        Leave-one-out classifier accuracy over the dataset\n"
 		       << "  --offline-frames <dir>     Full pipeline over dataset source frames (timing)\n"
-		       << "  --sidecar2                 Generate recognized-data sidecar from offline frames\n"
+		       << "  --sidecar2                 Generate recognized-data sidecar directly from MP4\n"
 		       << "  --live                     Continuous loop against a running VideoServer\n"
 		       << "  --gui                      Live mirror window of the driven Game (Task 0281);\n"
 		       << "                               background recognition loop + main-thread TopWindow,\n"
@@ -4529,15 +4525,17 @@ GUI_APP_MAIN
 		       << "Options:\n"
 		       << "  --host <h> --port <p>       VideoServer address (default 127.0.0.1:8082)\n"
 		       << "  --seconds <n>               Live run duration (default 30)\n"
-		       << "  --max-frames <n>            Cap frames in offline/sidecar2 mode\n"
+		       << "  --max-frames <n>            Cap offline frames or processed sidecar2 PTS seconds\n"
 		       << "  --wait-timeout-ms <n>       Live source wait timeout (default 4000)\n"
 		       << "  --dataset <path>            Labeled dataset (default " << kDatasetDefault << ")\n"
-		       << "  --frames-dir <dir>          Real frames for tests or sidecar2 generation\n"
+		       << "  --frames-dir <dir>          Real JPEG frames for non-sidecar offline tests\n"
+		       << "  --video <path>              Sidecar2 MP4 source; default " << kVideoPath << "\n"
 		       << "  --source-sidecar <path>     Legend source; default " << kSidecarPath << "\n"
 		       << "  --sidecar2-out <path>       Output path; default next to source as *_sidecar2.txt\n"
-		       << "  --start-second <n>          Ignore frames before this filename second\n"
-		       << "  --short-sample              Sidecar2 safety cap of 120 frames (default)\n"
-		       << "  --full-run                  Sidecar2 processes every frame; requires --frames-dir\n"
+		       << "  --start-second <n>          Seek to this MP4 presentation second\n"
+		       << "  --end-second <n>            Stop before this MP4 presentation second\n"
+		       << "  --short-sample              Sidecar2 safety cap of 120 PTS seconds (default)\n"
+		       << "  --full-run                  Sidecar2 processes every PTS second through EOF/range\n"
 		       << "  --templates <dir>           Card template library (default " << g_templates_dir << ")\n"
 		       << "  --ocr-cap <n>               Max OCR calls per frame (-1 unlimited, 0 off)\n"
 		       << "  --no-ocr                    Disable OCR stage entirely\n"
@@ -4555,8 +4553,13 @@ GUI_APP_MAIN
 		return;
 	}
 	if(mode == "sidecar2") {
-		if(sidecar2_full && frames_dir.IsEmpty()) {
-			Cerr() << "ERROR: --full-run requires --frames-dir pointing at the full fps=1 extraction\n";
+		if(!frames_dir.IsEmpty()) {
+			Cerr() << "ERROR: --frames-dir is not valid with --sidecar2; use direct --video MP4 input\n";
+			SetExitCode(1);
+			return;
+		}
+		if(end_second >= 0 && end_second <= start_second) {
+			Cerr() << "ERROR: --end-second must be greater than --start-second\n";
 			SetExitCode(1);
 			return;
 		}
@@ -4567,8 +4570,9 @@ GUI_APP_MAIN
 	int rc = 0;
 	if(mode == "selftest") rc = RunClassifySelfTest(dataset);
 	else if(mode == "offline") rc = RunOfflineFrames(frames_dir, dataset, max_frames, verbose, use_engine, ocr_cap, ocr_cache_enabled, ocr_cache_threshold);
-	else if(mode == "sidecar2") rc = RunSidecar2(frames_dir, dataset, source_sidecar,
-	                                               sidecar2_output, start_second, max_frames,
+	else if(mode == "sidecar2") rc = RunSidecar2(video_path, dataset, source_sidecar,
+	                                               sidecar2_output, start_second, end_second,
+	                                               max_frames,
 	                                               verbose, ocr_cap, ocr_cache_enabled,
 	                                               ocr_cache_threshold);
 	else if(mode == "live") rc = RunLive(host, port, seconds, dataset, verbose, use_engine, wait_timeout_ms, ocr_cap, ocr_cache_enabled, ocr_cache_threshold);

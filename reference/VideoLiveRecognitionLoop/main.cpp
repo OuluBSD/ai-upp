@@ -2517,6 +2517,12 @@ static int RunLive(const String& host, int port, int seconds, const String& data
 	CardTemplates card_templates = LoadCardTemplates(g_templates_dir); // Task 0290a
 	DealerTemplate dealer_template = LoadDealerTemplate(g_templates_dir); // Task 0290c item 1
 	VsmChangeDetectParams cdp;
+	VsmDistributedReconstructionAdapter live_reconstruction;
+	bool live_reconstruction_started = false;
+	int live_assertion_legal = 0;
+	int live_assertion_undetermined = 0;
+	int live_assertion_illegal = 0;
+	int64 live_assertion_round = 0;
 
 	int64 start = msecs();
 	int64 deadline = start + (int64)seconds * 1000;
@@ -2563,6 +2569,51 @@ static int RunLive(const String& host, int port, int seconds, const String& data
 			// true glass/capture instant -- VideoServer does not expose the
 			// latter, so this measures network+decode+process, not glass-to-glass.
 			capture_to_done_sum += (double)(msecs() - ts); capture_to_done_n++;
+			DistributedStateSnapshot current = MakeSidecar2Snapshot(rs);
+			if(!live_reconstruction_started) {
+				live_reconstruction.Begin("live", current);
+				live_reconstruction_started = true;
+			}
+			else {
+				if(rs.last_action_frame == stats.frames && rs.last_action_seat >= 0
+				   && rs.last_action_seat < 6) {
+					String action = rs.seat_action[rs.last_action_seat];
+					DistributedActionKind kind = action == "Fold"
+					                  ? DISTRIBUTED_ACTION_REMOVE
+					                  : action == "Call" || action == "Check"
+					                  ? DISTRIBUTED_ACTION_MATCH
+					                  : DISTRIBUTED_ACTION_INCREASE;
+					VsmDistributedObservation observation;
+					observation.stream = "live";
+					observation.identity = Format("frame%d-action%d", stats.frames,
+					                              rs.last_action_seat);
+					observation.participant = rs.last_action_seat;
+					observation.kind = kind;
+					observation.sequence = live_assertion_round++;
+					observation.timestamp = ts;
+					observation.source = "live-video-recognition";
+					live_reconstruction.Observe(observation);
+				}
+				DistributedServiceResult assertion = live_reconstruction.Complete(
+					"live", current, live_assertion_round, ts);
+				switch(assertion.legality.status) {
+				case DISTRIBUTED_LEGALITY_LEGAL: live_assertion_legal++; break;
+				case DISTRIBUTED_LEGALITY_ILLEGAL: live_assertion_illegal++; break;
+				default: live_assertion_undetermined++; break;
+				}
+				if(assertion.legality.status != DISTRIBUTED_LEGALITY_LEGAL
+				   || !assertion.reconstruction.diagnostics.IsEmpty()) {
+					Cout() << Format("live_assertion round=%d status=%d authoritative=%d issues=%d inferred=%d\n",
+					                 (int)live_assertion_round,
+					                 (int)assertion.legality.status,
+					                 assertion.authoritative_applied,
+					                 assertion.legality.issues.GetCount(),
+					                 assertion.reconstruction.actions.GetCount());
+					for(const String& diagnostic : assertion.reconstruction.diagnostics)
+						Cout() << "live_assertion_diagnostic=" << diagnostic << "\n";
+				}
+				live_reconstruction_started = false;
+			}
 		}
 
 		if(stats.frames > 0 && stats.frames % 25 == 0)
@@ -2606,6 +2657,9 @@ static int RunLive(const String& host, int port, int seconds, const String& data
 	       << Format(" (cache %s, threshold=%d)\n", oc.enabled ? "ENABLED" : "disabled", oc.threshold);
 	Cout() << "resolve: street_events=" << rs.street_events << " value_changes=" << rs.value_changes
 	       << " pot_reads=" << rs.pot_reads << " final_board_count=" << rs.board_count << "\n";
+	Cout() << "live_assertion legal=" << live_assertion_legal
+	       << " undetermined=" << live_assertion_undetermined
+	       << " illegal=" << live_assertion_illegal << "\n";
 	Cout() << "\n--- category distribution ---\n";
 	for(int i = 0; i < stats.category_counts.GetCount(); i++)
 		Cout() << Format("  %-26s %d\n", ~stats.category_counts.GetKey(i), stats.category_counts[i]);
@@ -4169,6 +4223,7 @@ static String ComposeSidecar2Output(const String& header, const Sidecar2WindowSt
 			copy.hand = line.hand;
 			copy.hand_start = line.hand_start;
 			copy.checked = line.checked;
+			copy.comment = line.comment;
 			copy.legality.stream = line.legality.stream;
 			copy.legality.round = line.legality.round;
 			copy.legality.timestamp = line.legality.timestamp;

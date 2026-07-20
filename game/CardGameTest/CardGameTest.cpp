@@ -264,11 +264,12 @@ void TestDistributedObservedRemoval() {
 	DistributedParticipantState& a = before.participants.Add();
 	DistributedParticipantState& b = after.participants.Add();
 	a.active = true;
-	b.active = false;
+	b.active = true;
 	Vector<DistributedActionObservation> observed;
 	DistributedActionObservation& action = observed.Add();
 	action.participant = 0;
 	action.kind = DISTRIBUTED_ACTION_REMOVE;
+	b.active = false;
 	DistributedReconstructionResult result =
 		DistributedEventReconstructor().Reconstruct(before, after, observed);
 	ASSERT(result.complete);
@@ -468,14 +469,57 @@ void TestDistributedSidecar2Writer() {
 	left.timestamp_seconds = 2;
 	left.text = "seat1 match";
 	lines.Add(pick(left));
+	DistributedSidecar2Line inferred;
+	inferred.stream = "R";
+	inferred.text = "inferred participant2 passive reason=\"forced completion\"";
+	inferred.comment = true;
+	lines.Add(pick(inferred));
 	String output = DistributedSidecar2Writer().Generate(lines);
 	ASSERT(output.Find("# R HAND 1 legal=undetermined checked=n") >= 0);
 	ASSERT(output.Find("# R HAND 1 issue=missing-event: input gap") >= 0);
 	ASSERT(output.Find("R 00:00:05: new hand, dealer=seat4") >= 0);
 	ASSERT(output.Find("L 00:00:02: seat1 match") >= 0);
+	ASSERT(output.Find("# R inferred participant2 passive reason=\"forced completion\"") >= 0);
 	ASSERT(output.Find("R 00:00:05: new hand, dealer=seat4") <
 	       output.Find("L 00:00:02: seat1 match"));
 	Cout() << "TestDistributedSidecar2Writer passed: separated streams and assertion comments OK\n";
+}
+
+void TestDistributedLegalityMatrix() {
+	DistributedStateSnapshot before, after;
+	FillScenarioSnapshot(before, "phase-1", 10, 2, 2);
+	FillScenarioSnapshot(after, "phase-1", 10, 2, 2);
+	DistributedActionObservation valid;
+	valid.participant = 0;
+	valid.kind = DISTRIBUTED_ACTION_MATCH;
+	valid.amount_known = true;
+	valid.amount = 1;
+	DistributedReconstructionResult result =
+		DistributedEventReconstructor().Reconstruct(before, after, {valid});
+	ASSERT(result.complete);
+	ASSERT(!result.invalid);
+
+	DistributedActionObservation negative = valid;
+	negative.amount = -1;
+	result = DistributedEventReconstructor().Reconstruct(before, after, {negative});
+	ASSERT(result.invalid);
+	ASSERT(!result.complete);
+
+	DistributedActionObservation removal = valid;
+	removal.kind = DISTRIBUTED_ACTION_REMOVE;
+	result = DistributedEventReconstructor().Reconstruct(before, after, {removal});
+	ASSERT(result.invalid);
+	ASSERT(!result.complete);
+
+	FillScenarioSnapshot(after, "phase-1", 10, 2, 2);
+	after.participants[0].committed = before.participants[0].committed;
+	DistributedActionObservation increase = valid;
+	increase.kind = DISTRIBUTED_ACTION_INCREASE;
+	increase.amount = 2;
+	result = DistributedEventReconstructor().Reconstruct(before, after, {increase});
+	ASSERT(result.invalid);
+	ASSERT(!result.complete);
+	Cout() << "Distributed legality matrix passed: valid=1 negative=1 removal=1 increase=1\n";
 }
 
 void TestDistributedAssertionReplayModes() {
@@ -828,5 +872,6 @@ CONSOLE_APP_MAIN {
 	TestDistributedSidecar2Writer();
 	TestDistributedAssertionReplayModes();
 	TestDistributedScenarioMatrix();
+	TestDistributedLegalityMatrix();
 	Cout() << "All CardGame tests passed! 🐍💎✨🚀❤️🃏\n";
 }

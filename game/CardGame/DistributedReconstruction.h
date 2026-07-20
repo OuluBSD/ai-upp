@@ -101,6 +101,7 @@ struct DistributedSidecar2Line : Moveable<DistributedSidecar2Line> {
 	int hand = -1;
 	bool hand_start = false;
 	bool checked = false;
+	bool comment = false;
 	DistributedLegalityReport legality;
 };
 

@@ -157,7 +157,10 @@ void DistributedSidecar2Writer::WriteStream(
 				out << Format("# %s HAND %d issue=%s: %s\n", line.stream,
 					line.hand, issue.code, issue.message);
 		}
-		out << Format("%s %s: %s\n", line.stream, Timestamp(line.timestamp_seconds), line.text);
+		if(line.comment)
+			out << Format("# %s %s\n", line.stream, line.text);
+		else
+			out << Format("%s %s: %s\n", line.stream, Timestamp(line.timestamp_seconds), line.text);
 		wrote = true;
 	}
 	if(wrote)
@@ -439,6 +442,39 @@ DistributedReconstructionResult DistributedEventReconstructor::Reconstruct(
 			result.invalid = true;
 			AddDiagnostic(result, "observation references an invalid participant");
 			continue;
+		}
+		if(action.amount_known && (!IsFin(action.amount) || action.amount < 0)) {
+			result.invalid = true;
+			AddDiagnostic(result, Format("participant %d has an invalid action amount", action.participant));
+		}
+		const DistributedParticipantState& before_participant = before.participants[action.participant];
+		const DistributedParticipantState& after_participant = after.participants[action.participant];
+		if(action.kind == DISTRIBUTED_ACTION_REMOVE) {
+			if(!before_participant.active || after_participant.active) {
+				result.invalid = true;
+				AddDiagnostic(result, Format("participant %d removal does not match active-state transition",
+				                            action.participant));
+			}
+		}
+		else {
+			if(!before_participant.active || !after_participant.active) {
+				result.invalid = true;
+				AddDiagnostic(result, Format("participant %d action is outside its active interval",
+				                            action.participant));
+			}
+			if(before_participant.committed >= 0 && after_participant.committed >= 0
+			   && after_participant.committed + 0.001 < before_participant.committed) {
+				result.invalid = true;
+				AddDiagnostic(result, Format("participant %d committed value decreased",
+				                            action.participant));
+			}
+			if(action.kind == DISTRIBUTED_ACTION_INCREASE && action.amount_known
+			   && before_participant.committed >= 0 && after_participant.committed >= 0
+			   && after_participant.committed <= before_participant.committed + 0.001) {
+				result.invalid = true;
+				AddDiagnostic(result, Format("participant %d increase has no committed increase",
+				                            action.participant));
+			}
 		}
 		if(covered[action.participant]) {
 			AddDiagnostic(result, Format("participant %d has multiple observations", action.participant));

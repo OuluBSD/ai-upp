@@ -93,6 +93,17 @@ VsmRecognizedSidecar2HandResult VsmRecognizedSidecar2::EndHand(
 		return result;
 	DistributedServiceResult service = adapter_.Complete(stream_, after, hand_,
 	                                                     timestamp_seconds);
+	for(const DistributedReconstructedAction& action : service.reconstruction.actions) {
+		if(!action.inferred)
+			continue;
+		DistributedSidecar2Line& line = lines_.Add();
+		line.stream = stream_;
+		line.timestamp_seconds = timestamp_seconds;
+		line.hand = hand_;
+		line.comment = true;
+		line.text = Format("inferred participant%d passive reason=\"%s\"",
+		                   action.observation.participant + 1, action.reason);
+	}
 	CopySidecar2Legality(result.legality, service.legality);
 	result.authoritative = service.authoritative_applied;
 	ASSERT(hand_marker_ >= 0 && hand_marker_ < lines_.GetCount());

@@ -407,7 +407,99 @@ void TestDistributedReconstructionService() {
 	Cout() << "TestDistributedReconstructionService passed\n";
 }
 
+static bool ReadArgument(const Vector<String>& args, const String& name,
+	                       String& value)
+{
+	for(int i = 0; i + 1 < args.GetCount(); i++)
+		if(args[i] == name) {
+			value = args[i + 1];
+			return true;
+		}
+	return false;
+}
+
+static int RunDistributedDiagnostics(bool permuted, bool jsonl)
+{
+	DistributedStateSnapshot before, after;
+	before.phase = after.phase = "phase-1";
+	before.total = after.total = 10;
+	for(int i = 0; i < 2; i++) {
+		DistributedParticipantState& a = before.participants.Add();
+		DistributedParticipantState& b = after.participants.Add();
+		a.active = b.active = true;
+	}
+	DistributedReconstructionService service;
+	service.Begin("diagnostic", before);
+	DistributedBufferedEvent first = MakeBufferedEvent("first", 1, 0);
+	DistributedBufferedEvent second = MakeBufferedEvent("second", 2, 1);
+	if(permuted) {
+		service.Observe("diagnostic", second);
+		service.Observe("diagnostic", first);
+	}
+	else {
+		service.Observe("diagnostic", first);
+		service.Observe("diagnostic", second);
+	}
+	DistributedServiceResult result = service.Complete("diagnostic", after);
+	int observed = 0;
+	for(const DistributedEventBatch& batch : result.buffered.batches)
+		observed += batch.events.GetCount();
+	if(jsonl) {
+		for(const DistributedEventBatch& batch : result.buffered.batches)
+			for(const DistributedBufferedEvent& event : batch.events)
+				Cout() << Format("{\"stream\":\"diagnostic\",\"identity\":\"%s\",\"kind\":\"observed\"}\n", event.identity);
+		Cout() << Format("{\"stream\":\"diagnostic\",\"complete\":%d,\"authoritative\":%d}\n",
+		                 result.reconstruction.complete, result.authoritative_applied);
+	}
+	else
+		Cout() << Format("distributed stream=diagnostic batches=%d observed=%d inferred=0 ambiguous=%d authoritative=%d permuted=%d\n",
+		                 result.buffered.batches.GetCount(), observed,
+		                 result.reconstruction.ambiguous, result.authoritative_applied,
+		                 permuted);
+	return result.authoritative_applied ? 0 : 1;
+}
+
 CONSOLE_APP_MAIN {
+	const Vector<String>& args = CommandLine();
+	bool diagnostic = false, permuted = false, jsonl = false;
+	for(const String& arg : args) {
+		diagnostic |= arg == "--distributed-diagnostics";
+		permuted |= arg == "--distributed-permuted";
+		jsonl |= arg == "--distributed-jsonl";
+	}
+	String fixture;
+	if(ReadArgument(args, "--distributed-fixture", fixture) &&
+		fixture != "basic") {
+		Cerr() << "ERROR: unknown distributed fixture: " << fixture << "\n";
+		SetExitCode(2);
+		return;
+	}
+	String timeout_text;
+	int timeout_ms = 0;
+	if(ReadArgument(args, "--distributed-timeout-ms", timeout_text)) {
+		if(timeout_text.IsEmpty() || !IsDigit(timeout_text[0])) {
+			Cerr() << "ERROR: invalid --distributed-timeout-ms\n";
+			SetExitCode(2);
+			return;
+		}
+		timeout_ms = ScanInt(timeout_text);
+		if(timeout_ms < 0 || timeout_ms > 60000) {
+			Cerr() << "ERROR: --distributed-timeout-ms must be 0..60000\n";
+			SetExitCode(2);
+			return;
+		}
+	}
+	if(diagnostic) {
+		int64 start = msecs();
+		int rc = RunDistributedDiagnostics(permuted, jsonl);
+		if(timeout_ms > 0 && msecs() - start > timeout_ms) {
+			Cerr() << "ERROR: distributed diagnostics timeout\n";
+			SetExitCode(3);
+			return;
+		}
+		SetExitCode(rc);
+		return;
+	}
 	Cout() << "Running C++ CardGame tests...\n";
 	TestSuitFollowing();
 	TestHeartsBreaking();

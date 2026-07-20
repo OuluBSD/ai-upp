@@ -1434,6 +1434,25 @@ struct PreparedRegion : Moveable<PreparedRegion> {
 	VsmOcrRequest              ocr_request;
 };
 
+static DistributedStateSnapshot MakeSidecar2Snapshot(const ResolveState& state,
+	const String& phase_override = String())
+{
+	DistributedStateSnapshot snapshot;
+	snapshot.phase = phase_override.IsEmpty()
+	               ? (state.board_count >= 5 ? "river" : state.board_count >= 4 ? "turn"
+	                  : state.board_count >= 3 ? "flop" : "preflop")
+	               : phase_override;
+	snapshot.total = state.last_pot < 0 ? 0 : state.last_pot;
+	for(int seat = 0; seat < 6; seat++) {
+		DistributedParticipantState& participant = snapshot.participants.Add();
+		participant.active = !state.seat_folded[seat];
+		participant.committed = state.seat_round_total[seat] >= 0
+		                     ? state.seat_round_total[seat]
+		                     : state.seat_bet[seat];
+	}
+	return snapshot;
+}
+
 struct PreparedTableFrame : Moveable<PreparedTableFrame> {
 	WindowDescriptor      descriptor;
 	int64                 source_sequence = -1;
@@ -3833,9 +3852,21 @@ static String FormatSidecar2Bb(double value)
 	return Format("%.4g", value) + "BB";
 }
 
+static VsmRecognizedSidecar2* g_sidecar2_sink = nullptr;
+
 static void AddSidecar2Event(String& output, char window, int sec, const String& event)
 {
 	output << window << " " << FormatSidecar2Time(sec) << ": " << event << "\n";
+	if(g_sidecar2_sink)
+		g_sidecar2_sink->AddEvent(sec, event);
+}
+
+static void AddSidecar2Action(String& output, char window, int sec, int participant,
+	DistributedActionKind kind, bool amount_known, double amount, const String& event)
+{
+	output << window << " " << FormatSidecar2Time(sec) << ": " << event << "\n";
+	if(g_sidecar2_sink)
+		g_sidecar2_sink->AddAction(sec, participant, kind, amount_known, amount, event);
 }
 
 static bool LoadSidecar2Legend(const String& path, String& output)
@@ -3976,6 +4007,7 @@ struct Sidecar2WindowState {
 	bool hole_unresolved[3];
 	String hole_emitted_cards[3];
 	bool winner_emitted = false;
+	VsmRecognizedSidecar2 sink;
 
 	Sidecar2WindowState()
 	{
@@ -4055,15 +4087,30 @@ static bool ValidateSidecar2WindowLayout(const VsmImageBuffer& buffer)
 static String ComposeSidecar2Output(const String& header, const Sidecar2WindowState *windows,
 	                                int window_count)
 {
-	String output = header;
+	Vector<DistributedSidecar2Line> lines;
 	for(int i = 0; i < window_count; i++) {
-		const Sidecar2WindowState& window = windows[i];
-		output << "# === " << window.code << " " << window.name << " window ===\n";
-		output << window.output;
-		if(!output.EndsWith("\n")) output << "\n";
-		output << "\n";
+		for(const DistributedSidecar2Line& line : windows[i].sink.GetLines()) {
+			DistributedSidecar2Line& copy = lines.Add();
+			copy.stream = line.stream;
+			copy.timestamp_seconds = line.timestamp_seconds;
+			copy.text = line.text;
+			copy.hand = line.hand;
+			copy.hand_start = line.hand_start;
+			copy.checked = line.checked;
+			copy.legality.stream = line.legality.stream;
+			copy.legality.round = line.legality.round;
+			copy.legality.timestamp = line.legality.timestamp;
+			copy.legality.status = line.legality.status;
+			copy.legality.override_applied = line.legality.override_applied;
+			copy.legality.override_reason = line.legality.override_reason;
+			for(const DistributedLegalityIssue& issue : line.legality.issues) {
+				DistributedLegalityIssue& issue_copy = copy.legality.issues.Add();
+				issue_copy.code = issue.code;
+				issue_copy.message = issue.message;
+			}
+		}
 	}
-	return output;
+	return header + DistributedSidecar2Writer().Generate(lines);
 }
 
 static Sidecar2Stats AddSidecar2Stats(const Sidecar2Stats& left, const Sidecar2Stats& right)
@@ -4239,6 +4286,7 @@ static int RunSidecar2(const String& video_path, const String& dataset_path,
 
 		for(int window_index = 0; window_index < window_count; window_index++) {
 			Sidecar2WindowState& window = windows[window_index];
+			g_sidecar2_sink = &window.sink;
 			RecognitionWindowState& recognition = window.recognition;
 			StageSet& stages = recognition.stages;
 			LoopStats& loop_stats = recognition.loop_stats;
@@ -4317,8 +4365,14 @@ static int RunSidecar2(const String& video_path, const String& dataset_path,
 		              && (board_cleared || (redealt && hand_has_progress));
 
 		if(initial_hand || next_hand) {
-			if(hand_open)
+			if(hand_open) {
 				CountSidecar2PartialSeats(state, hand_start_frame, emitted_name, stats);
+				VsmRecognizedSidecar2HandResult result = window.sink.EndHand(
+					frame_second, MakeSidecar2Snapshot(state));
+				Cout() << Format("sidecar2_assertion stream=%c hand=%d status=%d authoritative=%d issues=%d\n",
+					window.code, stats.hands, (int)result.legality.status,
+					result.authoritative ? 1 : 0, result.legality.issues.GetCount());
+			}
 			pending_hand = true;
 			hand_open = false;
 			ResetSidecar2HandState(state);
@@ -4350,10 +4404,25 @@ static int RunSidecar2(const String& video_path, const String& dataset_path,
 				int dealer = MirrorToSidecarSeat(dealer_mirror);
 				int small_blind = dealer % 6 + 1;
 				int big_blind = small_blind % 6 + 1;
-				AddSidecar2Event(window_output, window.code, frame_second,
-				    Format("new hand, dealer=seat%d, smallblind=seat%d, bigblind=seat%d",
-				           dealer, small_blind, big_blind));
+				String hand_event = Format("new hand, dealer=seat%d, smallblind=seat%d, bigblind=seat%d",
+				                           dealer, small_blind, big_blind);
+				AddSidecar2Event(window_output, window.code, frame_second, hand_event);
 				stats.hands++;
+				bool active[6];
+				double committed[6];
+				for(int seat = 0; seat < 6; seat++) { active[seat] = true; committed[seat] = 0; }
+				DistributedStateSnapshot before = DistributedStateSnapshot();
+				before.phase = "preflop";
+				before.total = 0;
+				for(int seat = 0; seat < 6; seat++) {
+					DistributedParticipantState& participant = before.participants.Add();
+					participant.active = active[seat];
+					participant.committed = committed[seat];
+				}
+				String stream_code;
+				stream_code.Cat(window.code);
+				window.sink.BeginHand(stream_code, stats.hands, frame_second,
+				                     before, hand_event);
 				if(window_count == 1 && window.code == 'R')
 					window_output << Format("# HAND %d checked=n\n", stats.hands);
 				else
@@ -4416,7 +4485,8 @@ static int RunSidecar2(const String& video_path, const String& dataset_path,
 					last_action_sec[action_seat] = frame_second;
 					if(action == "Fold") {
 						if(!fold_emitted[action_seat]) {
-							AddSidecar2Event(window_output, window.code, frame_second,
+							AddSidecar2Action(window_output, window.code, frame_second,
+							    action_seat, DISTRIBUTED_ACTION_REMOVE, false, -1,
 							    Format("seat%d fold", MirrorToSidecarSeat(action_seat)));
 							fold_emitted[action_seat] = true;
 							stats.actions++;
@@ -4439,7 +4509,11 @@ static int RunSidecar2(const String& video_path, const String& dataset_path,
 						                      action == "All In" ? "all-in" : ~ToLower(action));
 						if(amount >= 0) event << " " << FormatSidecar2Bb(amount);
 						if(state.last_pot >= 0) event << " (pot " << FormatSidecar2Bb(state.last_pot) << ")";
-						AddSidecar2Event(window_output, window.code, frame_second, event);
+						DistributedActionKind kind = action == "Call" || action == "Check"
+						                         ? DISTRIBUTED_ACTION_MATCH
+						                         : DISTRIBUTED_ACTION_INCREASE;
+						AddSidecar2Action(window_output, window.code, frame_second,
+						    action_seat, kind, amount >= 0, amount, event);
 						stats.actions++;
 						hand_has_progress = true;
 					}
@@ -4449,7 +4523,8 @@ static int RunSidecar2(const String& video_path, const String& dataset_path,
 			for(int seat = 0; seat < 6; seat++) {
 				if(!hand_has_showdown && !folded_before[seat] && state.seat_folded[seat]
 				   && !fold_emitted[seat]) {
-					AddSidecar2Event(window_output, window.code, frame_second,
+					AddSidecar2Action(window_output, window.code, frame_second,
+					    seat, DISTRIBUTED_ACTION_REMOVE, false, -1,
 					    Format("seat%d fold", MirrorToSidecarSeat(seat)));
 					fold_emitted[seat] = true;
 					stats.actions++;
@@ -4571,9 +4646,16 @@ static int RunSidecar2(const String& video_path, const String& dataset_path,
 
 	for(int window_index = 0; window_index < window_count; window_index++) {
 		Sidecar2WindowState& window = windows[window_index];
-		if(window.hand_open)
+		if(window.hand_open) {
 			CountSidecar2PartialSeats(window.recognition.resolve_state, window.hand_start_frame,
 			                          window.emitted_name, window.stats);
+			VsmRecognizedSidecar2HandResult result = window.sink.EndHand(
+				last_frame_second < 0 ? 0 : last_frame_second,
+				MakeSidecar2Snapshot(window.recognition.resolve_state));
+			Cout() << Format("sidecar2_assertion stream=%c hand=%d status=%d authoritative=%d issues=%d\n",
+				window.code, window.stats.hands, (int)result.legality.status,
+				result.authoritative ? 1 : 0, result.legality.issues.GetCount());
+		}
 		if(window.pending_hand) {
 			window.stats.omitted_signals++;
 			window.stats.omitted_dealer++;

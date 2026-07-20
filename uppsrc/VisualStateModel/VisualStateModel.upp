@@ -84,6 +84,8 @@ file
 	PipelineCache.cpp,
 	DistributedReconstructionAdapter.h,
 	DistributedReconstructionAdapter.cpp,
+	RecognizedSidecar2.h,
+	RecognizedSidecar2.cpp,
 	TestFixtures.h,
 	TestFixtures.cpp,
 	FormLayout.h,

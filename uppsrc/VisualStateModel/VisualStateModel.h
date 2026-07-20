@@ -40,6 +40,7 @@ using namespace Upp;
 #include "PipelineRunner.h"
 #include "PipelineCache.h"
 #include "DistributedReconstructionAdapter.h"
+#include "RecognizedSidecar2.h"
 #include "TestFixtures.h"
 #include "FormLayout.h"
 #include "LayoutProfile.h"

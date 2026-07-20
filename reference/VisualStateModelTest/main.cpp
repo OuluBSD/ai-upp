@@ -2164,6 +2164,35 @@ static void TestDistributedReconstructionAdapter()
 	Cout() << "VsmDistributedReconstructionAdapter: incremental and isolated streams OK\n";
 }
 
+static void TestRecognizedSidecar2()
+{
+	Cout() << "\n=== Recognized sidecar2 sink ===\n";
+	DistributedStateSnapshot before, after;
+	before.phase = "preflop";
+	after.phase = "flop";
+	before.total = after.total = 0;
+	for(int i = 0; i < 6; i++) {
+		DistributedParticipantState& a = before.participants.Add();
+		DistributedParticipantState& b = after.participants.Add();
+		a.active = b.active = true;
+		a.committed = b.committed = 0;
+	}
+	VsmRecognizedSidecar2 sink;
+	sink.BeginHand("R", 1, 5, before,
+	               "new hand, dealer=seat4, smallblind=seat5, bigblind=seat6");
+	for(int i = 0; i < 6; i++)
+		ASSERT(sink.AddAction(6 + i, i, DISTRIBUTED_ACTION_MATCH, false, -1,
+		                      Format("seat%d check", i + 1)));
+	VsmRecognizedSidecar2HandResult result = sink.EndHand(12, after);
+	ASSERT(result.authoritative);
+	ASSERT(result.legality.status == DISTRIBUTED_LEGALITY_LEGAL);
+	String output = sink.Generate();
+	ASSERT(output.Find("# R HAND 1 legal=legal checked=n") >= 0);
+	ASSERT(output.Find("R 00:00:05: new hand") >= 0);
+	ASSERT(output.Find("R 00:00:06: seat1 check") >= 0);
+	Cout() << "Recognized sidecar2 sink: six actions, shared assertion and writer OK\n";
+}
+
 // ---------------------------------------------------------------------------
 
 CONSOLE_APP_MAIN
@@ -2195,6 +2224,7 @@ CONSOLE_APP_MAIN
 	TestDeterministicReplay();
 	TestPngFrameDecode();
 	TestDistributedReconstructionAdapter();
+	TestRecognizedSidecar2();
 
 	if(GetExitCode() == 0)
 		Cout() << "\nAll VisualStateModel checks passed.\n";

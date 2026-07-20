@@ -2,6 +2,7 @@
 #define _VisualStateModel_VisualStateModel_h_
 
 #include <Core/Core.h>
+#include <CardGame/CardGame.h>
 
 using namespace Upp;
 
@@ -38,6 +39,7 @@ using namespace Upp;
 #include "MjpegParser.h"
 #include "PipelineRunner.h"
 #include "PipelineCache.h"
+#include "DistributedReconstructionAdapter.h"
 #include "TestFixtures.h"
 #include "FormLayout.h"
 #include "LayoutProfile.h"

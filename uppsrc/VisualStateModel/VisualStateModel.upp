@@ -2,6 +2,7 @@ description "VisualStateModel — headless change detection and replay\377";
 
 uses
 	Core,
+	CardGame,
 	Draw,
 	Painter,
 	plugin/png,
@@ -81,6 +82,8 @@ file
 	PipelineRunner.cpp,
 	PipelineCache.h,
 	PipelineCache.cpp,
+	DistributedReconstructionAdapter.h,
+	DistributedReconstructionAdapter.cpp,
 	TestFixtures.h,
 	TestFixtures.cpp,
 	FormLayout.h,

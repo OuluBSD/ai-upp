@@ -2115,6 +2115,52 @@ static void TestPngFrameDecode()
 
 // ---------------------------------------------------------------------------
 
+static void TestDistributedReconstructionAdapter()
+{
+	Cout() << "\n=== Distributed reconstruction adapter ===\n";
+	DistributedStateSnapshot before, after;
+	before.phase = after.phase = "phase-1";
+	before.total = after.total = 10;
+	for(int i = 0; i < 2; i++) {
+		DistributedParticipantState& a = before.participants.Add();
+		DistributedParticipantState& b = after.participants.Add();
+		a.active = b.active = true;
+	}
+
+	VsmDistributedReconstructionAdapter adapter;
+	adapter.Begin("left", before);
+	VsmDistributedObservation observation;
+	observation.stream = "left";
+	observation.identity = "left-1";
+	observation.participant = 0;
+	observation.sequence = 1;
+	observation.kind = DISTRIBUTED_ACTION_PASSIVE;
+	ASSERT(adapter.Observe(observation));
+	DistributedServiceResult result = adapter.Complete("left", after);
+	ASSERT(result.authoritative_applied);
+	ASSERT(result.reconstruction.complete);
+	ASSERT(result.reconstruction.actions.GetCount() == 2);
+
+	adapter.Begin("right", before);
+	DistributedStateSnapshot changed;
+	changed.phase = after.phase;
+	changed.total = after.total;
+	for(const DistributedParticipantState& participant : after.participants) {
+		DistributedParticipantState& copy = changed.participants.Add();
+		copy.active = participant.active;
+		copy.committed = participant.committed;
+	}
+	changed.total = 20;
+	result = adapter.Complete("right", changed);
+	ASSERT(!result.authoritative_applied);
+	DistributedStateSnapshot authoritative;
+	ASSERT(adapter.GetAuthoritative("right", authoritative));
+	ASSERT(authoritative.total == before.total);
+	Cout() << "VsmDistributedReconstructionAdapter: incremental and isolated streams OK\n";
+}
+
+// ---------------------------------------------------------------------------
+
 CONSOLE_APP_MAIN
 {
 	StdLogSetup(LOG_COUT | LOG_FILE);
@@ -2143,6 +2189,7 @@ CONSOLE_APP_MAIN
 	TestCardGameConsistency();
 	TestDeterministicReplay();
 	TestPngFrameDecode();
+	TestDistributedReconstructionAdapter();
 
 	if(GetExitCode() == 0)
 		Cout() << "\nAll VisualStateModel checks passed.\n";

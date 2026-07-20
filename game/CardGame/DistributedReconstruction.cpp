@@ -76,7 +76,7 @@ DistributedReconstructionResult DistributedEventReconstructor::Reconstruct(
 				DistributedReconstructedAction& inferred = result.actions.Add();
 				inferred.observation.participant = participant;
 				inferred.observation.kind = DISTRIBUTED_ACTION_PASSIVE;
-				inferred.observation.timestamp = after.total >= 0 ? 0 : -1;
+				inferred.observation.timestamp = -1;
 				inferred.inferred = true;
 				inferred.reason = "only passive completion preserves phase and total";
 			}

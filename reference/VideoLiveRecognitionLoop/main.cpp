@@ -4521,9 +4521,9 @@ static int RunSidecar2(const String& video_path, const String& dataset_path,
 
 		if(hand_open) {
 			for(int seat = 0; seat < 6; seat++) {
-				bool fresh_name = state.seat_name_frame[seat] >= hand_start_frame;
-				bool fresh_stack = state.seat_stack_frame[seat] >= hand_start_frame;
-				if((!fresh_name && !fresh_stack) || frame_second - hand_open_sec > 10) continue;
+				bool fresh_name = state.seat_name_frame[seat] == loop_stats.frames;
+				bool fresh_stack = state.seat_stack_frame[seat] == loop_stats.frames;
+				if((!fresh_name && !fresh_stack) || frame_second - hand_open_sec > 30) continue;
 				String previous_name = profile_name_candidate[seat];
 				double previous_stack = profile_stack_candidate[seat];
 				if(fresh_name) {
@@ -4532,8 +4532,14 @@ static int RunSidecar2(const String& video_path, const String& dataset_path,
 				}
 				if(fresh_stack && state.seat_stack[seat] >= 0)
 					profile_stack_candidate[seat] = state.seat_stack[seat];
-				if(profile_name_candidate[seat].IsEmpty() || profile_stack_candidate[seat] < 0)
+				if(profile_name_candidate[seat].IsEmpty() || profile_stack_candidate[seat] < 0) {
+					if(g_sidecar2_diagnostics && (fresh_name || fresh_stack))
+						EmitSidecar2Diagnostic(Format("profile_pending window=%c pts=%d seat=%d name=%s stack=%.4g fresh_name=%d fresh_stack=%d",
+							window.code, frame_second, MirrorToSidecarSeat(seat),
+							profile_name_candidate[seat].IsEmpty() ? "-" : ~profile_name_candidate[seat],
+							profile_stack_candidate[seat], fresh_name ? 1 : 0, fresh_stack ? 1 : 0));
 					continue;
+				}
 				if(profile_name_candidate[seat] == previous_name
 				   && fabs(profile_stack_candidate[seat] - previous_stack) < 0.001
 				   && profile_streak[seat] > 0)
@@ -4549,6 +4555,9 @@ static int RunSidecar2(const String& video_path, const String& dataset_path,
 				AddSidecar2Event(window_output, window.code, frame_second,
 				    Format("seat%d name=\"%s\" balance=%s", sidecar_seat, ~name,
 				           ~FormatSidecar2Bb(stack)));
+				if(g_sidecar2_diagnostics)
+					EmitSidecar2Diagnostic(Format("profile_accepted window=%c pts=%d seat=%d name=\"%s\" balance=%s",
+						window.code, frame_second, sidecar_seat, ~name, ~FormatSidecar2Bb(stack)));
 				emitted_name[seat] = name;
 				emitted_stack[seat] = stack;
 				stats.seat_updates++;

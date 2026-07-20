@@ -43,6 +43,7 @@ struct DistributedReconstructionResult : Moveable<DistributedReconstructionResul
 };
 
 struct DistributedBufferedEvent : Moveable<DistributedBufferedEvent> {
+	String stream;
 	String identity;
 	int64 sequence = -1;
 	int64 timestamp = -1;
@@ -78,6 +79,7 @@ class DistributedEventBuffer {
 
 	static bool Equivalent(const DistributedBufferedEvent& a,
 	                       const DistributedBufferedEvent& b);
+	static String IdentityKey(const DistributedBufferedEvent& event);
 	static int Compare(const DistributedBufferedEvent& a,
 	                   const DistributedBufferedEvent& b);
 

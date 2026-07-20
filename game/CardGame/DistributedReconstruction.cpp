@@ -23,11 +23,17 @@ bool DistributedEventBuffer::Equivalent(const DistributedBufferedEvent& a,
 {
 	const DistributedActionObservation& x = a.observation;
 	const DistributedActionObservation& y = b.observation;
-	return a.sequence == b.sequence && a.timestamp == b.timestamp &&
+	return a.stream == b.stream && a.identity == b.identity &&
+		a.sequence == b.sequence && a.timestamp == b.timestamp &&
 		x.participant == y.participant && x.kind == y.kind &&
 		x.amount_known == y.amount_known &&
 		(!x.amount_known || fabs(x.amount - y.amount) < 0.001) &&
 		x.source == y.source;
+}
+
+String DistributedEventBuffer::IdentityKey(const DistributedBufferedEvent& event)
+{
+	return event.stream + "::" + event.identity;
 }
 
 int DistributedEventBuffer::Compare(const DistributedBufferedEvent& a,
@@ -50,10 +56,11 @@ bool DistributedEventBuffer::Push(const DistributedBufferedEvent& input)
 {
 	DistributedBufferedEvent event = input;
 	if(!event.identity.IsEmpty()) {
-		int id = identities.Find(event.identity);
+		String key = IdentityKey(event);
+		int id = identities.Find(key);
 		if(id >= 0) {
 			for(const DistributedBufferedEvent& old : seen)
-				if(old.identity == event.identity) {
+				if(IdentityKey(old) == key) {
 					if(!Equivalent(old, event)) {
 						conflicts.Add(event);
 						diagnostics.Add(Format("conflicting event identity: %s", event.identity));
@@ -62,7 +69,7 @@ bool DistributedEventBuffer::Push(const DistributedBufferedEvent& input)
 				}
 		}
 		else
-			identities.Add(event.identity);
+			identities.Add(key);
 	}
 	if(has_last_order) {
 		bool sequence_order = event.sequence >= 0;
@@ -177,7 +184,16 @@ DistributedReconstructionResult DistributedEventReconstructor::Reconstruct(
 	bool total_unchanged = SameAmount(before.total, after.total);
 	bool phase_unchanged = before.phase == after.phase;
 	if(!missing_active.IsEmpty()) {
-		if(!phase_unchanged) {
+		if(!phase_unchanged && !observed.IsEmpty() && missing_active.GetCount() == 1 &&
+			!increase_seen && total_unchanged && removed.IsEmpty()) {
+			DistributedReconstructedAction& inferred = result.actions.Add();
+			inferred.observation.participant = missing_active[0];
+			inferred.observation.kind = DISTRIBUTED_ACTION_PASSIVE;
+			inferred.observation.timestamp = -1;
+			inferred.inferred = true;
+			inferred.reason = "single passive completion is forced by the observed transition";
+		}
+		else if(!phase_unchanged) {
 			result.ambiguous = true;
 			AddDiagnostic(result, "phase changed while participant actions were missing");
 		}

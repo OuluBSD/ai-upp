@@ -288,6 +288,28 @@ DistributedBufferedEvent MakeBufferedEvent(const char* identity, int64 sequence,
 	return event;
 }
 
+void TestDistributedUniquePhaseCompletion() {
+	DistributedStateSnapshot before, after;
+	before.phase = "phase-1";
+	after.phase = "phase-2";
+	before.total = after.total = 10;
+	for(int i = 0; i < 2; i++) {
+		DistributedParticipantState& a = before.participants.Add();
+		DistributedParticipantState& b = after.participants.Add();
+		a.active = b.active = true;
+	}
+	Vector<DistributedActionObservation> observed;
+	DistributedActionObservation& action = observed.Add();
+	action.participant = 0;
+	action.kind = DISTRIBUTED_ACTION_PASSIVE;
+	DistributedReconstructionResult result =
+		DistributedEventReconstructor().Reconstruct(before, after, observed);
+	ASSERT(result.complete);
+	ASSERT(result.actions.GetCount() == 2);
+	ASSERT(result.actions[1].inferred);
+	Cout() << "TestDistributedUniquePhaseCompletion passed\n";
+}
+
 void TestDistributedEventBufferOrdering() {
 	DistributedEventBuffer buffer;
 	ASSERT(buffer.Push(MakeBufferedEvent("second", 2, 1)));
@@ -330,6 +352,21 @@ void TestDistributedEventBufferConflictsAndLateEvents() {
 	Cout() << "TestDistributedEventBufferConflictsAndLateEvents passed\n";
 }
 
+void TestDistributedEventBufferIndependentStreams() {
+	DistributedEventBuffer buffer;
+	DistributedBufferedEvent left = MakeBufferedEvent("same", 1, 0);
+	DistributedBufferedEvent right = left;
+	left.stream = "stream-a";
+	right.stream = "stream-b";
+	ASSERT(buffer.Push(left));
+	ASSERT(buffer.Push(right));
+	DistributedEventBufferResult result = buffer.Drain();
+	ASSERT(result.conflicts.IsEmpty());
+	ASSERT(result.batches.GetCount() == 1);
+	ASSERT(result.batches[0].events.GetCount() == 2);
+	Cout() << "TestDistributedEventBufferIndependentStreams passed\n";
+}
+
 void TestDistributedEventBufferOverflow() {
 	DistributedEventBuffer buffer(1);
 	ASSERT(buffer.Push(MakeBufferedEvent("one", 1, 0)));
@@ -355,9 +392,11 @@ CONSOLE_APP_MAIN {
 	TestDistributedDuplicateObservation();
 	TestDistributedPhaseGap();
 	TestDistributedObservedRemoval();
+	TestDistributedUniquePhaseCompletion();
 	TestDistributedEventBufferOrdering();
 	TestDistributedEventBufferSameTimeBatch();
 	TestDistributedEventBufferConflictsAndLateEvents();
+	TestDistributedEventBufferIndependentStreams();
 	TestDistributedEventBufferOverflow();
 	Cout() << "All CardGame tests passed! 🐍💎✨🚀❤️🃏\n";
 }

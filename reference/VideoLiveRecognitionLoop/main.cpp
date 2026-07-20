@@ -71,6 +71,49 @@ static const Rect kLeftTableRect  = RectC(8,   1, 944, 682);
 static const Rect kRightTableRect = RectC(968, 1, 944, 682);
 static const Rect kTableRect = kRightTableRect;
 
+struct WindowId : Moveable<WindowId> {
+	String value;
+
+	WindowId() {}
+	explicit WindowId(const String& value) : value(value) {}
+
+	bool operator==(const WindowId& id) const { return value == id.value; }
+	bool operator!=(const WindowId& id) const { return value != id.value; }
+};
+
+struct WindowDescriptor : Moveable<WindowDescriptor> {
+	WindowId id;
+	String   name;
+	Rect     source_rect;
+};
+
+struct WindowFrame : Moveable<WindowFrame> {
+	WindowDescriptor descriptor;
+	int64            source_sequence = -1;
+	int64            window_sequence = -1;
+	int64            timestamp_ms = -1;
+	VsmFrameImage    table;
+};
+
+static WindowDescriptor MakeWindowDescriptor(const char *id, const char *name, const Rect& rect)
+{
+	WindowDescriptor descriptor;
+	descriptor.id = WindowId(id);
+	descriptor.name = name;
+	descriptor.source_rect = rect;
+	return descriptor;
+}
+
+static Vector<WindowDescriptor> SelectWindowDescriptors(const String& mode)
+{
+	Vector<WindowDescriptor> descriptors;
+	if(mode == "both" || mode == "right")
+		descriptors.Add(MakeWindowDescriptor("R", "right", kRightTableRect));
+	if(mode == "both" || mode == "left")
+		descriptors.Add(MakeWindowDescriptor("L", "left", kLeftTableRect));
+	return descriptors;
+}
+
 static const char* kDatasetDefault = "tmp/real_recording_combined_classified_dataset.json";
 
 // Task 0290a: real, already-existing PokerStars card template library (rank
@@ -91,11 +134,23 @@ struct Stage : Moveable<Stage> {
 	int    calls = 0;
 	double max_ms = 0;
 	void Add(double ms) { total_ms += ms; calls++; if(ms > max_ms) max_ms = ms; }
+	void Merge(const Stage& stage) {
+		total_ms += stage.total_ms;
+		calls += stage.calls;
+		max_ms = max(max_ms, stage.max_ms);
+	}
 	double Avg() const { return calls ? total_ms / calls : 0; }
 };
 
 struct StageSet {
-	Stage acquire, crop, change, classify, ocr, resolve, engine;
+	Stage acquire, crop, change, structural, classify, template_match, ocr, resolve, engine;
+	void MergePrepared(const StageSet& stages) {
+		crop.Merge(stages.crop);
+		change.Merge(stages.change);
+		structural.Merge(stages.structural);
+		classify.Merge(stages.classify);
+		template_match.Merge(stages.template_match);
+	}
 	void Print() {
 		auto row = [](const Stage& s) {
 			Cout() << Format("  %-14s calls=%-6d avg=", ~s.name, s.calls)
@@ -103,9 +158,23 @@ struct StageSet {
 			       << Format("%.3f", s.max_ms) << "ms  total="
 			       << Format("%.1f", s.total_ms) << "ms\n";
 		};
-		row(acquire); row(crop); row(change); row(classify); row(ocr); row(resolve); row(engine);
+		row(acquire); row(crop); row(change); row(structural); row(classify);
+		row(template_match); row(ocr); row(resolve); row(engine);
 	}
 };
+
+static void InitializeStageNames(StageSet& stages)
+{
+	stages.acquire.name = "acquire";
+	stages.crop.name = "crop+conv";
+	stages.change.name = "change_detect";
+	stages.structural.name = "structural_pixels";
+	stages.classify.name = "classify";
+	stages.template_match.name = "template_match";
+	stages.ocr.name = "ocr";
+	stages.resolve.name = "resolve_commit";
+	stages.engine.name = "engine_commit";
+}
 
 // ---------------------------------------------------------------------------
 // Crop a sub-rect out of a VsmImageBuffer (RGBA, w*h*4 row-major -- confirmed
@@ -134,6 +203,25 @@ static VsmFrameImage CropBufferToFrame(const VsmImageBuffer& buf, const Rect& in
 		}
 	}
 	return out;
+}
+
+static Vector<WindowFrame> FanOutSourceFrame(const VsmImageBuffer& source,
+	                                         int64 source_sequence, int64 window_sequence,
+	                                         int64 timestamp_ms,
+	                                         const Vector<WindowDescriptor>& descriptors)
+{
+	Vector<WindowFrame> frames;
+	for(const WindowDescriptor& descriptor : descriptors) {
+		WindowFrame& frame = frames.Add();
+		frame.descriptor.id = WindowId(descriptor.id.value);
+		frame.descriptor.name = descriptor.name;
+		frame.descriptor.source_rect = descriptor.source_rect;
+		frame.source_sequence = source_sequence;
+		frame.window_sequence = window_sequence;
+		frame.timestamp_ms = timestamp_ms;
+		frame.table = CropBufferToFrame(source, descriptor.source_rect);
+	}
+	return frames;
 }
 
 // Crop a sub-rect out of a VsmFrameImage (RGBA).
@@ -1337,44 +1425,146 @@ static int FindOcrSlot(const Vector<OcrSlot>& slots, const String& category, int
 	return best;
 }
 
-// Process one already-cropped table frame against prev; returns whether prev
-// was updated (always true after first frame).
-static void ProcessTableFrame(const VsmFrameImage& table, VsmFrameImage& prev, bool has_prev,
-                              VsmLiveRegionClassifier& clf, VsmTesseractOcrEngine& ocr,
-                              bool ocr_available, const VsmChangeDetectParams& cdp,
-                              StageSet& st, LoopStats& stats, ResolveState& rs, OcrCacheState& oc,
-                              const std::shared_ptr<Game>& game, bool verbose, int ocr_cap,
-                              const CardTemplates& ct, const DealerTemplate& dt)
+struct PreparedRegion : Moveable<PreparedRegion> {
+	Rect                       rect;
+	Image                      crop;
+	VsmLiveClassifyResult      classification;
+	VsmFrameImage              ocr_crop;
+	VsmOcrRequest              ocr_request;
+};
+
+struct PreparedTableFrame : Moveable<PreparedTableFrame> {
+	WindowDescriptor      descriptor;
+	int64                 source_sequence = -1;
+	int64                 window_sequence = -1;
+	int64                 timestamp_ms = -1;
+	int                   commit_frame = -1;
+	bool                  ready = false;
+	VsmFrameImage         table;
+	Image                 table_image;
+	Vector<PreparedRegion> regions;
+	StageSet              stages;
+	int                   card_back_raw[6];
+	int                   turn_seat = -1;
+	int                   turn_strength = 0;
+	bool                  dealer_sampled = false;
+	int                   dealer_seat = -1;
+	double                dealer_score = -2;
+	Point                 dealer_center = Point(-1, -1);
+	Vector<int>           board_cards;
+	Vector<String>        board_debug;
+
+	PreparedTableFrame()
+	{
+		for(int seat = 0; seat < 6; seat++) card_back_raw[seat] = -1;
+	}
+};
+
+static PreparedTableFrame PrepareTableFrame(WindowFrame& frame, VsmFrameImage& previous,
+	                                        bool& has_previous,
+	                                        const VsmChangeDetectParams& change_params,
+	                                        const VsmLiveRegionClassifier& classifier,
+	                                        const CardTemplates& card_templates,
+	                                        const DealerTemplate& dealer_template,
+	                                        int commit_frame, bool verbose)
 {
-	if(!has_prev) return;
+	PreparedTableFrame prepared;
+	prepared.descriptor.id = WindowId(frame.descriptor.id.value);
+	prepared.descriptor.name = frame.descriptor.name;
+	prepared.descriptor.source_rect = frame.descriptor.source_rect;
+	prepared.source_sequence = frame.source_sequence;
+	prepared.window_sequence = frame.window_sequence;
+	prepared.timestamp_ms = frame.timestamp_ms;
+	prepared.commit_frame = commit_frame;
+	prepared.table = pick(frame.table);
+	if(!has_previous) {
+		previous.Set(prepared.table.width, prepared.table.height, ~prepared.table.data);
+		has_previous = true;
+		return prepared;
+	}
+
+	double started = NowMs();
+	Vector<VsmChangedRect> changed = VsmDetectChanges(previous, prepared.table, change_params);
+	prepared.stages.change.Add(NowMs() - started);
+
+	started = NowMs();
+	prepared.table_image = VsmFrameImageToImage(prepared.table);
+	prepared.stages.crop.Add(NowMs() - started);
+
+	int board_regions = 0;
+	for(const VsmChangedRect& changed_rect : changed) {
+		Rect rect = changed_rect.GetRect() & RectC(0, 0, prepared.table.width, prepared.table.height);
+		if(rect.Width() <= 0 || rect.Height() <= 0) continue;
+		PreparedRegion& region = prepared.regions.Add();
+		region.rect = rect;
+		started = NowMs();
+		region.crop = Crop(prepared.table_image, rect);
+		region.classification = classifier.Classify(region.crop, rect.left, rect.top);
+		prepared.stages.classify.Add(NowMs() - started);
+		if(region.classification.category == "board_card") board_regions++;
+		if(IsOcrCategory(region.classification.category)) {
+			region.ocr_crop = CropFrameImage(prepared.table, rect);
+			region.ocr_request.semantic = region.classification.category;
+			region.ocr_request.region_id = prepared.descriptor.id.value + ":" +
+			    Format("%d,%d,%d,%d", rect.left, rect.top, rect.Width(), rect.Height());
+			ASSERT(prepared.window_sequence >= 0 && prepared.window_sequence <= INT_MAX);
+			region.ocr_request.frame = (int)prepared.window_sequence;
+			region.ocr_request.ts = AsString(prepared.timestamp_ms);
+		}
+	}
+
+	started = NowMs();
+	for(const CardBackRegion& card_back : kCardBackRegions) {
+		if(!card_back.enabled) continue;
+		double white_fraction = CardBackWhiteFraction(prepared.table, card_back.rect);
+		if(white_fraction >= 0)
+			prepared.card_back_raw[card_back.seat] = white_fraction >= kCardBackWhiteFrac ? 1 : 0;
+	}
+	prepared.turn_seat = DetectTurnSeat(prepared.table, prepared.turn_strength);
+	prepared.stages.structural.Add(NowMs() - started);
+
+	started = NowMs();
+	static const int kDealerEveryFrames = 8;
+	if(dealer_template.ok && commit_frame % kDealerEveryFrames == 0) {
+		prepared.dealer_sampled = true;
+		prepared.dealer_seat = DetectDealerChip(prepared.table, dealer_template,
+		                                          prepared.dealer_score, prepared.dealer_center);
+	}
+	if(board_regions > 0 && card_templates.ok)
+		prepared.board_cards = RecognizeBoardCards(prepared.table, card_templates,
+		                                            verbose ? &prepared.board_debug : nullptr);
+	if(prepared.dealer_sampled || board_regions > 0)
+		prepared.stages.template_match.Add(NowMs() - started);
+
+	previous.Set(prepared.table.width, prepared.table.height, ~prepared.table.data);
+	prepared.ready = true;
+	return prepared;
+}
+
+static void CommitPreparedTableFrame(const PreparedTableFrame& prepared,
+	                                 VsmTesseractOcrEngine& ocr, bool ocr_available,
+	                                 StageSet& st, LoopStats& stats, ResolveState& rs,
+	                                 OcrCacheState& oc, const std::shared_ptr<Game>& game,
+	                                 bool verbose, int ocr_cap)
+{
+	ASSERT(prepared.ready);
+	ASSERT(prepared.commit_frame == stats.frames + 1);
+	const VsmFrameImage& table = prepared.table;
+	const Image& table_img = prepared.table_image;
 	int ocr_used = 0; // OCR calls spent on THIS frame (budget throttle)
-
-	// --- stage: change detection ---
-	double t = NowMs();
-	Vector<VsmChangedRect> rects = VsmDetectChanges(prev, table, cdp);
-	st.change.Add(NowMs() - t);
-
-	// Convert the table frame to an Image ONCE for classification crops.
-	t = NowMs();
-	Image table_img = VsmFrameImageToImage(table);
-	double conv_ms = NowMs() - t;
-	st.crop.Add(conv_ms);
+	double t = 0;
+	st.MergePrepared(prepared.stages);
 
 	stats.frames++;
-	stats.total_regions += rects.GetCount();
+	stats.total_regions += prepared.regions.GetCount();
 
 	int board_regions_this_frame = 0;
 	Vector<int> new_board_cards;
 
-	for(const VsmChangedRect& cr : rects) {
-		Rect r = cr.GetRect() & RectC(0, 0, table.width, table.height);
-		if(r.Width() <= 0 || r.Height() <= 0) continue;
-
-		// --- stage: classify ---
-		t = NowMs();
-		Image crop = Crop(table_img, r);
-		VsmLiveClassifyResult cl = clf.Classify(crop, r.left, r.top);
-		st.classify.Add(NowMs() - t);
+	for(const PreparedRegion& region : prepared.regions) {
+		const Rect& r = region.rect;
+		const Image& crop = region.crop;
+		const VsmLiveClassifyResult& cl = region.classification;
 
 		stats.classified++;
 		String cat = cl.category.IsEmpty() ? String("<unresolved>") : cl.category;
@@ -1410,11 +1600,7 @@ static void ProcessTableFrame(const VsmFrameImage& table, VsmFrameImage& prev, b
 			} else {
 				ocr_used++;
 				t = NowMs();
-				VsmFrameImage ocr_crop = CropFrameImage(table, r);
-				VsmOcrRequest req;
-				req.semantic = cl.category;     // Task 0277's semantic field, first real caller
-				req.region_id = Format("%d,%d,%d,%d", r.left, r.top, r.Width(), r.Height());
-				VsmOcrResult res = ocr.Execute(ocr_crop, req);
+				VsmOcrResult res = ocr.Execute(region.ocr_crop, region.ocr_request);
 				st.ocr.Add(NowMs() - t);
 				ocr_text = res.text; ocr_conf = res.confidence;
 				stats.ocr_calls++;
@@ -1644,9 +1830,8 @@ static void ProcessTableFrame(const VsmFrameImage& table, VsmFrameImage& prev, b
 	t = NowMs();
 	for(const CardBackRegion& cb : kCardBackRegions) {
 		if(!cb.enabled) continue;
-		double wf = CardBackWhiteFraction(table, cb.rect);
-		if(wf < 0) continue;
-		int raw = (wf >= kCardBackWhiteFrac) ? 1 : 0;
+		int raw = prepared.card_back_raw[cb.seat];
+		if(raw < 0) continue;
 		if(raw == rs.cards_raw_last[cb.seat]) rs.cards_raw_streak[cb.seat]++;
 		else { rs.cards_raw_last[cb.seat] = raw; rs.cards_raw_streak[cb.seat] = 1; }
 		if(rs.cards_raw_streak[cb.seat] >= kCardBackConfirmFrames
@@ -1675,12 +1860,11 @@ static void ProcessTableFrame(const VsmFrameImage& table, VsmFrameImage& prev, b
 	// signal 0289's momentary post-action bubble cannot provide.
 	t = NowMs();
 	{
-		int strength = 0;
-		int ts = DetectTurnSeat(table, strength);
-		rs.turn_bar_strength = strength;
+		int ts = prepared.turn_seat;
+		rs.turn_bar_strength = prepared.turn_strength;
 		if(ts != rs.turn_seat_video) {
 			rs.turn_seat_video = ts;
-			if(ts >= 0) rs.LogEvent(Format("turn: seat %d (timer bar, strength %d)", ts, strength), verbose);
+			if(ts >= 0) rs.LogEvent(Format("turn: seat %d (timer bar, strength %d)", ts, prepared.turn_strength), verbose);
 		}
 	}
 	st.resolve.Add(NowMs() - t);
@@ -1691,35 +1875,31 @@ static void ProcessTableFrame(const VsmFrameImage& table, VsmFrameImage& prev, b
 	// non-trivial cost here, so running it every frame would be wasteful. Logged
 	// as an INDEPENDENT signal; agreement with the engine's GBUTTON_DEALER
 	// indicator is reported in BuildSnapshot/Paint, not asserted here.
-	static const int kDealerEveryFrames = 8;
-	if(dt.ok && (stats.frames % kDealerEveryFrames == 0)) {
+	if(prepared.dealer_sampled) {
 		t = NowMs();
-		double dsc = -2; Point dc(-1, -1);
-		int dseat = DetectDealerChip(table, dt, dsc, dc);
-		rs.dealer_chip_score = dsc;
-		if(dseat != rs.dealer_seat_video) {
-			rs.dealer_seat_video = dseat;
-			if(dseat >= 0)
+		rs.dealer_chip_score = prepared.dealer_score;
+		if(prepared.dealer_seat != rs.dealer_seat_video) {
+			rs.dealer_seat_video = prepared.dealer_seat;
+			if(prepared.dealer_seat >= 0)
 				rs.LogEvent(Format("dealer chip: seat %d (template score %.2f at %d,%d)",
-				                    dseat, dsc, dc.x, dc.y), verbose);
+				                    prepared.dealer_seat, prepared.dealer_score,
+				                    prepared.dealer_center.x, prepared.dealer_center.y), verbose);
 		}
 		st.engine.Add(NowMs() - t);
 	}
 
 	// Structural street events + engine application from board region count.
 	t = NowMs();
-	if(board_regions_this_frame > 0 && ct.ok) {
+	if(board_regions_this_frame > 0) {
 		// Task 0290a: a board_card region appeared this frame -> re-recognize the
 		// WHOLE board from raw pixels (felt-gap split + suit-colour + rank template
 		// match), bounded to the fixed board band. This resolves all 3/4/5 cards at
 		// once regardless of how the change detector merged them.
-		Vector<String> dbg;
-		Vector<int> recog = RecognizeBoardCards(table, ct, verbose ? &dbg : nullptr);
 		new_board_cards.Clear();
 		int resolved_cards = 0;
-		for(int ci : recog) { new_board_cards.Add(ci); if(ci >= 0) resolved_cards++; }
+		for(int ci : prepared.board_cards) { new_board_cards.Add(ci); if(ci >= 0) resolved_cards++; }
 		if(verbose)
-			for(const String& d : dbg) Cout() << "    [board-recog] " << d << "\n";
+			for(const String& d : prepared.board_debug) Cout() << "    [board-recog] " << d << "\n";
 		// Task 0288 fix 2: gate the transition to ONLY the real valid jumps.
 		// The pre-0288 code accepted ANY increase (`resolved_cards > board_count`),
 		// so a single classifier false-positive board_card at preflop forced the
@@ -1764,7 +1944,94 @@ static void ProcessTableFrame(const VsmFrameImage& table, VsmFrameImage& prev, b
 	}
 	st.engine.Add(NowMs() - t);
 
-	prev.Set(table.width, table.height, ~table.data);
+}
+
+struct RecognitionWindowState {
+	WindowDescriptor descriptor;
+	StageSet          stages;
+	LoopStats         loop_stats;
+	ResolveState      resolve_state;
+	OcrCacheState     ocr_cache;
+	VsmFrameImage     previous;
+	bool              has_previous = false;
+	int64             next_prepare_sequence = 0;
+	int64             next_commit_sequence = 0;
+	int64             last_prepared_source_sequence = -1;
+	int64             last_committed_source_sequence = -1;
+};
+
+static void InitializeRecognitionWindow(RecognitionWindowState& state,
+	                                    const WindowDescriptor& descriptor,
+	                                    bool ocr_cache_enabled, int ocr_cache_threshold)
+{
+	state.descriptor.id = WindowId(descriptor.id.value);
+	state.descriptor.name = descriptor.name;
+	state.descriptor.source_rect = descriptor.source_rect;
+	InitializeStageNames(state.stages);
+	state.ocr_cache.enabled = ocr_cache_enabled;
+	state.ocr_cache.threshold = ocr_cache_threshold;
+}
+
+static bool ProcessWindowFrame(WindowFrame& frame, RecognitionWindowState& state,
+	                           const VsmLiveRegionClassifier& classifier,
+	                           VsmTesseractOcrEngine& ocr, bool ocr_available,
+	                           const VsmChangeDetectParams& change_params,
+	                           const std::shared_ptr<Game>& game, bool verbose, int ocr_cap,
+	                           const CardTemplates& card_templates,
+	                           const DealerTemplate& dealer_template,
+	                           VsmFrameImage *committed_table = nullptr)
+{
+	ASSERT(frame.descriptor.id == state.descriptor.id);
+	ASSERT(frame.window_sequence == state.next_prepare_sequence);
+	ASSERT(frame.source_sequence > state.last_prepared_source_sequence);
+	state.last_prepared_source_sequence = frame.source_sequence;
+	state.next_prepare_sequence++;
+	PreparedTableFrame prepared = PrepareTableFrame(frame, state.previous, state.has_previous,
+	                                                change_params, classifier, card_templates,
+	                                                dealer_template, state.loop_stats.frames + 1,
+	                                                verbose);
+	if(!prepared.ready) {
+		ASSERT(prepared.window_sequence == state.next_commit_sequence);
+		ASSERT(prepared.source_sequence > state.last_committed_source_sequence);
+		state.last_committed_source_sequence = prepared.source_sequence;
+		if(committed_table)
+			*committed_table = pick(prepared.table);
+		state.next_commit_sequence++;
+		return false;
+	}
+	ASSERT(prepared.descriptor.id == state.descriptor.id);
+	ASSERT(prepared.window_sequence == state.next_commit_sequence);
+	ASSERT(prepared.source_sequence > state.last_committed_source_sequence);
+	CommitPreparedTableFrame(prepared, ocr, ocr_available, state.stages, state.loop_stats,
+	                         state.resolve_state, state.ocr_cache, game, verbose, ocr_cap);
+	state.last_committed_source_sequence = prepared.source_sequence;
+	if(committed_table)
+		*committed_table = pick(prepared.table);
+	state.next_commit_sequence++;
+	return true;
+}
+
+static void ProcessTableFrame(const VsmFrameImage& table, VsmFrameImage& previous,
+	                          bool has_previous, VsmLiveRegionClassifier& classifier,
+	                          VsmTesseractOcrEngine& ocr, bool ocr_available,
+	                          const VsmChangeDetectParams& change_params, StageSet& stages,
+	                          LoopStats& stats, ResolveState& resolve_state,
+	                          OcrCacheState& ocr_cache, const std::shared_ptr<Game>& game,
+	                          bool verbose, int ocr_cap, const CardTemplates& card_templates,
+	                          const DealerTemplate& dealer_template)
+{
+	WindowFrame frame;
+	frame.descriptor = MakeWindowDescriptor("R", "right", kRightTableRect);
+	frame.source_sequence = has_previous ? stats.frames + 1 : 0;
+	frame.window_sequence = frame.source_sequence;
+	frame.table.Set(table.width, table.height, ~table.data);
+	bool prepared_has_previous = has_previous;
+	PreparedTableFrame prepared = PrepareTableFrame(frame, previous, prepared_has_previous,
+	                                                change_params, classifier, card_templates,
+	                                                dealer_template, stats.frames + 1, verbose);
+	if(prepared.ready)
+		CommitPreparedTableFrame(prepared, ocr, ocr_available, stages, stats, resolve_state,
+		                         ocr_cache, game, verbose, ocr_cap);
 }
 
 // ===========================================================================
@@ -2053,8 +2320,7 @@ static int RunOfflineFrames(const String& frames_dir, const String& dataset_path
 	}
 
 	StageSet st;
-	st.acquire.name = "acquire"; st.crop.name = "crop+conv"; st.change.name = "change_detect";
-	st.classify.name = "classify"; st.ocr.name = "ocr"; st.resolve.name = "resolve"; st.engine.name = "engine";
+	InitializeStageNames(st);
 	LoopStats stats; ResolveState rs;
 	CardTemplates card_templates = LoadCardTemplates(g_templates_dir); // Task 0290a
 	DealerTemplate dealer_template = LoadDealerTemplate(g_templates_dir); // Task 0290c item 1
@@ -2140,22 +2406,35 @@ static int RunLive(const String& host, int port, int seconds, const String& data
 	if(!src.Open(uri)) { Cerr() << "ERROR: Open(" << uri << ") failed: " << src.GetLastError() << "\n"; return 1; }
 	Cout() << "opened " << uri << " size=" << src.GetWidth() << "x" << src.GetHeight() << "\n";
 
-	StageSet st;
-	st.acquire.name = "acquire"; st.crop.name = "crop+conv"; st.change.name = "change_detect";
-	st.classify.name = "classify"; st.ocr.name = "ocr"; st.resolve.name = "resolve"; st.engine.name = "engine";
-	LoopStats stats; ResolveState rs;
+	Vector<WindowDescriptor> window_descriptors = SelectWindowDescriptors("right");
+	ASSERT(window_descriptors.GetCount() == 1);
+	RecognitionWindowState window;
+	InitializeRecognitionWindow(window, window_descriptors[0],
+	                            ocr_cache_enabled, ocr_cache_threshold);
+	StageSet& st = window.stages;
+	LoopStats& stats = window.loop_stats;
+	ResolveState& rs = window.resolve_state;
+	OcrCacheState& oc = window.ocr_cache;
+	Cout() << "pipeline=window-aware deterministic=1 staged_pre_ocr=1 async_ocr=0"
+	       << " prepared_queue=none ocr_queue=none window_count=1\n";
+	Cout() << "window_descriptor id=" << window.descriptor.id.value
+	       << " name=" << window.descriptor.name
+	       << " rect=" << window.descriptor.source_rect.left << ","
+	       << window.descriptor.source_rect.top << ","
+	       << window.descriptor.source_rect.Width() << ","
+	       << window.descriptor.source_rect.Height() << "\n";
 	CardTemplates card_templates = LoadCardTemplates(g_templates_dir); // Task 0290a
 	DealerTemplate dealer_template = LoadDealerTemplate(g_templates_dir); // Task 0290c item 1
 	VsmChangeDetectParams cdp;
-	OcrCacheState oc; oc.enabled = ocr_cache_enabled; oc.threshold = ocr_cache_threshold;
 
-	VsmFrameImage prev; bool has_prev = false;
 	int64 start = msecs();
 	int64 deadline = start + (int64)seconds * 1000;
 	int recoverable_timeouts = 0, unrecoverable = 0;
 	Vector<double> per_frame_ms;      // full pipeline wall time / frame
 	Vector<int64>  capture_gaps;      // receive-ts gaps
 	int64 prev_ts = 0;
+	int64 source_sequence = 0;
+	int64 window_sequence = 0;
 	double capture_to_done_sum = 0; int capture_to_done_n = 0;
 
 	while(msecs() < deadline) {
@@ -2170,16 +2449,23 @@ static int RunLive(const String& host, int port, int seconds, const String& data
 			break;
 		}
 		double acq_and_read = NowMs() - fa;
-		VsmFrameImage table = CropBufferToFrame(buf, kTableRect);
 		st.acquire.Add(acq_and_read);
-		if(table.IsEmpty()) continue;
+		double fanout_started = NowMs();
+		Vector<WindowFrame> frames = FanOutSourceFrame(buf, source_sequence++, window_sequence,
+		                                                ts, window_descriptors);
+		st.crop.Add(NowMs() - fanout_started);
+		ASSERT(frames.GetCount() == 1);
+		if(frames[0].table.IsEmpty()) continue;
+		window_sequence++;
 		if(prev_ts > 0) capture_gaps.Add(ts - prev_ts);
 		prev_ts = ts;
 
 		double f0 = NowMs();
-		ProcessTableFrame(table, prev, has_prev, clf, ocr, ocr_available, cdp, st, stats, rs, oc, game, verbose, ocr_cap, card_templates, dealer_template);
+		bool processed = ProcessWindowFrame(frames[0], window, clf, ocr, ocr_available,
+		                                    cdp, game, verbose, ocr_cap,
+		                                    card_templates, dealer_template);
 		double f_done = NowMs();
-		if(has_prev) {
+		if(processed) {
 			per_frame_ms.Add(f_done - f0);
 			// capture-to-done latency: from TCP-receive wall-clock (ts) to now.
 			// NOTE (Task 0279 finding): ts is the TCP-RECEIVE instant, NOT the
@@ -2187,7 +2473,6 @@ static int RunLive(const String& host, int port, int seconds, const String& data
 			// latter, so this measures network+decode+process, not glass-to-glass.
 			capture_to_done_sum += (double)(msecs() - ts); capture_to_done_n++;
 		}
-		if(!has_prev) { prev.Set(table.width, table.height, ~table.data); has_prev = true; }
 
 		if(stats.frames > 0 && stats.frames % 25 == 0)
 			Cout() << Format("progress: frames=%d elapsed=%d s regions=%d street_events=%d value_changes=%d ocr_calls=%d ocr_cache_hits=%d\n",
@@ -2209,7 +2494,11 @@ static int RunLive(const String& host, int port, int seconds, const String& data
 	st.Print();
 	Cout() << "\n=== Live loop summary ===\n";
 	Cout() << "frames_processed=" << stats.frames << " recoverable_timeouts=" << recoverable_timeouts
-	       << " unrecoverable=" << unrecoverable << "\n";
+	       << " unrecoverable=" << unrecoverable
+	       << " next_prepare_sequence=" << window.next_prepare_sequence
+	       << " next_commit_sequence=" << window.next_commit_sequence
+	       << " last_prepared_source_sequence=" << window.last_prepared_source_sequence
+	       << " last_committed_source_sequence=" << window.last_committed_source_sequence << "\n";
 	Cout() << "full per-frame pipeline: avg=" << Format("%.1f", pf_avg) << "ms max="
 	       << Format("%.1f", pf_max) << "ms\n";
 	Cout() << "inter-frame receive gap: avg=" << Format("%.1f", gap_avg) << "ms min="
@@ -2658,8 +2947,7 @@ static void GuiRecognitionWorker(LiveMirrorShared* shared, const String& host, i
 	}
 
 	StageSet st;
-	st.acquire.name = "acquire"; st.crop.name = "crop+conv"; st.change.name = "change_detect";
-	st.classify.name = "classify"; st.ocr.name = "ocr"; st.resolve.name = "resolve"; st.engine.name = "engine";
+	InitializeStageNames(st);
 	LoopStats stats; ResolveState rs;
 	CardTemplates card_templates = LoadCardTemplates(g_templates_dir); // Task 0290a
 	DealerTemplate dealer_template = LoadDealerTemplate(g_templates_dir); // Task 0290c item 1
@@ -3654,14 +3942,8 @@ static void CountSidecar2PartialSeats(const ResolveState& state, int hand_start_
 struct Sidecar2WindowState {
 	char code = 0;
 	String name;
-	Rect rect;
 	String output;
-	StageSet stages;
-	LoopStats loop_stats;
-	ResolveState state;
-	OcrCacheState cache;
-	VsmFrameImage previous;
-	bool has_previous = false;
+	RecognitionWindowState recognition;
 	Sidecar2Stats stats;
 
 	bool hand_open = false;
@@ -3704,22 +3986,15 @@ struct Sidecar2WindowState {
 	}
 };
 
-static void InitializeSidecar2Window(Sidecar2WindowState& window, char code,
-	                                 const char *name, const Rect& rect,
+static void InitializeSidecar2Window(Sidecar2WindowState& window,
+	                                 const WindowDescriptor& descriptor,
 	                                 bool ocr_cache_enabled, int ocr_cache_threshold)
 {
-	window.code = code;
-	window.name = name;
-	window.rect = rect;
-	window.stages.acquire.name = "acquire";
-	window.stages.crop.name = "crop+conv";
-	window.stages.change.name = "change_detect";
-	window.stages.classify.name = "classify";
-	window.stages.ocr.name = "ocr";
-	window.stages.resolve.name = "resolve";
-	window.stages.engine.name = "engine";
-	window.cache.enabled = ocr_cache_enabled;
-	window.cache.threshold = ocr_cache_threshold;
+	ASSERT(descriptor.id.value.GetCount() == 1);
+	window.code = descriptor.id.value[0];
+	window.name = descriptor.name;
+	InitializeRecognitionWindow(window.recognition, descriptor,
+	                            ocr_cache_enabled, ocr_cache_threshold);
 }
 
 static double Sidecar2PixelFraction(const VsmImageBuffer& buffer, const Rect& in_rect,
@@ -3860,14 +4135,20 @@ static int RunSidecar2(const String& video_path, const String& dataset_path,
 	}
 
 	Sidecar2WindowState windows[2];
-	int window_count = 0;
-	if(window_mode == "both" || window_mode == "right")
-		InitializeSidecar2Window(windows[window_count++], 'R', "right", kRightTableRect,
-		                         ocr_cache_enabled, ocr_cache_threshold);
-	if(window_mode == "both" || window_mode == "left")
-		InitializeSidecar2Window(windows[window_count++], 'L', "left", kLeftTableRect,
-		                         ocr_cache_enabled, ocr_cache_threshold);
+	Vector<WindowDescriptor> window_descriptors = SelectWindowDescriptors(window_mode);
+	int window_count = window_descriptors.GetCount();
 	ASSERT(window_count >= 1 && window_count <= 2);
+	for(int window_index = 0; window_index < window_count; window_index++)
+		InitializeSidecar2Window(windows[window_index], window_descriptors[window_index],
+		                         ocr_cache_enabled, ocr_cache_threshold);
+	Cout() << "pipeline=window-aware deterministic=1 staged_pre_ocr=1 async_ocr=0"
+	       << " prepared_queue=none ocr_queue=none"
+	       << " window_count=" << window_count << "\n";
+	for(const WindowDescriptor& descriptor : window_descriptors)
+		Cout() << "window_descriptor id=" << descriptor.id.value
+		       << " name=" << descriptor.name
+		       << " rect=" << descriptor.source_rect.left << "," << descriptor.source_rect.top
+		       << "," << descriptor.source_rect.Width() << "," << descriptor.source_rect.Height() << "\n";
 	VsmChangeDetectParams change_params;
 	double started_ms = NowMs();
 	int next_sample_second = start_second;
@@ -3938,15 +4219,19 @@ static int RunSidecar2(const String& video_path, const String& dataset_path,
 		last_sampled_pts_ms = pts_ms;
 		if(first_frame_second < 0) first_frame_second = frame_second;
 		last_frame_second = frame_second;
+		double fanout_started = NowMs();
+		Vector<WindowFrame> window_frames = FanOutSourceFrame(buffer, decoded_frames - 1,
+		                                                      sampled_frames - 1, pts_ms,
+		                                                      window_descriptors);
+		double fanout_ms = NowMs() - fanout_started;
+		ASSERT(window_frames.GetCount() == window_count);
 
 		for(int window_index = 0; window_index < window_count; window_index++) {
 			Sidecar2WindowState& window = windows[window_index];
-			StageSet& stages = window.stages;
-			LoopStats& loop_stats = window.loop_stats;
-			ResolveState& state = window.state;
-			OcrCacheState& cache = window.cache;
-			VsmFrameImage& previous = window.previous;
-			bool& has_previous = window.has_previous;
+			RecognitionWindowState& recognition = window.recognition;
+			StageSet& stages = recognition.stages;
+			LoopStats& loop_stats = recognition.loop_stats;
+			ResolveState& state = recognition.resolve_state;
 			Sidecar2Stats& stats = window.stats;
 			bool& hand_open = window.hand_open;
 			bool& pending_hand = window.pending_hand;
@@ -3971,8 +4256,13 @@ static int RunSidecar2(const String& video_path, const String& dataset_path,
 			bool *hole_unresolved = window.hole_unresolved;
 			String& window_output = window.output;
 			stages.acquire.Add(acquire_ms);
+			stages.crop.Add(fanout_ms);
 
-		VsmFrameImage table = CropBufferToFrame(buffer, window.rect);
+		VsmFrameImage table;
+		ProcessWindowFrame(window_frames[window_index], recognition,
+		                   classifier, ocr, ocr_available, change_params,
+		                   nullptr, verbose, ocr_cap, board_templates,
+		                   dealer_template, &table);
 		if(table.IsEmpty()) {
 			stats.omitted_signals++;
 			continue;
@@ -3991,14 +4281,6 @@ static int RunSidecar2(const String& video_path, const String& dataset_path,
 			cards_before[seat] = state.seat_cards_present[seat];
 		}
 		int board_before = state.board_count;
-
-		ProcessTableFrame(table, previous, has_previous, classifier, ocr, ocr_available,
-		                  change_params, stages, loop_stats, state, cache, nullptr, verbose,
-		                  ocr_cap, board_templates, dealer_template);
-		if(!has_previous) {
-			previous.Set(table.width, table.height, ~table.data);
-			has_previous = true;
-		}
 
 		int present_count = 0;
 		int returned_count = 0;
@@ -4234,7 +4516,7 @@ static int RunSidecar2(const String& video_path, const String& dataset_path,
 	for(int window_index = 0; window_index < window_count; window_index++) {
 		Sidecar2WindowState& window = windows[window_index];
 		if(window.hand_open)
-			CountSidecar2PartialSeats(window.state, window.hand_start_frame,
+			CountSidecar2PartialSeats(window.recognition.resolve_state, window.hand_start_frame,
 			                          window.emitted_name, window.stats);
 		if(window.pending_hand) {
 			window.stats.omitted_signals++;
@@ -4278,15 +4560,19 @@ static int RunSidecar2(const String& video_path, const String& dataset_path,
 	for(int window_index = 0; window_index < window_count; window_index++) {
 		const Sidecar2WindowState& window = windows[window_index];
 		const Sidecar2Stats& stats = window.stats;
-		combined_unresolved += window.loop_stats.unresolved;
-		combined_ocr_calls += window.loop_stats.ocr_calls;
+		combined_unresolved += window.recognition.loop_stats.unresolved;
+		combined_ocr_calls += window.recognition.loop_stats.ocr_calls;
 		Cout() << "window=" << window.code << " name=" << window.name
 		       << " frames=" << stats.frames << " hands=" << stats.hands
 		       << " board_events=" << stats.board_events << " actions=" << stats.actions
 		       << " showdowns=" << stats.showdowns << " seat_updates=" << stats.seat_updates
 		       << " omitted_signals=" << stats.omitted_signals
-		       << " classifier_unresolved_regions=" << window.loop_stats.unresolved
-		       << " ocr_calls=" << window.loop_stats.ocr_calls << "\n";
+		       << " classifier_unresolved_regions=" << window.recognition.loop_stats.unresolved
+		       << " ocr_calls=" << window.recognition.loop_stats.ocr_calls
+		       << " next_prepare_sequence=" << window.recognition.next_prepare_sequence
+		       << " next_commit_sequence=" << window.recognition.next_commit_sequence
+		       << " last_prepared_source_sequence=" << window.recognition.last_prepared_source_sequence
+		       << " last_committed_source_sequence=" << window.recognition.last_committed_source_sequence << "\n";
 		Cout() << "window=" << window.code
 		       << " omitted_dealer=" << stats.omitted_dealer
 		       << " omitted_board=" << stats.omitted_board
@@ -4308,7 +4594,7 @@ static int RunSidecar2(const String& video_path, const String& dataset_path,
 	       << " output=" << output_path << "\n";
 	for(int window_index = 0; window_index < window_count; window_index++) {
 		Cout() << "window=" << windows[window_index].code << " stage_timings:\n";
-		windows[window_index].stages.Print();
+		windows[window_index].recognition.stages.Print();
 	}
 	return parsed_hands == combined.hands ? 0 : 2;
 }

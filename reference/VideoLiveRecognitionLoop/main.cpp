@@ -2997,6 +2997,9 @@ static int RunShaderEvidenceFrame(const String& video_path, const String& manife
 		Cerr() << "ERROR: diagnostic window packing failed: " << error << "\n";
 		return 1;
 	}
+	ASSERT(windows.GetCount() == 2);
+	windows[0].id = "L";
+	windows[1].id = "R";
 	for(VsmPackedWindow& window : windows)
 		window.timestamp_ms = timestamp_ms;
 	VsmShaderEvidenceAdapter adapter;
@@ -6457,6 +6460,7 @@ GUI_APP_MAIN
 	String sidecar2_diagnostics_output;
 	String shader_manifest, shader_crop_map;
 	String shader_frame_config;
+	bool shader_frame_args_error = false;
 	String shader_stage_manifest, shader_stage_crop_map;
 	String shader_evidence_jsonl;
 	int shader_frame_second = 0;
@@ -6482,10 +6486,14 @@ GUI_APP_MAIN
 		else if(args[i] == "--shader-evidence-selftest") mode = "shader-evidence";
 		else if(args[i] == "--shader-evidence-jsonl-selftest") mode = "shader-evidence-jsonl";
 		else if(args[i] == "--shader-evidence-parity-selftest") mode = "shader-evidence-parity";
-		else if(args[i] == "--shader-evidence-frame" && i + 2 < args.GetCount()) {
-			mode = "shader-evidence-frame";
-			shader_manifest = args[++i];
-			shader_crop_map = args[++i];
+		else if(args[i] == "--shader-evidence-frame") {
+			if(i + 2 >= args.GetCount())
+				shader_frame_args_error = true;
+			else {
+				mode = "shader-evidence-frame";
+				shader_manifest = args[++i];
+				shader_crop_map = args[++i];
+			}
 		}
 		else if(args[i] == "--shader-evidence-frame-config" && i + 1 < args.GetCount()) {
 			mode = "shader-evidence-frame-config";
@@ -6562,6 +6570,11 @@ GUI_APP_MAIN
 	}
 
 	if(mode.IsEmpty() || mode == "help") {
+		if(shader_frame_args_error) {
+			Cerr() << "ERROR: --shader-evidence-frame requires manifest and crop-map\n";
+			SetExitCode(1);
+			return;
+		}
 		Cout() << "VideoLiveRecognitionLoop (Task 0280/0293a)\n"
 		       << "Modes:\n"
 		       << "  --classify-selftest        Leave-one-out classifier accuracy over the dataset\n"

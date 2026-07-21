@@ -346,6 +346,7 @@ Vector<VsmEvidenceTextRun> VsmReconstructEvidence(const VsmImageBuffer& evidence
 	                                               byte threshold, const Rect& requested)
 {
 	Vector<VsmEvidenceTextRun> out;
+	static const int max_runs = 4096;
 	if(evidence.IsEmpty() || evidence.channels < 2 || manifest.templates.IsEmpty()) return out;
 	Rect area = requested.IsEmpty() ? Rect(0, 0, evidence.width, evidence.height)
 	                              : requested & Rect(0, 0, evidence.width, evidence.height);
@@ -353,10 +354,15 @@ Vector<VsmEvidenceTextRun> VsmReconstructEvidence(const VsmImageBuffer& evidence
 	VsmOccupancyMask mask = VsmBuildOccupancyMask(evidence, threshold);
 	Vector<byte> visited;
 	visited.SetCount(evidence.width * evidence.height, 0);
-	for(int sy = area.top; sy < area.bottom; sy++)
+	bool limit_reached = false;
+	for(int sy = area.top; sy < area.bottom && !limit_reached; sy++)
 		for(int sx = area.left; sx < area.right; sx++) {
 			int offset = sy * evidence.width + sx;
 			if(visited[offset] || !mask.IsSet(sx, sy)) continue;
+			if(out.GetCount() >= max_runs) {
+				limit_reached = true;
+				break;
+			}
 			Vector<Point> queue;
 			queue.Add(Point(sx, sy)); visited[offset] = 1;
 			VsmEvidenceTextRun& run = out.Add();

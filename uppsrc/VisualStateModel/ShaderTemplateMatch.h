@@ -37,10 +37,13 @@ struct VsmShaderTemplateManifest {
 	int crop_map_width = 0;
 	int crop_map_height = 0;
 	int version = 1;
+	String fixture_kind = "synthetic";
+	String fixture_id;
 	Vector<VsmShaderTemplate> templates;
 
 	void Jsonize(JsonIO& json) { json("version", version)("crop_map_width", crop_map_width)
-		("crop_map_height", crop_map_height)("templates", templates); }
+		("crop_map_height", crop_map_height)("fixture_kind", fixture_kind)
+		("fixture_id", fixture_id)("templates", templates); }
 	bool Validate(String& error) const;
 	bool Save(const String& path) const;
 	bool Load(const String& path);

@@ -39,6 +39,14 @@ void VsmShaderTemplate::Jsonize(JsonIO& json)
 
 bool VsmShaderTemplateManifest::Validate(String& error) const
 {
+	if(fixture_kind != "synthetic" && fixture_kind != "calibrated") {
+		error = "fixture_kind must be synthetic or calibrated";
+		return false;
+	}
+	if(fixture_kind == "calibrated" && fixture_id.IsEmpty()) {
+		error = "calibrated fixture requires fixture_id";
+		return false;
+	}
 	if(crop_map_width <= 0 || crop_map_height <= 0) {
 		error = "crop map dimensions must be positive";
 		return false;

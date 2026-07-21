@@ -3143,6 +3143,8 @@ static int RunShaderEvidenceFrame(const String& video_path, const String& manife
 	       << " timestamp_ms=" << timestamp_ms
 	       << " source=" << source.Info()
 	       << " manifest=" << manifest_path
+	       << " fixture_kind=" << service.manifest.fixture_kind
+	       << " fixture_id=" << (service.manifest.fixture_id.IsEmpty() ? "none" : service.manifest.fixture_id)
 	       << " crop_map=" << crop_map_path << "\n";
 	for(const VsmShaderWindowEvidence& result : results) {
 		Cout() << "shader-evidence window=" << result.id
@@ -3166,11 +3168,14 @@ struct ShaderEvidenceFrameConfig {
 	String video;
 	String manifest;
 	String crop_map;
+	String required_fixture_kind;
+	String required_fixture_id;
 	int frame_second = 0;
 
 	void Jsonize(JsonIO& json) {
 		json("video", video)("manifest", manifest)("crop_map", crop_map)
-			("frame_second", frame_second);
+			("required_fixture_kind", required_fixture_kind)
+			("required_fixture_id", required_fixture_id)("frame_second", frame_second);
 	}
 };
 
@@ -3192,10 +3197,31 @@ static int RunShaderEvidenceFrameConfig(const String& config_path)
 		       << config_path << "\n";
 		return 1;
 	}
+	VsmShaderTemplateManifest identity;
+	if(!identity.Load(config.manifest)) {
+		Cerr() << "ERROR: shader evidence manifest identity cannot be loaded: "
+		       << config.manifest << "\n";
+		return 1;
+	}
+	if(!config.required_fixture_kind.IsEmpty() &&
+	   identity.fixture_kind != config.required_fixture_kind) {
+		Cerr() << "ERROR: shader evidence fixture kind mismatch: required="
+		       << config.required_fixture_kind << " actual=" << identity.fixture_kind << "\n";
+		return 1;
+	}
+	if(!config.required_fixture_id.IsEmpty() &&
+	   identity.fixture_id != config.required_fixture_id) {
+		Cerr() << "ERROR: shader evidence fixture id mismatch: required="
+		       << config.required_fixture_id << " actual="
+		       << (identity.fixture_id.IsEmpty() ? "none" : identity.fixture_id) << "\n";
+		return 1;
+	}
 	Cout() << "shader-evidence-frame-config path=" << config_path
 	       << " video=" << config.video
 	       << " manifest=" << config.manifest
 	       << " crop_map=" << config.crop_map
+	       << " fixture_kind=" << identity.fixture_kind
+	       << " fixture_id=" << (identity.fixture_id.IsEmpty() ? "none" : identity.fixture_id)
 	       << " frame_second=" << config.frame_second << "\n";
 	Cout().Flush();
 	return RunShaderEvidenceFrame(config.video, config.manifest, config.crop_map,

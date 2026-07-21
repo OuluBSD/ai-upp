@@ -233,6 +233,78 @@ static int RunShaderEvidenceJsonlSelfTest()
 	return 0;
 }
 
+static int RunShaderEvidenceParitySelfTest()
+{
+	VsmImageBuffer source;
+	source.Create(16, 5, 1);
+	for(int y = 0; y < source.height; y++)
+		for(int x = 0; x < source.width; x++)
+			source.Set(x, y, (byte)((x + y * 3) & 255));
+
+	Vector<VsmPackedWindow> windows;
+	VsmPackedWindow& left = windows.Add();
+	left.id = "L";
+	left.width = 8;
+	left.height = 5;
+	left.timestamp_ms = 1000;
+	VsmPackedWindow& right = windows.Add();
+	right.id = "R";
+	right.source_x = 8;
+	right.width = 8;
+	right.height = 5;
+	right.timestamp_ms = 1000;
+
+	VsmShaderRecognitionService service;
+	service.manifest.crop_map_width = 1;
+	service.manifest.crop_map_height = 1;
+	VsmShaderTemplate& templ = service.manifest.templates.Add();
+	templ.id = "parity-fixture";
+	templ.label = "parity-fixture";
+	templ.w = templ.foreground_w = 1;
+	templ.h = templ.foreground_h = 1;
+	service.crop_map.Create(1, 1, 1);
+	service.crop_map.Set(0, 0, 1);
+	service.use_threshold = false;
+
+	VsmShaderEvidenceAdapter adapter;
+	adapter.SetService(service);
+	Vector<VsmShaderWindowEvidence> results;
+	String error;
+	if(!adapter.ProcessSource(source, windows, results, error) || results.GetCount() != 2) {
+		Cerr() << "shader-evidence-parity-selftest ERROR process=" << error << "\n";
+		return 1;
+	}
+	Vector<VsmShaderEvidenceObservation> live;
+	Vector<VsmShaderEvidenceObservation> sidecar2;
+	for(const VsmShaderWindowEvidence& result : results) {
+		live.Add(MakeVsmShaderEvidenceObservation("live", result));
+		sidecar2.Add(MakeVsmShaderEvidenceObservation("sidecar2", result));
+	}
+	if(live.GetCount() != sidecar2.GetCount() || live.GetCount() != 2 ||
+	   live[0].window != "L" || live[1].window != "R") {
+		Cerr() << "shader-evidence-parity-selftest ERROR ordering\n";
+		return 1;
+	}
+	for(int i = 0; i < live.GetCount(); i++) {
+		const VsmShaderEvidenceObservation& a = live[i];
+		const VsmShaderEvidenceObservation& b = sidecar2[i];
+		if(a.window != b.window || a.timestamp_ms != b.timestamp_ms ||
+		   a.runs != b.runs || a.width != b.width || a.height != b.height ||
+		   a.error != b.error) {
+			Cerr() << "shader-evidence-parity-selftest ERROR record=" << i << "\n";
+			return 1;
+		}
+		VsmShaderEvidenceObservation parsed;
+		if(!LoadFromJson(parsed, StoreAsJson(a, false)) || parsed.window != a.window ||
+		   parsed.runs != a.runs || parsed.width != a.width || parsed.height != a.height) {
+			Cerr() << "shader-evidence-parity-selftest ERROR json-record=" << i << "\n";
+			return 1;
+		}
+	}
+	Cout() << "shader-evidence-parity-selftest status=pass windows=" << live.GetCount() << "\n";
+	return 0;
+}
+
 // Task 0290a: external card template library (rank
 // glyphs used by MatchTemplate). Overridable with --templates <dir>.
 static String g_templates_dir = "tmp/templates";
@@ -6409,6 +6481,7 @@ GUI_APP_MAIN
 		if(args[i] == "--classify-selftest") mode = "selftest";
 		else if(args[i] == "--shader-evidence-selftest") mode = "shader-evidence";
 		else if(args[i] == "--shader-evidence-jsonl-selftest") mode = "shader-evidence-jsonl";
+		else if(args[i] == "--shader-evidence-parity-selftest") mode = "shader-evidence-parity";
 		else if(args[i] == "--shader-evidence-frame" && i + 2 < args.GetCount()) {
 			mode = "shader-evidence-frame";
 			shader_manifest = args[++i];
@@ -6494,6 +6567,7 @@ GUI_APP_MAIN
 		       << "  --classify-selftest        Leave-one-out classifier accuracy over the dataset\n"
 		       << "  --shader-evidence-selftest Shared two-window shader evidence adapter selftest\n"
 		       << "  --shader-evidence-jsonl-selftest Validate JSONL observation round-trip\n"
+		       << "  --shader-evidence-parity-selftest Validate live/sidecar2 parity\n"
 		       << "  --shader-evidence-frame <manifest> <crop-map> Decode one MP4 frame and print L/R shader evidence\n"
 		       << "  --shader-evidence-frame-config <json> Decode using video/manifest/crop_map descriptor\n"
 		       << "  --shader-evidence-stage <manifest> <crop-map> Enable shared optional stage for live/sidecar2\n"
@@ -6632,6 +6706,7 @@ GUI_APP_MAIN
 	if(mode == "selftest") rc = RunClassifySelfTest(dataset);
 	else if(mode == "shader-evidence") rc = RunShaderEvidenceSelfTest();
 	else if(mode == "shader-evidence-jsonl") rc = RunShaderEvidenceJsonlSelfTest();
+	else if(mode == "shader-evidence-parity") rc = RunShaderEvidenceParitySelfTest();
 	else if(mode == "shader-evidence-frame") rc = RunShaderEvidenceFrame(video_path, shader_manifest,
 	                                                                     shader_crop_map, shader_frame_second);
 	else if(mode == "shader-evidence-frame-config") rc = RunShaderEvidenceFrameConfig(shader_frame_config);

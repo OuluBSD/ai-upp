@@ -1862,6 +1862,7 @@ static VsmShaderRecognitionService g_shader_evidence_stage_service;
 static VsmShaderEvidenceAdapter g_shader_evidence_stage_adapter;
 static String g_shader_evidence_stage_manifest;
 static String g_shader_evidence_stage_crop_map;
+static String g_shader_evidence_jsonl_path;
 
 static void EmitSidecar2Diagnostic(const String& line)
 {
@@ -1869,6 +1870,14 @@ static void EmitSidecar2Diagnostic(const String& line)
 	Cout().Flush();
 	if(!g_sidecar2_diagnostics_path.IsEmpty())
 		SaveFile(g_sidecar2_diagnostics_path, LoadFile(g_sidecar2_diagnostics_path) + line + "\n");
+}
+
+static void EmitShaderEvidenceObservationJsonl(const VsmShaderEvidenceObservation& observation)
+{
+	if(g_shader_evidence_jsonl_path.IsEmpty())
+		return;
+	SaveFile(g_shader_evidence_jsonl_path,
+	         LoadFile(g_shader_evidence_jsonl_path) + StoreAsJson(observation, false) + "\n");
 }
 
 static bool ConfigureShaderEvidenceStage(const String& manifest_path,
@@ -1934,6 +1943,7 @@ static bool RunShaderEvidenceStage(const VsmImageBuffer& source,
 		                     observation.width, observation.height, ~status,
 		                     observation.error.IsEmpty() ? "none" : ~observation.error);
 		EmitSidecar2Diagnostic(line);
+		EmitShaderEvidenceObservationJsonl(observation);
 	}
 	Cout().Flush();
 	return true;
@@ -6337,6 +6347,7 @@ GUI_APP_MAIN
 	String shader_manifest, shader_crop_map;
 	String shader_frame_config;
 	String shader_stage_manifest, shader_stage_crop_map;
+	String shader_evidence_jsonl;
 	int shader_frame_second = 0;
 	// Task 0286 Part B: approximate-hash OCR result cache, ON by default (this
 	// IS the optimization being delivered) -- see OcrCacheState's comment for
@@ -6371,6 +6382,8 @@ GUI_APP_MAIN
 			shader_stage_manifest = args[++i];
 			shader_stage_crop_map = args[++i];
 		}
+		else if(args[i] == "--shader-evidence-jsonl" && i + 1 < args.GetCount())
+			shader_evidence_jsonl = args[++i];
 		else if(args[i] == "--offline-frames" && i + 1 < args.GetCount()) { mode = "offline"; frames_dir = args[++i]; }
 		else if(args[i] == "--sidecar2") mode = "sidecar2";
 		else if(args[i] == "--annotated-regression") { mode = "sidecar2"; annotated_regression = true; }
@@ -6443,6 +6456,7 @@ GUI_APP_MAIN
 		       << "  --shader-evidence-frame <manifest> <crop-map> Decode one MP4 frame and print L/R shader evidence\n"
 		       << "  --shader-evidence-frame-config <json> Decode using video/manifest/crop_map descriptor\n"
 		       << "  --shader-evidence-stage <manifest> <crop-map> Enable shared optional stage for live/sidecar2\n"
+		       << "  --shader-evidence-jsonl <path>  Write one JSON observation per line\n"
 		       << "  --offline-frames <dir>     Full pipeline over dataset source frames (timing)\n"
 		       << "  --sidecar2                 Generate recognized-data sidecar directly from MP4\n"
 		       << "  --annotated-regression    Generate both windows and compare against source sidecar\n"
@@ -6506,6 +6520,13 @@ GUI_APP_MAIN
 	}
 	if((sidecar2_short || two_window_sample) && sidecar2_full) {
 		Cerr() << "ERROR: sample modes and --full-run are mutually exclusive\n";
+		SetExitCode(1);
+		return;
+	}
+	g_shader_evidence_jsonl_path = shader_evidence_jsonl;
+	if(!g_shader_evidence_jsonl_path.IsEmpty() && !SaveFile(g_shader_evidence_jsonl_path, String())) {
+		Cerr() << "ERROR: cannot initialize shader evidence JSONL: "
+		       << g_shader_evidence_jsonl_path << "\n";
 		SetExitCode(1);
 		return;
 	}

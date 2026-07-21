@@ -23,6 +23,7 @@ using namespace Upp;
 #include "Preprocess.h"
 #include "TemplateMatch.h"
 #include "ShaderTemplateMatch.h"
+#include "ShaderEvidenceAdapter.h"
 #include "OcrLayer.h"
 #include "OtsuPreprocess.h"
 #include "TesseractOcr.h"

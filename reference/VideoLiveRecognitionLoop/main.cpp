@@ -49,6 +49,8 @@ using namespace Upp;
 //                         parser-shaped sidecar events at one PTS frame/second.
 //   --live                Continuous loop against a running VideoServer (the
 //                         real Task 0278/0279 live source).
+//   --shader-evidence-selftest  Runs the shared two-window shader evidence
+//                         adapter on deterministic synthetic input.
 // ===========================================================================
 
 // Fixed 2D card-game table windows in the 1920x1080 recording. Confirmed static
@@ -116,6 +118,58 @@ static Vector<WindowDescriptor> SelectWindowDescriptors(const String& mode)
 }
 
 static const char* kDatasetDefault = "tmp/real_recording_combined_classified_dataset.json";
+
+static int RunShaderEvidenceSelfTest()
+{
+	VsmImageBuffer first, second, crop_map;
+	first.Create(8, 5, 1);
+	second.Create(8, 5, 1);
+	crop_map.Create(2, 2, 1);
+	crop_map.Set(0, 0, 210); crop_map.Set(1, 0, 70);
+	crop_map.Set(0, 1, 40);  crop_map.Set(1, 1, 160);
+	for(int y = 0; y < 2; y++)
+		for(int x = 0; x < 2; x++) {
+			first.Set(2 + x, 1 + y, crop_map.Get(x, y));
+			second.Set(4 + x, 2 + y, crop_map.Get(x, y));
+		}
+	VsmImageBuffer packed;
+	Vector<VsmPackedWindow> windows;
+	String error;
+	if(!VsmPackTwoWindows(first, second, packed, windows, error)) {
+		Cerr() << "shader-evidence-selftest ERROR pack=" << error << "\n";
+		return 1;
+	}
+	windows[0].id = "L"; windows[0].timestamp_ms = 1000;
+	windows[1].id = "R"; windows[1].timestamp_ms = 1000;
+	VsmShaderRecognitionService service;
+	service.manifest.crop_map_width = 2; service.manifest.crop_map_height = 2;
+	VsmShaderTemplate& templ = service.manifest.templates.Add();
+	templ.id = "digit-fixture"; templ.label = "digit-fixture";
+	templ.w = templ.foreground_w = 2; templ.h = templ.foreground_h = 2;
+	service.crop_map.Create(crop_map.width, crop_map.height, crop_map.channels);
+	for(int y = 0; y < crop_map.height; y++)
+		for(int x = 0; x < crop_map.width; x++)
+			service.crop_map.Set(x, y, crop_map.Get(x, y));
+	service.use_threshold = true;
+	service.threshold = 250;
+	VsmShaderEvidenceAdapter adapter;
+	adapter.SetService(service);
+	Vector<VsmShaderWindowEvidence> results;
+	if(!adapter.ProcessPacked(packed, windows, results, error)) {
+		Cerr() << "shader-evidence-selftest ERROR process=" << error << "\n";
+		return 1;
+	}
+	if(results.GetCount() != 2 || results[0].id != "L" || results[1].id != "R") {
+		Cerr() << "shader-evidence-selftest ERROR window-separation\n";
+		return 1;
+	}
+	for(const VsmShaderWindowEvidence& result : results)
+		Cout() << "shader-evidence window=" << result.id
+		       << " timestamp_ms=" << result.timestamp_ms
+		       << " runs=" << result.runs.GetCount() << "\n";
+	Cout() << "shader-evidence-selftest status=pass windows=" << results.GetCount() << "\n";
+	return 0;
+}
 
 // Task 0290a: external card template library (rank
 // glyphs used by MatchTemplate). Overridable with --templates <dir>.
@@ -6048,6 +6102,7 @@ GUI_APP_MAIN
 
 	for(int i = 0; i < args.GetCount(); i++) {
 		if(args[i] == "--classify-selftest") mode = "selftest";
+		else if(args[i] == "--shader-evidence-selftest") mode = "shader-evidence";
 		else if(args[i] == "--offline-frames" && i + 1 < args.GetCount()) { mode = "offline"; frames_dir = args[++i]; }
 		else if(args[i] == "--sidecar2") mode = "sidecar2";
 		else if(args[i] == "--annotated-regression") { mode = "sidecar2"; annotated_regression = true; }
@@ -6115,6 +6170,7 @@ GUI_APP_MAIN
 		Cout() << "VideoLiveRecognitionLoop (Task 0280/0293a)\n"
 		       << "Modes:\n"
 		       << "  --classify-selftest        Leave-one-out classifier accuracy over the dataset\n"
+		       << "  --shader-evidence-selftest Shared two-window shader evidence adapter selftest\n"
 		       << "  --offline-frames <dir>     Full pipeline over dataset source frames (timing)\n"
 		       << "  --sidecar2                 Generate recognized-data sidecar directly from MP4\n"
 		       << "  --annotated-regression    Generate both windows and compare against source sidecar\n"
@@ -6228,6 +6284,7 @@ GUI_APP_MAIN
 
 	int rc = 0;
 	if(mode == "selftest") rc = RunClassifySelfTest(dataset);
+	else if(mode == "shader-evidence") rc = RunShaderEvidenceSelfTest();
 	else if(mode == "offline") rc = RunOfflineFrames(frames_dir, dataset, max_frames, verbose, use_engine, ocr_cap, ocr_cache_enabled, ocr_cache_threshold);
 	else if(mode == "sidecar2") rc = RunSidecar2(video_path, dataset, source_sidecar,
 	                                               sidecar2_output, start_second, end_second,

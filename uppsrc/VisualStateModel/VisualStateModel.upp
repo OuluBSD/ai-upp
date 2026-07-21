@@ -50,6 +50,8 @@ file
 	TemplateMatch.cpp,
 	ShaderTemplateMatch.h,
 	ShaderTemplateMatch.cpp,
+	ShaderEvidenceAdapter.h,
+	ShaderEvidenceAdapter.cpp,
 	OcrLayer.h,
 	OcrLayer.cpp,
 	OtsuPreprocess.h,

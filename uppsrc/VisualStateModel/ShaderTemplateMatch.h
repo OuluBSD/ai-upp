@@ -160,6 +160,7 @@ struct VsmShaderRecognitionService {
 	VsmImageBuffer crop_map;
 	byte threshold = 0;
 	bool use_threshold = false;
+	String execution_backend = "cpu-reference";
 
 	bool Process(const VsmImageBuffer& frame, VsmShaderEvidence& evidence,
 	             Vector<VsmEvidenceTextRun>& runs, String& error) const;

@@ -1974,6 +1974,7 @@ static VsmShaderEvidenceAdapter g_shader_evidence_stage_adapter;
 static String g_shader_evidence_stage_manifest;
 static String g_shader_evidence_stage_crop_map;
 static String g_shader_evidence_jsonl_path;
+static String g_shader_evidence_backend = "cpu-reference";
 
 static void EmitSidecar2Diagnostic(const String& line)
 {
@@ -1992,8 +1993,18 @@ static void EmitShaderEvidenceObservationJsonl(const VsmShaderEvidenceObservatio
 }
 
 static bool ConfigureShaderEvidenceStage(const String& manifest_path,
-                                         const String& crop_map_path)
+                                         const String& crop_map_path,
+                                         const String& backend)
 {
+	if(backend != "cpu-reference" && backend != "opengl") {
+		Cerr() << "ERROR: unsupported shader evidence backend: " << backend << "\n";
+		return false;
+	}
+	if(backend == "opengl") {
+		Cerr() << "ERROR: shader evidence backend=opengl requires an owned OpenGL context; "
+		          "the headless live/replay loop has no context; use the standalone GPU probe\n";
+		return false;
+	}
 	String error;
 	if(!g_shader_evidence_stage_service.manifest.Load(manifest_path)) {
 		Cerr() << "ERROR: shader evidence stage manifest cannot be loaded: "
@@ -2010,11 +2021,12 @@ static bool ConfigureShaderEvidenceStage(const String& manifest_path,
 		return false;
 	}
 	g_shader_evidence_stage_service.use_threshold = false;
+	g_shader_evidence_stage_service.execution_backend = backend;
 	g_shader_evidence_stage_adapter.SetService(g_shader_evidence_stage_service);
 	g_shader_evidence_stage_manifest = manifest_path;
 	g_shader_evidence_stage_crop_map = crop_map_path;
 	g_shader_evidence_stage_enabled = true;
-	Cout() << "shader-evidence-stage enabled execution=cpu-reference"
+	Cout() << "shader-evidence-stage enabled execution=" << backend
 	       << " manifest=" << manifest_path << " crop_map=" << crop_map_path << "\n";
 	Cout().Flush();
 	return true;
@@ -2045,11 +2057,13 @@ static bool RunShaderEvidenceStage(const VsmImageBuffer& source,
 	}
 	for(const VsmShaderWindowEvidence& result : results) {
 		VsmShaderEvidenceObservation observation =
-			MakeVsmShaderEvidenceObservation(path, result);
+			MakeVsmShaderEvidenceObservation(path, result, g_shader_evidence_backend);
 		String status = observation.IsSuccessful() ? "ok" : "error";
 		String line = Format("shader-evidence-observation path=%s window=%s "
+		                     "backend=%s "
 		                     "timestamp_ms=%lld runs=%d evidence=%dx%d status=%s error=%s",
 		                     ~observation.path, ~observation.window,
+		                     ~observation.backend,
 		                     observation.timestamp_ms, observation.runs,
 		                     observation.width, observation.height, ~status,
 		                     observation.error.IsEmpty() ? "none" : ~observation.error);
@@ -6576,6 +6590,7 @@ GUI_APP_MAIN
 	String shader_frame_config;
 	bool shader_frame_args_error = false;
 	String shader_stage_manifest, shader_stage_crop_map;
+	String shader_backend = "cpu-reference";
 	String shader_evidence_jsonl;
 	int shader_frame_second = 0;
 	// Task 0286 Part B: approximate-hash OCR result cache, ON by default (this
@@ -6619,6 +6634,8 @@ GUI_APP_MAIN
 		}
 		else if(args[i] == "--shader-evidence-jsonl" && i + 1 < args.GetCount())
 			shader_evidence_jsonl = args[++i];
+		else if(args[i] == "--shader-backend" && i + 1 < args.GetCount())
+			shader_backend = ToLower(args[++i]);
 		else if(args[i] == "--offline-frames" && i + 1 < args.GetCount()) { mode = "offline"; frames_dir = args[++i]; }
 		else if(args[i] == "--sidecar2") mode = "sidecar2";
 		else if(args[i] == "--shader-only") shader_only = true;
@@ -6699,6 +6716,7 @@ GUI_APP_MAIN
 		       << "  --shader-evidence-frame <manifest> <crop-map> Decode one MP4 frame and print L/R shader evidence\n"
 		       << "  --shader-evidence-frame-config <json> Decode using video/manifest/crop_map descriptor\n"
 		       << "  --shader-evidence-stage <manifest> <crop-map> Enable shared optional stage for live/sidecar2\n"
+		       << "  --shader-backend <name>     cpu-reference (default); opengl requires an owned GUI context\n"
 		       << "  --shader-evidence-jsonl <path>  Write one JSON observation per line\n"
 		       << "  --offline-frames <dir>     Full pipeline over dataset source frames (timing)\n"
 		       << "  --sidecar2                 Generate recognized-data sidecar directly from MP4\n"
@@ -6780,7 +6798,8 @@ GUI_APP_MAIN
 			SetExitCode(1);
 			return;
 		}
-		if(!ConfigureShaderEvidenceStage(shader_stage_manifest, shader_stage_crop_map)) {
+		g_shader_evidence_backend = shader_backend;
+		if(!ConfigureShaderEvidenceStage(shader_stage_manifest, shader_stage_crop_map, shader_backend)) {
 			SetExitCode(1);
 			return;
 		}

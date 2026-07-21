@@ -17,6 +17,7 @@ struct VsmShaderWindowEvidence : Moveable<VsmShaderWindowEvidence> {
 struct VsmShaderEvidenceObservation : Moveable<VsmShaderEvidenceObservation> {
 	String path;
 	String window;
+	String backend;
 	int64 timestamp_ms = 0;
 	int runs = 0;
 	int width = 0;
@@ -25,17 +26,19 @@ struct VsmShaderEvidenceObservation : Moveable<VsmShaderEvidenceObservation> {
 
 	bool IsSuccessful() const { return error.IsEmpty(); }
 
-	void Jsonize(JsonIO& json) { json("path", path)("window", window)
+	void Jsonize(JsonIO& json) { json("path", path)("window", window)("backend", backend)
 		("timestamp_ms", timestamp_ms)("runs", runs)("width", width)
 		("height", height)("error", error); }
 };
 
 inline VsmShaderEvidenceObservation MakeVsmShaderEvidenceObservation(
-	const char *path, const VsmShaderWindowEvidence& evidence)
+	const char *path, const VsmShaderWindowEvidence& evidence,
+	const char *backend = "cpu-reference")
 {
 	VsmShaderEvidenceObservation observation;
 	observation.path = path;
 	observation.window = evidence.id;
+	observation.backend = backend;
 	observation.timestamp_ms = evidence.timestamp_ms;
 	observation.runs = evidence.runs.GetCount();
 	observation.width = evidence.evidence.image.width;

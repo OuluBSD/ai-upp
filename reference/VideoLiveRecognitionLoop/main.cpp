@@ -3082,6 +3082,13 @@ static int RunShaderEvidenceFrame(const String& video_path, const String& manife
 		Cerr() << "ERROR: shader crop map cannot be loaded: " << crop_map_path << "\n";
 		return 1;
 	}
+	if(service.crop_map.width != service.manifest.crop_map_width ||
+	   service.crop_map.height != service.manifest.crop_map_height) {
+		Cerr() << "ERROR: shader asset crop-map dimensions mismatch: expected="
+		       << service.manifest.crop_map_width << "x" << service.manifest.crop_map_height
+		       << " actual=" << service.crop_map.width << "x" << service.crop_map.height << "\n";
+		return 1;
+	}
 	Cout() << "shader-evidence-frame stage=validate-manifest\n";
 	Cout().Flush();
 	if(!service.manifest.Validate(error)) {
@@ -3146,6 +3153,12 @@ static int RunShaderEvidenceFrame(const String& video_path, const String& manife
 	       << " fixture_kind=" << service.manifest.fixture_kind
 	       << " fixture_id=" << (service.manifest.fixture_id.IsEmpty() ? "none" : service.manifest.fixture_id)
 	       << " crop_map=" << crop_map_path << "\n";
+	Cout() << "shader-evidence-assets status=accepted templates="
+	       << service.manifest.templates.GetCount()
+	       << " crop_map=" << service.crop_map.width << "x" << service.crop_map.height
+	       << " fixture_kind=" << service.manifest.fixture_kind
+	       << " fixture_id=" << (service.manifest.fixture_id.IsEmpty() ? "none" : service.manifest.fixture_id)
+	       << "\n";
 	for(const VsmShaderWindowEvidence& result : results) {
 		Cout() << "shader-evidence window=" << result.id
 		       << " timestamp_ms=" << result.timestamp_ms

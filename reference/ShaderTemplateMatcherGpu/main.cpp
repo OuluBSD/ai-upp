@@ -24,6 +24,10 @@ struct ShaderProbe : GLCtrl {
 	int dispatch_ms = 0;
 	int occupancy_dispatch_ms = 0;
 	bool occupancy_ok = false;
+	String frame_path;
+	String crop_map_path;
+	String manifest_path;
+	bool external_fixture = false;
 
 	ShaderProbe()
 	{
@@ -56,6 +60,51 @@ struct ShaderProbe : GLCtrl {
 		second.y = 1;
 		second.w = second.foreground_w = 3;
 		second.h = second.foreground_h = 3;
+	}
+
+	void SetFixture(const String& frame_file, const String& crop_file,
+	               const String& manifest_file)
+	{
+		frame_path = frame_file;
+		crop_map_path = crop_file;
+		manifest_path = manifest_file;
+		external_fixture = true;
+	}
+
+	static bool ToGray(VsmImageBuffer& image, String& error)
+	{
+		if(image.IsEmpty()) { error = "fixture image is empty"; return false; }
+		if(image.channels == 1) return true;
+		if(image.channels < 3) { error = "fixture image must have one or three channels"; return false; }
+		VsmImageBuffer gray;
+		gray.Create(image.width, image.height, 1);
+		for(int y = 0; y < image.height; y++)
+			for(int x = 0; x < image.width; x++) {
+				int r = image.Get(x, y, 0), g = image.Get(x, y, 1), b = image.Get(x, y, 2);
+				gray.Set(x, y, (byte)((299 * r + 587 * g + 114 * b + 500) / 1000));
+			}
+		image = pick(gray);
+		return true;
+	}
+
+	bool LoadExternalFixture()
+	{
+		if(!frame.Load(frame_path)) {
+			error = "cannot load frame fixture: " + frame_path;
+			return false;
+		}
+		if(!crop_map.Load(crop_map_path)) {
+			error = "cannot load crop-map fixture: " + crop_map_path;
+			return false;
+		}
+		if(!manifest.Load(manifest_path)) {
+			error = "cannot load manifest fixture: " + manifest_path;
+			return false;
+		}
+		if(!ToGray(frame, error) || !ToGray(crop_map, error)) return false;
+		manifest.crop_map_width = crop_map.width;
+		manifest.crop_map_height = crop_map.height;
+		return true;
 	}
 
 	static bool Check(GLuint value, const char *what, String& error)
@@ -170,6 +219,7 @@ struct ShaderProbe : GLCtrl {
 
 	bool Setup()
 	{
+		if(external_fixture && !LoadExternalFixture()) return false;
 		if(!manifest.Validate(error)) return false;
 		VsmCpuShaderTemplateMatcher matcher;
 		if(!matcher.Match(frame, crop_map, manifest, cpu, error)) return false;
@@ -259,6 +309,7 @@ struct ShaderProbe : GLCtrl {
 		ok = glGetError() == GL_NO_ERROR && gpu_id == hit->template_index &&
 		     gpu_x == hit->x && gpu_y == hit->y;
 		Cout() << "shader-gpu-selftest backend=opengl status=" << (ok ? "pass" : "fail")
+		       << " fixture=" << (external_fixture ? "external" : "synthetic")
 		       << " dimensions=" << frame.width << "x" << frame.height
 		       << " template_count=" << manifest.templates.GetCount()
 		       << " dispatch=fragment-loop"
@@ -329,6 +380,15 @@ GUI_APP_MAIN
 {
 	TopWindow window;
 	ShaderProbe probe;
+	const Vector<String>& args = CommandLine();
+	if(args.GetCount() == 7 && args[0] == "--fixture" && args[1] == "--frame" &&
+	   args[3] == "--crop-map" && args[5] == "--manifest")
+		probe.SetFixture(args[2], args[4], args[6]);
+	else if(!args.IsEmpty()) {
+		Cerr() << "usage: ShaderTemplateMatcherGpu [--fixture --frame <vsm> --crop-map <vsm> --manifest <json>]\n";
+		SetExitCode(2);
+		return;
+	}
 	window.Title("Shader template GPU self-test");
 	window.Add(probe.SizePos());
 	window.SetRect(0, 0, 64, 64);

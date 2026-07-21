@@ -5714,6 +5714,101 @@ static int RunLineCornerTest(const String& frames_dir)
 	return 0;
 }
 
+static String CalibrationJsonString(const String& value)
+{
+	String out;
+	for(int i = 0; i < value.GetCount(); i++) {
+		byte c = value[i];
+		if(c == '\\') out << "\\\\";
+		else if(c == '"') out << "\\\"";
+		else if(c == '\n') out << "\\n";
+		else if(c == '\r') out << "\\r";
+		else out.Cat(c);
+	}
+	return out;
+}
+
+static int RunTimelineTextCalibration(const String& video_path, const String& output_path,
+	                                  int step_seconds, int max_samples)
+{
+	if(output_path.IsEmpty()) {
+		Cerr() << "ERROR: --timeline-text-calibration requires an output path\n";
+		return 1;
+	}
+	VsmTesseractOcrEngine ocr;
+	if(!ocr.GetInfo().available) {
+		Cerr() << "ERROR: Tesseract OCR is unavailable for timeline calibration\n";
+		return 1;
+	}
+	VsmVideoFileFrameSource video;
+	if(!video.Open(video_path)) {
+		Cerr() << "ERROR: cannot open calibration video: " << video.GetLastError() << "\n";
+		return 1;
+	}
+	step_seconds = max(1, step_seconds);
+	max_samples = max(1, max_samples);
+	String json;
+	json << "{\n  \"source\": \"" << CalibrationJsonString(video_path)
+	     << "\",\n  \"decoder\": \"libavcodec\",\n"
+	     << "  \"step_seconds\": " << step_seconds << ",\n  \"samples\": [\n";
+	int sample_count = 0;
+	int64 next_sample_ms = 0;
+	int64 ts_ms = -1;
+	VsmImageBuffer source;
+	while(sample_count < max_samples && video.ReadFrame(source, ts_ms)) {
+		if(ts_ms < next_sample_ms) continue;
+		int second = (int)(ts_ms / 1000);
+		next_sample_ms = (int64)(second + step_seconds) * 1000;
+		Vector<WindowDescriptor> windows = SelectWindowDescriptors("both");
+		if(sample_count) json << ",\n";
+		json << "    {\"second\": " << second << ", \"windows\": [";
+		for(int wi = 0; wi < windows.GetCount(); wi++) {
+			if(wi) json << ",";
+			VsmFrameImage table = CropBufferToFrame(source, windows[wi].source_rect);
+			json << "{\"id\": \"" << windows[wi].id.value << "\", \"regions\": [";
+			struct CalibrationRegion : Moveable<CalibrationRegion> {
+				const char *name = nullptr;
+				Rect rect;
+				int index = -1;
+			};
+			Vector<CalibrationRegion> regions;
+			for(int seat = 0; seat < 6; seat++) {
+				CalibrationRegion& name = regions.Add(); name.name = "name"; name.rect = g_fixed_text_layout.name[seat]; name.index = seat;
+				CalibrationRegion& balance = regions.Add(); balance.name = "balance"; balance.rect = g_fixed_text_layout.balance[seat]; balance.index = seat;
+				CalibrationRegion& action = regions.Add(); action.name = "action"; action.rect = g_fixed_text_layout.action[seat]; action.index = seat;
+				CalibrationRegion& bet = regions.Add(); bet.name = "bet"; bet.rect = g_fixed_text_layout.bet[seat]; bet.index = seat;
+			}
+			CalibrationRegion& board = regions.Add(); board.name = "board_money"; board.rect = g_fixed_text_layout.board_money; board.index = -1;
+			for(int ri = 0; ri < regions.GetCount(); ri++) {
+				if(ri) json << ",";
+				VsmFrameImage crop = CropFrameImage(table, regions[ri].rect & RectC(0, 0, table.width, table.height));
+				VsmOcrRequest request;
+				request.semantic = regions[ri].name;
+				request.region_id = Format("%s:%d", regions[ri].name, regions[ri].index);
+				VsmOcrResult result = ocr.Execute(crop, request);
+				json << "{\"region\": \"" << regions[ri].name
+				     << "\", \"index\": " << regions[ri].index
+				     << ", \"x\": " << regions[ri].rect.left << ", \"y\": " << regions[ri].rect.top
+				     << ", \"w\": " << regions[ri].rect.Width() << ", \"h\": " << regions[ri].rect.Height()
+				     << ", \"text\": \"" << CalibrationJsonString(result.text)
+				     << "\", \"confidence\": " << Format("%.6f", result.confidence) << "}";
+			}
+			json << "]}";
+		}
+		json << "]}";
+		Cout() << Format("timeline_calibration sample=%d second=%d windows=%d\n",
+		                 sample_count, second, windows.GetCount());
+		sample_count++;
+	}
+	json << "\n  ]\n}\n";
+	if(!SaveFile(output_path, json)) {
+		Cerr() << "ERROR: failed to write timeline calibration: " << output_path << "\n";
+		return 1;
+	}
+	Cout() << Format("timeline_calibration samples=%d output=%s\n", sample_count, ~output_path);
+	return sample_count ? 0 : 2;
+}
+
 GUI_APP_MAIN
 {
 #ifdef PLATFORM_WIN32
@@ -5746,6 +5841,8 @@ GUI_APP_MAIN
 	String text_layout_in;   // Task 0294aa shared layout input
 	String json_out;         // Task 0294y machine-readable run manifest
 	String report_out;       // Task 0294y human-readable run report
+	String timeline_calibration_out;
+	int timeline_step_seconds = 10, timeline_max_samples = 24;
 
 	for(int i = 0; i < args.GetCount(); i++) {
 		if(args[i] == "--classify-selftest") mode = "selftest";
@@ -5768,6 +5865,11 @@ GUI_APP_MAIN
 		else if(args[i] == "--text-layout" && i + 1 < args.GetCount()) text_layout_in = args[++i];
 		else if(args[i] == "--json-out" && i + 1 < args.GetCount()) json_out = args[++i];
 		else if(args[i] == "--report-out" && i + 1 < args.GetCount()) report_out = args[++i];
+		else if(args[i] == "--timeline-text-calibration" && i + 1 < args.GetCount()) {
+			mode = "timelinecal"; timeline_calibration_out = args[++i];
+		}
+		else if(args[i] == "--timeline-step" && i + 1 < args.GetCount()) timeline_step_seconds = max(1, StrInt(args[++i]));
+		else if(args[i] == "--timeline-max-samples" && i + 1 < args.GetCount()) timeline_max_samples = max(1, StrInt(args[++i]));
 		else if(args[i] == "--frames-dir" && i + 1 < args.GetCount()) frames_dir = args[++i];
 		else if(args[i] == "--video" && i + 1 < args.GetCount()) video_path = args[++i];
 		else if(args[i] == "--source-sidecar" && i + 1 < args.GetCount()) source_sidecar = args[++i];
@@ -5829,6 +5931,9 @@ GUI_APP_MAIN
 			       << "  --text-layout <path>      Task 0294aa: load shared text-search layout JSON\n"
 			       << "  --json-out <path>         Task 0294y: write run manifest JSON\n"
 			       << "  --report-out <path>       Task 0294y: write run report JSON\n"
+			       << "  --timeline-text-calibration <path>  Task 0294z: OCR timeline JSON\n"
+			       << "  --timeline-step <seconds>            Sampling interval (default 10)\n"
+			       << "  --timeline-max-samples <n>           Sampling cap (default 24)\n"
 		       << "Options:\n"
 		       << "  --host <h> --port <p>       VideoServer address (default 127.0.0.1:8082)\n"
 		       << "  --seconds <n>               Live run duration (default 30)\n"
@@ -5941,6 +6046,8 @@ GUI_APP_MAIN
 	else if(mode == "ocracc") rc = RunOcrAccuracyTest(frames_dir, g_templates_dir);
 	else if(mode == "linecorner") rc = RunLineCornerTest(frames_dir);
 	else if(mode == "anchorselftest") rc = RunRecognitionAnchorSelfTest();
+	else if(mode == "timelinecal") rc = RunTimelineTextCalibration(video_path, timeline_calibration_out,
+	                                                                  timeline_step_seconds, timeline_max_samples);
 	else if(mode == "textlayout") {
 		rc = SaveFixedTextSearchLayout(text_layout_out) ? 0 : 1;
 		Cout() << "text_layout=" << text_layout_out << " size=944x682 status="

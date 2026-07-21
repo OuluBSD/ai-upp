@@ -229,6 +229,8 @@ static Vector<String> VsmGetTessdataCandidates(const VsmTesseractOptions& opt)
 	candidates << AppendFileName(GetCurrentDirectory(), "tessdata");
 	candidates << AppendFileName(AppendFileName(GetCurrentDirectory(), "tmp"), "tessdata");
 	candidates << AppendFileName(AppendFileName(GetCurrentDirectory(), "share"), "tessdata");
+	String tesseract_dir = GetFileDirectory(opt.tesseract);
+	candidates << AppendFileName(tesseract_dir, "tessdata");
 	String vcpkg_root = GetEnv("VCPKG_ROOT");
 	if(vcpkg_root.IsEmpty() && !GetEnv("USERPROFILE").IsEmpty())
 		vcpkg_root = AppendFileName(GetEnv("USERPROFILE"), "vcpkg");

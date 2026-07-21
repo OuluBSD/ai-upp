@@ -12,14 +12,18 @@ struct ShaderProbe : GLCtrl {
 	VsmShaderEvidence cpu;
 	String error;
 	GLuint program = 0;
+	GLuint occupancy_program = 0;
 	GLuint frame_texture = 0;
 	GLuint crop_texture = 0;
+	GLuint evidence_texture = 0;
 	GLuint vao = 0;
 	GLuint vbo = 0;
 	bool finished = false;
 	bool ok = false;
 	String report_path = "tmp/vsm_shader_gpu_selftest.json";
 	int dispatch_ms = 0;
+	int occupancy_dispatch_ms = 0;
+	bool occupancy_ok = false;
 
 	ShaderProbe()
 	{
@@ -105,6 +109,49 @@ struct ShaderProbe : GLCtrl {
 		return false;
 	}
 
+	bool BuildOccupancyProgram()
+	{
+		String vertex_error, fragment_error;
+		GLuint vertex = Compile(GL_VERTEX_SHADER,
+			VsmCpuShaderTemplateMatcher::VertexShaderSource(), vertex_error);
+		if(!vertex) { error = vertex_error; return false; }
+		String fragment_source =
+			"#version 330 core\n"
+			"uniform sampler2D evidence_image;\n"
+			"uniform ivec2 evidence_size;\n"
+			"uniform ivec2 tile_count;\n"
+			"uniform int tile_size;\n"
+			"uniform int threshold;\n"
+			"layout(location=0) out vec4 occupancy;\n"
+			"void main() {\n"
+			"  ivec2 tile = ivec2(gl_FragCoord.xy); float found = 0.0;\n"
+			"  for(int y=0; y<64; y++) { if(y>=tile_size) break;\n"
+			"    for(int x=0; x<64; x++) { if(x>=tile_size) break;\n"
+			"      ivec2 p = tile * tile_size + ivec2(x, y);\n"
+			"      if(p.x<evidence_size.x && p.y<evidence_size.y &&\n"
+			"         texelFetch(evidence_image, p, 0).r * 255.0 >= float(threshold)) found = 1.0;\n"
+			"    }\n"
+			"  }\n"
+			"  occupancy = vec4(found, 0.0, 0.0, 1.0);\n"
+			"}\n";
+		GLuint fragment = Compile(GL_FRAGMENT_SHADER, fragment_source, fragment_error);
+		if(!fragment) { glDeleteShader(vertex); error = fragment_error; return false; }
+		occupancy_program = glCreateProgram();
+		glAttachShader(occupancy_program, vertex);
+		glAttachShader(occupancy_program, fragment);
+		glLinkProgram(occupancy_program);
+		glDeleteShader(vertex);
+		glDeleteShader(fragment);
+		GLint status = GL_FALSE;
+		glGetProgramiv(occupancy_program, GL_LINK_STATUS, &status);
+		if(status == GL_TRUE) return true;
+		char log[2048] = {};
+		GLsizei written = 0;
+		glGetProgramInfoLog(occupancy_program, sizeof(log), &written, log);
+		error = String("occupancy shader link failed: ") + String(log, written);
+		return false;
+	}
+
 	bool UploadTexture(GLuint& texture, const VsmImageBuffer& image)
 	{
 		glGenTextures(1, &texture);
@@ -127,7 +174,13 @@ struct ShaderProbe : GLCtrl {
 		VsmCpuShaderTemplateMatcher matcher;
 		if(!matcher.Match(frame, crop_map, manifest, cpu, error)) return false;
 		if(!BuildProgram()) return false;
-		if(!UploadTexture(frame_texture, frame) || !UploadTexture(crop_texture, crop_map)) return false;
+		if(!BuildOccupancyProgram()) return false;
+		VsmImageBuffer occupancy_input = VsmImageBuffer::MakeSolid(cpu.image.width, cpu.image.height, 0, 1);
+		for(int y = 0; y < cpu.image.height; y++)
+			for(int x = 0; x < cpu.image.width; x++)
+				occupancy_input.Set(x, y, cpu.image.Get(x, y));
+		if(!UploadTexture(frame_texture, frame) || !UploadTexture(crop_texture, crop_map) ||
+		   !UploadTexture(evidence_texture, occupancy_input)) return false;
 		glGenVertexArrays(1, &vao);
 		glGenBuffers(1, &vbo);
 		if(!vao || !vbo) { error = "vertex object creation failed"; return false; }
@@ -218,6 +271,41 @@ struct ShaderProbe : GLCtrl {
 		         ok ? "pass" : "fail", frame.width, frame.height,
 		         manifest.templates.GetCount(), dispatch_ms, hit->template_index,
 		         hit->x, hit->y, (int)gpu_id, gpu_x, gpu_y, hit->score, (int)gpu_score));
+		int threshold = 220;
+		int tile_size = 2;
+		VsmTileOccupancyMask cpu_tiles = VsmBuildTileOccupancyMask(cpu.image, threshold, tile_size);
+		int tile_width = cpu_tiles.width;
+		int tile_height = cpu_tiles.height;
+		glViewport(0, 0, tile_width, tile_height);
+		glUseProgram(occupancy_program);
+		glActiveTexture(GL_TEXTURE0);
+		glBindTexture(GL_TEXTURE_2D, evidence_texture);
+		glUniform1i(glGetUniformLocation(occupancy_program, "evidence_image"), 0);
+		glUniform2i(glGetUniformLocation(occupancy_program, "evidence_size"), cpu.image.width, cpu.image.height);
+		glUniform2i(glGetUniformLocation(occupancy_program, "tile_count"), tile_width, tile_height);
+		glUniform1i(glGetUniformLocation(occupancy_program, "tile_size"), tile_size);
+		glUniform1i(glGetUniformLocation(occupancy_program, "threshold"), threshold);
+		glBindVertexArray(vao);
+		dword occupancy_start = GetTickCount();
+		glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
+		glFinish();
+		occupancy_dispatch_ms = (int)(GetTickCount() - occupancy_start);
+		Vector<byte> occupancy_pixels(tile_width * tile_height * 4);
+		glReadPixels(0, 0, tile_width, tile_height, GL_RGBA, GL_UNSIGNED_BYTE, occupancy_pixels.Begin());
+		occupancy_ok = glGetError() == GL_NO_ERROR;
+		for(int y = 0; occupancy_ok && y < tile_height; y++)
+			for(int x = 0; x < tile_width; x++) {
+				bool gpu_set = occupancy_pixels[(y * tile_width + x) * 4] >= 128;
+				if(gpu_set != cpu_tiles.IsSet(x, y)) occupancy_ok = false;
+			}
+		Cout() << "shader-gpu-occupancy backend=opengl status=" << (occupancy_ok ? "pass" : "fail")
+		       << " threshold=" << threshold << " tile_size=" << tile_size
+		       << " dimensions=" << tile_width << "x" << tile_height
+		       << " dispatch_ms=" << occupancy_dispatch_ms
+		       << " gpu_bytes=" << tile_width * tile_height
+		       << " cpu_bytes=" << cpu.image.width * cpu.image.height
+		       << " cpu_reference=true\n";
+		ok = ok && occupancy_ok;
 		finished = true;
 		SetTimeCallback(100, THISBACK(CloseProbe));
 	}
@@ -225,8 +313,10 @@ struct ShaderProbe : GLCtrl {
 	void CloseProbe()
 	{
 		if(program) glDeleteProgram(program);
+		if(occupancy_program) glDeleteProgram(occupancy_program);
 		if(frame_texture) glDeleteTextures(1, &frame_texture);
 		if(crop_texture) glDeleteTextures(1, &crop_texture);
+		if(evidence_texture) glDeleteTextures(1, &evidence_texture);
 		if(vbo) glDeleteBuffers(1, &vbo);
 		if(vao) glDeleteVertexArrays(1, &vao);
 		TopWindow *window = dynamic_cast<TopWindow *>(GetTopCtrl());

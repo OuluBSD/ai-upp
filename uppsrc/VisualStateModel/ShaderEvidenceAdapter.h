@@ -28,6 +28,10 @@ public:
 	                   const Vector<VsmPackedWindow>& windows,
 	                   Vector<VsmShaderWindowEvidence>& output,
 	                   String& error) const;
+	bool ProcessSource(const VsmImageBuffer& source,
+	                   const Vector<VsmPackedWindow>& windows,
+	                   Vector<VsmShaderWindowEvidence>& output,
+	                   String& error) const;
 };
 
 }

@@ -24,16 +24,24 @@ bool VsmShaderEvidenceAdapter::ProcessPacked(const VsmImageBuffer& packed,
 	                                           Vector<VsmShaderWindowEvidence>& output,
 	                                           String& error) const
 {
+	return ProcessSource(packed, windows, output, error);
+}
+
+bool VsmShaderEvidenceAdapter::ProcessSource(const VsmImageBuffer& source,
+	                                           const Vector<VsmPackedWindow>& windows,
+	                                           Vector<VsmShaderWindowEvidence>& output,
+	                                           String& error) const
+{
 	output.Clear();
-	if(packed.IsEmpty()) { error = "packed frame is empty"; return false; }
-	if(windows.IsEmpty()) { error = "no packed windows"; return false; }
+	if(source.IsEmpty()) { error = "source frame is empty"; return false; }
+	if(windows.IsEmpty()) { error = "no source windows"; return false; }
 	if(!service_) { error = "shader recognition service is not set"; return false; }
 	for(const VsmPackedWindow& window : windows) {
 		VsmShaderWindowEvidence& result = output.Add();
 		result.id = window.id;
 		result.timestamp_ms = window.timestamp_ms;
 		VsmImageBuffer local;
-		if(!Slice(packed, window, local, result.error)) {
+		if(!Slice(source, window, local, result.error)) {
 			error = result.error;
 			return false;
 		}

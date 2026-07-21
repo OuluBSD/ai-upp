@@ -163,6 +163,29 @@ static int RunShaderEvidenceSelfTest()
 		Cerr() << "shader-evidence-selftest ERROR window-separation\n";
 		return 1;
 	}
+	VsmImageBuffer source;
+	source.Create(16, 5, 1);
+	for(int y = 0; y < 5; y++)
+		for(int x = 0; x < 8; x++) {
+			source.Set(x, y, first.Get(x, y));
+			source.Set(8 + x, y, second.Get(x, y));
+		}
+	Vector<VsmPackedWindow> source_windows;
+	VsmPackedWindow& source_left = source_windows.Add();
+	source_left.id = "L"; source_left.width = 8; source_left.height = 5;
+	source_left.timestamp_ms = 1000;
+	VsmPackedWindow& source_right = source_windows.Add();
+	source_right.id = "R"; source_right.source_x = 8;
+	source_right.width = 8; source_right.height = 5;
+	source_right.timestamp_ms = 1000;
+	Vector<VsmShaderWindowEvidence> source_results;
+	if(!adapter.ProcessSource(source, source_windows, source_results, error) ||
+	   source_results.GetCount() != 2 || source_results[0].id != "L" ||
+	   source_results[1].id != "R") {
+		Cerr() << "shader-evidence-selftest ERROR source-window-separation=" << error << "\n";
+		return 1;
+	}
+	Cout() << "shader-evidence source-path=pass windows=" << source_results.GetCount() << "\n";
 	for(const VsmShaderWindowEvidence& result : results)
 		Cout() << "shader-evidence window=" << result.id
 		       << " timestamp_ms=" << result.timestamp_ms
@@ -1834,6 +1857,11 @@ struct LoopStats {
 
 static bool g_sidecar2_diagnostics = false;
 static String g_sidecar2_diagnostics_path;
+static bool g_shader_evidence_stage_enabled = false;
+static VsmShaderRecognitionService g_shader_evidence_stage_service;
+static VsmShaderEvidenceAdapter g_shader_evidence_stage_adapter;
+static String g_shader_evidence_stage_manifest;
+static String g_shader_evidence_stage_crop_map;
 
 static void EmitSidecar2Diagnostic(const String& line)
 {
@@ -1841,6 +1869,69 @@ static void EmitSidecar2Diagnostic(const String& line)
 	Cout().Flush();
 	if(!g_sidecar2_diagnostics_path.IsEmpty())
 		SaveFile(g_sidecar2_diagnostics_path, LoadFile(g_sidecar2_diagnostics_path) + line + "\n");
+}
+
+static bool ConfigureShaderEvidenceStage(const String& manifest_path,
+                                         const String& crop_map_path)
+{
+	String error;
+	if(!g_shader_evidence_stage_service.manifest.Load(manifest_path)) {
+		Cerr() << "ERROR: shader evidence stage manifest cannot be loaded: "
+		       << manifest_path << "\n";
+		return false;
+	}
+	if(!g_shader_evidence_stage_service.crop_map.Load(crop_map_path)) {
+		Cerr() << "ERROR: shader evidence stage crop map cannot be loaded: "
+		       << crop_map_path << "\n";
+		return false;
+	}
+	if(!g_shader_evidence_stage_service.manifest.Validate(error)) {
+		Cerr() << "ERROR: shader evidence stage manifest invalid: " << error << "\n";
+		return false;
+	}
+	g_shader_evidence_stage_service.use_threshold = false;
+	g_shader_evidence_stage_adapter.SetService(g_shader_evidence_stage_service);
+	g_shader_evidence_stage_manifest = manifest_path;
+	g_shader_evidence_stage_crop_map = crop_map_path;
+	g_shader_evidence_stage_enabled = true;
+	Cout() << "shader-evidence-stage enabled execution=cpu-reference"
+	       << " manifest=" << manifest_path << " crop_map=" << crop_map_path << "\n";
+	Cout().Flush();
+	return true;
+}
+
+static bool RunShaderEvidenceStage(const VsmImageBuffer& source,
+                                   const Vector<WindowDescriptor>& descriptors,
+                                   int64 timestamp_ms, const char *path)
+{
+	if(!g_shader_evidence_stage_enabled)
+		return true;
+	Vector<VsmPackedWindow> windows;
+	for(const WindowDescriptor& descriptor : descriptors) {
+		VsmPackedWindow& window = windows.Add();
+		window.id = descriptor.id.value;
+		window.source_x = descriptor.source_rect.left;
+		window.source_y = descriptor.source_rect.top;
+		window.width = descriptor.source_rect.Width();
+		window.height = descriptor.source_rect.Height();
+		window.timestamp_ms = timestamp_ms;
+	}
+	Vector<VsmShaderWindowEvidence> results;
+	String error;
+	if(!g_shader_evidence_stage_adapter.ProcessSource(source, windows, results, error)) {
+		Cerr() << "shader-evidence-stage path=" << path << " status=error error=" << error << "\n";
+		Cerr().Flush();
+		return false;
+	}
+	for(const VsmShaderWindowEvidence& result : results)
+		Cout() << "shader-evidence-stage path=" << path
+		       << " window=" << result.id
+		       << " timestamp_ms=" << result.timestamp_ms
+		       << " runs=" << result.runs.GetCount()
+		       << " evidence=" << result.evidence.image.Info()
+		       << " error=" << (result.error.IsEmpty() ? "none" : result.error) << "\n";
+	Cout().Flush();
+	return true;
 }
 
 // ---------------------------------------------------------------------------
@@ -3300,6 +3391,8 @@ static int RunLive(const String& host, int port, int seconds, const String& data
 		}
 		double acq_and_read = NowMs() - fa;
 		st.acquire.Add(acq_and_read);
+		if(!RunShaderEvidenceStage(buf, SelectWindowDescriptors("both"), ts, "live"))
+			return 1;
 		double fanout_started = NowMs();
 		Vector<WindowFrame> frames = FanOutSourceFrame(buf, source_sequence++, window_sequence,
 		                                                ts, window_descriptors);
@@ -5215,6 +5308,8 @@ static int RunSidecar2(const String& video_path, const String& dataset_path,
 		last_sampled_pts_ms = pts_ms;
 		if(first_frame_second < 0) first_frame_second = frame_second;
 		last_frame_second = frame_second;
+		if(!RunShaderEvidenceStage(buffer, window_descriptors, pts_ms, "sidecar2"))
+			return 1;
 		double fanout_started = NowMs();
 		Vector<WindowFrame> window_frames = FanOutSourceFrame(buffer, decoded_frames - 1,
 		                                                      sampled_frames - 1, pts_ms,
@@ -6236,6 +6331,7 @@ GUI_APP_MAIN
 	String sidecar2_diagnostics_output;
 	String shader_manifest, shader_crop_map;
 	String shader_frame_config;
+	String shader_stage_manifest, shader_stage_crop_map;
 	int shader_frame_second = 0;
 	// Task 0286 Part B: approximate-hash OCR result cache, ON by default (this
 	// IS the optimization being delivered) -- see OcrCacheState's comment for
@@ -6265,6 +6361,10 @@ GUI_APP_MAIN
 		else if(args[i] == "--shader-evidence-frame-config" && i + 1 < args.GetCount()) {
 			mode = "shader-evidence-frame-config";
 			shader_frame_config = args[++i];
+		}
+		else if(args[i] == "--shader-evidence-stage" && i + 2 < args.GetCount()) {
+			shader_stage_manifest = args[++i];
+			shader_stage_crop_map = args[++i];
 		}
 		else if(args[i] == "--offline-frames" && i + 1 < args.GetCount()) { mode = "offline"; frames_dir = args[++i]; }
 		else if(args[i] == "--sidecar2") mode = "sidecar2";
@@ -6337,6 +6437,7 @@ GUI_APP_MAIN
 		       << "  --shader-evidence-selftest Shared two-window shader evidence adapter selftest\n"
 		       << "  --shader-evidence-frame <manifest> <crop-map> Decode one MP4 frame and print L/R shader evidence\n"
 		       << "  --shader-evidence-frame-config <json> Decode using video/manifest/crop_map descriptor\n"
+		       << "  --shader-evidence-stage <manifest> <crop-map> Enable shared optional stage for live/sidecar2\n"
 		       << "  --offline-frames <dir>     Full pipeline over dataset source frames (timing)\n"
 		       << "  --sidecar2                 Generate recognized-data sidecar directly from MP4\n"
 		       << "  --annotated-regression    Generate both windows and compare against source sidecar\n"
@@ -6402,6 +6503,17 @@ GUI_APP_MAIN
 		Cerr() << "ERROR: sample modes and --full-run are mutually exclusive\n";
 		SetExitCode(1);
 		return;
+	}
+	if(!shader_stage_manifest.IsEmpty() || !shader_stage_crop_map.IsEmpty()) {
+		if(shader_stage_manifest.IsEmpty() || shader_stage_crop_map.IsEmpty()) {
+			Cerr() << "ERROR: --shader-evidence-stage requires manifest and crop-map\n";
+			SetExitCode(1);
+			return;
+		}
+		if(!ConfigureShaderEvidenceStage(shader_stage_manifest, shader_stage_crop_map)) {
+			SetExitCode(1);
+			return;
+		}
 	}
 	if(!text_layout_in.IsEmpty() && !LoadFixedTextSearchLayout(text_layout_in)) {
 		SetExitCode(1);

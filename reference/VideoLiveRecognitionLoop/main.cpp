@@ -705,6 +705,20 @@ static VsmFrameImage CropBufferToFrame(const VsmImageBuffer& buf, const Rect& in
 	return out;
 }
 
+static VsmImageBuffer CropBufferToImageBuffer(const VsmImageBuffer& buf, const Rect& in_r)
+{
+	VsmImageBuffer out;
+	if(buf.IsEmpty() || buf.channels < 3) return out;
+	Rect r = in_r & RectC(0, 0, buf.width, buf.height);
+	if(r.Width() <= 0 || r.Height() <= 0) return out;
+	out.Create(r.Width(), r.Height(), buf.channels);
+	for(int y = 0; y < r.Height(); y++)
+		memcpy(out.pixels.Begin() + (size_t)y * r.Width() * buf.channels,
+		       buf.pixels.Begin() + (size_t)((r.top + y) * buf.width + r.left) * buf.channels,
+		       (size_t)r.Width() * buf.channels);
+	return out;
+}
+
 static Vector<WindowFrame> FanOutSourceFrame(const VsmImageBuffer& source,
 	                                         int64 source_sequence, int64 window_sequence,
 	                                         int64 timestamp_ms,
@@ -2702,6 +2716,89 @@ static bool ProcessWindowFrame(WindowFrame& frame, RecognitionWindowState& state
 		*committed_table = pick(prepared.table);
 	state.next_commit_sequence++;
 	return true;
+}
+
+static int RunShaderEvidenceFrame(const String& video_path, const String& manifest_path,
+	                               const String& crop_map_path, int frame_second)
+{
+	Cout() << "shader-evidence-frame start manifest=" << manifest_path
+	       << " crop_map=" << crop_map_path << "\n";
+	Cout().Flush();
+	VsmShaderRecognitionService service;
+	String error;
+	if(!service.manifest.Load(manifest_path)) {
+		Cerr() << "ERROR: shader manifest cannot be loaded: " << manifest_path << "\n";
+		return 1;
+	}
+	if(!service.crop_map.Load(crop_map_path)) {
+		Cerr() << "ERROR: shader crop map cannot be loaded: " << crop_map_path << "\n";
+		return 1;
+	}
+	if(!service.manifest.Validate(error)) {
+		Cerr() << "ERROR: shader manifest invalid: " << error << "\n";
+		return 1;
+	}
+	service.use_threshold = false;
+
+	VsmVideoFileFrameSource video;
+	if(!video.Open(video_path)) {
+		Cerr() << "ERROR: cannot open direct MP4 source: " << video.GetLastError() << "\n";
+		return 1;
+	}
+	if(frame_second > 0 && !video.SeekMs((int64)frame_second * 1000)) {
+		Cerr() << "ERROR: cannot seek direct MP4 source: " << video.GetLastError() << "\n";
+		return 1;
+	}
+	VsmImageBuffer source;
+	int64 timestamp_ms = -1;
+	if(!video.ReadFrame(source, timestamp_ms)) {
+		Cerr() << "ERROR: cannot decode diagnostic frame: " << video.GetLastError() << "\n";
+		return 1;
+	}
+	VsmImageBuffer left = CropBufferToImageBuffer(source, kLeftTableRect);
+	VsmImageBuffer right = CropBufferToImageBuffer(source, kRightTableRect);
+	if(left.IsEmpty() || right.IsEmpty()) {
+		Cerr() << "ERROR: diagnostic windows are outside decoded frame: source="
+		       << source.Info() << "\n";
+		return 1;
+	}
+	VsmImageBuffer packed;
+	Vector<VsmPackedWindow> windows;
+	if(!VsmPackTwoWindows(left, right, packed, windows, error)) {
+		Cerr() << "ERROR: diagnostic window packing failed: " << error << "\n";
+		return 1;
+	}
+	for(VsmPackedWindow& window : windows)
+		window.timestamp_ms = timestamp_ms;
+	VsmShaderEvidenceAdapter adapter;
+	adapter.SetService(service);
+	Vector<VsmShaderWindowEvidence> results;
+	if(!adapter.ProcessPacked(packed, windows, results, error)) {
+		Cerr() << "ERROR: shader evidence processing failed: " << error << "\n";
+		return 1;
+	}
+
+	Cout() << "shader-evidence-frame decoder=libavcodec video=" << video_path
+	       << " timestamp_ms=" << timestamp_ms
+	       << " source=" << source.Info()
+	       << " manifest=" << manifest_path
+	       << " crop_map=" << crop_map_path << "\n";
+	for(const VsmShaderWindowEvidence& result : results) {
+		Cout() << "shader-evidence window=" << result.id
+		       << " timestamp_ms=" << result.timestamp_ms
+		       << " evidence=" << result.evidence.image.Info()
+		       << " runs=" << result.runs.GetCount()
+		       << " error=" << (result.error.IsEmpty() ? "none" : result.error) << "\n";
+		for(const VsmEvidenceTextRun& run : result.runs)
+			Cout() << "shader-evidence-run window=" << result.id
+			       << " text=" << run.text
+			       << " bounds=" << run.bounds.left << "," << run.bounds.top
+			       << "," << run.bounds.Width() << "," << run.bounds.Height()
+			       << " confidence=" << Format("%.4f", run.confidence)
+			       << " ambiguous=" << (run.ambiguous ? 1 : 0) << "\n";
+	}
+	Cout() << "shader-evidence-frame status=pass windows=" << results.GetCount() << "\n";
+	return 0;
 }
 
 static void ProcessTableFrame(const VsmFrameImage& table, VsmFrameImage& previous,
@@ -6083,6 +6180,8 @@ GUI_APP_MAIN
 	String source_sidecar = kSidecarPath, sidecar2_output;
 	String sidecar2_window = "both";
 	String sidecar2_diagnostics_output;
+	String shader_manifest, shader_crop_map;
+	int shader_frame_second = 0;
 	// Task 0286 Part B: approximate-hash OCR result cache, ON by default (this
 	// IS the optimization being delivered) -- see OcrCacheState's comment for
 	// the design AND the "SAFETY OVERRIDE" note explaining why 40 (not the
@@ -6103,6 +6202,11 @@ GUI_APP_MAIN
 	for(int i = 0; i < args.GetCount(); i++) {
 		if(args[i] == "--classify-selftest") mode = "selftest";
 		else if(args[i] == "--shader-evidence-selftest") mode = "shader-evidence";
+		else if(args[i] == "--shader-evidence-frame" && i + 2 < args.GetCount()) {
+			mode = "shader-evidence-frame";
+			shader_manifest = args[++i];
+			shader_crop_map = args[++i];
+		}
 		else if(args[i] == "--offline-frames" && i + 1 < args.GetCount()) { mode = "offline"; frames_dir = args[++i]; }
 		else if(args[i] == "--sidecar2") mode = "sidecar2";
 		else if(args[i] == "--annotated-regression") { mode = "sidecar2"; annotated_regression = true; }
@@ -6136,6 +6240,7 @@ GUI_APP_MAIN
 		else if(args[i] == "--timeline-max-samples" && i + 1 < args.GetCount()) timeline_max_samples = max(1, StrInt(args[++i]));
 		else if(args[i] == "--frames-dir" && i + 1 < args.GetCount()) frames_dir = args[++i];
 		else if(args[i] == "--video" && i + 1 < args.GetCount()) video_path = args[++i];
+		else if(args[i] == "--shader-frame-second" && i + 1 < args.GetCount()) shader_frame_second = max(0, StrInt(args[++i]));
 		else if(args[i] == "--source-sidecar" && i + 1 < args.GetCount()) source_sidecar = args[++i];
 		else if(args[i] == "--sidecar2-out" && i + 1 < args.GetCount()) sidecar2_output = args[++i];
 		else if(args[i] == "--start-second" && i + 1 < args.GetCount()) start_second = max(0, StrInt(args[++i]));
@@ -6171,6 +6276,7 @@ GUI_APP_MAIN
 		       << "Modes:\n"
 		       << "  --classify-selftest        Leave-one-out classifier accuracy over the dataset\n"
 		       << "  --shader-evidence-selftest Shared two-window shader evidence adapter selftest\n"
+		       << "  --shader-evidence-frame <manifest> <crop-map> Decode one MP4 frame and print L/R shader evidence\n"
 		       << "  --offline-frames <dir>     Full pipeline over dataset source frames (timing)\n"
 		       << "  --sidecar2                 Generate recognized-data sidecar directly from MP4\n"
 		       << "  --annotated-regression    Generate both windows and compare against source sidecar\n"
@@ -6210,6 +6316,7 @@ GUI_APP_MAIN
 		       << "  --dataset <path>            Labeled dataset (default " << kDatasetDefault << ")\n"
 		       << "  --frames-dir <dir>          Real JPEG frames for non-sidecar offline tests\n"
 		       << "  --video <path>              Sidecar2 MP4 source; default " << kVideoPath << "\n"
+		       << "  --shader-frame-second <n>  Frame second for --shader-evidence-frame (default 0)\n"
 		       << "  --source-sidecar <path>     Legend source; default " << kSidecarPath << "\n"
 		       << "  --sidecar2-out <path>       Output path; default next to source as *_sidecar2.txt\n"
 		       << "  --sidecar2-window <mode>    both (default), right, or left; right preserves one-window output\n"
@@ -6285,6 +6392,8 @@ GUI_APP_MAIN
 	int rc = 0;
 	if(mode == "selftest") rc = RunClassifySelfTest(dataset);
 	else if(mode == "shader-evidence") rc = RunShaderEvidenceSelfTest();
+	else if(mode == "shader-evidence-frame") rc = RunShaderEvidenceFrame(video_path, shader_manifest,
+	                                                               shader_crop_map, shader_frame_second);
 	else if(mode == "offline") rc = RunOfflineFrames(frames_dir, dataset, max_frames, verbose, use_engine, ocr_cap, ocr_cache_enabled, ocr_cache_threshold);
 	else if(mode == "sidecar2") rc = RunSidecar2(video_path, dataset, source_sidecar,
 	                                               sidecar2_output, start_second, end_second,

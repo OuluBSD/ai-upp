@@ -75,6 +75,7 @@ public:
 	                     const VsmShaderTemplate& templ,
 	                     int x, int y);
 	static String FragmentShaderSource();
+	static String VertexShaderSource();
 };
 
 struct VsmThresholdResult {

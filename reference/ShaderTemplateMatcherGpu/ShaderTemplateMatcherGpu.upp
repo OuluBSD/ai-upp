@@ -1,0 +1,13 @@
+description "OpenGL runtime probe for shader template matching";
+
+uses
+	VisualStateModel,
+	GLCtrl,
+	CtrlLib;
+
+file
+	AGENTS.md,
+	main.cpp;
+
+mainconfig
+	"" = "GUI";

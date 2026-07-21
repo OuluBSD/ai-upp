@@ -44,7 +44,7 @@ static bool RunSelfTest(const String& report_path)
 	const VsmShaderMatchHit& hit = evidence.best_hits[0];
 	String report = Format("{\n  \"backend\":\"cpu-reference\",\n"
 	                       "  \"gpu_runtime\":false,\n  \"template_count\":1,\n"
-	                       "  \"dimensions\":\"%dx%d\",\n  \"best_x\":%d,\n"
+	                       "  \"dimensions\":\"%d`x%d\",\n  \"best_x\":%d,\n"
 	                       "  \"best_y\":%d,\n  \"best_score\":%.6f,\n"
 	                       "  \"evidence\":\"%s\",\n  \"shader\":\"%s\"\n}\n",
 	                       frame.width, frame.height, hit.x, hit.y, hit.score,

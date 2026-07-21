@@ -183,8 +183,9 @@ String VsmCpuShaderTemplateMatcher::FragmentShaderSource()
 	       "uniform int template_count;\n"
 	       "uniform ivec4 template_rects[64];\n"
 	       "uniform ivec4 foreground_rects[64];\n"
+	       "uniform int template_polarity[64];\n"
 	       "layout(location=0) out vec4 evidence;\n"
-	       "float gray(vec4 c) { return dot(c.rgb, vec3(0.299,0.587,0.114)); }\n"
+	       "float gray(vec4 c) { return c.r; }\n"
 	       "void main() {\n"
 	       "  ivec2 p = ivec2(gl_FragCoord.xy); float best=0.0; float mean=0.0; int best_id=0;\n"
 	       "  int used=0;\n"
@@ -196,6 +197,7 @@ String VsmCpuShaderTemplateMatcher::FragmentShaderSource()
 	       "    for(int y=0; y<64; y++) { if(y>=fr.w) break; for(int x=0; x<64; x++) { if(x>=fr.z) break;\n"
 	       "      float a=gray(texelFetch(frame_image,p+fr.xy+ivec2(x,y),0));\n"
 	       "      float b=gray(texelFetch(crop_map,tr.xy+fr.xy+ivec2(x,y),0));\n"
+	       "      if(template_polarity[i]!=0) b=1.0-b;\n"
 	       "      float d=a-b; error += d*d; count++;\n"
 	       "    }}\n"
 	       "    float score=1.0-clamp(error/max(1.0,float(count)),0.0,1.0); mean+=score; used++;\n"
@@ -203,6 +205,14 @@ String VsmCpuShaderTemplateMatcher::FragmentShaderSource()
 	       "  }\n"
 	       "  evidence=vec4(best,float(best_id)/255.0,mean/max(1,used),1.0);\n"
 	       "}\n";
+}
+
+String VsmCpuShaderTemplateMatcher::VertexShaderSource()
+{
+	return "#version 330 core\n"
+	       "layout(location=0) in vec2 position;\n"
+	       "out vec2 uv;\n"
+	       "void main() { uv = position * 0.5 + 0.5; gl_Position = vec4(position, 0.0, 1.0); }\n";
 }
 
 bool VsmShaderRecognitionService::Process(const VsmImageBuffer& frame,

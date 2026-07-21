@@ -3205,6 +3205,18 @@ static int RunShaderEvidenceFrameConfig(const String& config_path)
 		       << config_path << "\n";
 		return 1;
 	}
+	if(!FileExists(config.video)) {
+		Cerr() << "ERROR: shader evidence asset missing kind=video path=" << config.video << "\n";
+		return 1;
+	}
+	if(!FileExists(config.manifest)) {
+		Cerr() << "ERROR: shader evidence asset missing kind=manifest path=" << config.manifest << "\n";
+		return 1;
+	}
+	if(!FileExists(config.crop_map)) {
+		Cerr() << "ERROR: shader evidence asset missing kind=crop_map path=" << config.crop_map << "\n";
+		return 1;
+	}
 	if(config.frame_second < 0) {
 		Cerr() << "ERROR: shader evidence descriptor frame_second must be nonnegative: "
 		       << config_path << "\n";

@@ -57,6 +57,40 @@ static bool RunSelfTest(const String& report_path)
 	return true;
 }
 
+static bool RunFixture(const String& manifest_path, const String& crop_path)
+{
+	VsmImageBuffer crop_map = VsmImageBuffer::MakeSolid(16, 8, 0, 1);
+	crop_map.Set(0, 0, 240); crop_map.Set(1, 0, 120);
+	crop_map.Set(0, 1, 120); crop_map.Set(1, 1, 240);
+	crop_map.Set(4, 1, 220); crop_map.Set(5, 1, 180); crop_map.Set(6, 1, 140);
+	VsmShaderTemplateManifest manifest;
+	manifest.crop_map_width = crop_map.width;
+	manifest.crop_map_height = crop_map.height;
+	VsmShaderTemplate& first = manifest.templates.Add();
+	first.id = "digit-a";
+	first.label = "digit-a";
+	first.x = 0; first.y = 0; first.w = 2; first.h = 2;
+	first.hotspot_x = 1; first.hotspot_y = 1;
+	VsmShaderTemplate& second = manifest.templates.Add();
+	second.id = "digit-b";
+	second.label = "digit-b";
+	second.x = 4; second.y = 1; second.w = 3; second.h = 1;
+	second.hotspot_x = 1; second.hotspot_y = 0;
+	String error;
+	if(!manifest.Validate(error)) {
+		Cout() << "ERROR: fixture manifest: " << error << "\n";
+		return false;
+	}
+	if(!manifest.Save(manifest_path) || !crop_map.Save(crop_path)) {
+		Cout() << "ERROR: cannot write fixture manifest or crop map\n";
+		return false;
+	}
+	Cout() << "shader-fixture status=pass dimensions=" << crop_map.width << "x"
+	       << crop_map.height << " templates=" << manifest.templates.GetCount()
+	       << " manifest=" << manifest_path << " crop_map=" << crop_path << "\n";
+	return true;
+}
+
 static bool RunFiles(const String& frame_path, const String& crop_path,
 	                 const String& manifest_path, const String& report_path)
 {
@@ -102,6 +136,12 @@ CONSOLE_APP_MAIN
 			Cout() << "shader-source path=" << path << "\n";
 		return;
 	}
+	if(args.GetCount() >= 1 && args[0] == "--fixture") {
+		String manifest = args.GetCount() >= 2 ? args[1] : "tmp/m0295_recorded_manifest.json";
+		String crop_map = args.GetCount() >= 3 ? args[2] : "tmp/m0295_recorded_crop_map.vsm";
+		if(!RunFixture(manifest, crop_map)) SetExitCode(1);
+		return;
+	}
 	if(args.IsEmpty() || args[0] == "--selftest") {
 		String path = args.GetCount() >= 2 ? args[1] : "tmp/vsm_shader_selftest.json";
 		if(!RunSelfTest(path)) SetExitCode(1);
@@ -113,6 +153,7 @@ CONSOLE_APP_MAIN
 	}
 	Cout() << "usage: ShaderTemplateMatcher.exe --selftest [report.json]\n"
 	       << "       ShaderTemplateMatcher.exe --fragment-shader [path]\n"
+	       << "       ShaderTemplateMatcher.exe --fixture [manifest.json] [crop-map.vsm]\n"
 	       << "       ShaderTemplateMatcher.exe --match frame.vsm crop-map.vsm manifest.json report.json\n";
 	SetExitCode(2);
 }

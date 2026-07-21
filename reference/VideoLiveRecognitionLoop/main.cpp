@@ -1923,13 +1923,18 @@ static bool RunShaderEvidenceStage(const VsmImageBuffer& source,
 		Cerr().Flush();
 		return false;
 	}
-	for(const VsmShaderWindowEvidence& result : results)
-		Cout() << "shader-evidence-stage path=" << path
-		       << " window=" << result.id
-		       << " timestamp_ms=" << result.timestamp_ms
-		       << " runs=" << result.runs.GetCount()
-		       << " evidence=" << result.evidence.image.Info()
-		       << " error=" << (result.error.IsEmpty() ? "none" : result.error) << "\n";
+	for(const VsmShaderWindowEvidence& result : results) {
+		VsmShaderEvidenceObservation observation =
+			MakeVsmShaderEvidenceObservation(path, result);
+		String status = observation.IsSuccessful() ? "ok" : "error";
+		String line = Format("shader-evidence-observation path=%s window=%s "
+		                     "timestamp_ms=%lld runs=%d evidence=%dx%d status=%s error=%s",
+		                     ~observation.path, ~observation.window,
+		                     observation.timestamp_ms, observation.runs,
+		                     observation.width, observation.height, ~status,
+		                     observation.error.IsEmpty() ? "none" : ~observation.error);
+		EmitSidecar2Diagnostic(line);
+	}
 	Cout().Flush();
 	return true;
 }

@@ -14,6 +14,36 @@ struct VsmShaderWindowEvidence : Moveable<VsmShaderWindowEvidence> {
 		("runs", runs)("error", error); }
 };
 
+struct VsmShaderEvidenceObservation : Moveable<VsmShaderEvidenceObservation> {
+	String path;
+	String window;
+	int64 timestamp_ms = 0;
+	int runs = 0;
+	int width = 0;
+	int height = 0;
+	String error;
+
+	bool IsSuccessful() const { return error.IsEmpty(); }
+
+	void Jsonize(JsonIO& json) { json("path", path)("window", window)
+		("timestamp_ms", timestamp_ms)("runs", runs)("width", width)
+		("height", height)("error", error); }
+};
+
+inline VsmShaderEvidenceObservation MakeVsmShaderEvidenceObservation(
+	const char *path, const VsmShaderWindowEvidence& evidence)
+{
+	VsmShaderEvidenceObservation observation;
+	observation.path = path;
+	observation.window = evidence.id;
+	observation.timestamp_ms = evidence.timestamp_ms;
+	observation.runs = evidence.runs.GetCount();
+	observation.width = evidence.evidence.image.width;
+	observation.height = evidence.evidence.image.height;
+	observation.error = evidence.error;
+	return observation;
+}
+
 class VsmShaderEvidenceAdapter {
 	const VsmShaderRecognitionService *service_ = nullptr;
 

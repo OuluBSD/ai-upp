@@ -2060,6 +2060,119 @@ static bool RunShaderEvidenceStage(const VsmImageBuffer& source,
 	return true;
 }
 
+static bool RequireShaderEvidenceStage()
+{
+	if(g_shader_evidence_stage_enabled)
+		return true;
+	String message = "ERROR: --shader-only requires --shader-evidence-stage <manifest> <crop-map>\n";
+	Cout() << message;
+	Cout().Flush();
+	Cerr() << message;
+	Cerr().Flush();
+	return false;
+}
+
+static int RunShaderOnlyLive(const String& host, int port, int seconds,
+                             int wait_timeout_ms, const String& window_mode)
+{
+	if(!RequireShaderEvidenceStage()) return 1;
+	Vector<WindowDescriptor> descriptors = SelectWindowDescriptors(window_mode);
+	if(descriptors.IsEmpty()) {
+		Cerr() << "ERROR: --sidecar2-window produced no windows\n";
+		return 1;
+	}
+	VsmVideoServerFrameSource source;
+	source.SetWaitTimeoutMs(wait_timeout_ms);
+	source.SetPollIntervalMs(20);
+	String uri = host + ":" + IntStr(port);
+	if(!source.Open(uri)) {
+		Cerr() << "ERROR: shader-only VideoServer open failed: " << source.GetLastError() << "\n";
+		return 1;
+	}
+	Cout() << "=== Mode: shader-only live ===\n"
+	       << "source=VideoServer uri=" << uri
+	       << " windows=" << window_mode
+	       << " ocr=disabled reason=shader-only\n";
+	int frames = 0, timeouts = 0;
+	int64 started = msecs();
+	int64 deadline = started + (int64)seconds * 1000;
+	while(msecs() < deadline) {
+		VsmImageBuffer frame;
+		int64 timestamp_ms = 0;
+		if(!source.ReadFrame(frame, timestamp_ms)) {
+			if(source.GetLastErrorKind() == VsmVideoServerFrameSource::VSM_VSFS_ERR_TIMEOUT) {
+				timeouts++;
+				continue;
+			}
+			Cerr() << "ERROR: shader-only live read failed: " << source.GetLastError() << "\n";
+			return 1;
+		}
+		if(!RunShaderEvidenceStage(frame, descriptors, timestamp_ms, "shader-only-live"))
+			return 1;
+		frames++;
+	}
+	Cout() << "shader-only summary source=VideoServer frames=" << frames
+	       << " timeouts=" << timeouts
+	       << " elapsed_ms=" << (msecs() - started) << " status=pass\n";
+	return 0;
+}
+
+static int RunShaderOnlyRecorded(const String& video_path, int start_second,
+                                 int end_second, int max_frames,
+                                 const String& window_mode)
+{
+	if(!RequireShaderEvidenceStage()) return 1;
+	Vector<WindowDescriptor> descriptors = SelectWindowDescriptors(window_mode);
+	if(descriptors.IsEmpty()) {
+		Cerr() << "ERROR: --sidecar2-window produced no windows\n";
+		return 1;
+	}
+	VsmVideoFileFrameSource source;
+	if(!source.Open(video_path)) {
+		Cerr() << "ERROR: shader-only direct MP4 open failed: " << source.GetLastError() << "\n";
+		return 1;
+	}
+	if(start_second > 0 && !source.SeekMs((int64)start_second * 1000)) {
+		Cerr() << "ERROR: shader-only seek failed: " << source.GetLastError() << "\n";
+		return 1;
+	}
+	int64 range_end_ms = end_second >= 0 ? (int64)end_second * 1000 : source.GetDurationMs();
+	int next_second = start_second;
+	int samples = 0, decoded = 0;
+	int64 started = msecs();
+	Cout() << "=== Mode: shader-only recorded ===\n"
+	       << "source=direct-libavcodec video=" << video_path
+	       << " windows=" << window_mode
+	       << " ocr=disabled reason=shader-only\n";
+	for(;;) {
+		if(max_frames > 0 && samples >= max_frames) break;
+		VsmImageBuffer frame;
+		int64 timestamp_ms = -1;
+		if(!source.ReadFrame(frame, timestamp_ms)) {
+			if(!source.IsEof()) {
+				Cerr() << "ERROR: shader-only direct MP4 decode failed: " << source.GetLastError() << "\n";
+				return 1;
+			}
+			break;
+		}
+		decoded++;
+		if(timestamp_ms < (int64)start_second * 1000) continue;
+		if(range_end_ms >= 0 && timestamp_ms >= range_end_ms) break;
+		int second = (int)(timestamp_ms / 1000);
+		if(second < next_second) continue;
+		next_second = second + 1;
+		if(!RunShaderEvidenceStage(frame, descriptors, timestamp_ms, "shader-only-recorded"))
+			return 1;
+		samples++;
+		Cout() << "shader-only progress sample=" << samples
+		       << " second=" << second << " decoded=" << decoded << "\n";
+	}
+	Cout() << "shader-only summary source=direct-libavcodec samples=" << samples
+	       << " decoded=" << decoded
+	       << " elapsed_ms=" << (msecs() - started) << " status=pass\n";
+	return 0;
+}
+
 // ---------------------------------------------------------------------------
 // Task 0286 Part B: approximate-hash-based OCR result cache.
 //
@@ -6454,6 +6567,7 @@ GUI_APP_MAIN
 	int ocr_cap = -1; // -1 = unlimited, 0 = OCR off, N = up to N OCR calls/frame
 	bool verbose = false, use_engine = true;
 	bool sidecar2_short = false, sidecar2_full = false, two_window_sample = false;
+	bool shader_only = false;
 	bool annotated_regression = false;
 	String source_sidecar = kSidecarPath, sidecar2_output;
 	String sidecar2_window = "both";
@@ -6507,6 +6621,7 @@ GUI_APP_MAIN
 			shader_evidence_jsonl = args[++i];
 		else if(args[i] == "--offline-frames" && i + 1 < args.GetCount()) { mode = "offline"; frames_dir = args[++i]; }
 		else if(args[i] == "--sidecar2") mode = "sidecar2";
+		else if(args[i] == "--shader-only") shader_only = true;
 		else if(args[i] == "--annotated-regression") { mode = "sidecar2"; annotated_regression = true; }
 		else if(args[i] == "--live") mode = "live";
 		else if(args[i] == "--gui") mode = "gui";
@@ -6633,6 +6748,7 @@ GUI_APP_MAIN
 		       << "  --short-sample              Sidecar2 safety cap of 120 PTS seconds (default)\n"
 		       << "  --two-window-sample         Sidecar2 both-window sample capped at 105 seconds\n"
 		       << "  --full-run                  Sidecar2 processes every PTS second through EOF/range\n"
+		       << "  --shader-only              Run only shader evidence; no OCR or state resolver\n"
 		       << "  --templates <dir>           Card template library (default " << g_templates_dir << ")\n"
 		       << "  --ocr-cap <n>               Max OCR calls per frame (-1 unlimited, 0 off)\n"
 		       << "  --no-ocr                    Disable OCR stage entirely\n"
@@ -6724,11 +6840,19 @@ GUI_APP_MAIN
 	                                                                     shader_crop_map, shader_frame_second);
 	else if(mode == "shader-evidence-frame-config") rc = RunShaderEvidenceFrameConfig(shader_frame_config);
 	else if(mode == "offline") rc = RunOfflineFrames(frames_dir, dataset, max_frames, verbose, use_engine, ocr_cap, ocr_cache_enabled, ocr_cache_threshold);
-	else if(mode == "sidecar2") rc = RunSidecar2(video_path, dataset, source_sidecar,
-	                                               sidecar2_output, start_second, end_second,
-	                                               max_frames, sidecar2_window,
-	                                               verbose, ocr_cap, ocr_cache_enabled,
-	                                               ocr_cache_threshold);
+	else if(mode == "sidecar2") {
+		if(shader_only) {
+			Cout() << "dispatch=shader-only-recorded\n";
+			rc = RunShaderOnlyRecorded(video_path, start_second, end_second,
+			                            max_frames, sidecar2_window);
+		}
+		else
+			rc = RunSidecar2(video_path, dataset, source_sidecar,
+			                  sidecar2_output, start_second, end_second,
+			                  max_frames, sidecar2_window,
+			                  verbose, ocr_cap, ocr_cache_enabled,
+			                  ocr_cache_threshold);
+	}
 	if(annotated_regression && rc == 0) {
 		if(sidecar2_output.IsEmpty()) {
 			Cerr() << "ERROR: --annotated-regression requires --sidecar2-out <path>\n";
@@ -6737,7 +6861,12 @@ GUI_APP_MAIN
 		else
 			rc = CompareAnnotatedSidecar2(source_sidecar, sidecar2_output);
 	}
-	else if(mode == "live") rc = RunLive(host, port, seconds, dataset, verbose, use_engine, wait_timeout_ms, ocr_cap, ocr_cache_enabled, ocr_cache_threshold);
+	else if(mode == "live") rc = shader_only
+	                                      ? RunShaderOnlyLive(host, port, seconds, wait_timeout_ms,
+	                                                          sidecar2_window)
+	                                      : RunLive(host, port, seconds, dataset, verbose, use_engine,
+                                                wait_timeout_ms, ocr_cap, ocr_cache_enabled,
+                                                ocr_cache_threshold);
 	else if(mode == "gui") rc = RunGui(host, port, dataset, verbose, use_engine, wait_timeout_ms, ocr_cap, ocr_cache_enabled, ocr_cache_threshold);
 	else if(mode == "cropsafety") {
 		if(crop_safety_lists.IsEmpty()) {

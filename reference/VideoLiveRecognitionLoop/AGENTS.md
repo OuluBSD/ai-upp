@@ -26,6 +26,8 @@ bin\VideoLiveRecognitionLoop.exe --offline-frames tmp\real_recording_0263_frames
 # live (needs a running VideoServer, Task 0278):
 bin\VideoServer.exe --source video --video bin\video_record_25min_20260716_203356.mp4 --fps 8 &
 bin\VideoLiveRecognitionLoop.exe --live --port 8082 --seconds 240 [--no-ocr | --ocr-cap N]
+bin\VideoLiveRecognitionLoop.exe --live --shader-only --shader-evidence-stage <manifest> <crop-map>
+bin\VideoLiveRecognitionLoop.exe --sidecar2 --shader-only --video <file.mp4> --full-run --shader-evidence-stage <manifest> <crop-map>
 ```
 
 - `--classify-selftest`: rigorous leave-one-out classification accuracy over
@@ -36,6 +38,10 @@ bin\VideoLiveRecognitionLoop.exe --live --port 8082 --seconds 240 [--no-ocr | --
 - `--no-ocr` / `--ocr-cap N`: throttle OCR. OCR (tesseract, ~2s/crop) is far
   over the ~300ms real-time budget -- keep it off/capped to measure core
   keep-up. See the task file for the full timing finding.
+- `--shader-only`: run the deterministic shader-evidence path without
+  constructing the OCR engine or entering the legacy state resolver. It
+  requires `--shader-evidence-stage <manifest> <crop-map>` and can be used with
+  both live VideoServer input and direct libavcodec recorded input.
 
 ## Rules
 

@@ -48,6 +48,8 @@ file
 	Preprocess.cpp,
 	TemplateMatch.h,
 	TemplateMatch.cpp,
+	ShaderTemplateMatch.h,
+	ShaderTemplateMatch.cpp,
 	OcrLayer.h,
 	OcrLayer.cpp,
 	OtsuPreprocess.h,

@@ -41,6 +41,95 @@ struct VsmTestHarness {
 static VsmTestHarness g_h;
 #define CHECK(cond, desc) g_h.Check((cond), (desc))
 
+static void RunShaderTemplateChecks()
+{
+	Cout() << "\n--- M0295 shader template reference ---\n";
+	VsmImageBuffer window_a = VsmImageBuffer::MakeSolid(4, 2, 10, 1);
+	VsmImageBuffer window_b = VsmImageBuffer::MakeSolid(3, 2, 20, 1);
+	VsmImageBuffer packed;
+	Vector<VsmPackedWindow> windows;
+	String pack_error;
+	CHECK(VsmPackTwoWindows(window_a, window_b, packed, windows, pack_error),
+	      "0295a packs exactly two windows without desktop pixels");
+	CHECK(packed.width == 7 && packed.height == 2 && windows.GetCount() == 2 &&
+	      windows[1].source_x == 4 && packed.Get(4, 0) == 20,
+	      "0295a preserves window order and source offset metadata");
+	VsmImageBuffer frame = VsmImageBuffer::MakeSolid(12, 8, 0, 1);
+	VsmImageBuffer crops = VsmImageBuffer::MakeSolid(8, 4, 0, 1);
+	// Two templates deliberately have different dimensions. The second is
+	// placed at (4,1), proving that the matcher does not pad to a common size.
+	for(int y = 0; y < 2; y++)
+		for(int x = 0; x < 2; x++) {
+			byte value = (byte)((x + y) ? 180 : 255);
+			crops.Set(x, y, value);
+			frame.Set(3 + x, 2 + y, value);
+		}
+	for(int x = 0; x < 3; x++) {
+		crops.Set(4 + x, 1, (byte)(40 + x * 80));
+		frame.Set(4 + x, 1, (byte)(40 + x * 80));
+	}
+
+	VsmShaderTemplateManifest manifest;
+	manifest.crop_map_width = crops.width;
+	manifest.crop_map_height = crops.height;
+	VsmShaderTemplate& a = manifest.templates.Add();
+	a.id = "digit-a"; a.label = "digit-a"; a.x = 0; a.y = 0; a.w = 2; a.h = 2;
+	a.hotspot_x = 1; a.hotspot_y = 1;
+	VsmShaderTemplate& b = manifest.templates.Add();
+	b.id = "digit-b"; b.label = "digit-b"; b.x = 4; b.y = 1; b.w = 3; b.h = 1;
+	b.hotspot_x = 1; b.hotspot_y = 0;
+	String error;
+	CHECK(manifest.Validate(error), "0295a manifest accepts independently sized crop-map entries");
+	CHECK(error.IsEmpty(), "0295a valid manifest produces no validation error");
+
+	VsmCpuShaderTemplateMatcher matcher;
+	VsmShaderEvidence evidence;
+	CHECK(matcher.Match(frame, crops, manifest, evidence, error),
+	      "0295b CPU reference matcher completes on compact grayscale input");
+	CHECK(evidence.image.width == frame.width && evidence.image.height == frame.height &&
+	      evidence.image.channels == 3,
+	      "0295b evidence image preserves frame dimensions and RGB contract");
+	CHECK(evidence.best_hits[0].x == 3 && evidence.best_hits[0].y == 2 &&
+	      evidence.best_hits[0].score > 0.999,
+	      "0295b exact 2x2 template match reports its hotspot-independent origin");
+	CHECK(evidence.best_hits[1].x == 4 && evidence.best_hits[1].y == 1 &&
+	      evidence.best_hits[1].score > 0.999,
+	      "0295b exact 3x1 template match reports its own-size origin");
+	CHECK(evidence.image.Get(3, 2, 0) == 255,
+	      "0295b R channel stores a full-strength best score");
+	CHECK(evidence.image.Get(3, 2, 1) == 0,
+	      "0295b G channel stores the winning template index");
+
+	VsmThresholdResult threshold = VsmAnalyzeEvidenceThreshold(evidence.image, 0);
+	CHECK(threshold.accepted > 0 && threshold.rejected > 0,
+	      "0295f evidence analysis separates accepted and rejected pixels");
+	VsmOccupancyMask mask = VsmBuildOccupancyMask(evidence.image, 250);
+	Rect bounds = VsmFindOccupancyBounds(mask);
+	CHECK(!bounds.IsEmpty() && bounds.left <= 3 && bounds.top <= 1,
+	      "0295g occupancy reduction preserves two-dimensional evidence bounds");
+	VsmPackedOccupancyMask packed_mask = VsmBuildPackedOccupancyMask(evidence.image, 250);
+	VsmTileOccupancyMask tile_mask = VsmBuildTileOccupancyMask(evidence.image, 250, 2);
+	VsmTileOccupancyMask benchmark_tile_mask = VsmBuildTileOccupancyMask(evidence.image, 250);
+	VsmOccupancyBenchmark benchmark = VsmBenchmarkOccupancy(evidence.image, 250, 2);
+	CHECK(packed_mask.bits.GetCount() < evidence.image.width * evidence.image.height &&
+	      tile_mask.tiles.GetCount() < evidence.image.width * evidence.image.height,
+	      "0295g packed and tile masks reduce transfer size");
+	CHECK(benchmark.packed_bytes == packed_mask.bits.GetCount() &&
+	      benchmark.tile_bytes == benchmark_tile_mask.tiles.GetCount() && benchmark.xy_bytes == evidence.image.width * evidence.image.height,
+	      "0295g benchmark reports deterministic transfer byte counts");
+	Vector<VsmEvidenceTextRun> runs = VsmReconstructEvidence(evidence.image, manifest, 250);
+	CHECK(runs.GetCount() >= 1 && runs[0].ambiguous,
+	      "0295d marks non-digit template evidence as ambiguous instead of inventing text");
+	CHECK(VsmCpuShaderTemplateMatcher::FragmentShaderSource().Find("crop_map") >= 0,
+	      "0295c shader contract names the compact frame and crop-map inputs");
+
+	String manifest_path = "tmp/m0295_template_manifest.json";
+	CHECK(manifest.Save(manifest_path), "0295a manifest serializes to JSON");
+	VsmShaderTemplateManifest loaded;
+	CHECK(loaded.Load(manifest_path) && loaded.templates.GetCount() == 2,
+	      "0295a manifest round-trips with both template sizes intact");
+}
+
 // ---------------------------------------------------------------------------
 // Small rect helpers shared by every check below. Every expected number in
 // this file is written in the same "(x,y,w,h)" shape the task spec and prior
@@ -698,6 +787,7 @@ CONSOLE_APP_MAIN
 	Cout() << "\n--- M07-01 live-tailing frame source (task 0137) ---\n";
 	RunLiveTailingCompletedFixtureCheck();
 	RunLiveTailingIncrementalCheck();
+	RunShaderTemplateChecks();
 
 	// --- Error path: nonexistent .form path ---
 	{

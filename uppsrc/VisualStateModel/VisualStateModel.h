@@ -22,6 +22,7 @@ using namespace Upp;
 #include "Annotation.h"
 #include "Preprocess.h"
 #include "TemplateMatch.h"
+#include "ShaderTemplateMatch.h"
 #include "OcrLayer.h"
 #include "OtsuPreprocess.h"
 #include "TesseractOcr.h"

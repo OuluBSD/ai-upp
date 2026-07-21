@@ -1,0 +1,12 @@
+description "Headless shader template matcher contract and regression self-test\377";
+
+uses
+	VisualStateModel;
+
+file
+	AGENTS.md,
+	ShaderTemplateMatcher.h,
+	main.cpp;
+
+mainconfig
+	"" = "";

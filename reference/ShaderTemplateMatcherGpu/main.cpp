@@ -19,17 +19,25 @@ struct ShaderProbe : GLCtrl {
 	bool finished = false;
 	bool ok = false;
 	String report_path = "tmp/vsm_shader_gpu_selftest.json";
+	int dispatch_ms = 0;
 
 	ShaderProbe()
 	{
 		frame = VsmImageBuffer::MakeSolid(16, 8, 0, 1);
-		crop_map = VsmImageBuffer::MakeSolid(8, 4, 0, 1);
+		crop_map = VsmImageBuffer::MakeSolid(12, 6, 0, 1);
 		for(int y = 0; y < 2; y++)
 			for(int x = 0; x < 2; x++) {
 				byte value = (byte)(x == y ? 240 : 120);
 				crop_map.Set(x, y, value);
 				frame.Set(6 + x, 3 + y, value);
 			}
+		for(int y = 0; y < 3; y++)
+			for(int x = 0; x < 3; x++) {
+				byte value = (byte)((x + y) % 2 ? 210 : 70);
+				crop_map.Set(5 + x, 1 + y, value);
+				frame.Set(2 + x, 1 + y, value);
+			}
+		frame.Set(2, 1, 0);
 		manifest.crop_map_width = crop_map.width;
 		manifest.crop_map_height = crop_map.height;
 		VsmShaderTemplate& templ = manifest.templates.Add();
@@ -37,6 +45,13 @@ struct ShaderProbe : GLCtrl {
 		templ.label = templ.id;
 		templ.w = templ.foreground_w = 2;
 		templ.h = templ.foreground_h = 2;
+		VsmShaderTemplate& second = manifest.templates.Add();
+		second.id = "synthetic-marker";
+		second.label = second.id;
+		second.x = 5;
+		second.y = 1;
+		second.w = second.foreground_w = 3;
+		second.h = second.foreground_h = 3;
 	}
 
 	static bool Check(GLuint value, const char *what, String& error)
@@ -148,33 +163,61 @@ struct ShaderProbe : GLCtrl {
 		glUniform2i(glGetUniformLocation(program, "frame_size"), frame.width, frame.height);
 		glUniform2i(glGetUniformLocation(program, "crop_map_size"), crop_map.width, crop_map.height);
 		glUniform1i(glGetUniformLocation(program, "template_count"), manifest.templates.GetCount());
-		GLint rect[4] = {0, 0, 2, 2};
-		GLint foreground[4] = {0, 0, 2, 2};
-		GLint polarity[1] = {manifest.templates[0].polarity};
-		glUniform4iv(glGetUniformLocation(program, "template_rects"), 1, rect);
-		glUniform4iv(glGetUniformLocation(program, "foreground_rects"), 1, foreground);
-		glUniform1iv(glGetUniformLocation(program, "template_polarity"), 1, polarity);
+		Vector<GLint> rects(manifest.templates.GetCount() * 4);
+		Vector<GLint> foregrounds(manifest.templates.GetCount() * 4);
+		Vector<GLint> polarities(manifest.templates.GetCount());
+		for(int i = 0; i < manifest.templates.GetCount(); i++) {
+			const VsmShaderTemplate& templ = manifest.templates[i];
+			rects[i * 4 + 0] = templ.x;
+			rects[i * 4 + 1] = templ.y;
+			rects[i * 4 + 2] = templ.w;
+			rects[i * 4 + 3] = templ.h;
+			foregrounds[i * 4 + 0] = templ.foreground_x;
+			foregrounds[i * 4 + 1] = templ.foreground_y;
+			foregrounds[i * 4 + 2] = templ.foreground_w;
+			foregrounds[i * 4 + 3] = templ.foreground_h;
+			polarities[i] = templ.polarity;
+		}
+		glUniform4iv(glGetUniformLocation(program, "template_rects"), manifest.templates.GetCount(), rects.Begin());
+		glUniform4iv(glGetUniformLocation(program, "foreground_rects"), manifest.templates.GetCount(), foregrounds.Begin());
+		glUniform1iv(glGetUniformLocation(program, "template_polarity"), manifest.templates.GetCount(), polarities.Begin());
 		glBindVertexArray(vao);
+		dword start = GetTickCount();
 		glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
 		glFinish();
+		dispatch_ms = (int)(GetTickCount() - start);
 		Vector<byte> pixels(frame.width * frame.height * 4);
 		glReadPixels(0, 0, frame.width, frame.height, GL_RGBA, GL_UNSIGNED_BYTE, pixels.Begin());
-		const VsmShaderMatchHit& hit = cpu.best_hits[0];
+		const VsmShaderMatchHit *hit = nullptr;
+		for(const VsmShaderMatchHit& candidate : cpu.best_hits)
+			if(!hit || candidate.score > hit->score)
+				hit = &candidate;
+		if(!hit) { error = "CPU reference produced no hit"; return; }
 		int gpu_x = -1, gpu_y = -1;
 		byte gpu_score = 0;
+		byte gpu_id = 0;
 		for(int y = 0; y < frame.height; y++)
 			for(int x = 0; x < frame.width; x++) {
 				const byte *p = pixels.Begin() + (y * frame.width + x) * 4;
-				if(p[0] > gpu_score) { gpu_score = p[0]; gpu_x = x; gpu_y = y; }
+				if(p[0] > gpu_score) {
+					gpu_score = p[0]; gpu_id = p[1]; gpu_x = x; gpu_y = y;
+				}
 			}
-		ok = glGetError() == GL_NO_ERROR && gpu_x == hit.x && gpu_y == hit.y;
+		ok = glGetError() == GL_NO_ERROR && gpu_id == hit->template_index &&
+		     gpu_x == hit->x && gpu_y == hit->y;
 		Cout() << "shader-gpu-selftest backend=opengl status=" << (ok ? "pass" : "fail")
 		       << " dimensions=" << frame.width << "x" << frame.height
-		       << " cpu=" << hit.x << "," << hit.y
+		       << " template_count=" << manifest.templates.GetCount()
+		       << " dispatch=fragment-loop"
+		       << " dispatch_ms=" << dispatch_ms
+		       << " cpu_template=" << hit->template_index
+		       << " cpu=" << hit->x << "," << hit->y
 		       << " gpu=" << gpu_x << "," << gpu_y
-		       << " cpu_score=" << hit.score << " gpu_score=" << (int)gpu_score << "\n";
-		SaveFile(report_path, Format("{\"backend\":\"opengl\",\"status\":\"%s\",\"cpu_x\":%d,\"cpu_y\":%d,\"gpu_x\":%d,\"gpu_y\":%d,\"cpu_score\":%.6f,\"gpu_score\":%d}\n",
-		         ok ? "pass" : "fail", hit.x, hit.y, gpu_x, gpu_y, hit.score, (int)gpu_score));
+		       << " cpu_score=" << hit->score << " gpu_score=" << (int)gpu_score << "\n";
+		SaveFile(report_path, Format("{\"backend\":\"opengl\",\"status\":\"%s\",\"dimensions\":\"%dx%d\",\"template_count\":%d,\"dispatch\":\"fragment-loop\",\"dispatch_ms\":%d,\"cpu_template\":%d,\"cpu_x\":%d,\"cpu_y\":%d,\"gpu_template\":%d,\"gpu_x\":%d,\"gpu_y\":%d,\"cpu_score\":%.6f,\"gpu_score\":%d}\n",
+		         ok ? "pass" : "fail", frame.width, frame.height,
+		         manifest.templates.GetCount(), dispatch_ms, hit->template_index,
+		         hit->x, hit->y, (int)gpu_id, gpu_x, gpu_y, hit->score, (int)gpu_score));
 		finished = true;
 		SetTimeCallback(100, THISBACK(CloseProbe));
 	}

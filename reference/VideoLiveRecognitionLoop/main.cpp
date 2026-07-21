@@ -194,6 +194,45 @@ static int RunShaderEvidenceSelfTest()
 	return 0;
 }
 
+static int RunShaderEvidenceJsonlSelfTest()
+{
+	VsmShaderEvidenceObservation first;
+	first.path = "selftest";
+	first.window = "L";
+	first.timestamp_ms = 1000;
+	first.runs = 1;
+	first.width = 8;
+	first.height = 5;
+	VsmShaderEvidenceObservation second = first;
+	second.window = "R";
+	Vector<VsmShaderEvidenceObservation> expected;
+	expected << first << second;
+
+	String jsonl;
+	for(const VsmShaderEvidenceObservation& observation : expected)
+		jsonl << StoreAsJson(observation, false) << "\n";
+	Vector<String> lines;
+	for(const String& line : Split(jsonl, "\n", false))
+		if(!line.IsEmpty())
+			lines.Add(line);
+	if(lines.GetCount() != expected.GetCount()) {
+		Cerr() << "shader-evidence-jsonl-selftest ERROR line-count=" << lines.GetCount() << "\n";
+		return 1;
+	}
+	for(int i = 0; i < expected.GetCount(); i++) {
+		VsmShaderEvidenceObservation parsed;
+		if(!LoadFromJson(parsed, lines[i]) || parsed.path != expected[i].path ||
+		   parsed.window != expected[i].window || parsed.timestamp_ms != expected[i].timestamp_ms ||
+		   parsed.runs != expected[i].runs || parsed.width != expected[i].width ||
+		   parsed.height != expected[i].height || parsed.error != expected[i].error) {
+			Cerr() << "shader-evidence-jsonl-selftest ERROR record=" << i << "\n";
+			return 1;
+		}
+	}
+	Cout() << "shader-evidence-jsonl-selftest status=pass records=" << expected.GetCount() << "\n";
+	return 0;
+}
+
 // Task 0290a: external card template library (rank
 // glyphs used by MatchTemplate). Overridable with --templates <dir>.
 static String g_templates_dir = "tmp/templates";
@@ -6369,6 +6408,7 @@ GUI_APP_MAIN
 	for(int i = 0; i < args.GetCount(); i++) {
 		if(args[i] == "--classify-selftest") mode = "selftest";
 		else if(args[i] == "--shader-evidence-selftest") mode = "shader-evidence";
+		else if(args[i] == "--shader-evidence-jsonl-selftest") mode = "shader-evidence-jsonl";
 		else if(args[i] == "--shader-evidence-frame" && i + 2 < args.GetCount()) {
 			mode = "shader-evidence-frame";
 			shader_manifest = args[++i];
@@ -6453,6 +6493,7 @@ GUI_APP_MAIN
 		       << "Modes:\n"
 		       << "  --classify-selftest        Leave-one-out classifier accuracy over the dataset\n"
 		       << "  --shader-evidence-selftest Shared two-window shader evidence adapter selftest\n"
+		       << "  --shader-evidence-jsonl-selftest Validate JSONL observation round-trip\n"
 		       << "  --shader-evidence-frame <manifest> <crop-map> Decode one MP4 frame and print L/R shader evidence\n"
 		       << "  --shader-evidence-frame-config <json> Decode using video/manifest/crop_map descriptor\n"
 		       << "  --shader-evidence-stage <manifest> <crop-map> Enable shared optional stage for live/sidecar2\n"
@@ -6590,6 +6631,7 @@ GUI_APP_MAIN
 	int rc = 0;
 	if(mode == "selftest") rc = RunClassifySelfTest(dataset);
 	else if(mode == "shader-evidence") rc = RunShaderEvidenceSelfTest();
+	else if(mode == "shader-evidence-jsonl") rc = RunShaderEvidenceJsonlSelfTest();
 	else if(mode == "shader-evidence-frame") rc = RunShaderEvidenceFrame(video_path, shader_manifest,
 	                                                                     shader_crop_map, shader_frame_second);
 	else if(mode == "shader-evidence-frame-config") rc = RunShaderEvidenceFrameConfig(shader_frame_config);

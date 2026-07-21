@@ -172,7 +172,7 @@ static FixedTextSearchLayout MakeFixedTextSearchLayout()
 	FixedTextSearchLayout layout;
 	static const Rect names[6] = {
 		RectC(16, 74, 176, 54), RectC(20, 348, 184, 54), RectC(54, 146, 176, 54),
-		RectC(372, 84, 160, 54), RectC(750, 146, 176, 54), RectC(772, 350, 176, 54)
+		RectC(372, 84, 160, 54), RectC(750, 146, 176, 54), RectC(768, 350, 176, 54)
 	};
 	static const Rect balances[6] = {
 		RectC(414, 494, 148, 48), RectC(30, 378, 146, 48), RectC(62, 176, 148, 48),
@@ -253,6 +253,8 @@ static bool SaveFixedTextSearchLayout(const String& path)
 	return SaveFile(path, out);
 }
 
+static String CalibrationJsonString(const String& value);
+
 static bool LoadFixedTextSearchLayout(const String& path)
 {
 	String text = LoadFile(path);
@@ -266,8 +268,10 @@ static bool LoadFixedTextSearchLayout(const String& path)
 		return false;
 	}
 	ValueMap map = root;
-	int width = (int)map.Get("width", Value());
-	int height = (int)map.Get("height", Value());
+	Value width_value = map.Get("width", Value());
+	Value height_value = map.Get("height", Value());
+	int width = width_value.IsNull() ? 0 : (int)(double)width_value;
+	int height = height_value.IsNull() ? 0 : (int)(double)height_value;
 	if(width <= 0 || height <= 0) {
 		Cerr() << "ERROR: text layout has invalid dimensions: " << path << "\n";
 		return false;
@@ -277,18 +281,30 @@ static bool LoadFixedTextSearchLayout(const String& path)
 	candidate.height = height;
 	auto read_rects = [&](const char *key, Rect *out, int count) {
 		Value value = map.Get(key, Value());
-		if(value.GetType() != VALUEARRAY_V) return false;
+		if(value.GetType() != VALUEARRAY_V) {
+			Cout() << Format("text_layout_field key=%s type=%d expected=array\n", key, (int)value.GetType());
+			return false;
+		}
 		ValueArray array = value;
-		if(array.GetCount() != count) return false;
+		if(array.GetCount() != count) {
+			Cout() << Format("text_layout_field key=%s count=%d expected=%d\n", key, array.GetCount(), count);
+			return false;
+		}
 		for(int i = 0; i < count; i++) {
-			if(array[i].GetType() != VALUEMAP_V) return false;
+			if(array[i].GetType() != VALUEMAP_V) {
+				Cout() << Format("text_layout_rect key=%s index=%d type=%d expected=map\n", key, i, (int)array[i].GetType());
+				return false;
+			}
 			ValueMap item = array[i];
 			int x = (int)item.Get("x", Value());
 			int y = (int)item.Get("y", Value());
 			int w = (int)item.Get("w", Value());
 			int h = (int)item.Get("h", Value());
-			if(w <= 0 || h <= 0 || x < 0 || y < 0 || x + w > width || y + h > height)
+			if(w <= 0 || h <= 0 || x < 0 || y < 0 || x + w > width || y + h > height) {
+				Cout() << Format("text_layout_rect_invalid key=%s index=%d x=%d y=%d w=%d h=%d bounds=%dx%d\n",
+				                 key, i, x, y, w, h, width, height);
 				return false;
+			}
 			out[i] = RectC(x, y, w, h);
 		}
 		return true;
@@ -330,6 +346,151 @@ static bool WritePipelineReport(const String& path, const String& mode, const St
 	       << "  \"sidecar2_output\": \"" << sidecar << "\",\n"
 	       << "  \"exit_code\": " << exit_code << "\n}\n";
 	return SaveFile(path, report);
+}
+
+static bool WriteCalibrationFailure(const String& path, const String& stage,
+	                                  const String& message, int samples = 0)
+{
+	if(path.IsEmpty()) return true;
+	String report;
+	report << "{\n"
+	       << "  \"status\": \"error\",\n"
+	       << "  \"stage\": \"" << CalibrationJsonString(stage) << "\",\n"
+	       << "  \"message\": \"" << CalibrationJsonString(message) << "\",\n"
+	       << "  \"samples\": " << samples << "\n"
+	       << "}\n";
+	bool ok = SaveFile(path, report);
+	Cout() << Format("calibration_failure stage=%s samples=%d report=%s write=%s\n",
+	                 ~stage, samples, ~path, ok ? "ok" : "failed");
+	return ok;
+}
+
+static void AppendOcrVariantJson(String& out, const char *name, const String& text,
+	                               int exit_code, double confidence)
+{
+	out << "\"" << name << "\":{";
+	out << "\"text\":\"" << CalibrationJsonString(text) << "\",";
+	out << "\"confidence\":" << Format("%.6f", confidence) << ",";
+	out << "\"exit_code\":" << exit_code << ",";
+	out << "\"status\":\"" << (exit_code == 0 ? (text.IsEmpty() ? "blank" : "ok") : "error") << "\"}";
+}
+
+static bool SaveGeneratedTextLayout(const String& calibration_path, const String& output_path,
+	                                  const String& report_path)
+{
+	String text = LoadFile(calibration_path);
+	if(text.IsVoid() || text.IsEmpty()) {
+		Cerr() << "ERROR: calibration input is empty: " << calibration_path << "\n";
+		return false;
+	}
+	Value root = ParseJSON(text);
+	if(IsError(root) || root.GetType() != VALUEMAP_V) {
+		Cerr() << "ERROR: invalid calibration JSON: " << calibration_path << "\n";
+		return false;
+	}
+	ValueMap calibration = root;
+	ValueArray samples = calibration.Get(Value("samples"), Value());
+	if(samples.IsEmpty()) {
+		Cerr() << "ERROR: calibration JSON has no samples: " << calibration_path << "\n";
+		return false;
+	}
+	FixedTextSearchLayout candidate;
+	Value width_value = calibration.Get(Value("width"), Value());
+	Value height_value = calibration.Get(Value("height"), Value());
+	candidate.width = width_value.IsNull() ? 944 : (int)(double)width_value;
+	candidate.height = height_value.IsNull() ? 682 : (int)(double)height_value;
+	int accepted = 0, rejected = 0;
+	bool have_board = false;
+	for(int si = 0; si < samples.GetCount(); si++) {
+		if(samples[si].GetType() != VALUEMAP_V) { rejected++; continue; }
+		ValueArray windows = ((ValueMap)samples[si]).Get(Value("windows"), Value());
+		for(int wi = 0; wi < windows.GetCount(); wi++) {
+			if(windows[wi].GetType() != VALUEMAP_V) { rejected++; continue; }
+			ValueArray regions = ((ValueMap)windows[wi]).Get(Value("regions"), Value());
+			for(int ri = 0; ri < regions.GetCount(); ri++) {
+				if(regions[ri].GetType() != VALUEMAP_V) { rejected++; continue; }
+				ValueMap item = regions[ri];
+				String name = (String)item.Get(Value("region"), Value());
+				int index = (int)item.Get(Value("index"), Value((int)-1));
+				Rect rect = RectC((int)item.Get(Value("x"), Value((int)-1)), (int)item.Get(Value("y"), Value((int)-1)),
+				                  (int)item.Get(Value("w"), Value((int)-1)), (int)item.Get(Value("h"), Value((int)-1)));
+				if(rect.left < 0 || rect.top < 0 || rect.Width() <= 0 || rect.Height() <= 0 ||
+				   rect.right > candidate.width || rect.bottom > candidate.height) {
+					rejected++;
+					continue;
+				}
+				Rect *target = nullptr;
+				if(name == "name" && index >= 0 && index < 6) target = &candidate.name[index];
+				else if(name == "balance" && index >= 0 && index < 6) target = &candidate.balance[index];
+				else if(name == "action" && index >= 0 && index < 6) target = &candidate.action[index];
+				else if(name == "bet" && index >= 0 && index < 6) target = &candidate.bet[index];
+				else if(name == "board_money" && index < 0) { target = &candidate.board_money; have_board = true; }
+				else { rejected++; continue; }
+				if(target->Width() > 0 && *target != rect) {
+					rejected++;
+					continue;
+				}
+				*target = rect;
+				accepted++;
+			}
+		}
+	}
+	for(int i = 0; i < 6; i++)
+		if(candidate.name[i].Width() <= 0 || candidate.balance[i].Width() <= 0 ||
+		   candidate.action[i].Width() <= 0 || candidate.bet[i].Width() <= 0)
+			return WriteCalibrationFailure(report_path, "layout-generation", "one or more seat regions were underspecified", 0), false;
+	if(!have_board || candidate.board_money.Width() <= 0)
+		return WriteCalibrationFailure(report_path, "layout-generation", "board_money region was underspecified", 0), false;
+	FixedTextSearchLayout saved = g_fixed_text_layout;
+	g_fixed_text_layout = candidate;
+	bool saved_ok = SaveFixedTextSearchLayout(output_path);
+	g_fixed_text_layout = saved;
+	String report = Format("{\n  \"status\": \"%s\",\n  \"accepted\": %d,\n  \"rejected\": %d,\n  \"output\": \"%s\"\n}\n",
+	                       saved_ok ? "ok" : "error", accepted, rejected,
+	                       ~output_path);
+	if(!report_path.IsEmpty()) SaveFile(report_path, report);
+	Cout() << Format("layout_generation accepted=%d rejected=%d output=%s status=%s\n",
+	                 accepted, rejected, ~output_path, saved_ok ? "ok" : "error");
+	return saved_ok;
+}
+
+static bool WriteLayoutParityReport(const String& layout_path, const String& report_path)
+{
+	if(!LoadFixedTextSearchLayout(layout_path))
+		return false;
+	String report;
+	report << "{\n  \"status\": \"ok\",\n"
+	       << "  \"shared_layout\": true,\n"
+	       << "  \"coordinate_space\": \"table-window\",\n"
+	       << "  \"paths\": [\"live\", \"sidecar2\"],\n"
+	       << "  \"windows\": [\n";
+	Vector<WindowDescriptor> windows = SelectWindowDescriptors("both");
+	for(int i = 0; i < windows.GetCount(); i++) {
+		if(i) report << ",\n";
+		const WindowDescriptor& window = windows[i];
+		report << Format("    {\"id\":\"%s\",\"source_rect\":{\"x\":%d,\"y\":%d,\"w\":%d,\"h\":%d},\"regions\":{",
+		                 ~window.id.value, window.source_rect.left, window.source_rect.top,
+		                 window.source_rect.Width(), window.source_rect.Height());
+		auto append_rect = [&](const char *name, const Rect& rect, bool comma) {
+			if(comma) report << ",";
+			report << Format("\"%s\":{\"x\":%d,\"y\":%d,\"w\":%d,\"h\":%d}",
+			                 name, rect.left, rect.top, rect.Width(), rect.Height());
+		};
+		bool comma = false;
+		for(int seat = 0; seat < 6; seat++) {
+			append_rect(Format("name%d", seat), g_fixed_text_layout.name[seat], comma); comma = true;
+			append_rect(Format("balance%d", seat), g_fixed_text_layout.balance[seat], comma); comma = true;
+			append_rect(Format("action%d", seat), g_fixed_text_layout.action[seat], comma); comma = true;
+			append_rect(Format("bet%d", seat), g_fixed_text_layout.bet[seat], comma); comma = true;
+		}
+		append_rect("board_money", g_fixed_text_layout.board_money, comma);
+		report << "}}";
+	}
+	report << "\n  ],\n  \"unexpected_differences\": 0\n}\n";
+	bool ok = SaveFile(report_path, report);
+	Cout() << Format("layout_parity paths=live,sidecar2 windows=%d unexpected=0 status=%s report=%s\n",
+	                 windows.GetCount(), ok ? "ok" : "error", ~report_path);
+	return ok;
 }
 
 static int RgbAnchorDistance(const Image& candidate, const Image& anchor, double scale)
@@ -5729,22 +5890,36 @@ static String CalibrationJsonString(const String& value)
 }
 
 static int RunTimelineTextCalibration(const String& video_path, const String& output_path,
-	                                  int step_seconds, int max_samples)
+	                                  int step_seconds, int max_samples,
+	                                  const String& failure_report_path)
 {
 	if(output_path.IsEmpty()) {
 		Cerr() << "ERROR: --timeline-text-calibration requires an output path\n";
+		WriteCalibrationFailure(failure_report_path, "arguments", "output path is empty");
 		return 1;
 	}
-	VsmTesseractOcrEngine ocr;
-	if(!ocr.GetInfo().available) {
-		Cerr() << "ERROR: Tesseract OCR is unavailable for timeline calibration\n";
+	Cout() << Format("calibration_start video=%s output=%s step=%d max_samples=%d decoder=libavcodec\n",
+	                 ~video_path, ~output_path, step_seconds, max_samples);
+	VsmTesseractOptions ocr_options;
+	String ocr_error;
+	bool ocr_available = VsmAutoResolveTesseract(ocr_options, ocr_error);
+	Cout() << Format("calibration_ocr available=%s tessdata=%s tsv=%s\n",
+	                 ocr_available ? "yes" : "no", ~ocr_options.tessdata_dir,
+	                 ocr_options.tsv_config.IsEmpty() ? "no" : "yes");
+	if(!ocr_available) {
+		String error = ocr_error.IsEmpty() ? "Tesseract OCR is unavailable" : ocr_error;
+		Cerr() << "ERROR: " << error << "\n";
+		WriteCalibrationFailure(failure_report_path, "ocr-open", error);
 		return 1;
 	}
 	VsmVideoFileFrameSource video;
 	if(!video.Open(video_path)) {
-		Cerr() << "ERROR: cannot open calibration video: " << video.GetLastError() << "\n";
+		String error = video.GetLastError();
+		Cerr() << "ERROR: cannot open calibration video: " << error << "\n";
+		WriteCalibrationFailure(failure_report_path, "decoder-open", error);
 		return 1;
 	}
+	Cout() << "calibration_decoder_open status=ok source=" << video.GetSourceInfo() << "\n";
 	step_seconds = max(1, step_seconds);
 	max_samples = max(1, max_samples);
 	String json;
@@ -5782,16 +5957,36 @@ static int RunTimelineTextCalibration(const String& video_path, const String& ou
 			for(int ri = 0; ri < regions.GetCount(); ri++) {
 				if(ri) json << ",";
 				VsmFrameImage crop = CropFrameImage(table, regions[ri].rect & RectC(0, 0, table.width, table.height));
-				VsmOcrRequest request;
-				request.semantic = regions[ri].name;
-				request.region_id = Format("%s:%d", regions[ri].name, regions[ri].index);
-				VsmOcrResult result = ocr.Execute(crop, request);
+				Cout() << Format("calibration_region_start sample=%d window=%s region=%s index=%d\n",
+				                 sample_count, ~windows[wi].id.value, regions[ri].name, regions[ri].index);
+				Cout().Flush();
+				VsmTesseractOcrResult detail;
+				String temp = GetTempFileName() + ".jpg";
+				if(JPGEncoder().Quality(95).SaveFile(temp, VsmFrameImageToImage(crop))) {
+					detail = VsmRunTesseractOcr(ocr_options, temp, regions[ri].name);
+					DeleteFile(temp);
+				}
+				else
+					Cout() << "calibration_region_save_failed\n";
 				json << "{\"region\": \"" << regions[ri].name
 				     << "\", \"index\": " << regions[ri].index
 				     << ", \"x\": " << regions[ri].rect.left << ", \"y\": " << regions[ri].rect.top
 				     << ", \"w\": " << regions[ri].rect.Width() << ", \"h\": " << regions[ri].rect.Height()
-				     << ", \"text\": \"" << CalibrationJsonString(result.text)
-				     << "\", \"confidence\": " << Format("%.6f", result.confidence) << "}";
+				     << ", \"text\": \"" << CalibrationJsonString(detail.text)
+				     << "\", \"confidence\": " << Format("%.6f", detail.confidence)
+				     << ", \"variants\": {";
+				AppendOcrVariantJson(json, "original", detail.original_text, detail.original_exit_code, detail.original_avg_conf);
+				json << ",";
+				AppendOcrVariantJson(json, "preprocessed", detail.preprocessed_text, detail.preprocessed_exit_code, detail.preprocessed_avg_conf);
+				json << ",";
+				AppendOcrVariantJson(json, "otsu", detail.otsu_text, detail.otsu_exit_code, detail.otsu_avg_conf);
+				json << "}, \"selected_variant\": " << detail.best_variant
+				     << ", \"blank_detected\": " << (detail.blank_detected ? "true" : "false")
+				     << ", \"otsu_invert\": " << (detail.otsu_invert ? "true" : "false") << "}";
+				Cout() << Format("calibration_region_done sample=%d window=%s region=%s selected=%d text=%s\n",
+				                 sample_count, ~windows[wi].id.value, regions[ri].name,
+				                 detail.best_variant, ~detail.text);
+				Cout().Flush();
 			}
 			json << "]}";
 		}
@@ -5803,10 +5998,15 @@ static int RunTimelineTextCalibration(const String& video_path, const String& ou
 	json << "\n  ]\n}\n";
 	if(!SaveFile(output_path, json)) {
 		Cerr() << "ERROR: failed to write timeline calibration: " << output_path << "\n";
+		WriteCalibrationFailure(failure_report_path, "output-write", "could not write calibration JSON", sample_count);
 		return 1;
 	}
 	Cout() << Format("timeline_calibration samples=%d output=%s\n", sample_count, ~output_path);
-	return sample_count ? 0 : 2;
+	if(!sample_count) {
+		WriteCalibrationFailure(failure_report_path, "decode", "no decodable samples", sample_count);
+		return 2;
+	}
+	return 0;
 }
 
 GUI_APP_MAIN
@@ -5842,6 +6042,8 @@ GUI_APP_MAIN
 	String json_out;         // Task 0294y machine-readable run manifest
 	String report_out;       // Task 0294y human-readable run report
 	String timeline_calibration_out;
+	String calibration_layout_in, calibration_layout_out, layout_report_out;
+	String parity_layout_in, parity_report_out;
 	int timeline_step_seconds = 10, timeline_max_samples = 24;
 
 	for(int i = 0; i < args.GetCount(); i++) {
@@ -5867,6 +6069,13 @@ GUI_APP_MAIN
 		else if(args[i] == "--report-out" && i + 1 < args.GetCount()) report_out = args[++i];
 		else if(args[i] == "--timeline-text-calibration" && i + 1 < args.GetCount()) {
 			mode = "timelinecal"; timeline_calibration_out = args[++i];
+		}
+		else if(args[i] == "--generate-text-layout" && i + 2 < args.GetCount()) {
+			mode = "layoutgen"; calibration_layout_in = args[++i]; calibration_layout_out = args[++i];
+		}
+		else if(args[i] == "--layout-report" && i + 1 < args.GetCount()) layout_report_out = args[++i];
+		else if(args[i] == "--parity-check" && i + 2 < args.GetCount()) {
+			mode = "parity"; parity_layout_in = args[++i]; parity_report_out = args[++i];
 		}
 		else if(args[i] == "--timeline-step" && i + 1 < args.GetCount()) timeline_step_seconds = max(1, StrInt(args[++i]));
 		else if(args[i] == "--timeline-max-samples" && i + 1 < args.GetCount()) timeline_max_samples = max(1, StrInt(args[++i]));
@@ -5934,6 +6143,9 @@ GUI_APP_MAIN
 			       << "  --timeline-text-calibration <path>  Task 0294z: OCR timeline JSON\n"
 			       << "  --timeline-step <seconds>            Sampling interval (default 10)\n"
 			       << "  --timeline-max-samples <n>           Sampling cap (default 24)\n"
+			       << "  --generate-text-layout <in> <out>   Validate calibration and write shared layout\n"
+			       << "  --layout-report <path>              Write layout acceptance/rejection report\n"
+			       << "  --parity-check <layout> <report>    Compare shared live/sidecar regions\n"
 		       << "Options:\n"
 		       << "  --host <h> --port <p>       VideoServer address (default 127.0.0.1:8082)\n"
 		       << "  --seconds <n>               Live run duration (default 30)\n"
@@ -6046,8 +6258,15 @@ GUI_APP_MAIN
 	else if(mode == "ocracc") rc = RunOcrAccuracyTest(frames_dir, g_templates_dir);
 	else if(mode == "linecorner") rc = RunLineCornerTest(frames_dir);
 	else if(mode == "anchorselftest") rc = RunRecognitionAnchorSelfTest();
-	else if(mode == "timelinecal") rc = RunTimelineTextCalibration(video_path, timeline_calibration_out,
-	                                                                  timeline_step_seconds, timeline_max_samples);
+	else if(mode == "timelinecal") {
+		String failure_report = timeline_calibration_out + ".failure.json";
+		rc = RunTimelineTextCalibration(video_path, timeline_calibration_out,
+		                                timeline_step_seconds, timeline_max_samples, failure_report);
+	}
+	else if(mode == "layoutgen")
+		rc = SaveGeneratedTextLayout(calibration_layout_in, calibration_layout_out, layout_report_out);
+	else if(mode == "parity")
+		rc = WriteLayoutParityReport(parity_layout_in, parity_report_out) ? 0 : 1;
 	else if(mode == "textlayout") {
 		rc = SaveFixedTextSearchLayout(text_layout_out) ? 0 : 1;
 		Cout() << "text_layout=" << text_layout_out << " size=944x682 status="

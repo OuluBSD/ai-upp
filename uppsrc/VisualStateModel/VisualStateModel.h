@@ -24,6 +24,7 @@ using namespace Upp;
 #include "TemplateMatch.h"
 #include "ShaderTemplateMatch.h"
 #include "ShaderEvidenceAdapter.h"
+#include "ShaderEvidenceFrame.h"
 #include "OcrLayer.h"
 #include "OtsuPreprocess.h"
 #include "TesseractOcr.h"

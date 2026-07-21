@@ -3062,6 +3062,7 @@ static bool ProcessWindowFrame(WindowFrame& frame, RecognitionWindowState& state
 	return true;
 }
 
+#if 0 // Moved to VisualStateModel; retained temporarily for source comparison.
 static int RunShaderEvidenceFrame(const String& video_path, const String& manifest_path,
 	                               const String& crop_map_path, int frame_second)
 {
@@ -3251,6 +3252,19 @@ static int RunShaderEvidenceFrameConfig(const String& config_path)
 	Cout().Flush();
 	return RunShaderEvidenceFrame(config.video, config.manifest, config.crop_map,
 	                              config.frame_second);
+}
+
+#endif
+
+static int RunShaderEvidenceFrame(const String& video_path, const String& manifest_path,
+	                               const String& crop_map_path, int frame_second)
+{
+	return VsmRunShaderEvidenceFrame(video_path, manifest_path, crop_map_path, frame_second);
+}
+
+static int RunShaderEvidenceFrameConfig(const String& config_path)
+{
+	return VsmRunShaderEvidenceFrameConfig(config_path);
 }
 
 static void ProcessTableFrame(const VsmFrameImage& table, VsmFrameImage& previous,
@@ -6616,14 +6630,13 @@ static int RunTimelineTextCalibration(const String& video_path, const String& ou
 	return 0;
 }
 
-GUI_APP_MAIN
+int RunVideoLiveRecognitionLoopCommand(const Vector<String>& args)
 {
 #ifdef PLATFORM_WIN32
 	AttachConsole(ATTACH_PARENT_PROCESS);
 #endif
 	SetVppLogName(AppendFileName(GetCurrentDirectory(), "VideoLiveRecognitionLoop.log"));
 
-	const Vector<String>& args = CommandLine();
 	String mode, host = "127.0.0.1", frames_dir, dataset = kDatasetDefault;
 	String video_path = kVideoPath;
 	int port = 8082, seconds = 30, max_frames = 0, wait_timeout_ms = 4000;
@@ -6755,8 +6768,7 @@ GUI_APP_MAIN
 	if(mode.IsEmpty() || mode == "help") {
 		if(shader_frame_args_error) {
 			Cerr() << "ERROR: --shader-evidence-frame requires manifest and crop-map\n";
-			SetExitCode(1);
-			return;
+			return 1;
 		}
 		Cout() << "VideoLiveRecognitionLoop (Task 0280/0293a)\n"
 		       << "Modes:\n"
@@ -6829,35 +6841,30 @@ GUI_APP_MAIN
 		       << "  --crop-list <path>           (crop-safety-check) add a category\\tpath list file\n"
 		       << "  --no-engine                 Skip the real Game engine stage\n"
 		       << "  --verbose                   Per-region log lines\n";
-		return;
+		return 0;
 	}
 	if((sidecar2_short || two_window_sample) && sidecar2_full) {
 		Cerr() << "ERROR: sample modes and --full-run are mutually exclusive\n";
-		SetExitCode(1);
-		return;
+		return 1;
 	}
 	g_shader_evidence_jsonl_path = shader_evidence_jsonl;
 	if(!g_shader_evidence_jsonl_path.IsEmpty() && !SaveFile(g_shader_evidence_jsonl_path, String())) {
 		Cerr() << "ERROR: cannot initialize shader evidence JSONL: "
 		       << g_shader_evidence_jsonl_path << "\n";
-		SetExitCode(1);
-		return;
+		return 1;
 	}
 	if(!shader_stage_manifest.IsEmpty() || !shader_stage_crop_map.IsEmpty()) {
 		if(shader_stage_manifest.IsEmpty() || shader_stage_crop_map.IsEmpty()) {
 			Cerr() << "ERROR: --shader-evidence-stage requires manifest and crop-map\n";
-			SetExitCode(1);
-			return;
+			return 1;
 		}
 		g_shader_evidence_backend = shader_backend;
 		if(!ConfigureShaderEvidenceStage(shader_stage_manifest, shader_stage_crop_map, shader_backend)) {
-			SetExitCode(1);
-			return;
+			return 1;
 		}
 	}
 	if(!text_layout_in.IsEmpty() && !LoadFixedTextSearchLayout(text_layout_in)) {
-		SetExitCode(1);
-		return;
+		return 1;
 	}
 	// Task 0294v: load the same RGB anchor library for live and libavcodec
 	// sidecar2 modes. Missing optional templates are diagnosed, not fatal: the
@@ -6868,18 +6875,15 @@ GUI_APP_MAIN
 			sidecar2_window = "both";
 		if(sidecar2_window != "both" && sidecar2_window != "right" && sidecar2_window != "left") {
 			Cerr() << "ERROR: --sidecar2-window must be both, right, or left\n";
-			SetExitCode(1);
-			return;
+			return 1;
 		}
 		if(!frames_dir.IsEmpty()) {
 			Cerr() << "ERROR: --frames-dir is not valid with --sidecar2; use direct --video MP4 input\n";
-			SetExitCode(1);
-			return;
+			return 1;
 		}
 		if(end_second >= 0 && end_second <= start_second) {
 			Cerr() << "ERROR: --end-second must be greater than --start-second\n";
-			SetExitCode(1);
-			return;
+			return 1;
 		}
 		if(two_window_sample) {
 			sidecar2_window = "both";
@@ -6975,5 +6979,14 @@ GUI_APP_MAIN
 		Cerr() << "ERROR: failed to write JSON manifest: " << json_out << "\n";
 		if(!rc) rc = 1;
 	}
-	if(rc) SetExitCode(rc);
+	return rc;
 }
+
+#ifndef VSM_VIDEO_LIVE_RECOGNITION_NO_MAIN
+GUI_APP_MAIN
+{
+	int rc = RunVideoLiveRecognitionLoopCommand(CommandLine());
+	if(rc)
+		SetExitCode(rc);
+}
+#endif

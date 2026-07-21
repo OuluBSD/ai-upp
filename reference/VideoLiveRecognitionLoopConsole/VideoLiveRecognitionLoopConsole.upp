@@ -1,0 +1,11 @@
+description "Headless console entrypoint for the shared video evidence pipeline";
+
+uses
+	VisualStateModel;
+
+file
+	AGENTS.md,
+	main.cpp;
+
+mainconfig
+	"" = "CONSOLE";

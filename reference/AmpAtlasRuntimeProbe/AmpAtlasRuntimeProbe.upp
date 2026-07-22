@@ -12,4 +12,5 @@ file
 	main.cpp;
 
 mainconfig
-	"" = "AMP";
+	"" = "AMP",
+	"AMPCompat" = "AMPCOMPAT";

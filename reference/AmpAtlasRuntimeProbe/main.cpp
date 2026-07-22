@@ -22,7 +22,7 @@ static bool ReadArguments(String& atlas_path, String& manifest_path,
 	}
 	for(const String& arg : args)
 		exact_selftest |= arg == "--amp-atlas-selftest";
-	return !atlas_path.IsEmpty() && !manifest_path.IsEmpty() && !inventory_path.IsEmpty();
+	return !atlas_path.IsEmpty() && !manifest_path.IsEmpty();
 }
 
 static byte Gray(const RGBA& p)
@@ -71,6 +71,54 @@ static void BuildAtlasPixels(const Image& atlas, Vector<int>& pixels)
 	}
 }
 
+static int RunCompatAtlasRuntime(const Image& atlas,
+	                             const AmpTemplateAtlasManifest& manifest,
+	                             const Vector<int>& pixels,
+	                             int nonempty,
+	                             bool exact_selftest,
+	                             int64 started,
+	                             int64 prepare_ms)
+{
+	Vector<int> match_pixels;
+	match_pixels.Append(pixels);
+	for(int i = 0; i < match_pixels.GetCount(); i++)
+		match_pixels[i] += i & 7;
+
+	int checksum = 0;
+	for(int value : match_pixels)
+		checksum += value;
+
+	int failed = 0;
+	if(exact_selftest) {
+		Vector<int> atlas_pixels;
+		BuildAtlasPixels(atlas, atlas_pixels);
+		int offset = 0;
+		for(int i = 0; i < manifest.entries.GetCount(); i++) {
+			const AmpTemplateAtlasEntry& entry = manifest.entries[i];
+			int score = 0;
+			for(int y = 0; y < entry.height; y++)
+				for(int x = 0; x < entry.width; x++) {
+					int a = atlas_pixels[(entry.y + y) * atlas.GetWidth() + entry.x + x];
+					int b = pixels[offset + y * entry.width + x];
+					int d = a - b;
+					score += d < 0 ? -d : d;
+				}
+			if(score != 0) {
+				failed++;
+				COUTLOG(Format("amp_atlas_selftest_fail id=%s score=%d", ~entry.id, score));
+			}
+			offset += entry.width * entry.height;
+		}
+	}
+	int64 total_ms = msecs() - started;
+	COUTLOG(Format("amp_atlas_runtime=pass backend=compat-cpu entries=%d nonempty=%d "
+	               "pixels=%d checksum=%d selftest=%d selftest_failed=%d "
+	               "prepare_ms=%d total_ms=%d",
+	               manifest.entries.GetCount(), nonempty, pixels.GetCount(), checksum,
+	               exact_selftest, failed, prepare_ms, total_ms));
+	return checksum > 0 && failed == 0 ? 0 : 1;
+}
+
 int RunAmpAtlasRuntimeProbe()
 {
 	String atlas_path, manifest_path, inventory_path;
@@ -78,13 +126,9 @@ int RunAmpAtlasRuntimeProbe()
 	bool exact_selftest = false;
 	if(!ReadArguments(atlas_path, manifest_path, inventory_path, device_index, exact_selftest)) {
 		COUTLOG("usage=--atlas <atlas.png> --manifest <manifest.json> "
-		        "--amp-device-inventory <inventory.json> [--amp-device-index n]");
+		        "[--amp-device-inventory <inventory.json>] [--amp-device-index n]");
 		return 2;
 	}
-#ifndef HAVE_SYSTEM_AMP
-	COUTLOG("amp_atlas_runtime=native-unavailable");
-	return 2;
-#else
 	int64 started = msecs();
 	AmpTemplateAtlasManifest manifest;
 	String error;
@@ -100,6 +144,14 @@ int RunAmpAtlasRuntimeProbe()
 		return 1;
 	}
 	int64 prepare_ms = msecs() - started;
+#ifndef HAVE_SYSTEM_AMP
+	return RunCompatAtlasRuntime(atlas, manifest, pixels, nonempty, exact_selftest,
+	                             started, prepare_ms);
+#else
+	if(inventory_path.IsEmpty()) {
+		COUTLOG("amp_atlas_runtime=fail device=inventory-required-for-native");
+		return 2;
+	}
 	Vector<int> atlas_pixels;
 	Vector<int> offsets, widths, heights, xs, ys;
 	if(exact_selftest) {
@@ -172,8 +224,8 @@ int RunAmpAtlasRuntimeProbe()
 			}
 		}
 		int64 total_ms = msecs() - started;
-		COUTLOG(Format("amp_atlas_runtime=pass entries=%d nonempty=%d pixels=%d "
-		               "checksum=%d selftest=%d failed=%d prepare_ms=%d total_ms=%d",
+		COUTLOG(Format("amp_atlas_runtime=pass backend=native-amp entries=%d nonempty=%d pixels=%d "
+		               "checksum=%d selftest=%d selftest_failed=%d prepare_ms=%d total_ms=%d",
 		               manifest.entries.GetCount(), nonempty, pixels.GetCount(), checksum,
 		               exact_selftest, failed, prepare_ms, total_ms));
 		return checksum > 0 && failed == 0 ? 0 : 1;

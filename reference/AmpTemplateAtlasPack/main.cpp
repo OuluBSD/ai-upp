@@ -58,7 +58,8 @@ static void DiscoverTemplates(const String& root, const String& directory,
 	}
 }
 
-static void AddHandScaleTemplates(Vector<SourceTemplate>& source)
+static void AddHandScaleTemplates(Vector<SourceTemplate>& source,
+                                  int hand_rank_height, int hand_suit_width)
 {
 	int board_count = source.GetCount();
 	for(int i = 0; i < board_count; i++) {
@@ -69,11 +70,11 @@ static void AddHandScaleTemplates(Vector<SourceTemplate>& source)
 		hand.scale = "hand";
 		hand.symbol = board.symbol;
 		int target_width = board.kind == "rank"
-			? max(1, (board.image.GetWidth() * 24 + board.image.GetHeight() / 2) /
+			? max(1, (board.image.GetWidth() * hand_rank_height + board.image.GetHeight() / 2) /
 			        board.image.GetHeight())
-			: 14;
+			: hand_suit_width;
 		int target_height = board.kind == "rank"
-			? 24
+			? hand_rank_height
 			: max(1, (board.image.GetHeight() * target_width + board.image.GetWidth() / 2) /
 			        board.image.GetWidth());
 		hand.image = Rescale(board.image, Size(target_width, target_height));
@@ -129,8 +130,13 @@ static void Outline(ImageBuffer& image, int x, int y, int width, int height, Col
 }
 
 static bool PackAtlas(const String& root, const String& atlas_path,
-                  const String& manifest_path, const String& report_path)
+                  const String& manifest_path, const String& report_path,
+                  int hand_rank_height, int hand_suit_width)
 {
+	if(hand_rank_height <= 0 || hand_suit_width <= 0) {
+		COUTLOG("amp_atlas_pack=fail reason=hand-scale-must-be-positive");
+		return false;
+	}
 	int64 started_ms = msecs();
 	Vector<SourceTemplate> source;
 	DiscoverTemplates(root, root, String(), source);
@@ -139,7 +145,9 @@ static bool PackAtlas(const String& root, const String& atlas_path,
 		COUTLOG(Format("amp_atlas_pack=fail root=%s reason=no-templates", ~root));
 		return false;
 	}
-	AddHandScaleTemplates(source);
+	AddHandScaleTemplates(source, hand_rank_height, hand_suit_width);
+	COUTLOG(Format("amp_atlas_hand_scale rank_height=%d suit_width=%d",
+	               hand_rank_height, hand_suit_width));
 
 	Index<String> identities;
 	int width = 1024;
@@ -230,7 +238,8 @@ static bool PackAtlas(const String& root, const String& atlas_path,
 		      << "</td><td>" << EscapeHtml(item.path) << "</td><td>"
 			  << Format("%d,%d %d`x%d", item.x, item.y, item.image.GetWidth(), item.image.GetHeight())
 		      << "</td><td>" << (item.kind == "rank" ? "grayscale" : "color") << "</td></tr>\n";
-	html << "</table>\n";
+	html << "</table><p>hand_rank_height=" << hand_rank_height
+	      << " hand_suit_width=" << hand_suit_width << "</p>\n";
 	if(!SaveFile(report_path, html))
 		return false;
 	int64 total_ms = msecs() - started_ms;
@@ -249,10 +258,21 @@ int RunAmpTemplateAtlasPack()
 {
 	const Vector<String>& args = CommandLine();
 	for(int i = 0; i + 4 < args.GetCount(); i++) {
-		if(args[i] == "--pack")
-			return PackAtlas(args[i + 1], args[i + 2], args[i + 3], args[i + 4]) ? 0 : 1;
+		if(args[i] == "--pack") {
+			int hand_rank_height = 24;
+			int hand_suit_width = 14;
+			for(int j = i + 5; j + 1 < args.GetCount(); j++) {
+				if(args[j] == "--hand-rank-height")
+					hand_rank_height = StrInt(args[j + 1]);
+				else if(args[j] == "--hand-suit-width")
+					hand_suit_width = StrInt(args[j + 1]);
+			}
+			return PackAtlas(args[i + 1], args[i + 2], args[i + 3], args[i + 4],
+			                 hand_rank_height, hand_suit_width) ? 0 : 1;
+		}
 	}
-	COUTLOG("usage=--pack <template-root> <atlas.png> <manifest.json> <report.htm>");
+	COUTLOG("usage=--pack <template-root> <atlas.png> <manifest.json> <report.htm> "
+	        "[--hand-rank-height n] [--hand-suit-width n]");
 	return 2;
 }
 

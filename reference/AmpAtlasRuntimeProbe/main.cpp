@@ -8,7 +8,8 @@ NAMESPACE_UPP
 
 static bool ReadArguments(String& atlas_path, String& manifest_path,
                        String& inventory_path, int& device_index, bool& exact_selftest,
-                       bool& frame_selftest, bool& pixel_selftest, int& threshold, String& frame_report_path,
+                       bool& frame_selftest, bool& pixel_selftest, bool& dual_selftest,
+                       int& threshold, String& frame_report_path,
                        String& frame_path, String& match_scale, String& match_kind)
 {
 	const Vector<String>& args = CommandLine();
@@ -38,8 +39,45 @@ static bool ReadArguments(String& atlas_path, String& manifest_path,
 		frame_selftest |= arg == "--amp-frame-selftest";
 	for(const String& arg : args)
 		pixel_selftest |= arg == "--amp-pixel-selftest";
+	for(const String& arg : args)
+		dual_selftest |= arg == "--amp-dual-selftest";
 	frame_selftest |= !frame_path.IsEmpty();
 	return pixel_selftest || (!atlas_path.IsEmpty() && !manifest_path.IsEmpty());
+}
+
+static bool RunDualSelftest(const String& device_path, String& error)
+{
+	AmpTemplatePixelBuffer frame, atlas;
+	frame.width = 2;
+	frame.height = 1;
+	frame.rgb.Add(0xFF8000);
+	frame.rgb.Add(0x0000FF);
+	frame.gray.Add(AmpRgbGray(frame.rgb[0]));
+	frame.gray.Add(AmpRgbGray(frame.rgb[1]));
+	atlas.width = 1;
+	atlas.height = 1;
+	atlas.rgb.Add(frame.rgb[1]);
+	atlas.gray.Add(frame.gray[1]);
+	AmpTemplateAtlasManifest manifest;
+	manifest.atlas_width = 1;
+	manifest.atlas_height = 1;
+	AmpTemplateAtlasEntry& entry = manifest.entries.Add();
+	entry.id = "dual-fixture";
+	entry.preprocessing = "rgb";
+	entry.width = entry.height = 1;
+	AmpTemplateMatchResult cpu, amp;
+	if(!MatchAmpTemplatePixelsCpu(frame, atlas, manifest, 0, cpu, error) ||
+	   !MatchAmpTemplatePixelsAmp(frame, atlas, manifest, 0, device_path, amp, error))
+		return false;
+	bool equal = cpu.winner_index == amp.winner_index &&
+	             cpu.winner_score == amp.winner_score &&
+	             cpu.entries.GetCount() == amp.entries.GetCount() &&
+	             cpu.entries[0].x == amp.entries[0].x &&
+	             cpu.entries[0].score == amp.entries[0].score;
+	COUTLOG(Format("amp_dual_selftest=%s backend=%s cpu_score=%d amp_score=%d x=%d",
+	               equal ? "pass" : "fail", device_path.IsEmpty() ? "compat-cpu" : "native-amp-kernel",
+	               cpu.entries[0].score, amp.entries[0].score, amp.entries[0].x));
+	return equal;
 }
 
 static int RunPixelSelftest()
@@ -441,18 +479,20 @@ int RunAmpAtlasRuntimeProbe()
 	bool exact_selftest = false;
 	bool frame_selftest = false;
 	bool pixel_selftest = false;
+	bool dual_selftest = false;
 	int threshold = 0;
 	String frame_report_path;
 	String frame_path;
 	String match_scale, match_kind;
 	if(!ReadArguments(atlas_path, manifest_path, inventory_path, device_index,
-                  exact_selftest, frame_selftest, pixel_selftest, threshold, frame_report_path,
+                  exact_selftest, frame_selftest, pixel_selftest, dual_selftest, threshold,
+                  frame_report_path,
                   frame_path, match_scale, match_kind)) {
 		if(pixel_selftest)
 			return RunPixelSelftest();
 		COUTLOG("usage=--atlas <atlas.png> --manifest <manifest.json> "
 		        "[--amp-device-inventory <inventory.json>] [--amp-device-index n] "
-		        "[--amp-pixel-selftest] [--amp-frame-selftest] [--amp-match-threshold n] "
+		        "[--amp-pixel-selftest] [--amp-dual-selftest] [--amp-frame-selftest] [--amp-match-threshold n] "
 		        "[--amp-frame-report report.htm] [--frame frame.png] "
 		        "[--amp-match-scale board|hand] [--amp-match-kind rank|suit]");
 		return 2;
@@ -503,6 +543,8 @@ int RunAmpAtlasRuntimeProbe()
 	}
 	int64 prepare_ms = msecs() - started;
 #ifndef HAVE_SYSTEM_AMP
+	if(dual_selftest && !RunDualSelftest(String(), error))
+		return 1;
 	return RunCompatAtlasRuntime(atlas, manifest, pixels, nonempty, exact_selftest,
 	                             started, prepare_ms);
 #else
@@ -531,6 +573,8 @@ int RunAmpAtlasRuntimeProbe()
 		COUTLOG(Format("amp_atlas_runtime=fail device=%s", ~error));
 		return 1;
 	}
+	if(dual_selftest && !RunDualSelftest(selected.device_path, error))
+		return 1;
 	try {
 		concurrency::accelerator device(selected.device_path.ToWString().ToStd());
 		concurrency::array_view<int, 1> view(pixels.GetCount(), pixels.Begin());

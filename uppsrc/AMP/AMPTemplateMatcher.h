@@ -23,8 +23,14 @@ struct AmpTemplateMatchResult : Moveable<AmpTemplateMatchResult> {
 bool MatchAmpTemplatePixelsCpu(const AmpTemplatePixelBuffer& frame,
 	                           const AmpTemplatePixelBuffer& atlas,
 	                           const AmpTemplateAtlasManifest& manifest,
-	                           int threshold, AmpTemplateMatchResult& result,
-	                           String& error);
+                           int threshold, AmpTemplateMatchResult& result,
+                           String& error);
+
+bool MatchAmpTemplatePixelsAmp(const AmpTemplatePixelBuffer& frame,
+	                           const AmpTemplatePixelBuffer& atlas,
+	                           const AmpTemplateAtlasManifest& manifest,
+	                           int threshold, const String& device_path,
+	                           AmpTemplateMatchResult& result, String& error);
 
 bool MatchAmpTemplatesCpu(const Vector<int>& frame, int frame_width, int frame_height,
                       const Vector<int>& atlas, const AmpTemplateAtlasManifest& manifest,

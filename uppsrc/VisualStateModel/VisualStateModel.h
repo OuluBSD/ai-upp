@@ -3,6 +3,7 @@
 
 #include <Core/Core.h>
 #include <CardGame/CardGame.h>
+#include <AMP/AMP.h>
 
 using namespace Upp;
 
@@ -24,6 +25,7 @@ using namespace Upp;
 #include "TemplateMatch.h"
 #include "ShaderTemplateMatch.h"
 #include "ShaderEvidenceAdapter.h"
+#include "AmpEvidenceAdapter.h"
 #include "ShaderEvidenceFrame.h"
 #include "OcrLayer.h"
 #include "OtsuPreprocess.h"

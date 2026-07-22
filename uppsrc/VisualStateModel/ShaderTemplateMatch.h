@@ -164,6 +164,7 @@ struct VsmShaderRecognitionService {
 	byte threshold = 0;
 	bool use_threshold = false;
 	String execution_backend = "cpu-reference";
+	String amp_device_path;
 
 	bool Process(const VsmImageBuffer& frame, VsmShaderEvidence& evidence,
 	             Vector<VsmEvidenceTextRun>& runs, String& error) const;

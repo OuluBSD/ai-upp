@@ -228,6 +228,19 @@ bool VsmShaderRecognitionService::Process(const VsmImageBuffer& frame,
 	                                         Vector<VsmEvidenceTextRun>& runs,
 	                                         String& error) const
 {
+	if(execution_backend == "native-amp" || execution_backend == "native-amp-kernel" ||
+	   execution_backend == "amp-cpu-reference") {
+		if(!VsmAmpEvidenceAdapter::Process(frame, crop_map, manifest, threshold,
+		                                   execution_backend, amp_device_path, evidence, error))
+			return false;
+		byte selected = threshold;
+		if(!use_threshold) {
+			VsmThresholdResult analysis = VsmAnalyzeEvidenceThreshold(evidence.image, 0);
+			selected = (byte)clamp((int)floor(analysis.threshold * 255.0 + 0.5), 0, 255);
+		}
+		runs = VsmReconstructEvidence(evidence.image, manifest, selected);
+		return true;
+	}
 	VsmCpuShaderTemplateMatcher matcher;
 	if(!matcher.Match(frame, crop_map, manifest, evidence, error)) return false;
 	byte selected = threshold;

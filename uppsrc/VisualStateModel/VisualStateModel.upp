@@ -5,6 +5,7 @@ uses
 	CardGame,
 	Draw,
 	Painter,
+	AMP,
 	plugin/png,
 	plugin/jpg;
 
@@ -52,6 +53,8 @@ file
 	ShaderTemplateMatch.cpp,
 	ShaderEvidenceAdapter.h,
 	ShaderEvidenceAdapter.cpp,
+	AmpEvidenceAdapter.h,
+	AmpEvidenceAdapter.cpp,
 	ShaderEvidenceFrame.h,
 	ShaderEvidenceFrame.cpp,
 	OcrLayer.h,

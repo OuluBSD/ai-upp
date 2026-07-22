@@ -7,6 +7,53 @@ static int AbsInt(int value)
 	return value < 0 ? -value : value;
 }
 
+static int PackEvidence(byte confidence, byte template_index, byte mean)
+{
+	return (int)confidence | ((int)template_index << 8) | ((int)mean << 16);
+}
+
+static void BuildEvidenceBuffer(const Vector<int>& candidate_entry,
+	                              const Vector<int>& candidate_x,
+	                              const Vector<int>& candidate_y,
+	                              const Vector<int>& scores,
+	                              const Vector<int>& entry_mode,
+	                              const Vector<int>& entry_width,
+	                              const Vector<int>& entry_height,
+	                              int width, int height,
+	                              AmpTemplateMatchResult& result)
+{
+	result.evidence_width = width;
+	result.evidence_height = height;
+	result.evidence_rgb.SetCount(width * height, 0);
+	Vector<int> best_score, confidence_sum, count;
+	best_score.SetCount(width * height, INT_MAX);
+	confidence_sum.SetCount(width * height, 0);
+	count.SetCount(width * height, 0);
+	for(int i = 0; i < candidate_entry.GetCount(); i++) {
+		int entry = candidate_entry[i];
+		int area = max(1, entry_width[entry] * entry_height[entry]);
+		int channels = entry_mode[entry] == AMP_TEMPLATE_RGB ? 3 : 1;
+		int max_score = max(1, area * channels * 255);
+		int confidence = clamp(255 - scores[i] * 255 / max_score, 0, 255);
+		int pixel = candidate_y[i] * width + candidate_x[i];
+		if(pixel < 0 || pixel >= width * height) continue;
+		bool winner = scores[i] < best_score[pixel];
+		best_score[pixel] = min(best_score[pixel], scores[i]);
+		confidence_sum[pixel] += confidence;
+		count[pixel]++;
+		if(winner)
+			result.evidence_rgb[pixel] = PackEvidence((byte)confidence,
+				(byte)clamp(entry, 0, 255), 0);
+	}
+	for(int pixel = 0; pixel < width * height; pixel++) {
+		if(count[pixel] == 0) continue;
+		byte confidence = (byte)(result.evidence_rgb[pixel] & 255);
+		byte index = (byte)((result.evidence_rgb[pixel] >> 8) & 255);
+		byte mean = (byte)clamp(confidence_sum[pixel] / count[pixel], 0, 255);
+		result.evidence_rgb[pixel] = PackEvidence(confidence, index, mean);
+	}
+}
+
 static int TemplatePixelScore(int frame_rgb, int atlas_rgb, int frame_gray,
 	                          int atlas_gray, int frame_otsu, int atlas_otsu,
 	                          int otsu_threshold, AmpTemplatePreprocessing mode,
@@ -42,11 +89,16 @@ bool MatchAmpTemplatePixelsCpu(const AmpTemplatePixelBuffer& frame,
 		return false;
 	}
 	result = AmpTemplateMatchResult();
+	Vector<int> candidate_entry, candidate_x, candidate_y, candidate_scores;
+	Vector<int> entry_mode, entry_width, entry_height;
 	for(int entry_index = 0; entry_index < manifest.entries.GetCount(); entry_index++) {
 		const AmpTemplateAtlasEntry& entry = manifest.entries[entry_index];
 		AmpTemplatePreprocessing mode;
 		if(!ParseAmpTemplatePreprocessing(entry.preprocessing, mode, error))
 			return false;
+		entry_mode.Add((int)mode);
+		entry_width.Add(entry.width);
+		entry_height.Add(entry.height);
 		int otsu_threshold = mode == AMP_TEMPLATE_OTSU
 		                   ? AmpOtsuThresholdCrop(atlas.gray, atlas.width,
 		                                          entry.x, entry.y,
@@ -80,6 +132,10 @@ bool MatchAmpTemplatePixelsCpu(const AmpTemplatePixelBuffer& frame,
 					hit.x = x;
 					hit.y = y;
 				}
+				candidate_entry.Add(entry_index);
+				candidate_x.Add(x);
+				candidate_y.Add(y);
+				candidate_scores.Add(score);
 			}
 		hit.accepted = hit.score <= threshold;
 		if(hit.accepted) {
@@ -94,6 +150,9 @@ bool MatchAmpTemplatePixelsCpu(const AmpTemplatePixelBuffer& frame,
 	}
 	for(int value : frame.rgb)
 		result.checksum = (result.checksum * 31 + value) & 0x7fffffff;
+	BuildEvidenceBuffer(candidate_entry, candidate_x, candidate_y, candidate_scores,
+	                   entry_mode, entry_width, entry_height, frame.width, frame.height,
+	                   result);
 	return true;
 }
 
@@ -295,6 +354,9 @@ bool MatchAmpTemplatePixelsAmp(const AmpTemplatePixelBuffer& frame,
 	}
 	for(int value : frame.rgb)
 		result.checksum = (result.checksum * 31 + value) & 0x7fffffff;
+	BuildEvidenceBuffer(candidate_entry, candidate_x, candidate_y, scores,
+	                   entry_mode, entry_width, entry_height, frame.width, frame.height,
+	                   result);
 	return true;
 #endif
 }

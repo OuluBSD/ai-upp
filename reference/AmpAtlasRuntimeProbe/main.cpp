@@ -139,7 +139,10 @@ static bool RunDualSelftest(const String& device_path, String& error)
 	             cpu.winner_score == amp.winner_score &&
 	             cpu.entries.GetCount() == amp.entries.GetCount() &&
 	             cpu.entries[0].x == amp.entries[0].x &&
-	             cpu.entries[0].score == amp.entries[0].score;
+	             cpu.entries[0].score == amp.entries[0].score &&
+	             cpu.evidence_width == amp.evidence_width &&
+	             cpu.evidence_height == amp.evidence_height &&
+	             cpu.evidence_rgb == amp.evidence_rgb;
 	entry.preprocessing = "otsu";
 	AmpTemplateMatchResult otsu_cpu, otsu_amp;
 	bool otsu_equal = MatchAmpTemplatePixelsCpu(frame, atlas, manifest, 0,
@@ -195,9 +198,10 @@ static bool RunDualSelftest(const String& device_path, String& error)
 	bool malformed_rejected = !MatchAmpTemplatePixelsCpu(malformed, atlas, manifest,
 	                                                     0, ignored, malformed_error);
 	equal &= malformed_rejected;
-	COUTLOG(Format("amp_dual_selftest=%s backend=%s cpu_score=%d amp_score=%d otsu=%s otsu_threshold=%d crop_canvas=%s crop_threshold=%d x=%d malformed=%s",
+	COUTLOG(Format("amp_dual_selftest=%s backend=%s cpu_score=%d amp_score=%d evidence=%d`x%d evidence_pixels=%d otsu=%s otsu_threshold=%d crop_canvas=%s crop_threshold=%d x=%d malformed=%s",
 	               equal ? "pass" : "fail", device_path.IsEmpty() ? "compat-cpu" : "native-amp-kernel",
 	               cpu.entries[0].score, amp.entries[0].score,
+	               cpu.evidence_width, cpu.evidence_height, cpu.evidence_rgb.GetCount(),
 	               otsu_equal ? "pass" : "fail", frame.otsu_threshold,
 	               crop_equal ? "pass" : "fail", crop_threshold,
 	               amp.entries[0].x,
@@ -771,7 +775,10 @@ static int RunRealFrameRegression(const String& atlas_path, const String& manife
 		int64 amp_ms = msecs() - amp_started;
 		bool equal = ok && cpu.entries.GetCount() == amp.entries.GetCount() &&
 		             cpu.winner_index == amp.winner_index &&
-		             cpu.winner_score == amp.winner_score;
+		             cpu.winner_score == amp.winner_score &&
+		             cpu.evidence_width == amp.evidence_width &&
+		             cpu.evidence_height == amp.evidence_height &&
+		             cpu.evidence_rgb == amp.evidence_rgb;
 		if(equal)
 			for(int j = 0; j < cpu.entries.GetCount(); j++)
 				equal &= cpu.entries[j].id == amp.entries[j].id &&
@@ -934,7 +941,10 @@ static int RunRealVideoRegression(const String& atlas_path, const String& manife
 		                                    threshold, device_path, amp, error);
 		int64 amp_ms = msecs() - amp_started;
 		bool equal = ok && cpu.entries.GetCount() == amp.entries.GetCount() &&
-		             cpu.winner_index == amp.winner_index && cpu.winner_score == amp.winner_score;
+		             cpu.winner_index == amp.winner_index && cpu.winner_score == amp.winner_score &&
+		             cpu.evidence_width == amp.evidence_width &&
+		             cpu.evidence_height == amp.evidence_height &&
+		             cpu.evidence_rgb == amp.evidence_rgb;
 		if(equal)
 			for(int j = 0; j < cpu.entries.GetCount(); j++)
 				equal &= cpu.entries[j].id == amp.entries[j].id &&

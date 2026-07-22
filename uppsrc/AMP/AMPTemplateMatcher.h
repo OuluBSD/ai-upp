@@ -12,6 +12,9 @@ struct AmpTemplateMatchHit : Moveable<AmpTemplateMatchHit> {
 
 struct AmpTemplateMatchResult : Moveable<AmpTemplateMatchResult> {
 	Vector<AmpTemplateMatchHit> entries;
+	int evidence_width = 0;
+	int evidence_height = 0;
+	Vector<int> evidence_rgb;
 	int winner_index = -1;
 	int winner_score = INT_MAX;
 	int accepted = 0;

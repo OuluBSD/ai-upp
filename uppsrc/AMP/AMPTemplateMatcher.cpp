@@ -9,7 +9,7 @@ static int AbsInt(int value)
 
 static int TemplatePixelScore(int frame_rgb, int atlas_rgb, int frame_gray,
 	                          int atlas_gray, int frame_otsu, int atlas_otsu,
-	                          AmpTemplatePreprocessing mode,
+	                          int otsu_threshold, AmpTemplatePreprocessing mode,
 	                          bool& supported)
 {
 	if(mode == AMP_TEMPLATE_RGB)
@@ -19,7 +19,8 @@ static int TemplatePixelScore(int frame_rgb, int atlas_rgb, int frame_gray,
 	if(mode == AMP_TEMPLATE_GRAY)
 		return AbsInt(frame_gray - atlas_gray);
 	if(mode == AMP_TEMPLATE_OTSU)
-		return AbsInt(frame_otsu - atlas_otsu);
+		return AbsInt((frame_gray > otsu_threshold ? 255 : 0) -
+		              (atlas_gray > otsu_threshold ? 255 : 0));
 	supported = false;
 	return 0;
 }
@@ -46,6 +47,11 @@ bool MatchAmpTemplatePixelsCpu(const AmpTemplatePixelBuffer& frame,
 		AmpTemplatePreprocessing mode;
 		if(!ParseAmpTemplatePreprocessing(entry.preprocessing, mode, error))
 			return false;
+		int otsu_threshold = mode == AMP_TEMPLATE_OTSU
+		                   ? AmpOtsuThresholdCrop(atlas.gray, atlas.width,
+		                                          entry.x, entry.y,
+		                                          entry.width, entry.height)
+		                   : 0;
 		AmpTemplateMatchHit& hit = result.entries.Add();
 		hit.id = entry.id;
 		hit.entry_index = entry_index;
@@ -63,6 +69,7 @@ bool MatchAmpTemplatePixelsCpu(const AmpTemplatePixelBuffer& frame,
 							atlas.gray[(entry.y + ty) * atlas.width + entry.x + tx],
 							frame.otsu[(y + ty) * frame.width + x + tx],
 							atlas.otsu[(entry.y + ty) * atlas.width + entry.x + tx],
+							otsu_threshold,
 							mode, supported);
 				if(!supported) {
 					error = Format("unsupported preprocessing for entry: %s", ~entry.id);
@@ -171,7 +178,8 @@ bool MatchAmpTemplatePixelsAmp(const AmpTemplatePixelBuffer& frame,
 		return false;
 	}
 	Vector<int> candidate_entry, candidate_x, candidate_y;
-	Vector<int> entry_x, entry_y, entry_width, entry_height, entry_mode;
+	Vector<int> entry_x, entry_y, entry_width, entry_height, entry_mode,
+	            entry_otsu_threshold;
 	for(int entry_index = 0; entry_index < manifest.entries.GetCount(); entry_index++) {
 		const AmpTemplateAtlasEntry& entry = manifest.entries[entry_index];
 		AmpTemplatePreprocessing mode;
@@ -182,6 +190,11 @@ bool MatchAmpTemplatePixelsAmp(const AmpTemplatePixelBuffer& frame,
 		entry_width.Add(entry.width);
 		entry_height.Add(entry.height);
 		entry_mode.Add((int)mode);
+		entry_otsu_threshold.Add(mode == AMP_TEMPLATE_OTSU
+		                         ? AmpOtsuThresholdCrop(atlas.gray, atlas.width,
+		                                                entry.x, entry.y,
+		                                                entry.width, entry.height)
+		                         : 0);
 		for(int y = 0; y + entry.height <= frame.height; y++)
 			for(int x = 0; x + entry.width <= frame.width; x++) {
 				candidate_entry.Add(entry_index);
@@ -206,10 +219,6 @@ bool MatchAmpTemplatePixelsAmp(const AmpTemplatePixelBuffer& frame,
 	                                               const_cast<int*>(atlas.rgb.Begin()));
 	concurrency::array_view<int, 1> atlas_gray_view(atlas.gray.GetCount(),
 	                                                const_cast<int*>(atlas.gray.Begin()));
-	concurrency::array_view<int, 1> frame_otsu_view(frame.otsu.GetCount(),
-	                                                const_cast<int*>(frame.otsu.Begin()));
-	concurrency::array_view<int, 1> atlas_otsu_view(atlas.otsu.GetCount(),
-	                                                const_cast<int*>(atlas.otsu.Begin()));
 	concurrency::array_view<int, 1> candidate_entry_view(candidate_entry.GetCount(), candidate_entry.Begin());
 	concurrency::array_view<int, 1> candidate_x_view(candidate_x.GetCount(), candidate_x.Begin());
 	concurrency::array_view<int, 1> candidate_y_view(candidate_y.GetCount(), candidate_y.Begin());
@@ -218,6 +227,8 @@ bool MatchAmpTemplatePixelsAmp(const AmpTemplatePixelBuffer& frame,
 	concurrency::array_view<int, 1> entry_width_view(entry_width.GetCount(), entry_width.Begin());
 	concurrency::array_view<int, 1> entry_height_view(entry_height.GetCount(), entry_height.Begin());
 	concurrency::array_view<int, 1> entry_mode_view(entry_mode.GetCount(), entry_mode.Begin());
+	concurrency::array_view<int, 1> entry_otsu_threshold_view(
+		entry_otsu_threshold.GetCount(), entry_otsu_threshold.Begin());
 	concurrency::array_view<int, 1> score_view(scores.GetCount(), scores.Begin());
 	int atlas_width = atlas.width;
 	int frame_width = frame.width;
@@ -245,10 +256,13 @@ bool MatchAmpTemplatePixelsAmp(const AmpTemplatePixelBuffer& frame,
 					score += d < 0 ? -d : d;
 				}
 				else {
-					int a = mode == AMP_TEMPLATE_OTSU ? frame_otsu_view[frame_index] :
-					         frame_gray_view[frame_index];
-					int b = mode == AMP_TEMPLATE_OTSU ? atlas_otsu_view[atlas_index] :
-					         atlas_gray_view[atlas_index];
+					int a = frame_gray_view[frame_index];
+					int b = atlas_gray_view[atlas_index];
+					if(mode == AMP_TEMPLATE_OTSU) {
+						int threshold = entry_otsu_threshold_view[entry_index];
+						a = a > threshold ? 255 : 0;
+						b = b > threshold ? 255 : 0;
+					}
 					int d = a - b;
 					score += d < 0 ? -d : d;
 				}

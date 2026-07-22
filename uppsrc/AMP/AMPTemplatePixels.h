@@ -24,6 +24,8 @@ byte AmpRgbGreen(int pixel);
 byte AmpRgbBlue(int pixel);
 byte AmpRgbGray(int pixel);
 int AmpOtsuThreshold(const Vector<int>& gray);
+int AmpOtsuThresholdCrop(const Vector<int>& gray, int stride, int x, int y,
+                         int width, int height);
 
 String AmpTemplatePreprocessingName(AmpTemplatePreprocessing mode);
 bool ParseAmpTemplatePreprocessing(const String& name,

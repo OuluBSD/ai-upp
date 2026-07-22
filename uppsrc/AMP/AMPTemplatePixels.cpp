@@ -37,18 +37,10 @@ byte AmpRgbGray(int pixel)
 	               AmpRgbBlue(pixel) * 29) >> 8);
 }
 
-int AmpOtsuThreshold(const Vector<int>& gray)
+static int OtsuThresholdHistogram(const int* histogram, int total, int sum)
 {
-	if(gray.IsEmpty())
+	if(total <= 0)
 		return 0;
-	int histogram[256] = {};
-	int total = gray.GetCount();
-	int sum = 0;
-	for(int value : gray) {
-		value = clamp(value, 0, 255);
-		histogram[value]++;
-		sum += value;
-	}
 	int background_count = 0;
 	int background_sum = 0;
 	double best = -1;
@@ -72,6 +64,42 @@ int AmpOtsuThreshold(const Vector<int>& gray)
 		}
 	}
 	return threshold;
+}
+
+int AmpOtsuThreshold(const Vector<int>& gray)
+{
+	if(gray.IsEmpty())
+		return 0;
+	int histogram[256] = {};
+	int sum = 0;
+	for(int value : gray) {
+		value = clamp(value, 0, 255);
+		histogram[value]++;
+		sum += value;
+	}
+	return OtsuThresholdHistogram(histogram, gray.GetCount(), sum);
+}
+
+int AmpOtsuThresholdCrop(const Vector<int>& gray, int stride, int x, int y,
+                         int width, int height)
+{
+	if(stride <= 0 || width <= 0 || height <= 0 || x < 0 || y < 0 ||
+	   x + width > stride)
+		return 0;
+	int histogram[256] = {};
+	int total = 0;
+	int sum = 0;
+	for(int row = 0; row < height; row++)
+		for(int col = 0; col < width; col++) {
+			int index = (y + row) * stride + x + col;
+			if(index < 0 || index >= gray.GetCount())
+				return 0;
+			int value = clamp(gray[index], 0, 255);
+			histogram[value]++;
+			total++;
+			sum += value;
+		}
+	return OtsuThresholdHistogram(histogram, total, sum);
 }
 
 String AmpTemplatePreprocessingName(AmpTemplatePreprocessing mode)

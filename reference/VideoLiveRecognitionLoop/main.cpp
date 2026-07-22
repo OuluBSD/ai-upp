@@ -6754,6 +6754,8 @@ int RunVideoLiveRecognitionLoopCommand(const Vector<String>& args)
 	String shader_stage_manifest, shader_stage_crop_map;
 	String shader_backend = "cpu-reference";
 	String shader_device_path;
+	String shader_device_inventory;
+	int shader_device_index = 0;
 	String shader_evidence_jsonl;
 	String shader_parity_report;
 	int shader_frame_second = 0;
@@ -6804,6 +6806,10 @@ int RunVideoLiveRecognitionLoopCommand(const Vector<String>& args)
 			shader_backend = ToLower(args[++i]);
 		else if(args[i] == "--shader-device-path" && i + 1 < args.GetCount())
 			shader_device_path = args[++i];
+		else if(args[i] == "--shader-device-inventory" && i + 1 < args.GetCount())
+			shader_device_inventory = args[++i];
+		else if(args[i] == "--shader-device-index" && i + 1 < args.GetCount())
+			shader_device_index = StrInt(args[++i]);
 		else if(args[i] == "--offline-frames" && i + 1 < args.GetCount()) { mode = "offline"; frames_dir = args[++i]; }
 		else if(args[i] == "--sidecar2") mode = "sidecar2";
 		else if(args[i] == "--shader-only") shader_only = true;
@@ -6893,6 +6899,8 @@ int RunVideoLiveRecognitionLoopCommand(const Vector<String>& args)
 		       << "  --shader-evidence-stage <manifest> <crop-map> Enable shared optional stage for live/sidecar2\n"
 		       << "  --shader-backend <name>     cpu-reference, amp-cpu-reference, or native-amp\n"
 		       << "  --shader-device-path <path> Native AMP device path from the inventory\n"
+		       << "  --shader-device-inventory <json> Select native AMP device from saved inventory\n"
+		       << "  --shader-device-index <n>  Inventory index (default 0)\n"
 		       << "  --shader-evidence-jsonl <path>  Write one JSON observation per line\n"
 		       << "  --offline-frames <dir>     Full pipeline over dataset source frames (timing)\n"
 		       << "  --sidecar2                 Generate recognized-data sidecar directly from MP4\n"
@@ -6975,6 +6983,21 @@ int RunVideoLiveRecognitionLoopCommand(const Vector<String>& args)
 			return 1;
 		}
 		g_shader_evidence_backend = shader_backend;
+		if(shader_device_path.IsEmpty() && !shader_device_inventory.IsEmpty()) {
+			Vector<AmpDeviceInfo> devices;
+			AmpDeviceInfo selected;
+			String inventory_error;
+			if(!LoadAmpDeviceInventory(shader_device_inventory, devices, inventory_error) ||
+			   !SelectAmpDevice(devices, shader_device_index, selected, inventory_error)) {
+				Cerr() << "ERROR: shader AMP device selection failed: " << inventory_error << "\n";
+				return 1;
+			}
+			shader_device_path = selected.device_path;
+			Cout() << "shader-amp-device inventory=" << shader_device_inventory
+			       << " index=" << shader_device_index
+			       << " description=" << selected.description
+			       << " path=" << selected.device_path << "\n";
+		}
 		g_shader_evidence_device_path = shader_device_path;
 		if(!ConfigureShaderEvidenceStage(shader_stage_manifest, shader_stage_crop_map,
 		                                 shader_backend, shader_device_path)) {

@@ -63,7 +63,7 @@ static bool RunDualSelftest(const String& device_path, String& error)
 	manifest.atlas_height = 1;
 	AmpTemplateAtlasEntry& entry = manifest.entries.Add();
 	entry.id = "dual-fixture";
-	entry.preprocessing = "rgb";
+	entry.preprocessing = "color";
 	entry.width = entry.height = 1;
 	AmpTemplateMatchResult cpu, amp;
 	if(!MatchAmpTemplatePixelsCpu(frame, atlas, manifest, 0, cpu, error) ||
@@ -74,9 +74,19 @@ static bool RunDualSelftest(const String& device_path, String& error)
 	             cpu.entries.GetCount() == amp.entries.GetCount() &&
 	             cpu.entries[0].x == amp.entries[0].x &&
 	             cpu.entries[0].score == amp.entries[0].score;
-	COUTLOG(Format("amp_dual_selftest=%s backend=%s cpu_score=%d amp_score=%d x=%d",
+	AmpTemplatePixelBuffer malformed;
+	malformed.width = frame.width;
+	malformed.height = frame.height;
+	malformed.rgb.Append(frame.rgb);
+	AmpTemplateMatchResult ignored;
+	String malformed_error;
+	bool malformed_rejected = !MatchAmpTemplatePixelsCpu(malformed, atlas, manifest,
+	                                                     0, ignored, malformed_error);
+	equal &= malformed_rejected;
+	COUTLOG(Format("amp_dual_selftest=%s backend=%s cpu_score=%d amp_score=%d x=%d malformed=%s",
 	               equal ? "pass" : "fail", device_path.IsEmpty() ? "compat-cpu" : "native-amp-kernel",
-	               cpu.entries[0].score, amp.entries[0].score, amp.entries[0].x));
+	               cpu.entries[0].score, amp.entries[0].score, amp.entries[0].x,
+	               malformed_rejected ? "rejected" : "accepted"));
 	return equal;
 }
 

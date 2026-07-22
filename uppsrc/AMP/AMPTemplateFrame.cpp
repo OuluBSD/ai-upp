@@ -34,4 +34,29 @@ bool MatchAmpImageAmp(const Image& image, const Vector<int>& atlas,
 	                            manifest, threshold, device_path, result, error);
 }
 
+bool MatchAmpImagesCpu(const Image& frame, const Image& atlas,
+                       const AmpTemplateAtlasManifest& manifest, int threshold,
+                       AmpTemplateMatchResult& result, String& error)
+{
+	AmpTemplatePixelBuffer frame_pixels, atlas_pixels;
+	if(!BuildAmpPixelBuffer(frame, frame_pixels, error) ||
+	   !BuildAmpPixelBuffer(atlas, atlas_pixels, error))
+		return false;
+	return MatchAmpTemplatePixelsCpu(frame_pixels, atlas_pixels, manifest,
+	                                threshold, result, error);
+}
+
+bool MatchAmpImagesAmp(const Image& frame, const Image& atlas,
+                       const AmpTemplateAtlasManifest& manifest, int threshold,
+                       const String& device_path, AmpTemplateMatchResult& result,
+                       String& error)
+{
+	AmpTemplatePixelBuffer frame_pixels, atlas_pixels;
+	if(!BuildAmpPixelBuffer(frame, frame_pixels, error) ||
+	   !BuildAmpPixelBuffer(atlas, atlas_pixels, error))
+		return false;
+	return MatchAmpTemplatePixelsAmp(frame_pixels, atlas_pixels, manifest,
+	                                threshold, device_path, result, error);
+}
+
 END_UPP_NAMESPACE

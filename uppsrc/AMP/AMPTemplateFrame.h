@@ -12,4 +12,13 @@ bool MatchAmpImageAmp(const Image& image, const Vector<int>& atlas,
                       const String& device_path, AmpTemplateMatchResult& result,
                       String& error);
 
+bool MatchAmpImagesCpu(const Image& frame, const Image& atlas,
+                       const AmpTemplateAtlasManifest& manifest, int threshold,
+                       AmpTemplateMatchResult& result, String& error);
+
+bool MatchAmpImagesAmp(const Image& frame, const Image& atlas,
+                       const AmpTemplateAtlasManifest& manifest, int threshold,
+                       const String& device_path, AmpTemplateMatchResult& result,
+                       String& error);
+
 #endif

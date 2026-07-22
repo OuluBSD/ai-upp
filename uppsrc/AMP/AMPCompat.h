@@ -7,9 +7,17 @@
 	#define PARALLEL restrict(cpu,amp)
 	#define PARALLEL_AMP restrict(amp)
 	#define HAVE_SYSTEM_AMP
+	#ifndef _SILENCE_AMP_DEPRECATION_WARNINGS
+		#define _SILENCE_AMP_DEPRECATION_WARNINGS
+		#define AMP_DEFINED_DEPRECATION_SILENCE
+	#endif
 	#include <amp.h>
 	#include <amp_math.h>
 	#include <cstdlib>
+	#ifdef AMP_DEFINED_DEPRECATION_SILENCE
+		#undef AMP_DEFINED_DEPRECATION_SILENCE
+		#undef _SILENCE_AMP_DEPRECATION_WARNINGS
+	#endif
 
 
 
@@ -35,8 +43,8 @@ inline int GetAmpDeviceMemory() {
 	return (int)defdev.get_dedicated_memory() * 1000;
 }
 
-inline String GetAmpDevices() {
-	String out;
+inline Upp::String GetAmpDevices() {
+	Upp::String out;
 	
 	std::vector<concurrency::accelerator> accls = concurrency::accelerator::get_all();
 	
@@ -51,47 +59,33 @@ inline String GetAmpDevices() {
 	#else
 	out << "RELEASE";
 	#endif
-	out <<  " build)
-";
+	out <<  " build)\n";
 	
 	out << "Found " << accls.size()
-		<< " accelerator device(s) that are compatible with C++ AMP:
-";
+		<< " accelerator device(s) that are compatible with C++ AMP:\n";
 	
 	/*if (old_format) {
 		std::for_each(accls.cbegin(), accls.cend(), [=, &n] (const concurrency::accelerator& a) {
 			out << "  " << ++n << ": " << a.description
 				<< ", has_display=" << (a.has_display ? "true" : "false")
-				<< ", is_emulated=" << (a.is_emulated ? "true" : "false") << "
-";
+				<< ", is_emulated=" << (a.is_emulated ? "true" : "false") << "\n";
 		});
-		out << "
-";
+		out << "\n";
 		return out;
 	}*/
 	
 	for(int i = 0; i < accls.size(); i++) {
 		concurrency::accelerator& a = accls[i];
-		out << "  " << i << ": " << a.description.c_str() << " "
-			<< "
-       device_path                       = " << a.device_path.c_str()
-			<< "
-       dedicated_memory                  = " << DblStr((a.dedicated_memory) / (1024.0f * 1024.0f)) << " Gb"
-			<< "
-       has_display                       = " << (a.has_display ? "true" : "false")
-			<< "
-       is_debug                          = " << (a.is_debug ? "true" : "false")
-			<< "
-       is_emulated                       = " << (a.is_emulated ? "true" : "false")
-			<< "
-       supports_double_precision         = " << (a.supports_double_precision ? "true" : "false")
-			<< "
-       supports_limited_double_precision = " << (a.supports_limited_double_precision ? "true" : "false")
-			<< "
-";
+		out << "  " << i << ": " << a.description.c_str() << "\n"
+			<< "       device_path                       = " << a.device_path.c_str() << "\n"
+			<< "       dedicated_memory                  = " << Upp::DblStr((a.dedicated_memory) / (1024.0f * 1024.0f)) << " Gb\n"
+			<< "       has_display                       = " << (a.has_display ? "true" : "false") << "\n"
+			<< "       is_debug                          = " << (a.is_debug ? "true" : "false") << "\n"
+			<< "       is_emulated                       = " << (a.is_emulated ? "true" : "false") << "\n"
+			<< "       supports_double_precision         = " << (a.supports_double_precision ? "true" : "false") << "\n"
+			<< "       supports_limited_double_precision = " << (a.supports_limited_double_precision ? "true" : "false") << "\n";
 	}
-	out << "
-";
+	out << "\n";
 	return out;
 }
 

@@ -342,6 +342,9 @@ END_UPP_NAMESPACE
 - Avoid modal dialogs like `Exclamation` and `PromptOK` in automated runs.
 - Prefer logging or test-mode message routing when a UI would otherwise block execution.
 - Use `LOG()` for observation and real-time log inspection rather than stdout.
+- After every GUI executable run, read its runtime log (normally
+  `bin\\<AppName>.log`) and use that log as part of verification; stdout alone
+  is not sufficient for GUI applications.
 
 ## ByteVM / Python Notes
 

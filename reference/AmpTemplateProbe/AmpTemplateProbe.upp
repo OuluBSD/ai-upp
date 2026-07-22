@@ -1,0 +1,13 @@
+description "Native C++ AMP runtime probe";
+
+uses
+	Core,
+	AMP;
+
+file
+	AGENTS.md,
+	AmpTemplateProbe.h,
+	main.cpp;
+
+mainconfig
+	"" = "AMP";

@@ -1,0 +1,14 @@
+description "Native C++ AMP GUI entrypoint probe";
+
+uses
+	Core,
+	CtrlLib,
+	AMP;
+
+file
+	AGENTS.md,
+	AmpTemplateGuiProbe.h,
+	main.cpp;
+
+mainconfig
+	"" = "GUI AMP";

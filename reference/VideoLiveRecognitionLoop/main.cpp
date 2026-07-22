@@ -1991,6 +1991,7 @@ static String g_shader_evidence_stage_manifest;
 static String g_shader_evidence_stage_crop_map;
 static String g_shader_evidence_jsonl_path;
 static String g_shader_evidence_backend = "cpu-reference";
+static String g_shader_evidence_device_path;
 
 static void EmitSidecar2Diagnostic(const String& line)
 {
@@ -2010,10 +2011,16 @@ static void EmitShaderEvidenceObservationJsonl(const VsmShaderEvidenceObservatio
 
 static bool ConfigureShaderEvidenceStage(const String& manifest_path,
                                          const String& crop_map_path,
-                                         const String& backend)
+                                         const String& backend,
+                                         const String& device_path)
 {
-	if(backend != "cpu-reference" && backend != "opengl") {
+	if(backend != "cpu-reference" && backend != "amp-cpu-reference" &&
+	   backend != "native-amp" && backend != "native-amp-kernel" && backend != "opengl") {
 		Cerr() << "ERROR: unsupported shader evidence backend: " << backend << "\n";
+		return false;
+	}
+	if((backend == "native-amp" || backend == "native-amp-kernel") && device_path.IsEmpty()) {
+		Cerr() << "ERROR: native AMP requires --shader-device-path <device-path>\n";
 		return false;
 	}
 	if(backend == "opengl") {
@@ -2038,11 +2045,13 @@ static bool ConfigureShaderEvidenceStage(const String& manifest_path,
 	}
 	g_shader_evidence_stage_service.use_threshold = false;
 	g_shader_evidence_stage_service.execution_backend = backend;
+	g_shader_evidence_stage_service.amp_device_path = device_path;
 	g_shader_evidence_stage_adapter.SetService(g_shader_evidence_stage_service);
 	g_shader_evidence_stage_manifest = manifest_path;
 	g_shader_evidence_stage_crop_map = crop_map_path;
 	g_shader_evidence_stage_enabled = true;
 	Cout() << "shader-evidence-stage enabled execution=" << backend
+	       << " device=" << (device_path.IsEmpty() ? "none" : device_path)
 	       << " manifest=" << manifest_path << " crop_map=" << crop_map_path << "\n";
 	Cout().Flush();
 	return true;
@@ -6744,6 +6753,7 @@ int RunVideoLiveRecognitionLoopCommand(const Vector<String>& args)
 	bool shader_frame_args_error = false;
 	String shader_stage_manifest, shader_stage_crop_map;
 	String shader_backend = "cpu-reference";
+	String shader_device_path;
 	String shader_evidence_jsonl;
 	String shader_parity_report;
 	int shader_frame_second = 0;
@@ -6792,6 +6802,8 @@ int RunVideoLiveRecognitionLoopCommand(const Vector<String>& args)
 			shader_parity_report = args[++i];
 		else if(args[i] == "--shader-backend" && i + 1 < args.GetCount())
 			shader_backend = ToLower(args[++i]);
+		else if(args[i] == "--shader-device-path" && i + 1 < args.GetCount())
+			shader_device_path = args[++i];
 		else if(args[i] == "--offline-frames" && i + 1 < args.GetCount()) { mode = "offline"; frames_dir = args[++i]; }
 		else if(args[i] == "--sidecar2") mode = "sidecar2";
 		else if(args[i] == "--shader-only") shader_only = true;
@@ -6879,7 +6891,8 @@ int RunVideoLiveRecognitionLoopCommand(const Vector<String>& args)
 		       << "  --shader-evidence-frame <manifest> <crop-map> Decode one MP4 frame and print L/R shader evidence\n"
 		       << "  --shader-evidence-frame-config <json> Decode using video/manifest/crop_map descriptor\n"
 		       << "  --shader-evidence-stage <manifest> <crop-map> Enable shared optional stage for live/sidecar2\n"
-		       << "  --shader-backend <name>     cpu-reference (default); opengl requires an owned GUI context\n"
+		       << "  --shader-backend <name>     cpu-reference, amp-cpu-reference, or native-amp\n"
+		       << "  --shader-device-path <path> Native AMP device path from the inventory\n"
 		       << "  --shader-evidence-jsonl <path>  Write one JSON observation per line\n"
 		       << "  --offline-frames <dir>     Full pipeline over dataset source frames (timing)\n"
 		       << "  --sidecar2                 Generate recognized-data sidecar directly from MP4\n"
@@ -6962,7 +6975,9 @@ int RunVideoLiveRecognitionLoopCommand(const Vector<String>& args)
 			return 1;
 		}
 		g_shader_evidence_backend = shader_backend;
-		if(!ConfigureShaderEvidenceStage(shader_stage_manifest, shader_stage_crop_map, shader_backend)) {
+		g_shader_evidence_device_path = shader_device_path;
+		if(!ConfigureShaderEvidenceStage(shader_stage_manifest, shader_stage_crop_map,
+		                                 shader_backend, shader_device_path)) {
 			return 1;
 		}
 	}

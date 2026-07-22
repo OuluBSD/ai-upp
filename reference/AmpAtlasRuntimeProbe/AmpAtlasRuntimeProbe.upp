@@ -3,6 +3,7 @@ description "Native AMP atlas runtime upload probe";
 uses
 	Core,
 	Draw,
+	VisualStateModel,
 	plugin/png,
 	AMP;
 

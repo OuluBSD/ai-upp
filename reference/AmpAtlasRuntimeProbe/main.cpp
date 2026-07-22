@@ -1,4 +1,5 @@
 #include "AmpAtlasRuntimeProbe.h"
+#include <VisualStateModel/VisualStateModel.h>
 
 CONSOLE_APP_MAIN {
 	Upp::RunAmpAtlasRuntimeProbe();
@@ -803,6 +804,163 @@ static int RunRealFrameRegression(const String& atlas_path, const String& manife
 	return failed ? 1 : 0;
 }
 
+static Image AmpImageFromVsm(const VsmImageBuffer& source)
+{
+	if(source.IsEmpty() || source.channels < 3)
+		return Image();
+	ImageBuffer output(Size(source.width, source.height));
+	for(int y = 0; y < source.height; y++) {
+		RGBA *row = output[y];
+		for(int x = 0; x < source.width; x++) {
+			row[x].r = source.Get(x, y, 0);
+			row[x].g = source.Get(x, y, 1);
+			row[x].b = source.Get(x, y, 2);
+			row[x].a = source.channels > 3 ? source.Get(x, y, 3) : 255;
+		}
+	}
+	return output;
+}
+
+static int RunRealVideoRegression(const String& atlas_path, const String& manifest_path,
+                                  const String& video_path, const String& times_path,
+                                  const String& report_path, const String& inventory_path,
+                                  int device_index, int threshold,
+                                  const String& focus_rect_spec)
+{
+	Vector<String> times;
+	for(const String& line : Split(LoadFile(times_path), "\n", false)) {
+		String value = TrimBoth(line);
+		if(!value.IsEmpty() && value[0] != '#') times.Add(value);
+	}
+	if(times.IsEmpty()) {
+		COUTLOG("amp_real_video_regression=fail reason=empty-time-list");
+		return 1;
+	}
+	String error;
+	AmpTemplateAtlasManifest manifest;
+	if(!manifest.Load(manifest_path, error)) {
+		COUTLOG(Format("amp_real_video_regression=fail manifest=%s", ~error));
+		return 1;
+	}
+	Image atlas = StreamRaster::LoadFileAny(atlas_path);
+	if(atlas.IsEmpty()) {
+		COUTLOG(Format("amp_real_video_regression=fail atlas=%s", ~atlas_path));
+		return 1;
+	}
+	String device_path;
+#ifdef HAVE_SYSTEM_AMP
+	Vector<AmpDeviceInfo> devices;
+	AmpDeviceInfo selected;
+	if(!LoadAmpDeviceInventory(inventory_path, devices, error) ||
+	   !SelectAmpDevice(devices, device_index, selected, error)) {
+		COUTLOG(Format("amp_real_video_regression=fail device=%s", ~error));
+		return 1;
+	}
+	device_path = selected.device_path;
+#endif
+	VsmVideoFileFrameSource source;
+	if(!source.Open(video_path)) {
+		COUTLOG(Format("amp_real_video_regression=fail decode=%s", ~source.GetLastError()));
+		return 1;
+	}
+	RealizeDirectory(report_path);
+	String html = "<!doctype html><meta charset=\"utf-8\"><title>AMP direct video regression</title>\n";
+	html << "<h1>AMP direct libavcodec frame regression</h1><p>video="
+	      << EscapeHtml(video_path) << " atlas=" << EscapeHtml(atlas_path)
+	      << " manifest=" << EscapeHtml(manifest_path)
+	      << "</p><table><tr><th>requested_ms</th><th>window</th><th>decoded_ms</th><th>parity</th><th>evidence</th></tr>\n";
+	int failed = 0;
+	for(int i = 0; i < times.GetCount(); i++) {
+		Vector<String> spec = Split(times[i], " ", false);
+		int64 requested_ms = StrInt64(spec[0]);
+		String window_id = spec.GetCount() > 1 ? spec[1] : "full";
+		String item_dir = AppendFileName(report_path, Format("frame_%04d", i));
+		String item_report = AppendFileName(item_dir, "report.htm");
+		if(!source.SeekMs(requested_ms)) {
+			failed++;
+			html << "<tr><td>" << requested_ms << "</td><td>-</td><td>seek-fail</td><td>-</td></tr>\n";
+			continue;
+		}
+		VsmImageBuffer decoded;
+		int64 decoded_ms = 0;
+		if(!source.ReadFrame(decoded, decoded_ms)) {
+			failed++;
+			html << "<tr><td>" << requested_ms << "</td><td>-</td><td>decode-fail</td><td>-</td></tr>\n";
+			continue;
+		}
+		Image frame = AmpImageFromVsm(decoded);
+		if(window_id == "L" || window_id == "R") {
+			int half_width = frame.GetWidth() / 2;
+			int table_height = min(frame.GetHeight(), 682);
+			Rect window_rect = window_id == "L"
+			                 ? Rect(0, 0, half_width, table_height)
+			                 : Rect(half_width, 0, frame.GetWidth(), table_height);
+			frame = Crop(frame, window_rect);
+		}
+		if(!focus_rect_spec.IsEmpty()) {
+			Vector<String> values = Split(focus_rect_spec, ",", false);
+			if(values.GetCount() != 4) {
+				COUTLOG("amp_real_video_regression=fail reason=invalid-focus-rect");
+				return 1;
+			}
+			Rect focus(StrInt(values[0]), StrInt(values[1]),
+			           StrInt(values[0]) + StrInt(values[2]),
+			           StrInt(values[1]) + StrInt(values[3]));
+			focus &= Rect(0, 0, frame.GetWidth(), frame.GetHeight());
+			if(focus.IsEmpty()) {
+				COUTLOG("amp_real_video_regression=fail reason=empty-focus-rect");
+				return 1;
+			}
+			frame = Crop(frame, focus);
+		}
+		AmpTemplatePixelBuffer frame_pixels, atlas_pixels;
+		if(frame.IsEmpty() || !BuildAmpPixelBuffer(frame, frame_pixels, error) ||
+		   !BuildAmpPixelBuffer(atlas, atlas_pixels, error)) {
+			failed++;
+			html << "<tr><td>" << requested_ms << "</td><td>" << decoded_ms << "</td><td>prepare-fail</td><td>-</td></tr>\n";
+			continue;
+		}
+		AmpTemplateMatchResult cpu, amp;
+		int64 cpu_started = msecs();
+		bool ok = MatchAmpTemplatePixelsCpu(frame_pixels, atlas_pixels, manifest,
+		                                    threshold, cpu, error);
+		int64 cpu_ms = msecs() - cpu_started;
+		int64 amp_started = msecs();
+		ok = ok && MatchAmpTemplatePixelsAmp(frame_pixels, atlas_pixels, manifest,
+		                                    threshold, device_path, amp, error);
+		int64 amp_ms = msecs() - amp_started;
+		bool equal = ok && cpu.entries.GetCount() == amp.entries.GetCount() &&
+		             cpu.winner_index == amp.winner_index && cpu.winner_score == amp.winner_score;
+		if(equal)
+			for(int j = 0; j < cpu.entries.GetCount(); j++)
+				equal &= cpu.entries[j].id == amp.entries[j].id &&
+				          cpu.entries[j].score == amp.entries[j].score &&
+				          cpu.entries[j].x == amp.entries[j].x && cpu.entries[j].y == amp.entries[j].y;
+		if(!equal) failed++;
+		int64 report_ms = 0;
+		if(ok && !SaveFrameEvidence(item_report, frame_pixels, atlas_pixels, manifest,
+		                            manifest, amp, "direct-libavcodec-native-amp", threshold,
+		                            video_path, Format("timestamp_ms=%lld", decoded_ms),
+		                            cpu_ms, amp_ms, equal, report_ms)) {
+			failed++;
+			equal = false;
+		}
+		html << "<tr><td>" << requested_ms << "</td><td>" << window_id << "</td><td>" << decoded_ms << "</td><td>"
+		      << (equal ? "pass" : "fail") << "</td><td><a href=\"frame_"
+		      << Format("%04d", i) << "/report.htm\">evidence</a></td></tr>\n";
+		COUTLOG(Format("amp_real_video frame=%d/%d requested_ms=%lld window=%s decoded_ms=%lld parity=%s cpu_ms=%d amp_ms=%d",
+		               i + 1, times.GetCount(), requested_ms, ~window_id, decoded_ms,
+		               equal ? "pass" : "fail", cpu_ms, amp_ms));
+	}
+	html << "</table><p>frames=" << times.GetCount() << " failed=" << failed
+	      << " status=" << (failed ? "fail" : "pass") << "</p>\n";
+	SaveFile(AppendFileName(report_path, "index.htm"), html);
+	COUTLOG(Format("amp_real_video_regression=%s frames=%d failed=%d report=%s",
+	               failed ? "fail" : "pass", times.GetCount(), failed,
+	               ~AppendFileName(report_path, "index.htm")));
+	return failed ? 1 : 0;
+}
+
 int RunAmpAtlasRuntimeProbe()
 {
 	String local_otsu_report;
@@ -811,10 +969,33 @@ int RunAmpAtlasRuntimeProbe()
 	for(const String& arg : CommandLine())
 		if(arg == "--amp-local-otsu-selftest")
 			return RunLocalOtsuSelftest(local_otsu_report);
-	String regression_list, regression_report;
+	String regression_list, regression_video, regression_times, regression_report, regression_rect;
 	for(int i = 0; i + 1 < CommandLine().GetCount(); i++) {
 		if(CommandLine()[i] == "--amp-real-frame-regression") regression_list = CommandLine()[i + 1];
+		if(CommandLine()[i] == "--amp-real-video-regression") regression_video = CommandLine()[i + 1];
+		if(CommandLine()[i] == "--amp-regression-times") regression_times = CommandLine()[i + 1];
+		if(CommandLine()[i] == "--amp-video-focus-rect") regression_rect = CommandLine()[i + 1];
 		if(CommandLine()[i] == "--amp-regression-report") regression_report = CommandLine()[i + 1];
+	}
+	if(!regression_video.IsEmpty()) {
+		String atlas_path, manifest_path, inventory_path;
+		int device_index = 0, threshold = 0;
+		for(int i = 0; i + 1 < CommandLine().GetCount(); i++) {
+			if(CommandLine()[i] == "--atlas") atlas_path = CommandLine()[i + 1];
+			else if(CommandLine()[i] == "--manifest") manifest_path = CommandLine()[i + 1];
+			else if(CommandLine()[i] == "--amp-device-inventory") inventory_path = CommandLine()[i + 1];
+			else if(CommandLine()[i] == "--amp-device-index") device_index = StrInt(CommandLine()[i + 1]);
+			else if(CommandLine()[i] == "--amp-match-threshold") threshold = StrInt(CommandLine()[i + 1]);
+		}
+		if(atlas_path.IsEmpty() || manifest_path.IsEmpty() || regression_times.IsEmpty() ||
+		   regression_report.IsEmpty()) {
+			COUTLOG("usage=--amp-real-video-regression video.mp4 --amp-regression-times times.txt "
+			        "--amp-regression-report report_dir --atlas atlas.png --manifest manifest.json");
+			return 2;
+		}
+		return RunRealVideoRegression(atlas_path, manifest_path, regression_video,
+		                              regression_times, regression_report, inventory_path,
+		                              device_index, threshold, regression_rect);
 	}
 	if(!regression_list.IsEmpty()) {
 		String atlas_path, manifest_path, inventory_path;

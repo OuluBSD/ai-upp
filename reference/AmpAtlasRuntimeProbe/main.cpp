@@ -86,16 +86,6 @@ static void BuildAtlasPixels(const Image& atlas, Vector<int>& pixels)
 	}
 }
 
-static void BuildGrayPixels(const Image& image, Vector<int>& pixels)
-{
-	pixels.SetCount(image.GetWidth() * image.GetHeight());
-	for(int y = 0; y < image.GetHeight(); y++) {
-		const RGBA* row = image[y];
-		for(int x = 0; x < image.GetWidth(); x++)
-			pixels[y * image.GetWidth() + x] = Gray(row[x]);
-	}
-}
-
 static bool FilterManifest(const AmpTemplateAtlasManifest& source,
 	                       const String& scale, const String& kind,
 	                       AmpTemplateAtlasManifest& filtered, String& error)
@@ -240,6 +230,7 @@ static bool RunFrameSelftest(const Vector<int>& atlas_pixels,
 		return false;
 	const AmpTemplateAtlasEntry& first = manifest.entries[0];
 	const AmpTemplateAtlasEntry& second = manifest.entries[1];
+	String error;
 	int frame_width = input_image.IsEmpty() ? first.width + second.width + 4 : input_image.GetWidth();
 	int frame_height = input_image.IsEmpty() ? max(first.height, second.height) + 2 : input_image.GetHeight();
 	Vector<int> frame;
@@ -254,10 +245,11 @@ static bool RunFrameSelftest(const Vector<int>& atlas_pixels,
 				frame[(y + 1) * frame_width + x + first.width + 2] =
 					atlas_pixels[(second.y + y) * manifest.atlas_width + second.x + x];
 	}
-	else
-		BuildGrayPixels(input_image, frame);
+	else if(!BuildAmpGrayFrame(input_image, frame, error)) {
+		COUTLOG(Format("amp_frame_input=fail error=%s", ~error));
+		return false;
+	}
 	AmpTemplateMatchResult result, reference;
-	String error;
 	int64 cpu_started = msecs();
 	if(!MatchAmpTemplatesCpu(frame, frame_width, frame_height, atlas_pixels,
 	                         manifest, threshold, reference, error)) {

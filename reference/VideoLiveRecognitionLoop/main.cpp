@@ -4439,6 +4439,232 @@ static int CompareAnnotatedSidecar2(const String& expected_path, const String& a
 	return rejected || unresolved ? 2 : 0;
 }
 
+struct NumericSidecarField : Moveable<NumericSidecarField> {
+	char window = '?';
+	int hand = -1;
+	int seat = -1;
+	int second = -1;
+	String kind;
+	String verb;
+	double value = 0;
+	String text;
+};
+
+struct NumericSidecarSummary {
+	int expected = 0;
+	int recognized = 0;
+	int rejected = 0;
+	int ambiguous = 0;
+	int unresolved = 0;
+	Vector<String> details;
+};
+
+static bool ReadNumberBeforeBB(const String& text, int from, double& value)
+{
+	int p = from;
+	while(p < text.GetCount() && (text[p] == ' ' || text[p] == '=')) p++;
+	if(p >= text.GetCount() || (text[p] < '0' || text[p] > '9') && text[p] != '.')
+		return false;
+	const char *end = nullptr;
+	value = ScanDouble(text.Begin() + p, &end);
+	if(!end || end == text.Begin() + p)
+		return false;
+	return text.Mid((int)(end - text.Begin())).StartsWith("BB");
+}
+
+static int NumericHandForSecond(const SidecarGT& gt, int second)
+{
+	int hand = gt.HandIndexOf(second);
+	if(hand >= 0) return hand;
+	int best = -1, distance = INT_MAX;
+	for(int i = 0; i < gt.new_hand_seconds.GetCount(); i++) {
+		int d = abs(second - gt.new_hand_seconds[i]);
+		if(d < distance) { distance = d; best = i; }
+	}
+	return best;
+}
+
+static Vector<NumericSidecarField> ParseNumericSidecar(const String& path, char window)
+{
+	Vector<NumericSidecarField> fields;
+	SidecarGT gt = ParseSidecarGT(path, window);
+	String text = LoadFile(path);
+	for(String raw : Split(text, '\n')) {
+		String line = TrimBoth(raw);
+		if(line.GetCount() < 2 || line[0] != window || line[1] != ' ')
+			continue;
+		int sep = line.Find(": ", 2);
+		if(sep < 0) continue;
+		int second = ParseHmsToSec(TrimBoth(line.Mid(2, sep - 2)));
+		if(second < 0) continue;
+		String rest = TrimBoth(line.Mid(sep + 2));
+		Vector<String> tok = Split(rest, ' ');
+		if(tok.IsEmpty()) continue;
+		int hand = NumericHandForSecond(gt, second);
+		int seat = -1;
+		if(tok[0].StartsWith("seat")) seat = StrInt(tok[0].Mid(4));
+		if(seat >= 1 && seat <= 6 && rest.Find("balance=") >= 0) {
+			double value;
+			if(ReadNumberBeforeBB(rest, rest.Find("balance=") + 8, value)) {
+				NumericSidecarField& field = fields.Add();
+				field.window = window; field.hand = hand; field.seat = seat;
+				field.second = second; field.kind = "balance"; field.value = value;
+				field.text = rest;
+			}
+		}
+		if(seat >= 1 && seat <= 6 && tok.GetCount() >= 2) {
+			String verb = tok[1];
+			if(verb == "bet" || verb == "raise" || verb == "call") {
+				int at = rest.Find(verb) + verb.GetCount();
+				double value;
+				if(ReadNumberBeforeBB(rest, at, value)) {
+					NumericSidecarField& field = fields.Add();
+					field.window = window; field.hand = hand; field.seat = seat;
+					field.second = second; field.kind = "action_amount";
+					field.verb = verb; field.value = value; field.text = rest;
+				}
+			}
+		}
+		int pot = rest.Find("pot ");
+		if(pot >= 0) {
+			double value;
+			if(ReadNumberBeforeBB(rest, pot + 4, value)) {
+				NumericSidecarField& field = fields.Add();
+				field.window = window; field.hand = hand; field.seat = seat;
+				field.second = second; field.kind = "pot"; field.value = value;
+				field.text = rest;
+			}
+		}
+	}
+	return fields;
+}
+
+static String NumericFieldKey(const NumericSidecarField& field)
+{
+	return Format("%s/%d/%d/%s/%s", ~field.kind, field.hand, field.seat,
+	              ~field.verb, field.kind == "pot" ? "sequence" : "seat");
+}
+
+static int CompareNumericFields(const Vector<NumericSidecarField>& expected,
+	                            const Vector<NumericSidecarField>& actual,
+	                            char window, NumericSidecarSummary& summary)
+{
+	Vector<bool> used;
+	for(int i = 0; i < actual.GetCount(); i++) used.Add(false);
+	for(const NumericSidecarField& want : expected) {
+		summary.expected++;
+		Vector<int> candidates;
+		for(int i = 0; i < actual.GetCount(); i++) {
+			const NumericSidecarField& got = actual[i];
+			if(used[i] || got.kind != want.kind || got.hand != want.hand) continue;
+			if(want.kind != "pot" && (got.seat != want.seat || got.verb != want.verb)) continue;
+			candidates.Add(i);
+		}
+		int exact_index = -1, exact_count = 0;
+		for(int index : candidates)
+			if(fabs(actual[index].value - want.value) <= 0.15) {
+				exact_index = index;
+				exact_count++;
+			}
+		if(exact_count == 1) {
+			candidates.Clear();
+			candidates.Add(exact_index);
+		}
+		else if(exact_count > 1) {
+			int nearest = -1, nearest_distance = INT_MAX, nearest_count = 0;
+			for(int index : candidates) {
+				if(fabs(actual[index].value - want.value) > 0.15) continue;
+				int distance = abs(actual[index].second - want.second);
+				if(distance < nearest_distance) {
+					nearest = index;
+					nearest_distance = distance;
+					nearest_count = 1;
+				}
+				else if(distance == nearest_distance)
+					nearest_count++;
+			}
+			if(nearest_count == 1) {
+				candidates.Clear();
+				candidates.Add(nearest);
+			}
+		}
+		if(candidates.GetCount() > 1) {
+			summary.ambiguous++;
+			summary.details.Add(Format("window=%c status=ambiguous kind=%s hand=%d seat=%d second=%d expected=%.3f candidates=%d",
+				window, ~want.kind, want.hand + 1, want.seat, want.second, want.value, candidates.GetCount()));
+			continue;
+		}
+		if(candidates.IsEmpty()) {
+			summary.unresolved++;
+			summary.details.Add(Format("window=%c status=unresolved kind=%s hand=%d seat=%d second=%d expected=%.3f",
+				window, ~want.kind, want.hand + 1, want.seat, want.second, want.value));
+			continue;
+		}
+		int index = candidates[0];
+		used[index] = true;
+		const NumericSidecarField& got = actual[index];
+		if(fabs(want.value - got.value) > 0.15) {
+			summary.rejected++;
+			summary.details.Add(Format("window=%c status=rejected kind=%s hand=%d seat=%d expected=%.3f actual=%.3f expected_second=%d actual_second=%d",
+				window, ~want.kind, want.hand + 1, want.seat, want.value, got.value,
+				want.second, got.second));
+		}
+		else summary.recognized++;
+	}
+	for(int i = 0; i < actual.GetCount(); i++) if(!used[i]) {
+		summary.rejected++;
+		summary.details.Add(Format("window=%c status=rejected unexpected kind=%s hand=%d seat=%d second=%d actual=%.3f",
+			window, ~actual[i].kind, actual[i].hand + 1, actual[i].seat,
+			actual[i].second, actual[i].value));
+	}
+	return summary.rejected || summary.ambiguous || summary.unresolved ? 2 : 0;
+}
+
+static int RunNumericAnnotatedRegression(const String& expected_path,
+	                                     const String& actual_path,
+	                                     const String& report_path)
+{
+	String json;
+	json << "{\n  \"expected\": \"" << CalibrationJsonString(expected_path)
+	     << "\",\n  \"actual\": \"" << CalibrationJsonString(actual_path) << "\",\n";
+	NumericSidecarSummary total;
+	int rc = 0;
+	for(char window : String("LR")) {
+		Vector<NumericSidecarField> want = ParseNumericSidecar(expected_path, window);
+		Vector<NumericSidecarField> got = ParseNumericSidecar(actual_path, window);
+		NumericSidecarSummary summary;
+		int window_rc = CompareNumericFields(want, got, window, summary);
+		rc = max(rc, window_rc);
+		total.expected += summary.expected;
+		total.recognized += summary.recognized;
+		total.rejected += summary.rejected;
+		total.ambiguous += summary.ambiguous;
+		total.unresolved += summary.unresolved;
+		for(const String& detail : summary.details) total.details.Add(detail);
+		Cout() << Format("numeric_regression window=%c expected=%d recognized=%d rejected=%d ambiguous=%d unresolved=%d status=%s\n",
+			window, summary.expected, summary.recognized, summary.rejected,
+			summary.ambiguous, summary.unresolved, window_rc ? "fail" : "pass");
+		json << Format("  \"%c\": {\"expected\": %d, \"recognized\": %d, \"rejected\": %d, \"ambiguous\": %d, \"unresolved\": %d},\n",
+			window, summary.expected, summary.recognized, summary.rejected,
+			summary.ambiguous, summary.unresolved);
+	}
+	json << Format("  \"summary\": {\"expected\": %d, \"recognized\": %d, \"rejected\": %d, \"ambiguous\": %d, \"unresolved\": %d},\n",
+		total.expected, total.recognized, total.rejected, total.ambiguous, total.unresolved);
+	json << "  \"details\": [\n";
+	for(int i = 0; i < total.details.GetCount(); i++)
+		json << "    \"" << CalibrationJsonString(total.details[i]) << "\""
+		     << (i + 1 == total.details.GetCount() ? "\n" : ",\n");
+	json << "  ],\n  \"status\": \"" << (rc ? "fail" : "pass") << "\"\n}\n";
+	if(!report_path.IsEmpty() && !SaveFile(report_path, json)) {
+		Cerr() << "ERROR: cannot write numeric regression report: " << report_path << "\n";
+		return 1;
+	}
+	Cout() << Format("numeric_regression_summary expected=%d recognized=%d rejected=%d ambiguous=%d unresolved=%d status=%s report=%s\n",
+		total.expected, total.recognized, total.rejected, total.ambiguous,
+		total.unresolved, rc ? "fail" : "pass", ~report_path);
+	return rc;
+}
+
 // Resolve which real frame directories a test should scan. Empty frames_dir ->
 // BOTH real hands (0263 = hand 1 sec 0-56, 0268 = hand 2 sec 52-105); an explicit
 // --frames-dir overrides to just that one. This is what finally lets one
@@ -5312,8 +5538,10 @@ static int RunSidecar2(const String& video_path, const String& dataset_path,
 	VsmVideoFileFrameSource video;
 	if(!video.Open(video_path)) {
 		Cerr() << "ERROR: cannot open direct MP4 source: " << video.GetLastError() << "\n";
+		LOG(Format("sidecar2_open_failed path=%s error=%s", ~video_path, ~video.GetLastError()));
 		return 1;
 	}
+	LOG(Format("sidecar2_open path=%s duration_ms=%lld", ~video_path, video.GetDurationMs()));
 	if(start_second > 0 && !video.SeekMs((int64)start_second * 1000)) {
 		Cerr() << "ERROR: cannot seek direct MP4 source: " << video.GetLastError() << "\n";
 		return 1;
@@ -5328,6 +5556,7 @@ static int RunSidecar2(const String& video_path, const String& dataset_path,
 	Cout() << "range_start_second=" << start_second
 	       << " range_end_second=" << end_second
 	       << " max_sampled_pts_frames=" << max_frames << "\n";
+	Cout().Flush();
 
 	VsmLiveRegionClassifier classifier;
 	if(classifier.Load(dataset_path) == 0) {
@@ -5436,14 +5665,27 @@ static int RunSidecar2(const String& video_path, const String& dataset_path,
 		last_sampled_pts_ms = pts_ms;
 		if(first_frame_second < 0) first_frame_second = frame_second;
 		last_frame_second = frame_second;
+		double sample_started_ms = NowMs();
+		Cout() << Format("sidecar2_sample_begin sample=%d decoded=%d pts_ms=%lld second=%d acquire_ms=%.1f\n",
+		                 sampled_frames, decoded_frames, pts_ms, frame_second, acquire_ms);
+		Cout().Flush();
+		LOG(Format("sidecar2_sample_begin sample=%d decoded=%d pts_ms=%lld second=%d",
+		           sampled_frames, decoded_frames, pts_ms, frame_second));
+		double shader_started_ms = NowMs();
 		if(!RunShaderEvidenceStage(buffer, window_descriptors, pts_ms, "sidecar2"))
 			return 1;
+		double shader_ms = NowMs() - shader_started_ms;
 		double fanout_started = NowMs();
 		Vector<WindowFrame> window_frames = FanOutSourceFrame(buffer, decoded_frames - 1,
 		                                                      sampled_frames - 1, pts_ms,
 		                                                      window_descriptors);
 		double fanout_ms = NowMs() - fanout_started;
 		ASSERT(window_frames.GetCount() == window_count);
+		Cout() << Format("sidecar2_sample_stage sample=%d shader_ms=%.1f fanout_ms=%.1f windows=%d\n",
+		                 sampled_frames, shader_ms, fanout_ms, window_count);
+		Cout().Flush();
+		LOG(Format("sidecar2_sample_stage sample=%d shader_ms=%.1f fanout_ms=%.1f windows=%d",
+		           sampled_frames, shader_ms, fanout_ms, window_count));
 
 		for(int window_index = 0; window_index < window_count; window_index++) {
 			Sidecar2WindowState& window = windows[window_index];
@@ -5491,6 +5733,7 @@ static int RunSidecar2(const String& video_path, const String& dataset_path,
 		}
 		int board_before = state.board_count;
 
+		double recognition_started_ms = NowMs();
 		VsmFrameImage table;
 		ProcessWindowFrame(window_frames[window_index], recognition,
 		                   classifier, ocr, ocr_available, change_params,
@@ -5498,8 +5741,17 @@ static int RunSidecar2(const String& video_path, const String& dataset_path,
 		                   dealer_template, &table, false);
 		if(table.IsEmpty()) {
 			stats.omitted_signals++;
+			Cout() << Format("sidecar2_window_done sample=%d window=%c status=empty recognition_ms=%.1f\n",
+			                 sampled_frames, window.code, NowMs() - recognition_started_ms);
+			Cout().Flush();
 			continue;
 		}
+		Cout() << Format("sidecar2_window_done sample=%d window=%c status=ok recognition_ms=%.1f board_count=%d\n",
+		                 sampled_frames, window.code, NowMs() - recognition_started_ms,
+		                 state.board_count);
+		Cout().Flush();
+		LOG(Format("sidecar2_window_done sample=%d window=%c recognition_ms=%.1f board_count=%d",
+		           sampled_frames, window.code, NowMs() - recognition_started_ms, state.board_count));
 		stats.frames++;
 		if(stats.first_frame_second < 0) stats.first_frame_second = frame_second;
 		stats.last_frame_second = frame_second;
@@ -5811,7 +6063,13 @@ static int RunSidecar2(const String& video_path, const String& dataset_path,
 			next_progress_second = frame_second + 10;
 		}
 		if(sampled_frames % 30 == 0)
-			SaveFile(output_path, ComposeSidecar2Output(output, windows, window_count));
+			if(SaveFile(output_path, ComposeSidecar2Output(output, windows, window_count))) {
+				Cout() << Format("sidecar2_checkpoint sample=%d output=%s elapsed_s=%.1f\n",
+				                 sampled_frames, ~output_path, (NowMs() - started_ms) / 1000.0);
+				Cout().Flush();
+				LOG(Format("sidecar2_checkpoint sample=%d output=%s elapsed_s=%.1f",
+				           sampled_frames, ~output_path, (NowMs() - started_ms) / 1000.0));
+			}
 	}
 	if(last_progress_pts_ms != last_sampled_pts_ms)
 		PrintProgress(last_sampled_pts_ms);
@@ -5855,6 +6113,11 @@ static int RunSidecar2(const String& video_path, const String& dataset_path,
 		Cerr() << "ERROR: failed to write " << output_path << "\n";
 		return 1;
 	}
+	Cout() << Format("sidecar2_serialized output=%s bytes=%d elapsed_s=%.1f\n",
+	                 ~output_path, composed_output.GetCount(), (NowMs() - started_ms) / 1000.0);
+	Cout().Flush();
+	LOG(Format("sidecar2_serialized output=%s bytes=%d elapsed_s=%.1f",
+	           ~output_path, composed_output.GetCount(), (NowMs() - started_ms) / 1000.0));
 
 	int parsed_hands = 0;
 	for(int window_index = 0; window_index < window_count; window_index++) {
@@ -6454,7 +6717,10 @@ int RunVideoLiveRecognitionLoopCommand(const Vector<String>& args)
 	bool sidecar2_short = false, sidecar2_full = false, two_window_sample = false;
 	bool shader_only = false;
 	bool annotated_regression = false;
+	bool numeric_regression = false;
 	String source_sidecar = kSidecarPath, sidecar2_output;
+	String numeric_regression_out;
+	String numeric_compare_expected, numeric_compare_actual;
 	String sidecar2_window = "both";
 	String sidecar2_diagnostics_output;
 	String shader_manifest, shader_crop_map;
@@ -6511,6 +6777,12 @@ int RunVideoLiveRecognitionLoopCommand(const Vector<String>& args)
 		else if(args[i] == "--sidecar2") mode = "sidecar2";
 		else if(args[i] == "--shader-only") shader_only = true;
 		else if(args[i] == "--annotated-regression") { mode = "sidecar2"; annotated_regression = true; }
+		else if(args[i] == "--numeric-regression") { mode = "sidecar2"; numeric_regression = true; }
+		else if(args[i] == "--numeric-compare" && i + 2 < args.GetCount()) {
+			mode = "numeric-compare";
+			numeric_compare_expected = args[++i];
+			numeric_compare_actual = args[++i];
+		}
 		else if(args[i] == "--live") mode = "live";
 		else if(args[i] == "--gui") mode = "gui";
 		else if(args[i] == "--crop-safety-check") mode = "cropsafety";
@@ -6544,6 +6816,7 @@ int RunVideoLiveRecognitionLoopCommand(const Vector<String>& args)
 		else if(args[i] == "--shader-frame-second" && i + 1 < args.GetCount()) shader_frame_second = max(0, StrInt(args[++i]));
 		else if(args[i] == "--source-sidecar" && i + 1 < args.GetCount()) source_sidecar = args[++i];
 		else if(args[i] == "--sidecar2-out" && i + 1 < args.GetCount()) sidecar2_output = args[++i];
+		else if(args[i] == "--numeric-regression-out" && i + 1 < args.GetCount()) numeric_regression_out = args[++i];
 		else if(args[i] == "--start-second" && i + 1 < args.GetCount()) start_second = max(0, StrInt(args[++i]));
 		else if(args[i] == "--end-second" && i + 1 < args.GetCount()) { end_second = StrInt(args[++i]); end_second_set = true; }
 		else if(args[i] == "--short-sample") sidecar2_short = true;
@@ -6591,6 +6864,9 @@ int RunVideoLiveRecognitionLoopCommand(const Vector<String>& args)
 		       << "  --offline-frames <dir>     Full pipeline over dataset source frames (timing)\n"
 		       << "  --sidecar2                 Generate recognized-data sidecar directly from MP4\n"
 		       << "  --annotated-regression    Generate both windows and compare against source sidecar\n"
+		       << "  --numeric-regression     Generate both windows and compare numeric fields\n"
+		       << "  --numeric-regression-out <path>  Write deterministic numeric report JSON\n"
+		       << "  --numeric-compare <expected> <actual>  Compare existing sidecars without decoding\n"
 		       << "  --live                     Continuous loop against a running VideoServer\n"
 		       << "  --gui                      Live mirror window of the driven Game (Task 0281);\n"
 		       << "                               background recognition loop + main-thread TopWindow,\n"
@@ -6678,7 +6954,7 @@ int RunVideoLiveRecognitionLoopCommand(const Vector<String>& args)
 	// existing classifier/OCR path remains available for incomplete installations.
 	g_recognition_anchors.Load(g_templates_dir);
 	if(mode == "sidecar2") {
-		if(annotated_regression)
+		if(annotated_regression || numeric_regression)
 			sidecar2_window = "both";
 		if(sidecar2_window != "both" && sidecar2_window != "right" && sidecar2_window != "left") {
 			Cerr() << "ERROR: --sidecar2-window must be both, right, or left\n";
@@ -6734,6 +7010,12 @@ int RunVideoLiveRecognitionLoopCommand(const Vector<String>& args)
 			                  verbose, ocr_cap, ocr_cache_enabled,
 			                  ocr_cache_threshold);
 	}
+	else if(mode == "numeric-compare") {
+		String report = numeric_regression_out;
+		if(report.IsEmpty()) report = numeric_compare_actual + ".numeric.json";
+		rc = RunNumericAnnotatedRegression(numeric_compare_expected,
+		                                    numeric_compare_actual, report);
+	}
 	if(annotated_regression && rc == 0) {
 		if(sidecar2_output.IsEmpty()) {
 			Cerr() << "ERROR: --annotated-regression requires --sidecar2-out <path>\n";
@@ -6741,6 +7023,17 @@ int RunVideoLiveRecognitionLoopCommand(const Vector<String>& args)
 		}
 		else
 			rc = CompareAnnotatedSidecar2(source_sidecar, sidecar2_output);
+	}
+	if(numeric_regression && rc == 0) {
+		if(sidecar2_output.IsEmpty()) {
+			Cerr() << "ERROR: --numeric-regression requires --sidecar2-out <path>\n";
+			rc = 1;
+		}
+		else {
+			String report = numeric_regression_out;
+			if(report.IsEmpty()) report = sidecar2_output + ".numeric.json";
+			rc = RunNumericAnnotatedRegression(source_sidecar, sidecar2_output, report);
+		}
 	}
 	else if(mode == "live") rc = shader_only
 	                                      ? RunShaderOnlyLive(host, port, seconds, wait_timeout_ms,

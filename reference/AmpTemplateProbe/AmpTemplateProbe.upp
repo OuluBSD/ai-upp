@@ -1,4 +1,4 @@
-description "Native C++ AMP runtime probe";
+description "Native C++ AMP runtime probe\377";
 
 uses
 	Core,
@@ -11,3 +11,4 @@ file
 
 mainconfig
 	"" = "AMP";
+

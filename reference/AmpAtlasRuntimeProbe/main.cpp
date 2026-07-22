@@ -878,14 +878,16 @@ static int RunRealVideoRegression(const String& atlas_path, const String& manife
 		String item_report = AppendFileName(item_dir, "report.htm");
 		if(!source.SeekMs(requested_ms)) {
 			failed++;
-			html << "<tr><td>" << requested_ms << "</td><td>-</td><td>seek-fail</td><td>-</td></tr>\n";
+			html << "<tr><td>" << requested_ms << "</td><td>" << window_id
+			     << "</td><td>seek-fail</td><td>fail</td><td>none</td></tr>\n";
 			continue;
 		}
 		VsmImageBuffer decoded;
 		int64 decoded_ms = 0;
 		if(!source.ReadFrame(decoded, decoded_ms)) {
 			failed++;
-			html << "<tr><td>" << requested_ms << "</td><td>-</td><td>decode-fail</td><td>-</td></tr>\n";
+			html << "<tr><td>" << requested_ms << "</td><td>" << window_id
+			     << "</td><td>decode-fail</td><td>fail</td><td>none</td></tr>\n";
 			continue;
 		}
 		Image frame = AmpImageFromVsm(decoded);
@@ -917,7 +919,9 @@ static int RunRealVideoRegression(const String& atlas_path, const String& manife
 		if(frame.IsEmpty() || !BuildAmpPixelBuffer(frame, frame_pixels, error) ||
 		   !BuildAmpPixelBuffer(atlas, atlas_pixels, error)) {
 			failed++;
-			html << "<tr><td>" << requested_ms << "</td><td>" << decoded_ms << "</td><td>prepare-fail</td><td>-</td></tr>\n";
+			html << "<tr><td>" << requested_ms << "</td><td>" << window_id
+			     << "</td><td>" << decoded_ms
+			     << " prepare-fail</td><td>fail</td><td>none</td></tr>\n";
 			continue;
 		}
 		AmpTemplateMatchResult cpu, amp;

@@ -53,9 +53,10 @@ static int RunPixelSelftest()
 	buffer[0][1].g = 128;
 	buffer[0][1].b = 255;
 	buffer[0][1].a = 255;
+	Image test_image(buffer);
 	AmpTemplatePixelBuffer pixels;
 	String error;
-	if(!BuildAmpPixelBuffer(Image(buffer), pixels, error)) {
+	if(!BuildAmpPixelBuffer(test_image, pixels, error)) {
 		COUTLOG(Format("amp_pixel_selftest=fail error=%s", ~error));
 		return 1;
 	}
@@ -75,6 +76,31 @@ static int RunPixelSelftest()
 	String invalid_error;
 	valid &= !ParseAmpTemplatePreprocessing("unsupported", mode, invalid_error) &&
 	          !invalid_error.IsEmpty();
+	AmpTemplatePixelBuffer frame;
+	frame.width = 2;
+	frame.height = 1;
+	frame.rgb.Add(PackAmpRgb(test_image[0][1]));
+	frame.rgb.Add(PackAmpRgb(test_image[0][0]));
+	frame.gray.Add(AmpRgbGray(frame.rgb[0]));
+	frame.gray.Add(AmpRgbGray(frame.rgb[1]));
+	AmpTemplatePixelBuffer atlas;
+	atlas.width = 1;
+	atlas.height = 1;
+	atlas.rgb.Add(frame.rgb[1]);
+	atlas.gray.Add(frame.gray[1]);
+	AmpTemplateAtlasManifest manifest;
+	manifest.atlas_width = 1;
+	manifest.atlas_height = 1;
+	AmpTemplateAtlasEntry& entry = manifest.entries.Add();
+	entry.id = "rgb-fixture";
+	entry.preprocessing = "rgb";
+	entry.width = entry.height = 1;
+	AmpTemplateMatchResult match;
+	String match_error;
+	valid &= MatchAmpTemplatePixelsCpu(frame, atlas, manifest, 0, match,
+	                                   match_error) && match.winner_index == 0 &&
+	          match.entries.GetCount() == 1 && match.entries[0].x == 1 &&
+	          match.entries[0].score == 0;
 	COUTLOG(Format("amp_pixel_selftest=%s size=%d`x%d rgb_checksum=%d gray_checksum=%d",
 	               valid ? "pass" : "fail", pixels.width, pixels.height,
 	               pixels.rgb[0] + pixels.rgb[1], pixels.gray[0] + pixels.gray[1]));

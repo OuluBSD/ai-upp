@@ -20,6 +20,12 @@ struct AmpTemplateMatchResult : Moveable<AmpTemplateMatchResult> {
 	int checksum = 0;
 };
 
+bool MatchAmpTemplatePixelsCpu(const AmpTemplatePixelBuffer& frame,
+	                           const AmpTemplatePixelBuffer& atlas,
+	                           const AmpTemplateAtlasManifest& manifest,
+	                           int threshold, AmpTemplateMatchResult& result,
+	                           String& error);
+
 bool MatchAmpTemplatesCpu(const Vector<int>& frame, int frame_width, int frame_height,
                       const Vector<int>& atlas, const AmpTemplateAtlasManifest& manifest,
                       int threshold, AmpTemplateMatchResult& result, String& error);

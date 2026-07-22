@@ -7,6 +7,84 @@ static int AbsInt(int value)
 	return value < 0 ? -value : value;
 }
 
+static int TemplatePixelScore(int frame_rgb, int atlas_rgb, int frame_gray,
+	                          int atlas_gray, AmpTemplatePreprocessing mode,
+	                          bool& supported)
+{
+	if(mode == AMP_TEMPLATE_RGB)
+		return AbsInt((int)AmpRgbRed(frame_rgb) - AmpRgbRed(atlas_rgb)) +
+		       AbsInt((int)AmpRgbGreen(frame_rgb) - AmpRgbGreen(atlas_rgb)) +
+		       AbsInt((int)AmpRgbBlue(frame_rgb) - AmpRgbBlue(atlas_rgb));
+	if(mode == AMP_TEMPLATE_GRAY || mode == AMP_TEMPLATE_OTSU)
+		return AbsInt(frame_gray - atlas_gray);
+	supported = false;
+	return 0;
+}
+
+bool MatchAmpTemplatePixelsCpu(const AmpTemplatePixelBuffer& frame,
+	                           const AmpTemplatePixelBuffer& atlas,
+	                           const AmpTemplateAtlasManifest& manifest,
+	                           int threshold, AmpTemplateMatchResult& result,
+	                           String& error)
+{
+	if(!frame.IsValid() || !atlas.IsValid() ||
+	   atlas.width != manifest.atlas_width ||
+	   atlas.height != manifest.atlas_height) {
+		error = "invalid dual-channel pixel dimensions";
+		return false;
+	}
+	if(threshold < 0) {
+		error = "threshold must not be negative";
+		return false;
+	}
+	result = AmpTemplateMatchResult();
+	for(int entry_index = 0; entry_index < manifest.entries.GetCount(); entry_index++) {
+		const AmpTemplateAtlasEntry& entry = manifest.entries[entry_index];
+		AmpTemplatePreprocessing mode;
+		if(!ParseAmpTemplatePreprocessing(entry.preprocessing, mode, error))
+			return false;
+		AmpTemplateMatchHit& hit = result.entries.Add();
+		hit.id = entry.id;
+		hit.entry_index = entry_index;
+		for(int y = 0; y + entry.height <= frame.height; y++)
+			for(int x = 0; x + entry.width <= frame.width; x++) {
+				result.candidate_count++;
+				int score = 0;
+				bool supported = true;
+				for(int ty = 0; ty < entry.height && supported; ty++)
+					for(int tx = 0; tx < entry.width; tx++)
+						score += TemplatePixelScore(
+							frame.rgb[(y + ty) * frame.width + x + tx],
+							atlas.rgb[(entry.y + ty) * atlas.width + entry.x + tx],
+							frame.gray[(y + ty) * frame.width + x + tx],
+							atlas.gray[(entry.y + ty) * atlas.width + entry.x + tx],
+							mode, supported);
+				if(!supported) {
+					error = Format("unsupported preprocessing for entry: %s", ~entry.id);
+					return false;
+				}
+				if(score < hit.score) {
+					hit.score = score;
+					hit.x = x;
+					hit.y = y;
+				}
+			}
+		hit.accepted = hit.score <= threshold;
+		if(hit.accepted) {
+			result.accepted++;
+			if(hit.score < result.winner_score) {
+				result.winner_score = hit.score;
+				result.winner_index = entry_index;
+			}
+		}
+		else
+			result.rejected++;
+	}
+	for(int value : frame.rgb)
+		result.checksum = (result.checksum * 31 + value) & 0x7fffffff;
+	return true;
+}
+
 static bool CheckMatchInput(const Vector<int>& frame, int frame_width, int frame_height,
 	                         const Vector<int>& atlas,
 	                         const AmpTemplateAtlasManifest& manifest, int threshold,

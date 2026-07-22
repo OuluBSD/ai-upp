@@ -8,7 +8,7 @@ NAMESPACE_UPP
 
 static bool ReadArguments(String& atlas_path, String& manifest_path,
                        String& inventory_path, int& device_index, bool& exact_selftest,
-                       bool& frame_selftest, int& threshold)
+                       bool& frame_selftest, int& threshold, String& frame_report_path)
 {
 	const Vector<String>& args = CommandLine();
 	for(int i = 0; i + 1 < args.GetCount(); i++) {
@@ -22,6 +22,8 @@ static bool ReadArguments(String& atlas_path, String& manifest_path,
 			device_index = StrInt(args[i + 1]);
 		else if(args[i] == "--amp-match-threshold")
 			threshold = StrInt(args[i + 1]);
+		else if(args[i] == "--amp-frame-report")
+			frame_report_path = args[i + 1];
 	}
 	for(const String& arg : args)
 		exact_selftest |= arg == "--amp-atlas-selftest";
@@ -76,10 +78,113 @@ static void BuildAtlasPixels(const Image& atlas, Vector<int>& pixels)
 	}
 }
 
+static String EscapeHtml(String text)
+{
+	text.Replace("&", "&amp;");
+	text.Replace("<", "&lt;");
+	text.Replace(">", "&gt;");
+	text.Replace("\"", "&quot;");
+	return text;
+}
+
+static Image MakeGrayImage(const Vector<int>& pixels, int width, int height)
+{
+	ImageBuffer buffer(width, height);
+	for(int y = 0; y < height; y++) {
+		RGBA* row = buffer[y];
+		for(int x = 0; x < width; x++) {
+			byte value = (byte)clamp(pixels[y * width + x], 0, 255);
+			row[x].r = value;
+			row[x].g = value;
+			row[x].b = value;
+			row[x].a = 255;
+		}
+	}
+	return Image(buffer);
+}
+
+static void Outline(ImageBuffer& image, int x, int y, int width, int height, Color color)
+{
+	for(int xx = x; xx < x + width; xx++) {
+		if(xx >= 0 && xx < image.GetWidth()) {
+			if(y >= 0 && y < image.GetHeight()) image[y][xx] = color;
+			if(y + height - 1 >= 0 && y + height - 1 < image.GetHeight())
+				image[y + height - 1][xx] = color;
+		}
+	}
+	for(int yy = y; yy < y + height; yy++) {
+		if(yy >= 0 && yy < image.GetHeight()) {
+			if(x >= 0 && x < image.GetWidth()) image[yy][x] = color;
+			if(x + width - 1 >= 0 && x + width - 1 < image.GetWidth())
+				image[yy][x + width - 1] = color;
+		}
+	}
+}
+
+static bool SaveFrameEvidence(const String& report_path, const Vector<int>& frame,
+	                           int frame_width, int frame_height,
+	                           const AmpTemplateAtlasManifest& manifest,
+	                           const AmpTemplateMatchResult& result,
+	                           const String& backend, int threshold,
+	                           int64 cpu_ms, int64 amp_ms, bool equal,
+	                           int64& report_ms)
+{
+	int64 started = msecs();
+	if(report_path.IsEmpty()) {
+		report_ms = 0;
+		return true;
+	}
+	String folder = GetFileFolder(report_path);
+	RealizeDirectory(folder);
+	String input_name = "frame_input.png";
+	String overlay_name = "frame_matches.png";
+	String input_path = AppendFileName(folder, input_name);
+	String overlay_path = AppendFileName(folder, overlay_name);
+	Image input = MakeGrayImage(frame, frame_width, frame_height);
+	if(!PNGEncoder().SaveFile(input_path, input))
+		return false;
+	ImageBuffer overlay(input);
+	for(const AmpTemplateMatchHit& hit : result.entries) {
+		if(hit.entry_index < 0 || hit.x < 0 || hit.y < 0)
+			continue;
+		const AmpTemplateAtlasEntry& entry = manifest.entries[hit.entry_index];
+		Outline(overlay, hit.x, hit.y, entry.width, entry.height,
+		        hit.accepted ? Color(70, 230, 100) : Color(220, 70, 70));
+	}
+	if(!PNGEncoder().SaveFile(overlay_path, Image(overlay)))
+		return false;
+	String html;
+	html << "<!doctype html><meta charset=\"utf-8\"><title>AMP frame evidence</title>\n"
+	      << "<h1>AMP frame-template evidence</h1>\n"
+	      << "<p>backend=" << EscapeHtml(backend) << " threshold=" << threshold
+	      << " reference_match=" << (equal ? "pass" : "fail") << "</p>\n"
+	      << "<p><img src=\"" << input_name << "\" alt=\"input frame\"></p>\n"
+	      << "<p><img src=\"" << overlay_name << "\" alt=\"match overlay\"></p>\n"
+	      << "<table><tr><th>id</th><th>accepted</th><th>score</th><th>x</th><th>y</th></tr>\n";
+	for(const AmpTemplateMatchHit& hit : result.entries)
+		html << "<tr><td>" << EscapeHtml(hit.id) << "</td><td>"
+		      << (hit.accepted ? "yes" : "no") << "</td><td>" << hit.score
+		      << "</td><td>" << hit.x << "</td><td>" << hit.y << "</td></tr>\n";
+	int64 report_elapsed_ms = msecs() - started;
+	if(report_elapsed_ms < 1)
+		report_elapsed_ms = 1;
+	html << "</table><p>candidates=" << result.candidate_count
+	      << " accepted=" << result.accepted << " rejected=" << result.rejected
+	      << " checksum=" << result.checksum << "</p>\n"
+	      << "<p>cpu_ms=" << cpu_ms << " amp_ms=" << amp_ms
+	      << " report_ms=" << report_elapsed_ms << "</p>\n";
+	if(!SaveFile(report_path, html))
+		return false;
+	report_ms = msecs() - started;
+	if(report_ms < 1)
+		report_ms = 1;
+	return true;
+}
+
 static bool RunFrameSelftest(const Vector<int>& atlas_pixels,
 	                           const AmpTemplateAtlasManifest& manifest,
 	                           int threshold, const String& inventory_path,
-	                           int device_index)
+	                           int device_index, const String& report_path)
 {
 	if(manifest.entries.GetCount() < 2)
 		return false;
@@ -99,11 +204,13 @@ static bool RunFrameSelftest(const Vector<int>& atlas_pixels,
 				atlas_pixels[(second.y + y) * manifest.atlas_width + second.x + x];
 	AmpTemplateMatchResult result, reference;
 	String error;
+	int64 cpu_started = msecs();
 	if(!MatchAmpTemplatesCpu(frame, frame_width, frame_height, atlas_pixels,
 	                         manifest, threshold, reference, error)) {
 		COUTLOG(Format("amp_frame_selftest=fail error=%s", ~error));
 		return false;
 	}
+	int64 cpu_ms = msecs() - cpu_started;
 	String device_path;
 #ifdef HAVE_SYSTEM_AMP
 	Vector<AmpDeviceInfo> devices;
@@ -115,11 +222,13 @@ static bool RunFrameSelftest(const Vector<int>& atlas_pixels,
 	}
 	device_path = selected.device_path;
 #endif
+	int64 amp_started = msecs();
 	if(!MatchAmpTemplatesAmp(frame, frame_width, frame_height, atlas_pixels,
 	                         manifest, threshold, device_path, result, error)) {
 		COUTLOG(Format("amp_frame_selftest=fail kernel=%s", ~error));
 		return false;
 	}
+	int64 amp_ms = msecs() - amp_started;
 	bool equal = result.entries.GetCount() == reference.entries.GetCount();
 	for(int i = 0; equal && i < result.entries.GetCount(); i++)
 		equal = result.entries[i].id == reference.entries[i].id &&
@@ -136,6 +245,12 @@ static bool RunFrameSelftest(const Vector<int>& atlas_pixels,
 #else
 	backend = "compat-cpu";
 #endif
+	int64 report_ms = 0;
+	if(!SaveFrameEvidence(report_path, frame, frame_width, frame_height, manifest,
+	                      result, backend, threshold, cpu_ms, amp_ms, equal, report_ms)) {
+		COUTLOG("amp_frame_report=fail write");
+		return false;
+	}
 	COUTLOG(Format("amp_frame_selftest=pass backend=%s frame=%d`x%d threshold=%d "
 	               "candidates=%d accepted=%d rejected=%d checksum=%d winner=%s score=%d",
 	               ~backend,
@@ -143,6 +258,10 @@ static bool RunFrameSelftest(const Vector<int>& atlas_pixels,
 	               result.accepted, result.rejected, result.checksum,
 	               result.winner_index >= 0 ? ~result.entries[result.winner_index].id : "none",
 	               result.winner_score));
+	COUTLOG(Format("amp_frame_timing cpu_ms=%d amp_ms=%d report_ms=%d",
+	               cpu_ms, amp_ms, report_ms));
+	if(!report_path.IsEmpty())
+		COUTLOG(Format("amp_frame_report=pass path=%s", ~report_path));
 	for(const AmpTemplateMatchHit& hit : result.entries)
 		COUTLOG(Format("amp_frame_hit id=%s accepted=%d score=%d at=%d,%d",
 		               ~hit.id, hit.accepted, hit.score, hit.x, hit.y));
@@ -205,11 +324,13 @@ int RunAmpAtlasRuntimeProbe()
 	bool exact_selftest = false;
 	bool frame_selftest = false;
 	int threshold = 0;
+	String frame_report_path;
 	if(!ReadArguments(atlas_path, manifest_path, inventory_path, device_index,
-	                  exact_selftest, frame_selftest, threshold)) {
+                  exact_selftest, frame_selftest, threshold, frame_report_path)) {
 		COUTLOG("usage=--atlas <atlas.png> --manifest <manifest.json> "
 		        "[--amp-device-inventory <inventory.json>] [--amp-device-index n] "
-		        "[--amp-frame-selftest] [--amp-match-threshold n]");
+		        "[--amp-frame-selftest] [--amp-match-threshold n] "
+		        "[--amp-frame-report report.htm]");
 		return 2;
 	}
 	int64 started = msecs();
@@ -229,7 +350,8 @@ int RunAmpAtlasRuntimeProbe()
 	if(frame_selftest) {
 		Vector<int> atlas_pixels;
 		BuildAtlasPixels(atlas, atlas_pixels);
-		if(!RunFrameSelftest(atlas_pixels, manifest, threshold, inventory_path, device_index))
+		if(!RunFrameSelftest(atlas_pixels, manifest, threshold, inventory_path,
+		                     device_index, frame_report_path))
 			return 1;
 	}
 	int64 prepare_ms = msecs() - started;

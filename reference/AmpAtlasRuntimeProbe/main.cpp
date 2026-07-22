@@ -440,9 +440,10 @@ static bool SaveFrameEvidence(const String& report_path,
 	                           const AmpTemplateAtlasManifest& evidence_manifest,
                            const AmpTemplateMatchResult& result,
                            const String& backend, int threshold,
-                           const String& frame_source, const String& scope,
+	                           const String& frame_source, const String& scope,
 	                           int64 cpu_ms, int64 amp_ms, bool equal,
-	                           int64& report_ms)
+	                           int64& report_ms,
+	                           Point match_origin = Point(0, 0))
 {
 	int64 started = msecs();
 	if(report_path.IsEmpty()) {
@@ -478,7 +479,8 @@ static bool SaveFrameEvidence(const String& report_path,
 		if(hit.entry_index < 0 || hit.x < 0 || hit.y < 0)
 			continue;
 		const AmpTemplateAtlasEntry& entry = manifest.entries[hit.entry_index];
-		Outline(overlay, hit.x, hit.y, entry.width, entry.height,
+		Outline(overlay, hit.x + match_origin.x, hit.y + match_origin.y,
+		        entry.width, entry.height,
 		        hit.accepted ? Color(70, 230, 100) : Color(220, 70, 70));
 	}
 	if(!PNGEncoder().SaveFile(overlay_path, Image(overlay)))
@@ -489,7 +491,10 @@ static bool SaveFrameEvidence(const String& report_path,
 	      << "<p>backend=" << EscapeHtml(backend) << " threshold=" << threshold
 	      << " reference_match=" << (equal ? "pass" : "fail")
 	      << " source=" << EscapeHtml(frame_source)
-	      << " scope=" << EscapeHtml(scope) << "</p>\n"
+	      << " scope=" << EscapeHtml(scope)
+	      << " input_dimensions=" << frame.width << "`x`" << frame.height
+	      << " match_origin=" << match_origin.x << "," << match_origin.y
+	      << "</p>\n"
 	      << "<p>atlas_evidence_entries=" << evidence_manifest.entries.GetCount()
 	      << " match_scope_entries=" << manifest.entries.GetCount() << "</p>\n"
 	      << "<p><img src=\"" << input_name << "\" alt=\"RGB input frame\"></p>\n"
@@ -901,11 +906,16 @@ static int RunRealVideoRegression(const String& atlas_path, const String& manife
 		if(window_id == "L" || window_id == "R") {
 			int half_width = frame.GetWidth() / 2;
 			int table_height = min(frame.GetHeight(), 682);
+			int window_width = min(945, half_width - 8);
 			Rect window_rect = window_id == "L"
-			                 ? Rect(0, 0, half_width, table_height)
-			                 : Rect(half_width, 0, frame.GetWidth(), table_height);
+			                 ? Rect(8, 1, 8 + window_width, 1 + table_height)
+			                 : Rect(half_width + 8, 1, half_width + 8 + window_width,
+			                        1 + table_height);
 			frame = Crop(frame, window_rect);
 		}
+		Image report_frame = frame;
+		Image match_frame = report_frame;
+		Point match_origin(0, 0);
 		if(!focus_rect_spec.IsEmpty()) {
 			Vector<String> values = Split(focus_rect_spec, ",", false);
 			if(values.GetCount() != 4) {
@@ -920,10 +930,13 @@ static int RunRealVideoRegression(const String& atlas_path, const String& manife
 				COUTLOG("amp_real_video_regression=fail reason=empty-focus-rect");
 				return 1;
 			}
-			frame = Crop(frame, focus);
+			match_origin = focus.TopLeft();
+			match_frame = Crop(report_frame, focus);
 		}
-		AmpTemplatePixelBuffer frame_pixels, atlas_pixels;
-		if(frame.IsEmpty() || !BuildAmpPixelBuffer(frame, frame_pixels, error) ||
+		AmpTemplatePixelBuffer report_pixels, frame_pixels, atlas_pixels;
+		if(report_frame.IsEmpty() || match_frame.IsEmpty() ||
+		   !BuildAmpPixelBuffer(report_frame, report_pixels, error) ||
+		   !BuildAmpPixelBuffer(match_frame, frame_pixels, error) ||
 		   !BuildAmpPixelBuffer(atlas, atlas_pixels, error)) {
 			failed++;
 			html << "<tr><td>" << requested_ms << "</td><td>" << window_id
@@ -952,10 +965,12 @@ static int RunRealVideoRegression(const String& atlas_path, const String& manife
 				          cpu.entries[j].x == amp.entries[j].x && cpu.entries[j].y == amp.entries[j].y;
 		if(!equal) failed++;
 		int64 report_ms = 0;
-		if(ok && !SaveFrameEvidence(item_report, frame_pixels, atlas_pixels, manifest,
+		String scope = focus_rect_spec.IsEmpty() ? "full-window" :
+		               "focus=" + focus_rect_spec;
+		if(ok && !SaveFrameEvidence(item_report, report_pixels, atlas_pixels, manifest,
 		                            manifest, amp, "direct-libavcodec-native-amp", threshold,
-		                            video_path, Format("timestamp_ms=%lld", decoded_ms),
-		                            cpu_ms, amp_ms, equal, report_ms)) {
+		                            video_path, scope + Format(" timestamp_ms=%lld", decoded_ms),
+		                            cpu_ms, amp_ms, equal, report_ms, match_origin)) {
 			failed++;
 			equal = false;
 		}

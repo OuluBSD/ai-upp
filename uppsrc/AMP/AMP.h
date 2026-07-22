@@ -8,6 +8,7 @@
 NAMESPACE_UPP
 
 #include "AMPDeviceInventory.h"
+#include "AMPTemplateAtlas.h"
 
 END_UPP_NAMESPACE
 

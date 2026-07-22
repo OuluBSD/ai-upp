@@ -8,4 +8,6 @@ file
 	AGENTS.md,
 	AMPCompat.h,
 	AMPDeviceInventory.h,
-	AMPDeviceInventory.cpp;
+	AMPDeviceInventory.cpp,
+	AMPTemplateAtlas.h,
+	AMPTemplateAtlas.cpp;

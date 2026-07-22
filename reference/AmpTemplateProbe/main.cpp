@@ -14,6 +14,7 @@ int RunAmpTemplateProbe() {
 	const Vector<String>& args = CommandLine();
 	String inventory_path;
 	String replay_path;
+	String atlas_selftest_path;
 	int device_index = 0;
 	for(int i = 0; i + 1 < args.GetCount(); i++) {
 		if(args[i] == "--amp-inventory")
@@ -22,6 +23,33 @@ int RunAmpTemplateProbe() {
 			replay_path = args[i + 1];
 		else if(args[i] == "--amp-device-index")
 			device_index = StrInt(args[i + 1]);
+	}
+	for(const String& arg : args)
+		if(arg == "--amp-atlas-selftest")
+			atlas_selftest_path = "amp_atlas_selftest.json";
+	if(!atlas_selftest_path.IsEmpty()) {
+		AmpTemplateAtlasManifest manifest;
+		manifest.atlas_name = "selftest-atlas";
+		manifest.atlas_width = 32;
+		manifest.atlas_height = 16;
+		AmpTemplateAtlasEntry& entry = manifest.entries.Add();
+		entry.id = "rank-0-board";
+		entry.kind = "rank";
+		entry.scale = "board";
+		entry.width = 8;
+		entry.height = 8;
+		entry.preprocessing = "grayscale";
+		String error;
+		bool valid = manifest.Validate(error);
+		entry.x = 25;
+		bool rejected = !manifest.Validate(error);
+		entry.x = 0;
+		bool roundtrip = manifest.Save(atlas_selftest_path);
+		AmpTemplateAtlasManifest loaded;
+		roundtrip = roundtrip && loaded.Load(atlas_selftest_path, error);
+		COUTLOG(Format("amp_atlas_selftest valid=%d bounds_rejected=%d roundtrip=%d",
+		               valid, rejected, roundtrip));
+		return valid && rejected && roundtrip ? 0 : 1;
 	}
 	if(!inventory_path.IsEmpty()) {
 		Vector<AmpDeviceInfo> devices = EnumerateAmpDevices();

@@ -1,0 +1,15 @@
+description "Headless AMP template atlas packer";
+
+uses
+	Core,
+	Draw,
+	plugin/png,
+	AMP;
+
+file
+	AGENTS.md,
+	AmpTemplateAtlasPack.h,
+	main.cpp;
+
+mainconfig
+	"" = "CONSOLE";

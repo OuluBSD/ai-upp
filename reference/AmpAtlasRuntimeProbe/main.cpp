@@ -6,6 +6,14 @@ CONSOLE_APP_MAIN {
 
 NAMESPACE_UPP
 
+static void FinalizeAmpFixture(AmpTemplatePixelBuffer& pixels)
+{
+	pixels.otsu_threshold = AmpOtsuThreshold(pixels.gray);
+	pixels.otsu.SetCount(pixels.gray.GetCount());
+	for(int i = 0; i < pixels.gray.GetCount(); i++)
+		pixels.otsu[i] = pixels.gray[i] > pixels.otsu_threshold ? 255 : 0;
+}
+
 static bool ReadArguments(String& atlas_path, String& manifest_path,
                        String& inventory_path, int& device_index, bool& exact_selftest,
                        bool& frame_selftest, bool& pixel_selftest, bool& dual_selftest,
@@ -58,6 +66,8 @@ static bool RunDualSelftest(const String& device_path, String& error)
 	atlas.height = 1;
 	atlas.rgb.Add(frame.rgb[1]);
 	atlas.gray.Add(frame.gray[1]);
+	FinalizeAmpFixture(frame);
+	FinalizeAmpFixture(atlas);
 	AmpTemplateAtlasManifest manifest;
 	manifest.atlas_width = 1;
 	manifest.atlas_height = 1;
@@ -74,6 +84,16 @@ static bool RunDualSelftest(const String& device_path, String& error)
 	             cpu.entries.GetCount() == amp.entries.GetCount() &&
 	             cpu.entries[0].x == amp.entries[0].x &&
 	             cpu.entries[0].score == amp.entries[0].score;
+	entry.preprocessing = "otsu";
+	AmpTemplateMatchResult otsu_cpu, otsu_amp;
+	bool otsu_equal = MatchAmpTemplatePixelsCpu(frame, atlas, manifest, 0,
+	                                             otsu_cpu, error) &&
+	                  MatchAmpTemplatePixelsAmp(frame, atlas, manifest, 0,
+	                                             device_path, otsu_amp, error) &&
+	                  otsu_cpu.winner_index == otsu_amp.winner_index &&
+	                  otsu_cpu.winner_score == otsu_amp.winner_score &&
+	                  otsu_cpu.entries[0].score == 0;
+	equal &= otsu_equal;
 	AmpTemplatePixelBuffer malformed;
 	malformed.width = frame.width;
 	malformed.height = frame.height;
@@ -83,9 +103,11 @@ static bool RunDualSelftest(const String& device_path, String& error)
 	bool malformed_rejected = !MatchAmpTemplatePixelsCpu(malformed, atlas, manifest,
 	                                                     0, ignored, malformed_error);
 	equal &= malformed_rejected;
-	COUTLOG(Format("amp_dual_selftest=%s backend=%s cpu_score=%d amp_score=%d x=%d malformed=%s",
+	COUTLOG(Format("amp_dual_selftest=%s backend=%s cpu_score=%d amp_score=%d otsu=%s otsu_threshold=%d x=%d malformed=%s",
 	               equal ? "pass" : "fail", device_path.IsEmpty() ? "compat-cpu" : "native-amp-kernel",
-	               cpu.entries[0].score, amp.entries[0].score, amp.entries[0].x,
+	               cpu.entries[0].score, amp.entries[0].score,
+	               otsu_equal ? "pass" : "fail", frame.otsu_threshold,
+	               amp.entries[0].x,
 	               malformed_rejected ? "rejected" : "accepted"));
 	return equal;
 }
@@ -136,6 +158,8 @@ static int RunPixelSelftest()
 	atlas.height = 1;
 	atlas.rgb.Add(frame.rgb[1]);
 	atlas.gray.Add(frame.gray[1]);
+	FinalizeAmpFixture(frame);
+	FinalizeAmpFixture(atlas);
 	AmpTemplateAtlasManifest manifest;
 	manifest.atlas_width = 1;
 	manifest.atlas_height = 1;
@@ -310,8 +334,10 @@ static bool SaveFrameEvidence(const String& report_path,
 	String overlay_path = AppendFileName(folder, overlay_name);
 	Image input = MakeRgbImage(frame.rgb, frame.width, frame.height);
 	Image gray = MakeGrayImage(frame.gray, frame.width, frame.height);
+	Image otsu = MakeGrayImage(frame.otsu, frame.width, frame.height);
 	if(!PNGEncoder().SaveFile(input_path, input) ||
-	   !PNGEncoder().SaveFile(AppendFileName(folder, gray_name), gray))
+	   !PNGEncoder().SaveFile(AppendFileName(folder, gray_name), gray) ||
+	   !PNGEncoder().SaveFile(AppendFileName(folder, "frame_input_otsu.png"), otsu))
 		return false;
 	ImageBuffer overlay(input);
 	for(const AmpTemplateMatchHit& hit : result.entries) {
@@ -332,6 +358,7 @@ static bool SaveFrameEvidence(const String& report_path,
 	      << " scope=" << EscapeHtml(scope) << "</p>\n"
 	      << "<p><img src=\"" << input_name << "\" alt=\"RGB input frame\"></p>\n"
 	      << "<p><img src=\"" << gray_name << "\" alt=\"grayscale input frame\"></p>\n"
+	      << "<p><img src=\"frame_input_otsu.png\" alt=\"Otsu input frame\"></p>\n"
 	      << "<p><img src=\"" << overlay_name << "\" alt=\"match overlay\"></p>\n"
 	      << "<table><tr><th>id</th><th>preprocessing</th><th>accepted</th>"
 	      << "<th>score</th><th>x</th><th>y</th></tr>\n";
@@ -360,7 +387,10 @@ static bool SaveFrameEvidence(const String& report_path,
 	}
 	html << "<p>preprocessing_rgb=" << rgb_count << " preprocessing_gray=" << gray_count
 	     << " preprocessing_otsu=" << otsu_count
-	     << " (otsu is reserved until threshold evidence enables it)</p>\n";
+	     << " otsu_available=1 production_manifest_otsu=" << (otsu_count ? 1 : 0)
+	     << "</p>\n";
+	html << "<p>frame_otsu_threshold=" << frame.otsu_threshold
+	     << " atlas_otsu_threshold_is_manifest_specific=not-applicable</p>\n";
 	if(!SaveFile(report_path, html))
 		return false;
 	report_ms = msecs() - started;

@@ -6,7 +6,9 @@ bool AmpTemplatePixelBuffer::IsValid() const
 {
 	return width > 0 && height > 0 &&
 	       rgb.GetCount() == width * height &&
-	       gray.GetCount() == width * height;
+ 	      gray.GetCount() == width * height &&
+ 	      otsu.GetCount() == width * height &&
+ 	      otsu_threshold >= 0 && otsu_threshold <= 255;
 }
 
 int PackAmpRgb(const RGBA& pixel)
@@ -33,6 +35,43 @@ byte AmpRgbGray(int pixel)
 {
 	return (byte)((AmpRgbRed(pixel) * 77 + AmpRgbGreen(pixel) * 150 +
 	               AmpRgbBlue(pixel) * 29) >> 8);
+}
+
+int AmpOtsuThreshold(const Vector<int>& gray)
+{
+	if(gray.IsEmpty())
+		return 0;
+	int histogram[256] = {};
+	int total = gray.GetCount();
+	int sum = 0;
+	for(int value : gray) {
+		value = clamp(value, 0, 255);
+		histogram[value]++;
+		sum += value;
+	}
+	int background_count = 0;
+	int background_sum = 0;
+	double best = -1;
+	int threshold = 0;
+	for(int candidate = 0; candidate < 256; candidate++) {
+		background_count += histogram[candidate];
+		background_sum += candidate * histogram[candidate];
+		if(background_count == 0)
+			continue;
+		int foreground_count = total - background_count;
+		if(foreground_count == 0)
+			break;
+		double background_mean = (double)background_sum / background_count;
+		double foreground_mean = (double)(sum - background_sum) / foreground_count;
+		double between = (double)background_count * foreground_count *
+		                 (background_mean - foreground_mean) *
+		                 (background_mean - foreground_mean);
+		if(between > best) {
+			best = between;
+			threshold = candidate;
+		}
+	}
+	return threshold;
 }
 
 String AmpTemplatePreprocessingName(AmpTemplatePreprocessing mode)
@@ -86,6 +125,10 @@ bool BuildAmpPixelBuffer(const Image& image, AmpTemplatePixelBuffer& pixels,
 			pixels.gray[index] = AmpRgbGray(pixels.rgb[index]);
 		}
 	}
+	pixels.otsu_threshold = AmpOtsuThreshold(pixels.gray);
+	pixels.otsu.SetCount(pixels.gray.GetCount());
+	for(int i = 0; i < pixels.gray.GetCount(); i++)
+		pixels.otsu[i] = pixels.gray[i] > pixels.otsu_threshold ? 255 : 0;
 	return true;
 }
 

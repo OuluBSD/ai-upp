@@ -12,6 +12,8 @@ struct AmpTemplatePixelBuffer : Moveable<AmpTemplatePixelBuffer> {
 	int height = 0;
 	Vector<int> rgb;
 	Vector<int> gray;
+	Vector<int> otsu;
+	int otsu_threshold = 0;
 
 	bool IsValid() const;
 };
@@ -21,6 +23,7 @@ byte AmpRgbRed(int pixel);
 byte AmpRgbGreen(int pixel);
 byte AmpRgbBlue(int pixel);
 byte AmpRgbGray(int pixel);
+int AmpOtsuThreshold(const Vector<int>& gray);
 
 String AmpTemplatePreprocessingName(AmpTemplatePreprocessing mode);
 bool ParseAmpTemplatePreprocessing(const String& name,

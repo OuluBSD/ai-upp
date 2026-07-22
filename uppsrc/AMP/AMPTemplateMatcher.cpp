@@ -8,15 +8,18 @@ static int AbsInt(int value)
 }
 
 static int TemplatePixelScore(int frame_rgb, int atlas_rgb, int frame_gray,
-	                          int atlas_gray, AmpTemplatePreprocessing mode,
+	                          int atlas_gray, int frame_otsu, int atlas_otsu,
+	                          AmpTemplatePreprocessing mode,
 	                          bool& supported)
 {
 	if(mode == AMP_TEMPLATE_RGB)
 		return AbsInt((int)AmpRgbRed(frame_rgb) - AmpRgbRed(atlas_rgb)) +
 		       AbsInt((int)AmpRgbGreen(frame_rgb) - AmpRgbGreen(atlas_rgb)) +
 		       AbsInt((int)AmpRgbBlue(frame_rgb) - AmpRgbBlue(atlas_rgb));
-	if(mode == AMP_TEMPLATE_GRAY || mode == AMP_TEMPLATE_OTSU)
+	if(mode == AMP_TEMPLATE_GRAY)
 		return AbsInt(frame_gray - atlas_gray);
+	if(mode == AMP_TEMPLATE_OTSU)
+		return AbsInt(frame_otsu - atlas_otsu);
 	supported = false;
 	return 0;
 }
@@ -58,6 +61,8 @@ bool MatchAmpTemplatePixelsCpu(const AmpTemplatePixelBuffer& frame,
 							atlas.rgb[(entry.y + ty) * atlas.width + entry.x + tx],
 							frame.gray[(y + ty) * frame.width + x + tx],
 							atlas.gray[(entry.y + ty) * atlas.width + entry.x + tx],
+							frame.otsu[(y + ty) * frame.width + x + tx],
+							atlas.otsu[(entry.y + ty) * atlas.width + entry.x + tx],
 							mode, supported);
 				if(!supported) {
 					error = Format("unsupported preprocessing for entry: %s", ~entry.id);
@@ -201,6 +206,10 @@ bool MatchAmpTemplatePixelsAmp(const AmpTemplatePixelBuffer& frame,
 	                                               const_cast<int*>(atlas.rgb.Begin()));
 	concurrency::array_view<int, 1> atlas_gray_view(atlas.gray.GetCount(),
 	                                                const_cast<int*>(atlas.gray.Begin()));
+	concurrency::array_view<int, 1> frame_otsu_view(frame.otsu.GetCount(),
+	                                                const_cast<int*>(frame.otsu.Begin()));
+	concurrency::array_view<int, 1> atlas_otsu_view(atlas.otsu.GetCount(),
+	                                                const_cast<int*>(atlas.otsu.Begin()));
 	concurrency::array_view<int, 1> candidate_entry_view(candidate_entry.GetCount(), candidate_entry.Begin());
 	concurrency::array_view<int, 1> candidate_x_view(candidate_x.GetCount(), candidate_x.Begin());
 	concurrency::array_view<int, 1> candidate_y_view(candidate_y.GetCount(), candidate_y.Begin());
@@ -236,7 +245,11 @@ bool MatchAmpTemplatePixelsAmp(const AmpTemplatePixelBuffer& frame,
 					score += d < 0 ? -d : d;
 				}
 				else {
-					int d = frame_gray_view[frame_index] - atlas_gray_view[atlas_index];
+					int a = mode == AMP_TEMPLATE_OTSU ? frame_otsu_view[frame_index] :
+					         frame_gray_view[frame_index];
+					int b = mode == AMP_TEMPLATE_OTSU ? atlas_otsu_view[atlas_index] :
+					         atlas_gray_view[atlas_index];
+					int d = a - b;
 					score += d < 0 ? -d : d;
 				}
 			}

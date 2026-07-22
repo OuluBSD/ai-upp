@@ -10,4 +10,6 @@ file
 	AMPDeviceInventory.h,
 	AMPDeviceInventory.cpp,
 	AMPTemplateAtlas.h,
-	AMPTemplateAtlas.cpp;
+	AMPTemplateAtlas.cpp,
+	AMPTemplateMatcher.h,
+	AMPTemplateMatcher.cpp;

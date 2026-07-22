@@ -7,7 +7,8 @@ CONSOLE_APP_MAIN {
 NAMESPACE_UPP
 
 static bool ReadArguments(String& atlas_path, String& manifest_path,
-                       String& inventory_path, int& device_index, bool& exact_selftest)
+                       String& inventory_path, int& device_index, bool& exact_selftest,
+                       bool& frame_selftest, int& threshold)
 {
 	const Vector<String>& args = CommandLine();
 	for(int i = 0; i + 1 < args.GetCount(); i++) {
@@ -19,9 +20,13 @@ static bool ReadArguments(String& atlas_path, String& manifest_path,
 			inventory_path = args[i + 1];
 		else if(args[i] == "--amp-device-index")
 			device_index = StrInt(args[i + 1]);
+		else if(args[i] == "--amp-match-threshold")
+			threshold = StrInt(args[i + 1]);
 	}
 	for(const String& arg : args)
 		exact_selftest |= arg == "--amp-atlas-selftest";
+	for(const String& arg : args)
+		frame_selftest |= arg == "--amp-frame-selftest";
 	return !atlas_path.IsEmpty() && !manifest_path.IsEmpty();
 }
 
@@ -69,6 +74,53 @@ static void BuildAtlasPixels(const Image& atlas, Vector<int>& pixels)
 		for(int x = 0; x < atlas.GetWidth(); x++)
 			pixels[y * atlas.GetWidth() + x] = row[x].a ? Gray(row[x]) : 0;
 	}
+}
+
+static bool RunFrameSelftest(const Vector<int>& atlas_pixels,
+	                           const AmpTemplateAtlasManifest& manifest,
+	                           int threshold)
+{
+	if(manifest.entries.GetCount() < 2)
+		return false;
+	const AmpTemplateAtlasEntry& first = manifest.entries[0];
+	const AmpTemplateAtlasEntry& second = manifest.entries[1];
+	int frame_width = first.width + second.width + 4;
+	int frame_height = max(first.height, second.height) + 2;
+	Vector<int> frame;
+	frame.SetCount(frame_width * frame_height, 0);
+	for(int y = 0; y < first.height; y++)
+		for(int x = 0; x < first.width; x++)
+			frame[(y + 1) * frame_width + x + 1] =
+				atlas_pixels[(first.y + y) * manifest.atlas_width + first.x + x];
+	for(int y = 0; y < second.height; y++)
+		for(int x = 0; x < second.width; x++)
+			frame[(y + 1) * frame_width + x + first.width + 2] =
+				atlas_pixels[(second.y + y) * manifest.atlas_width + second.x + x];
+	AmpTemplateMatchResult result;
+	String error;
+	if(!MatchAmpTemplatesCpu(frame, frame_width, frame_height, atlas_pixels,
+	                         manifest, threshold, result, error)) {
+		COUTLOG(Format("amp_frame_selftest=fail error=%s", ~error));
+		return false;
+	}
+	String backend;
+#ifdef HAVE_SYSTEM_AMP
+	backend = "native-reference";
+#else
+	backend = "compat-cpu";
+#endif
+	COUTLOG(Format("amp_frame_selftest=pass backend=%s frame=%d`x%d threshold=%d "
+	               "candidates=%d accepted=%d rejected=%d checksum=%d winner=%s score=%d",
+	               ~backend,
+	               frame_width, frame_height, threshold, result.candidate_count,
+	               result.accepted, result.rejected, result.checksum,
+	               result.winner_index >= 0 ? ~result.entries[result.winner_index].id : "none",
+	               result.winner_score));
+	for(const AmpTemplateMatchHit& hit : result.entries)
+		COUTLOG(Format("amp_frame_hit id=%s accepted=%d score=%d at=%d,%d",
+		               ~hit.id, hit.accepted, hit.score, hit.x, hit.y));
+	return result.entries[0].accepted && result.entries[1].accepted &&
+	       result.entries[0].score == 0 && result.entries[1].score == 0;
 }
 
 static int RunCompatAtlasRuntime(const Image& atlas,
@@ -124,9 +176,13 @@ int RunAmpAtlasRuntimeProbe()
 	String atlas_path, manifest_path, inventory_path;
 	int device_index = 0;
 	bool exact_selftest = false;
-	if(!ReadArguments(atlas_path, manifest_path, inventory_path, device_index, exact_selftest)) {
+	bool frame_selftest = false;
+	int threshold = 0;
+	if(!ReadArguments(atlas_path, manifest_path, inventory_path, device_index,
+	                  exact_selftest, frame_selftest, threshold)) {
 		COUTLOG("usage=--atlas <atlas.png> --manifest <manifest.json> "
-		        "[--amp-device-inventory <inventory.json>] [--amp-device-index n]");
+		        "[--amp-device-inventory <inventory.json>] [--amp-device-index n] "
+		        "[--amp-frame-selftest] [--amp-match-threshold n]");
 		return 2;
 	}
 	int64 started = msecs();
@@ -142,6 +198,12 @@ int RunAmpAtlasRuntimeProbe()
 	if(!BuildCompactTemplates(atlas, manifest, pixels, nonempty, error)) {
 		COUTLOG(Format("amp_atlas_runtime=fail pixels=%s", ~error));
 		return 1;
+	}
+	if(frame_selftest) {
+		Vector<int> atlas_pixels;
+		BuildAtlasPixels(atlas, atlas_pixels);
+		if(!RunFrameSelftest(atlas_pixels, manifest, threshold))
+			return 1;
 	}
 	int64 prepare_ms = msecs() - started;
 #ifndef HAVE_SYSTEM_AMP

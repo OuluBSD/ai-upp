@@ -1,0 +1,15 @@
+description "Native AMP atlas runtime upload probe";
+
+uses
+	Core,
+	Draw,
+	plugin/png,
+	AMP;
+
+file
+	AGENTS.md,
+	AmpAtlasRuntimeProbe.h,
+	main.cpp;
+
+mainconfig
+	"" = "AMP";

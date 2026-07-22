@@ -12,6 +12,8 @@ file
 	AMPDeviceInventory.cpp,
 	AMPTemplateAtlas.h,
 	AMPTemplateAtlas.cpp,
+	AMPTemplatePixels.h,
+	AMPTemplatePixels.cpp,
 	AMPTemplateMatcher.h,
 	AMPTemplateMatcher.cpp,
 	AMPTemplateFrame.h,

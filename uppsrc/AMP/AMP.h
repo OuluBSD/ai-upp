@@ -10,6 +10,7 @@ NAMESPACE_UPP
 
 #include "AMPDeviceInventory.h"
 #include "AMPTemplateAtlas.h"
+#include "AMPTemplatePixels.h"
 #include "AMPTemplateMatcher.h"
 #include "AMPTemplateFrame.h"
 

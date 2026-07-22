@@ -2,23 +2,12 @@
 
 NAMESPACE_UPP
 
-static byte FrameGray(const RGBA& pixel)
-{
-	return (byte)((pixel.r * 77 + pixel.g * 150 + pixel.b * 29) >> 8);
-}
-
 bool BuildAmpGrayFrame(const Image& image, Vector<int>& frame, String& error)
 {
-	if(image.IsEmpty()) {
-		error = "frame image is empty";
+	AmpTemplatePixelBuffer pixels;
+	if(!BuildAmpPixelBuffer(image, pixels, error))
 		return false;
-	}
-	frame.SetCount(image.GetWidth() * image.GetHeight());
-	for(int y = 0; y < image.GetHeight(); y++) {
-		const RGBA* row = image[y];
-		for(int x = 0; x < image.GetWidth(); x++)
-			frame[y * image.GetWidth() + x] = FrameGray(row[x]);
-	}
+	frame = pick(pixels.gray);
 	return true;
 }
 

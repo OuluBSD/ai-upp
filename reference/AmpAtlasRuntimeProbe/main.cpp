@@ -8,7 +8,7 @@ NAMESPACE_UPP
 
 static bool ReadArguments(String& atlas_path, String& manifest_path,
                        String& inventory_path, int& device_index, bool& exact_selftest,
-                       bool& frame_selftest, int& threshold, String& frame_report_path,
+                       bool& frame_selftest, bool& pixel_selftest, int& threshold, String& frame_report_path,
                        String& frame_path, String& match_scale, String& match_kind)
 {
 	const Vector<String>& args = CommandLine();
@@ -36,8 +36,49 @@ static bool ReadArguments(String& atlas_path, String& manifest_path,
 		exact_selftest |= arg == "--amp-atlas-selftest";
 	for(const String& arg : args)
 		frame_selftest |= arg == "--amp-frame-selftest";
+	for(const String& arg : args)
+		pixel_selftest |= arg == "--amp-pixel-selftest";
 	frame_selftest |= !frame_path.IsEmpty();
-	return !atlas_path.IsEmpty() && !manifest_path.IsEmpty();
+	return pixel_selftest || (!atlas_path.IsEmpty() && !manifest_path.IsEmpty());
+}
+
+static int RunPixelSelftest()
+{
+	ImageBuffer buffer(2, 1);
+	buffer[0][0].r = 255;
+	buffer[0][0].g = 0;
+	buffer[0][0].b = 0;
+	buffer[0][0].a = 255;
+	buffer[0][1].r = 0;
+	buffer[0][1].g = 128;
+	buffer[0][1].b = 255;
+	buffer[0][1].a = 255;
+	AmpTemplatePixelBuffer pixels;
+	String error;
+	if(!BuildAmpPixelBuffer(Image(buffer), pixels, error)) {
+		COUTLOG(Format("amp_pixel_selftest=fail error=%s", ~error));
+		return 1;
+	}
+	AmpTemplatePreprocessing mode;
+	bool valid = pixels.IsValid() && pixels.rgb[0] == 255 &&
+	             AmpRgbRed(pixels.rgb[1]) == 0 &&
+	             AmpRgbGreen(pixels.rgb[1]) == 128 &&
+	             AmpRgbBlue(pixels.rgb[1]) == 255 &&
+	             pixels.gray[0] == AmpRgbGray(pixels.rgb[0]) &&
+	             pixels.gray[1] == AmpRgbGray(pixels.rgb[1]) &&
+	             ParseAmpTemplatePreprocessing("RGB", mode, error) &&
+	             mode == AMP_TEMPLATE_RGB &&
+	             ParseAmpTemplatePreprocessing("grayscale", mode, error) &&
+	             mode == AMP_TEMPLATE_GRAY &&
+	             ParseAmpTemplatePreprocessing("otsu", mode, error) &&
+	             mode == AMP_TEMPLATE_OTSU;
+	String invalid_error;
+	valid &= !ParseAmpTemplatePreprocessing("unsupported", mode, invalid_error) &&
+	          !invalid_error.IsEmpty();
+	COUTLOG(Format("amp_pixel_selftest=%s size=%d`x%d rgb_checksum=%d gray_checksum=%d",
+	               valid ? "pass" : "fail", pixels.width, pixels.height,
+	               pixels.rgb[0] + pixels.rgb[1], pixels.gray[0] + pixels.gray[1]));
+	return valid ? 0 : 1;
 }
 
 static byte Gray(const RGBA& p)
@@ -373,20 +414,25 @@ int RunAmpAtlasRuntimeProbe()
 	int device_index = 0;
 	bool exact_selftest = false;
 	bool frame_selftest = false;
+	bool pixel_selftest = false;
 	int threshold = 0;
 	String frame_report_path;
 	String frame_path;
 	String match_scale, match_kind;
 	if(!ReadArguments(atlas_path, manifest_path, inventory_path, device_index,
-                  exact_selftest, frame_selftest, threshold, frame_report_path,
+                  exact_selftest, frame_selftest, pixel_selftest, threshold, frame_report_path,
                   frame_path, match_scale, match_kind)) {
+		if(pixel_selftest)
+			return RunPixelSelftest();
 		COUTLOG("usage=--atlas <atlas.png> --manifest <manifest.json> "
 		        "[--amp-device-inventory <inventory.json>] [--amp-device-index n] "
-		        "[--amp-frame-selftest] [--amp-match-threshold n] "
+		        "[--amp-pixel-selftest] [--amp-frame-selftest] [--amp-match-threshold n] "
 		        "[--amp-frame-report report.htm] [--frame frame.png] "
 		        "[--amp-match-scale board|hand] [--amp-match-kind rank|suit]");
 		return 2;
 	}
+	if(pixel_selftest)
+		return RunPixelSelftest();
 	int64 started = msecs();
 	AmpTemplateAtlasManifest manifest;
 	String error;

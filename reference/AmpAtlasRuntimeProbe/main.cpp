@@ -78,7 +78,8 @@ static void BuildAtlasPixels(const Image& atlas, Vector<int>& pixels)
 
 static bool RunFrameSelftest(const Vector<int>& atlas_pixels,
 	                           const AmpTemplateAtlasManifest& manifest,
-	                           int threshold)
+	                           int threshold, const String& inventory_path,
+	                           int device_index)
 {
 	if(manifest.entries.GetCount() < 2)
 		return false;
@@ -96,16 +97,42 @@ static bool RunFrameSelftest(const Vector<int>& atlas_pixels,
 		for(int x = 0; x < second.width; x++)
 			frame[(y + 1) * frame_width + x + first.width + 2] =
 				atlas_pixels[(second.y + y) * manifest.atlas_width + second.x + x];
-	AmpTemplateMatchResult result;
+	AmpTemplateMatchResult result, reference;
 	String error;
 	if(!MatchAmpTemplatesCpu(frame, frame_width, frame_height, atlas_pixels,
-	                         manifest, threshold, result, error)) {
+	                         manifest, threshold, reference, error)) {
 		COUTLOG(Format("amp_frame_selftest=fail error=%s", ~error));
+		return false;
+	}
+	String device_path;
+#ifdef HAVE_SYSTEM_AMP
+	Vector<AmpDeviceInfo> devices;
+	AmpDeviceInfo selected;
+	if(!LoadAmpDeviceInventory(inventory_path, devices, error) ||
+	   !SelectAmpDevice(devices, device_index, selected, error)) {
+		COUTLOG(Format("amp_frame_selftest=fail device=%s", ~error));
+		return false;
+	}
+	device_path = selected.device_path;
+#endif
+	if(!MatchAmpTemplatesAmp(frame, frame_width, frame_height, atlas_pixels,
+	                         manifest, threshold, device_path, result, error)) {
+		COUTLOG(Format("amp_frame_selftest=fail kernel=%s", ~error));
+		return false;
+	}
+	bool equal = result.entries.GetCount() == reference.entries.GetCount();
+	for(int i = 0; equal && i < result.entries.GetCount(); i++)
+		equal = result.entries[i].id == reference.entries[i].id &&
+		         result.entries[i].score == reference.entries[i].score &&
+		         result.entries[i].x == reference.entries[i].x &&
+		         result.entries[i].y == reference.entries[i].y;
+	if(!equal) {
+		COUTLOG("amp_frame_selftest=fail reference-mismatch");
 		return false;
 	}
 	String backend;
 #ifdef HAVE_SYSTEM_AMP
-	backend = "native-reference";
+	backend = "native-amp-kernel";
 #else
 	backend = "compat-cpu";
 #endif
@@ -202,7 +229,7 @@ int RunAmpAtlasRuntimeProbe()
 	if(frame_selftest) {
 		Vector<int> atlas_pixels;
 		BuildAtlasPixels(atlas, atlas_pixels);
-		if(!RunFrameSelftest(atlas_pixels, manifest, threshold))
+		if(!RunFrameSelftest(atlas_pixels, manifest, threshold, inventory_path, device_index))
 			return 1;
 	}
 	int64 prepare_ms = msecs() - started;

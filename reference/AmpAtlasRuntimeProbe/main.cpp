@@ -377,6 +377,7 @@ static bool SaveFrameEvidence(const String& report_path,
 	                           const AmpTemplatePixelBuffer& frame,
 	                           const AmpTemplatePixelBuffer& atlas,
 	                           const AmpTemplateAtlasManifest& manifest,
+	                           const AmpTemplateAtlasManifest& evidence_manifest,
                            const AmpTemplateMatchResult& result,
                            const String& backend, int threshold,
                            const String& frame_source, const String& scope,
@@ -404,7 +405,7 @@ static bool SaveFrameEvidence(const String& report_path,
 	Image otsu = MakeGrayImage(frame.otsu, frame.width, frame.height);
 	Image atlas_input = MakeRgbImage(atlas.rgb, atlas.width, atlas.height);
 	Image atlas_gray_input = MakeGrayImage(atlas.gray, atlas.width, atlas.height);
-	Image atlas_otsu_input = MakePerEntryOtsuAtlasImage(atlas, manifest);
+	Image atlas_otsu_input = MakePerEntryOtsuAtlasImage(atlas, evidence_manifest);
 	if(!PNGEncoder().SaveFile(input_path, input) ||
 	   !PNGEncoder().SaveFile(AppendFileName(folder, gray_name), gray) ||
 	   !PNGEncoder().SaveFile(AppendFileName(folder, otsu_name), otsu) ||
@@ -429,6 +430,8 @@ static bool SaveFrameEvidence(const String& report_path,
 	      << " reference_match=" << (equal ? "pass" : "fail")
 	      << " source=" << EscapeHtml(frame_source)
 	      << " scope=" << EscapeHtml(scope) << "</p>\n"
+	      << "<p>atlas_evidence_entries=" << evidence_manifest.entries.GetCount()
+	      << " match_scope_entries=" << manifest.entries.GetCount() << "</p>\n"
 	      << "<p><img src=\"" << input_name << "\" alt=\"RGB input frame\"></p>\n"
 	      << "<p><img src=\"" << gray_name << "\" alt=\"grayscale input frame\"></p>\n"
 	      << "<p><img src=\"" << otsu_name << "\" alt=\"global diagnostic Otsu frame\"></p>\n"
@@ -491,6 +494,7 @@ static bool SaveFrameEvidence(const String& report_path,
 static bool RunFrameSelftest(const Vector<int>& atlas_pixels,
 	                           const Image& atlas_image,
 	                           const AmpTemplateAtlasManifest& manifest,
+	                           const AmpTemplateAtlasManifest& evidence_manifest,
 	                           int threshold, const String& inventory_path,
 	                           int device_index, const String& report_path,
                            const Image& input_image, const String& frame_source,
@@ -567,6 +571,7 @@ static bool RunFrameSelftest(const Vector<int>& atlas_pixels,
 #endif
 	int64 report_ms = 0;
 	if(!SaveFrameEvidence(report_path, frame_pixels, atlas_pixels_dual, manifest,
+	                      evidence_manifest,
 	                      result, backend, threshold, frame_source,
 	                      scope,
                       cpu_ms, amp_ms, equal, report_ms)) {
@@ -704,7 +709,7 @@ int RunAmpAtlasRuntimeProbe()
 		scope << "/" << (match_kind.IsEmpty() ? "all" : match_kind);
 		COUTLOG(Format("amp_frame_scope=pass scope=%s entries=%d",
 		               ~scope, match_manifest.entries.GetCount()));
-		if(!RunFrameSelftest(atlas_pixels, atlas, match_manifest, threshold, inventory_path,
+		if(!RunFrameSelftest(atlas_pixels, atlas, match_manifest, manifest, threshold, inventory_path,
 		                     device_index, frame_report_path, frame_image,
 	                     frame_path.IsEmpty() ? "synthetic-fixture" : frame_path,
 	                     scope))

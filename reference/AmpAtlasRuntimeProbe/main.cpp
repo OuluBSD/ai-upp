@@ -50,7 +50,62 @@ static bool ReadArguments(String& atlas_path, String& manifest_path,
 	for(const String& arg : args)
 		dual_selftest |= arg == "--amp-dual-selftest";
 	frame_selftest |= !frame_path.IsEmpty();
-	return pixel_selftest || (!atlas_path.IsEmpty() && !manifest_path.IsEmpty());
+	return pixel_selftest || dual_selftest || frame_selftest ||
+	       (!atlas_path.IsEmpty() && !manifest_path.IsEmpty());
+}
+
+static Image MakeGrayDiagnostic(const Vector<int>& values, int width, int height)
+{
+	ImageBuffer buffer(width, height);
+	for(int y = 0; y < height; y++)
+		for(int x = 0; x < width; x++) {
+			int value = clamp(values[y * width + x], 0, 255);
+			RGBA pixel;
+			pixel.r = pixel.g = pixel.b = (byte)value;
+			pixel.a = 255;
+			buffer[y][x] = pixel;
+		}
+	return Image(buffer);
+}
+
+static int RunLocalOtsuSelftest(const String& report_path)
+{
+	Vector<int> gray;
+	gray << 0 << 0 << 30 << 200 << 200;
+	Vector<int> triangular, gaussian;
+	String error;
+	if(!BuildAmpLocalOtsu(gray, 5, 1, 1, false, triangular, error) ||
+	   !BuildAmpLocalOtsu(gray, 5, 1, 1, true, gaussian, error)) {
+		COUTLOG(Format("amp_local_otsu_selftest=fail error=%s", ~error));
+		return 1;
+	}
+	bool shape = triangular.GetCount() == gray.GetCount() &&
+	             gaussian.GetCount() == gray.GetCount();
+	int gray_checksum = 0, triangular_checksum = 0, gaussian_checksum = 0;
+	for(int value : gray) gray_checksum += value;
+	for(int value : triangular) triangular_checksum += value;
+	for(int value : gaussian) gaussian_checksum += value;
+	COUTLOG(Format("amp_local_otsu_selftest=%s radius=1 variants=triangular,gaussian "
+	               "gray_checksum=%d triangular_checksum=%d gaussian_checksum=%d",
+               shape ? "pass" : "fail", gray_checksum, triangular_checksum,
+		               gaussian_checksum));
+	if(!report_path.IsEmpty()) {
+		String folder = GetFileFolder(report_path);
+		RealizeDirectory(folder);
+		String gray_name = "gray.png", triangular_name = "triangular.png", gaussian_name = "gaussian.png";
+		bool saved = PNGEncoder().SaveFile(AppendFileName(folder, gray_name), MakeGrayDiagnostic(gray, 5, 1)) &&
+		             PNGEncoder().SaveFile(AppendFileName(folder, triangular_name), MakeGrayDiagnostic(triangular, 5, 1)) &&
+		             PNGEncoder().SaveFile(AppendFileName(folder, gaussian_name), MakeGrayDiagnostic(gaussian, 5, 1));
+		String html = "<!doctype html><meta charset=\"utf-8\"><title>AMP local Otsu evidence</title>\n"
+		              "<h1>Local Otsu evidence</h1><p>Each output pixel uses its own crop-local weighted window; no atlas-wide histogram is used.</p>\n";
+		html << "<p><img src=\"" << gray_name << "\" alt=\"gray input\"></p>"
+		      << "<p><img src=\"" << triangular_name << "\" alt=\"triangular local Otsu\"></p>"
+		      << "<p><img src=\"" << gaussian_name << "\" alt=\"Gaussian local Otsu\"></p>"
+		      << "<p>radius=1 status=" << (saved && shape ? "pass" : "fail") << "</p>\n";
+		SaveFile(report_path, html);
+		COUTLOG(Format("amp_local_otsu_report=%s path=%s", saved && shape ? "pass" : "fail", ~report_path));
+	}
+	return shape ? 0 : 1;
 }
 
 static bool RunDualSelftest(const String& device_path, String& error)
@@ -646,8 +701,154 @@ static int RunCompatAtlasRuntime(const Image& atlas,
 	return checksum > 0 && failed == 0 ? 0 : 1;
 }
 
+static int RunRealFrameRegression(const String& atlas_path, const String& manifest_path,
+                                  const String& frame_list_path, const String& report_path,
+                                  const String& inventory_path, int device_index,
+                                  int threshold)
+{
+	AmpTemplateAtlasManifest manifest;
+	String error;
+	if(!manifest.Load(manifest_path, error)) {
+		COUTLOG(Format("amp_real_frame_regression=fail manifest=%s", ~error));
+		return 1;
+	}
+	Image atlas = StreamRaster::LoadFileAny(atlas_path);
+	if(atlas.IsEmpty()) {
+		COUTLOG(Format("amp_real_frame_regression=fail atlas=%s", ~atlas_path));
+		return 1;
+	}
+	Vector<String> frame_paths;
+	for(const String& line : Split(LoadFile(frame_list_path), "\n", false)) {
+		String path = TrimBoth(line);
+		if(!path.IsEmpty() && path[0] != '#') frame_paths.Add(path);
+	}
+	if(frame_paths.IsEmpty()) {
+		COUTLOG("amp_real_frame_regression=fail reason=empty-frame-list");
+		return 1;
+	}
+	String device_path;
+#ifdef HAVE_SYSTEM_AMP
+	Vector<AmpDeviceInfo> devices;
+	AmpDeviceInfo selected;
+	if(!LoadAmpDeviceInventory(inventory_path, devices, error) ||
+	   !SelectAmpDevice(devices, device_index, selected, error)) {
+		COUTLOG(Format("amp_real_frame_regression=fail device=%s", ~error));
+		return 1;
+	}
+	device_path = selected.device_path;
+#endif
+	RealizeDirectory(report_path);
+	String html = "<!doctype html><meta charset=\"utf-8\"><title>AMP real-frame regression</title>\n";
+	html << "<h1>AMP real-frame grayscale regression</h1><p>atlas="
+	      << EscapeHtml(atlas_path) << " manifest=" << EscapeHtml(manifest_path)
+	      << "</p><table><tr><th>frame</th><th>cpu/amp parity</th><th>cpu_ms</th><th>amp_ms</th><th>report</th></tr>\n";
+	int failed = 0;
+	for(int i = 0; i < frame_paths.GetCount(); i++) {
+		Image frame_image = StreamRaster::LoadFileAny(frame_paths[i]);
+		String item_dir = AppendFileName(report_path, Format("frame_%04d", i));
+		String item_report = AppendFileName(item_dir, "report.htm");
+		if(frame_image.IsEmpty()) {
+			failed++;
+			html << "<tr><td>" << EscapeHtml(frame_paths[i]) << "</td><td>decode-fail</td><td>-</td><td>-</td><td>-</td></tr>\n";
+			continue;
+		}
+		AmpTemplatePixelBuffer frame_pixels, atlas_pixels;
+		if(!BuildAmpPixelBuffer(frame_image, frame_pixels, error) ||
+		   !BuildAmpPixelBuffer(atlas, atlas_pixels, error)) {
+			failed++;
+			html << "<tr><td>" << EscapeHtml(frame_paths[i]) << "</td><td>prepare-fail</td><td>-</td><td>-</td><td>-</td></tr>\n";
+			continue;
+		}
+		AmpTemplateMatchResult cpu, amp;
+		int64 cpu_started = msecs();
+		bool ok = MatchAmpTemplatePixelsCpu(frame_pixels, atlas_pixels, manifest,
+		                                    threshold, cpu, error);
+		int64 cpu_ms = msecs() - cpu_started;
+		int64 amp_started = msecs();
+		ok = ok && MatchAmpTemplatePixelsAmp(frame_pixels, atlas_pixels, manifest,
+		                                    threshold, device_path, amp, error);
+		int64 amp_ms = msecs() - amp_started;
+		bool equal = ok && cpu.entries.GetCount() == amp.entries.GetCount() &&
+		             cpu.winner_index == amp.winner_index &&
+		             cpu.winner_score == amp.winner_score;
+		if(equal)
+			for(int j = 0; j < cpu.entries.GetCount(); j++)
+				equal &= cpu.entries[j].id == amp.entries[j].id &&
+				          cpu.entries[j].score == amp.entries[j].score &&
+				          cpu.entries[j].x == amp.entries[j].x &&
+				          cpu.entries[j].y == amp.entries[j].y;
+		if(!equal) failed++;
+		int64 report_ms = 0;
+		if(ok && !SaveFrameEvidence(item_report, frame_pixels, atlas_pixels, manifest,
+		                            manifest, amp, "native-or-compat", threshold,
+		                            frame_paths[i], "all", cpu_ms, amp_ms, equal,
+		                            report_ms)) {
+			failed++;
+			equal = false;
+		}
+		html << "<tr><td>" << EscapeHtml(frame_paths[i]) << "</td><td>"
+		      << (equal ? "pass" : "fail") << "</td><td>" << cpu_ms << "</td><td>"
+		      << amp_ms << "</td><td><a href=\"frame_" << Format("%04d", i)
+		      << "/report.htm\">evidence</a></td></tr>\n";
+		COUTLOG(Format("amp_real_frame frame=%d/%d path=%s parity=%s cpu_ms=%d amp_ms=%d",
+		               i + 1, frame_paths.GetCount(), ~frame_paths[i],
+		               equal ? "pass" : "fail", cpu_ms, amp_ms));
+	}
+	html << "</table><p>frames=" << frame_paths.GetCount() << " failed=" << failed
+	      << " status=" << (failed ? "fail" : "pass") << "</p>\n";
+	SaveFile(AppendFileName(report_path, "index.htm"), html);
+	COUTLOG(Format("amp_real_frame_regression=%s frames=%d failed=%d report=%s",
+	               failed ? "fail" : "pass", frame_paths.GetCount(), failed,
+	               ~AppendFileName(report_path, "index.htm")));
+	return failed ? 1 : 0;
+}
+
 int RunAmpAtlasRuntimeProbe()
 {
+	String local_otsu_report;
+	for(int i = 0; i + 1 < CommandLine().GetCount(); i++)
+		if(CommandLine()[i] == "--amp-local-otsu-report") local_otsu_report = CommandLine()[i + 1];
+	for(const String& arg : CommandLine())
+		if(arg == "--amp-local-otsu-selftest")
+			return RunLocalOtsuSelftest(local_otsu_report);
+	String regression_list, regression_report;
+	for(int i = 0; i + 1 < CommandLine().GetCount(); i++) {
+		if(CommandLine()[i] == "--amp-real-frame-regression") regression_list = CommandLine()[i + 1];
+		if(CommandLine()[i] == "--amp-regression-report") regression_report = CommandLine()[i + 1];
+	}
+	if(!regression_list.IsEmpty()) {
+		String atlas_path, manifest_path, inventory_path;
+		int device_index = 0, threshold = 0;
+		for(int i = 0; i + 1 < CommandLine().GetCount(); i++) {
+			if(CommandLine()[i] == "--atlas") atlas_path = CommandLine()[i + 1];
+			else if(CommandLine()[i] == "--manifest") manifest_path = CommandLine()[i + 1];
+			else if(CommandLine()[i] == "--amp-device-inventory") inventory_path = CommandLine()[i + 1];
+			else if(CommandLine()[i] == "--amp-device-index") device_index = StrInt(CommandLine()[i + 1]);
+			else if(CommandLine()[i] == "--amp-match-threshold") threshold = StrInt(CommandLine()[i + 1]);
+		}
+		if(atlas_path.IsEmpty() || manifest_path.IsEmpty() || regression_report.IsEmpty()) {
+			COUTLOG("usage=--amp-real-frame-regression list.txt --amp-regression-report report_dir --atlas atlas.png --manifest manifest.json");
+			return 2;
+		}
+		return RunRealFrameRegression(atlas_path, manifest_path, regression_list,
+		                              regression_report, inventory_path, device_index,
+		                              threshold);
+	}
+	bool requested_dual_selftest = false;
+	for(const String& arg : CommandLine())
+		requested_dual_selftest |= arg == "--amp-dual-selftest";
+	if(requested_dual_selftest) {
+		bool has_atlas = false, has_manifest = false;
+		for(int i = 0; i + 1 < CommandLine().GetCount(); i++) {
+			has_atlas |= CommandLine()[i] == "--atlas";
+			has_manifest |= CommandLine()[i] == "--manifest";
+		}
+		if(!has_atlas || !has_manifest) {
+			COUTLOG("usage=--amp-dual-selftest --atlas atlas.png --manifest manifest.json "
+			        "--amp-device-inventory inventory.json");
+			return 2;
+		}
+	}
 	String atlas_path, manifest_path, inventory_path;
 	int device_index = 0;
 	bool exact_selftest = false;

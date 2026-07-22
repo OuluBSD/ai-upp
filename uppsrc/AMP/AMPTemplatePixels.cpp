@@ -102,6 +102,52 @@ int AmpOtsuThresholdCrop(const Vector<int>& gray, int stride, int x, int y,
 	return OtsuThresholdHistogram(histogram, total, sum);
 }
 
+int AmpLocalOtsuThreshold(const Vector<int>& gray, int stride, int height,
+                          int x, int y, int radius, bool gaussian)
+{
+	if(stride <= 0 || radius < 0 || x < 0 || y < 0 ||
+	   height <= 0 || x >= stride || y >= height || y * stride + x >= gray.GetCount())
+		return 0;
+	int histogram[256] = {};
+	int total = 0;
+	int sum = 0;
+	int side = radius * 2 + 1;
+	for(int yy = -radius; yy <= radius; yy++)
+		for(int xx = -radius; xx <= radius; xx++) {
+			int sample_x = clamp(x + xx, 0, stride - 1);
+			int sample_y = clamp(y + yy, 0, height - 1);
+			int index = sample_y * stride + sample_x;
+			if(index < 0 || index >= gray.GetCount())
+				continue;
+			int distance = abs(xx) + abs(yy);
+			int weight = gaussian ? max(1, side * side - distance * distance)
+			                     : max(1, side - distance);
+			int value = clamp(gray[index], 0, 255);
+			histogram[value] += weight;
+			total += weight;
+			sum += value * weight;
+		}
+	return OtsuThresholdHistogram(histogram, total, sum);
+}
+
+bool BuildAmpLocalOtsu(const Vector<int>& gray, int width, int height,
+                       int radius, bool gaussian, Vector<int>& output,
+                       String& error)
+{
+	if(width <= 0 || height <= 0 || radius < 0 ||
+	   gray.GetCount() != width * height) {
+		error = "invalid grayscale frame for local Otsu";
+		return false;
+	}
+	output.SetCount(gray.GetCount());
+	for(int y = 0; y < height; y++)
+		for(int x = 0; x < width; x++) {
+			int threshold = AmpLocalOtsuThreshold(gray, width, height, x, y, radius, gaussian);
+			output[y * width + x] = gray[y * width + x] > threshold ? 255 : 0;
+		}
+	return true;
+}
+
 String AmpTemplatePreprocessingName(AmpTemplatePreprocessing mode)
 {
 	switch(mode) {

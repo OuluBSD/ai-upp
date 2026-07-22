@@ -233,7 +233,7 @@ static int RunShaderEvidenceJsonlSelfTest()
 	return 0;
 }
 
-static int RunShaderEvidenceParitySelfTest()
+static int RunShaderEvidenceParitySelfTest(const String& report_path = String())
 {
 	VsmImageBuffer source;
 	source.Create(16, 5, 1);
@@ -300,6 +300,22 @@ static int RunShaderEvidenceParitySelfTest()
 			Cerr() << "shader-evidence-parity-selftest ERROR json-record=" << i << "\n";
 			return 1;
 		}
+	}
+	if(!report_path.IsEmpty()) {
+		RealizeDirectory(GetFileFolder(report_path));
+		String html = "<!doctype html><meta charset=\"utf-8\"><title>Live/sidecar parity</title>\n"
+		              "<h1>Shared live/sidecar evidence parity</h1>"
+		              "<p>Both paths use the same source-window packing and evidence adapter.</p>"
+		              "<table><tr><th>window</th><th>live</th><th>sidecar2</th><th>timestamp_ms</th><th>runs</th></tr>\n";
+		for(int i = 0; i < live.GetCount(); i++)
+			html << "<tr><td>" << live[i].window << "</td><td>"
+			      << StoreAsJson(live[i], false) << "</td><td>"
+			      << StoreAsJson(sidecar2[i], false) << "</td><td>"
+			      << live[i].timestamp_ms << "</td><td>" << live[i].runs
+			      << "</td></tr>\n";
+		html << "</table><p>status=pass windows=" << live.GetCount() << "</p>\n";
+		SaveFile(report_path, html);
+		Cout() << "shader-evidence-parity-report path=" << report_path << " status=pass\n";
 	}
 	Cout() << "shader-evidence-parity-selftest status=pass windows=" << live.GetCount() << "\n";
 	return 0;
@@ -6729,6 +6745,7 @@ int RunVideoLiveRecognitionLoopCommand(const Vector<String>& args)
 	String shader_stage_manifest, shader_stage_crop_map;
 	String shader_backend = "cpu-reference";
 	String shader_evidence_jsonl;
+	String shader_parity_report;
 	int shader_frame_second = 0;
 	// Task 0286 Part B: approximate-hash OCR result cache, ON by default (this
 	// IS the optimization being delivered) -- see OcrCacheState's comment for
@@ -6771,6 +6788,8 @@ int RunVideoLiveRecognitionLoopCommand(const Vector<String>& args)
 		}
 		else if(args[i] == "--shader-evidence-jsonl" && i + 1 < args.GetCount())
 			shader_evidence_jsonl = args[++i];
+		else if(args[i] == "--shader-evidence-parity-report" && i + 1 < args.GetCount())
+			shader_parity_report = args[++i];
 		else if(args[i] == "--shader-backend" && i + 1 < args.GetCount())
 			shader_backend = ToLower(args[++i]);
 		else if(args[i] == "--offline-frames" && i + 1 < args.GetCount()) { mode = "offline"; frames_dir = args[++i]; }
@@ -6856,6 +6875,7 @@ int RunVideoLiveRecognitionLoopCommand(const Vector<String>& args)
 		       << "  --shader-evidence-selftest Shared two-window shader evidence adapter selftest\n"
 		       << "  --shader-evidence-jsonl-selftest Validate JSONL observation round-trip\n"
 		       << "  --shader-evidence-parity-selftest Validate live/sidecar2 parity\n"
+		       << "  --shader-evidence-parity-report <path> Write parity HTML report\n"
 		       << "  --shader-evidence-frame <manifest> <crop-map> Decode one MP4 frame and print L/R shader evidence\n"
 		       << "  --shader-evidence-frame-config <json> Decode using video/manifest/crop_map descriptor\n"
 		       << "  --shader-evidence-stage <manifest> <crop-map> Enable shared optional stage for live/sidecar2\n"
@@ -6992,7 +7012,7 @@ int RunVideoLiveRecognitionLoopCommand(const Vector<String>& args)
 	if(mode == "selftest") rc = RunClassifySelfTest(dataset);
 	else if(mode == "shader-evidence") rc = RunShaderEvidenceSelfTest();
 	else if(mode == "shader-evidence-jsonl") rc = RunShaderEvidenceJsonlSelfTest();
-	else if(mode == "shader-evidence-parity") rc = RunShaderEvidenceParitySelfTest();
+	else if(mode == "shader-evidence-parity") rc = RunShaderEvidenceParitySelfTest(shader_parity_report);
 	else if(mode == "shader-evidence-frame") rc = RunShaderEvidenceFrame(video_path, shader_manifest,
 	                                                                     shader_crop_map, shader_frame_second);
 	else if(mode == "shader-evidence-frame-config") rc = RunShaderEvidenceFrameConfig(shader_frame_config);

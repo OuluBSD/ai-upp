@@ -24,15 +24,16 @@ static bool IsPng(const String& path)
 static void DiscoverTemplates(const String& root, const String& directory,
 	                          const String& inherited_scale, Vector<SourceTemplate>& out)
 {
+	String directory_name = ToLower(GetFileName(directory));
+	if(directory != root && directory_name != "ranks" && directory_name != "suits")
+		return;
 	FindFile ff(AppendFileName(directory, "*"));
 	while(ff) {
 		String path = ff.GetPath();
 		if(ff.IsFolder()) {
 			String name = ToLower(GetFileName(path));
-			String scale = inherited_scale;
 			if(name == "ranks" || name == "suits")
-				scale = directory == root ? "board" : "hand";
-			DiscoverTemplates(root, path, scale, out);
+				DiscoverTemplates(root, path, "board", out);
 		}
 		else if(IsPng(path)) {
 			String parent = ToLower(GetFileName(GetFileFolder(path)));
@@ -49,11 +50,33 @@ static void DiscoverTemplates(const String& root, const String& directory,
 			SourceTemplate& item = out.Add();
 			item.path = path;
 			item.kind = parent == "ranks" ? "rank" : "suit";
-			item.scale = inherited_scale.IsEmpty() ? "board" : inherited_scale;
+			item.scale = "board";
 			item.symbol = GetFileTitle(path);
 			item.image = image;
 		}
 		ff.Next();
+	}
+}
+
+static void AddHandScaleTemplates(Vector<SourceTemplate>& source)
+{
+	int board_count = source.GetCount();
+	for(int i = 0; i < board_count; i++) {
+		SourceTemplate board = source[i];
+		SourceTemplate& hand = source.Add();
+		hand.path = board.path + " [hand-scale]";
+		hand.kind = board.kind;
+		hand.scale = "hand";
+		hand.symbol = board.symbol;
+		int target_width = board.kind == "rank"
+			? max(1, (board.image.GetWidth() * 24 + board.image.GetHeight() / 2) /
+			        board.image.GetHeight())
+			: 14;
+		int target_height = board.kind == "rank"
+			? 24
+			: max(1, (board.image.GetHeight() * target_width + board.image.GetWidth() / 2) /
+			        board.image.GetWidth());
+		hand.image = Rescale(board.image, Size(target_width, target_height));
 	}
 }
 
@@ -116,6 +139,7 @@ static bool PackAtlas(const String& root, const String& atlas_path,
 		COUTLOG(Format("amp_atlas_pack=fail root=%s reason=no-templates", ~root));
 		return false;
 	}
+	AddHandScaleTemplates(source);
 
 	Index<String> identities;
 	int width = 1024;

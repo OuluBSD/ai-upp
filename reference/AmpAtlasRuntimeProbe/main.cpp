@@ -313,7 +313,8 @@ static void Outline(ImageBuffer& image, int x, int y, int width, int height, Col
 
 static bool SaveFrameEvidence(const String& report_path,
 	                           const AmpTemplatePixelBuffer& frame,
-                           const AmpTemplateAtlasManifest& manifest,
+	                           const AmpTemplatePixelBuffer& atlas,
+	                           const AmpTemplateAtlasManifest& manifest,
                            const AmpTemplateMatchResult& result,
                            const String& backend, int threshold,
                            const String& frame_source, const String& scope,
@@ -329,15 +330,25 @@ static bool SaveFrameEvidence(const String& report_path,
 	RealizeDirectory(folder);
 	String input_name = "frame_input_rgb.png";
 	String gray_name = "frame_input_gray.png";
+	String otsu_name = "frame_input_otsu.png";
+	String atlas_name = "atlas_input_rgb.png";
+	String atlas_gray_name = "atlas_input_gray.png";
+	String atlas_otsu_name = "atlas_input_otsu.png";
 	String overlay_name = "frame_matches.png";
 	String input_path = AppendFileName(folder, input_name);
 	String overlay_path = AppendFileName(folder, overlay_name);
 	Image input = MakeRgbImage(frame.rgb, frame.width, frame.height);
 	Image gray = MakeGrayImage(frame.gray, frame.width, frame.height);
 	Image otsu = MakeGrayImage(frame.otsu, frame.width, frame.height);
+	Image atlas_input = MakeRgbImage(atlas.rgb, atlas.width, atlas.height);
+	Image atlas_gray_input = MakeGrayImage(atlas.gray, atlas.width, atlas.height);
+	Image atlas_otsu_input = MakeGrayImage(atlas.otsu, atlas.width, atlas.height);
 	if(!PNGEncoder().SaveFile(input_path, input) ||
 	   !PNGEncoder().SaveFile(AppendFileName(folder, gray_name), gray) ||
-	   !PNGEncoder().SaveFile(AppendFileName(folder, "frame_input_otsu.png"), otsu))
+	   !PNGEncoder().SaveFile(AppendFileName(folder, otsu_name), otsu) ||
+	   !PNGEncoder().SaveFile(AppendFileName(folder, atlas_name), atlas_input) ||
+	   !PNGEncoder().SaveFile(AppendFileName(folder, atlas_gray_name), atlas_gray_input) ||
+	   !PNGEncoder().SaveFile(AppendFileName(folder, atlas_otsu_name), atlas_otsu_input))
 		return false;
 	ImageBuffer overlay(input);
 	for(const AmpTemplateMatchHit& hit : result.entries) {
@@ -358,7 +369,11 @@ static bool SaveFrameEvidence(const String& report_path,
 	      << " scope=" << EscapeHtml(scope) << "</p>\n"
 	      << "<p><img src=\"" << input_name << "\" alt=\"RGB input frame\"></p>\n"
 	      << "<p><img src=\"" << gray_name << "\" alt=\"grayscale input frame\"></p>\n"
-	      << "<p><img src=\"frame_input_otsu.png\" alt=\"Otsu input frame\"></p>\n"
+	      << "<p><img src=\"" << otsu_name << "\" alt=\"Otsu input frame\"></p>\n"
+	      << "<h2>Atlas inputs</h2>\n"
+	      << "<p><img src=\"" << atlas_name << "\" alt=\"RGB atlas input\"></p>\n"
+	      << "<p><img src=\"" << atlas_gray_name << "\" alt=\"grayscale atlas input\"></p>\n"
+	      << "<p><img src=\"" << atlas_otsu_name << "\" alt=\"Otsu atlas input\"></p>\n"
 	      << "<p><img src=\"" << overlay_name << "\" alt=\"match overlay\"></p>\n"
 	      << "<table><tr><th>id</th><th>preprocessing</th><th>accepted</th>"
 	      << "<th>score</th><th>x</th><th>y</th></tr>\n";
@@ -416,16 +431,16 @@ static bool RunFrameSelftest(const Vector<int>& atlas_pixels,
 	int frame_height = input_image.IsEmpty() ? max(first.height, second.height) + 2 : input_image.GetHeight();
 	Image synthetic_frame;
 	if(input_image.IsEmpty()) {
-		Vector<int> synthetic(frame_width * frame_height, 0);
+		ImageBuffer synthetic_buffer(frame_width, frame_height);
 		for(int y = 0; y < first.height; y++)
 			for(int x = 0; x < first.width; x++)
-				synthetic[(y + 1) * frame_width + x + 1] =
-					atlas_pixels[(first.y + y) * manifest.atlas_width + first.x + x];
+				synthetic_buffer[y + 1][x + 1] =
+					atlas_image[first.y + y][first.x + x];
 		for(int y = 0; y < second.height; y++)
 			for(int x = 0; x < second.width; x++)
-				synthetic[(y + 1) * frame_width + x + first.width + 2] =
-					atlas_pixels[(second.y + y) * manifest.atlas_width + second.x + x];
-		synthetic_frame = MakeGrayImage(synthetic, frame_width, frame_height);
+				synthetic_buffer[y + 1][x + first.width + 2] =
+					atlas_image[second.y + y][second.x + x];
+		synthetic_frame = Image(synthetic_buffer);
 	}
 	AmpTemplatePixelBuffer frame_pixels, atlas_pixels_dual;
 	if(!BuildAmpPixelBuffer(input_image.IsEmpty() ? synthetic_frame : input_image,
@@ -477,7 +492,7 @@ static bool RunFrameSelftest(const Vector<int>& atlas_pixels,
 	backend = "compat-cpu";
 #endif
 	int64 report_ms = 0;
-	if(!SaveFrameEvidence(report_path, frame_pixels, manifest,
+	if(!SaveFrameEvidence(report_path, frame_pixels, atlas_pixels_dual, manifest,
 	                      result, backend, threshold, frame_source,
 	                      scope,
                       cpu_ms, amp_ms, equal, report_ms)) {

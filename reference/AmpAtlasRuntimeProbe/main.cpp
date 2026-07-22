@@ -243,6 +243,22 @@ static Image MakeGrayImage(const Vector<int>& pixels, int width, int height)
 	return Image(buffer);
 }
 
+static Image MakeRgbImage(const Vector<int>& pixels, int width, int height)
+{
+	ImageBuffer buffer(width, height);
+	for(int y = 0; y < height; y++) {
+		RGBA* row = buffer[y];
+		for(int x = 0; x < width; x++) {
+			int value = pixels[y * width + x];
+			row[x].r = AmpRgbRed(value);
+			row[x].g = AmpRgbGreen(value);
+			row[x].b = AmpRgbBlue(value);
+			row[x].a = 255;
+		}
+	}
+	return Image(buffer);
+}
+
 static void Outline(ImageBuffer& image, int x, int y, int width, int height, Color color)
 {
 	for(int xx = x; xx < x + width; xx++) {
@@ -261,9 +277,9 @@ static void Outline(ImageBuffer& image, int x, int y, int width, int height, Col
 	}
 }
 
-static bool SaveFrameEvidence(const String& report_path, const Vector<int>& frame,
-	                           int frame_width, int frame_height,
-	                           const AmpTemplateAtlasManifest& manifest,
+static bool SaveFrameEvidence(const String& report_path,
+	                           const AmpTemplatePixelBuffer& frame,
+                           const AmpTemplateAtlasManifest& manifest,
                            const AmpTemplateMatchResult& result,
                            const String& backend, int threshold,
                            const String& frame_source, const String& scope,
@@ -277,12 +293,15 @@ static bool SaveFrameEvidence(const String& report_path, const Vector<int>& fram
 	}
 	String folder = GetFileFolder(report_path);
 	RealizeDirectory(folder);
-	String input_name = "frame_input.png";
+	String input_name = "frame_input_rgb.png";
+	String gray_name = "frame_input_gray.png";
 	String overlay_name = "frame_matches.png";
 	String input_path = AppendFileName(folder, input_name);
 	String overlay_path = AppendFileName(folder, overlay_name);
-	Image input = MakeGrayImage(frame, frame_width, frame_height);
-	if(!PNGEncoder().SaveFile(input_path, input))
+	Image input = MakeRgbImage(frame.rgb, frame.width, frame.height);
+	Image gray = MakeGrayImage(frame.gray, frame.width, frame.height);
+	if(!PNGEncoder().SaveFile(input_path, input) ||
+	   !PNGEncoder().SaveFile(AppendFileName(folder, gray_name), gray))
 		return false;
 	ImageBuffer overlay(input);
 	for(const AmpTemplateMatchHit& hit : result.entries) {
@@ -301,12 +320,15 @@ static bool SaveFrameEvidence(const String& report_path, const Vector<int>& fram
 	      << " reference_match=" << (equal ? "pass" : "fail")
 	      << " source=" << EscapeHtml(frame_source)
 	      << " scope=" << EscapeHtml(scope) << "</p>\n"
-	      << "<p><img src=\"" << input_name << "\" alt=\"input frame\"></p>\n"
+	      << "<p><img src=\"" << input_name << "\" alt=\"RGB input frame\"></p>\n"
+	      << "<p><img src=\"" << gray_name << "\" alt=\"grayscale input frame\"></p>\n"
 	      << "<p><img src=\"" << overlay_name << "\" alt=\"match overlay\"></p>\n"
-	      << "<table><tr><th>id</th><th>accepted</th><th>score</th><th>x</th><th>y</th></tr>\n";
+	      << "<table><tr><th>id</th><th>preprocessing</th><th>accepted</th>"
+	      << "<th>score</th><th>x</th><th>y</th></tr>\n";
 	for(const AmpTemplateMatchHit& hit : result.entries)
 		html << "<tr><td>" << EscapeHtml(hit.id) << "</td><td>"
-		      << (hit.accepted ? "yes" : "no") << "</td><td>" << hit.score
+		      << EscapeHtml(manifest.entries[hit.entry_index].preprocessing)
+		      << "</td><td>" << (hit.accepted ? "yes" : "no") << "</td><td>" << hit.score
 		      << "</td><td>" << hit.x << "</td><td>" << hit.y << "</td></tr>\n";
 	int64 report_elapsed_ms = msecs() - started;
 	if(report_elapsed_ms < 1)
@@ -316,6 +338,19 @@ static bool SaveFrameEvidence(const String& report_path, const Vector<int>& fram
 	      << " checksum=" << result.checksum << "</p>\n"
 	      << "<p>cpu_ms=" << cpu_ms << " amp_ms=" << amp_ms
 	      << " report_ms=" << report_elapsed_ms << "</p>\n";
+	int rgb_count = 0, gray_count = 0, otsu_count = 0;
+	for(const AmpTemplateAtlasEntry& entry : manifest.entries) {
+		AmpTemplatePreprocessing mode;
+		String mode_error;
+		if(ParseAmpTemplatePreprocessing(entry.preprocessing, mode, mode_error)) {
+			if(mode == AMP_TEMPLATE_RGB) rgb_count++;
+			else if(mode == AMP_TEMPLATE_OTSU) otsu_count++;
+			else gray_count++;
+		}
+	}
+	html << "<p>preprocessing_rgb=" << rgb_count << " preprocessing_gray=" << gray_count
+	     << " preprocessing_otsu=" << otsu_count
+	     << " (otsu is reserved until threshold evidence enables it)</p>\n";
 	if(!SaveFile(report_path, html))
 		return false;
 	report_ms = msecs() - started;
@@ -325,6 +360,7 @@ static bool SaveFrameEvidence(const String& report_path, const Vector<int>& fram
 }
 
 static bool RunFrameSelftest(const Vector<int>& atlas_pixels,
+	                           const Image& atlas_image,
 	                           const AmpTemplateAtlasManifest& manifest,
 	                           int threshold, const String& inventory_path,
 	                           int device_index, const String& report_path,
@@ -338,26 +374,30 @@ static bool RunFrameSelftest(const Vector<int>& atlas_pixels,
 	String error;
 	int frame_width = input_image.IsEmpty() ? first.width + second.width + 4 : input_image.GetWidth();
 	int frame_height = input_image.IsEmpty() ? max(first.height, second.height) + 2 : input_image.GetHeight();
-	Vector<int> frame;
+	Image synthetic_frame;
 	if(input_image.IsEmpty()) {
-		frame.SetCount(frame_width * frame_height, 0);
+		Vector<int> synthetic(frame_width * frame_height, 0);
 		for(int y = 0; y < first.height; y++)
 			for(int x = 0; x < first.width; x++)
-				frame[(y + 1) * frame_width + x + 1] =
+				synthetic[(y + 1) * frame_width + x + 1] =
 					atlas_pixels[(first.y + y) * manifest.atlas_width + first.x + x];
 		for(int y = 0; y < second.height; y++)
 			for(int x = 0; x < second.width; x++)
-				frame[(y + 1) * frame_width + x + first.width + 2] =
+				synthetic[(y + 1) * frame_width + x + first.width + 2] =
 					atlas_pixels[(second.y + y) * manifest.atlas_width + second.x + x];
+		synthetic_frame = MakeGrayImage(synthetic, frame_width, frame_height);
 	}
-	else if(!BuildAmpGrayFrame(input_image, frame, error)) {
+	AmpTemplatePixelBuffer frame_pixels, atlas_pixels_dual;
+	if(!BuildAmpPixelBuffer(input_image.IsEmpty() ? synthetic_frame : input_image,
+	                        frame_pixels, error) ||
+	   !BuildAmpPixelBuffer(atlas_image, atlas_pixels_dual, error)) {
 		COUTLOG(Format("amp_frame_input=fail error=%s", ~error));
 		return false;
 	}
 	AmpTemplateMatchResult result, reference;
 	int64 cpu_started = msecs();
-	if(!MatchAmpTemplatesCpu(frame, frame_width, frame_height, atlas_pixels,
-	                         manifest, threshold, reference, error)) {
+	if(!MatchAmpTemplatePixelsCpu(frame_pixels, atlas_pixels_dual, manifest,
+	                              threshold, reference, error)) {
 		COUTLOG(Format("amp_frame_selftest=fail error=%s", ~error));
 		return false;
 	}
@@ -374,8 +414,8 @@ static bool RunFrameSelftest(const Vector<int>& atlas_pixels,
 	device_path = selected.device_path;
 #endif
 	int64 amp_started = msecs();
-	if(!MatchAmpTemplatesAmp(frame, frame_width, frame_height, atlas_pixels,
-	                         manifest, threshold, device_path, result, error)) {
+	if(!MatchAmpTemplatePixelsAmp(frame_pixels, atlas_pixels_dual, manifest,
+	                              threshold, device_path, result, error)) {
 		COUTLOG(Format("amp_frame_selftest=fail kernel=%s", ~error));
 		return false;
 	}
@@ -397,7 +437,7 @@ static bool RunFrameSelftest(const Vector<int>& atlas_pixels,
 	backend = "compat-cpu";
 #endif
 	int64 report_ms = 0;
-	if(!SaveFrameEvidence(report_path, frame, frame_width, frame_height, manifest,
+	if(!SaveFrameEvidence(report_path, frame_pixels, manifest,
 	                      result, backend, threshold, frame_source,
 	                      scope,
                       cpu_ms, amp_ms, equal, report_ms)) {
@@ -535,7 +575,7 @@ int RunAmpAtlasRuntimeProbe()
 		scope << "/" << (match_kind.IsEmpty() ? "all" : match_kind);
 		COUTLOG(Format("amp_frame_scope=pass scope=%s entries=%d",
 		               ~scope, match_manifest.entries.GetCount()));
-		if(!RunFrameSelftest(atlas_pixels, match_manifest, threshold, inventory_path,
+		if(!RunFrameSelftest(atlas_pixels, atlas, match_manifest, threshold, inventory_path,
 		                     device_index, frame_report_path, frame_image,
 	                     frame_path.IsEmpty() ? "synthetic-fixture" : frame_path,
 	                     scope))

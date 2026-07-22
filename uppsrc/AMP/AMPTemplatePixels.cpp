@@ -50,7 +50,7 @@ bool ParseAmpTemplatePreprocessing(const String& name,
 	                               String& error)
 {
 	String value = ToLower(TrimBoth(name));
-	if(value == "rgb") {
+	if(value == "rgb" || value == "color") {
 		mode = AMP_TEMPLATE_RGB;
 		return true;
 	}
